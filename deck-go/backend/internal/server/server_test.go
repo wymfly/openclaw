@@ -1454,6 +1454,9 @@ func TestCorsPreflight_AllowsStreamResumeHeader(t *testing.T) {
 	if !strings.Contains(strings.ToLower(allowHeaders), "last-event-id") {
 		t.Fatalf("Last-Event-ID not allowed in CORS headers: %q", allowHeaders)
 	}
+	if !strings.Contains(strings.ToLower(allowHeaders), "x-request-id") {
+		t.Fatalf("X-Request-Id not allowed in CORS headers: %q", allowHeaders)
+	}
 }
 
 func TestRuntimeGatewayRoutes_ExposeReadOnlyStatus(t *testing.T) {

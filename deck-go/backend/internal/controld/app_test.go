@@ -181,6 +181,9 @@ func TestNewHandlerWithDependencies_CorsAllowsStreamResumeHeader(t *testing.T) {
 	if !strings.Contains(strings.ToLower(allowHeaders), "last-event-id") {
 		t.Fatalf("Last-Event-ID not allowed in CORS headers: %q", allowHeaders)
 	}
+	if !strings.Contains(strings.ToLower(allowHeaders), "x-request-id") {
+		t.Fatalf("X-Request-Id not allowed in CORS headers: %q", allowHeaders)
+	}
 }
 
 func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.T) {
@@ -278,6 +281,30 @@ func TestRemoteModeEndpointUpdateRoutesChatThroughRemoteGateway(t *testing.T) {
 	if updateRes.status != http.StatusOK {
 		t.Fatalf("endpoint update status = %d body=%s", updateRes.status, updateRes.body)
 	}
+	runtimesRes := doJSONRequest(t, http.MethodGet, server.URL+"/api/v1/runtimes", "admin-token", nil)
+	if runtimesRes.status != http.StatusOK {
+		t.Fatalf("runtimes status = %d body=%s", runtimesRes.status, runtimesRes.body)
+	}
+	var runtimesBody struct {
+		Runtimes []struct {
+			Managed    bool   `json:"managed"`
+			Configured bool   `json:"configured"`
+			Status     string `json:"status"`
+			Health     string `json:"health"`
+			GatewayURL string `json:"gatewayUrl"`
+			AutoStart  bool   `json:"autoStart"`
+		} `json:"runtimes"`
+	}
+	if err := json.Unmarshal(runtimesRes.body, &runtimesBody); err != nil {
+		t.Fatal(err)
+	}
+	if len(runtimesBody.Runtimes) != 1 {
+		t.Fatalf("unexpected runtimes body: %s", runtimesRes.body)
+	}
+	runtimeSummary := runtimesBody.Runtimes[0]
+	if runtimeSummary.Managed || !runtimeSummary.Configured || runtimeSummary.Status != "running" || runtimeSummary.Health != "healthy" || runtimeSummary.GatewayURL != gateway.URL || runtimeSummary.AutoStart {
+		t.Fatalf("remote runtime summary used local supervisor state: %#v raw=%s", runtimeSummary, runtimesRes.body)
+	}
 
 	createRes := doJSONRequest(t, http.MethodPost, server.URL+"/api/chat/sessions/create", "admin-token", map[string]any{
 		"message": "hello",
@@ -313,7 +340,7 @@ func TestRemoteModeEndpointUpdateRoutesChatThroughRemoteGateway(t *testing.T) {
 	if sendBody.RunID != "run:mock:2" || sendBody.Status != "started" {
 		t.Fatalf("unexpected chat send body: %#v raw=%s", sendBody, sendRes.body)
 	}
-	gateway.assertMethods(t, "connect", "gateway.describe", "connect", "sessions.create", "connect", "sessions.send")
+	gateway.assertMethods(t, "connect", "gateway.describe", "connect", "gateway.describe", "connect", "sessions.create", "connect", "sessions.send")
 }
 
 func TestRemoteModeBadPersistedEndpointBlocksPassthroughUntilRepair(t *testing.T) {

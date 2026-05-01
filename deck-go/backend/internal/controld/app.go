@@ -22,6 +22,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
+	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/remote"
 	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/server"
@@ -195,7 +196,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set(
 				"Access-Control-Allow-Headers",
-				"Authorization, Content-Type, Last-Event-ID, x-deck-token",
+				"Authorization, Content-Type, Last-Event-ID, x-deck-token, X-Request-Id",
 			)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
 			if req.Method == http.MethodOptions {
@@ -236,9 +237,13 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 			managed,
 			managed,
 		)
+		runtimeQueries := httpapi.RuntimeQueryProvider(registry)
+		if deps.RuntimeFacade != nil {
+			runtimeQueries = runtimeSummaryOverride{base: registry, runtime: deps.RuntimeFacade}
+		}
 		httpapi.MountRoutes(
 			api,
-			registry,
+			runtimeQueries,
 			managed.SessionQueries(),
 			managed,
 			managed,
@@ -260,6 +265,66 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 
 	root.Mount("/", server.NewRootHandlerWithRuntimeFacade(deps.Store, managed, deps.RuntimeFacade))
 	return root
+}
+
+type runtimeSummaryOverride struct {
+	base    httpapi.RuntimeQueryProvider
+	runtime facade.RuntimeFacade
+}
+
+func (p runtimeSummaryOverride) ListRuntimes(ctx context.Context) ([]runtimeregistry.RuntimeSummary, error) {
+	items, err := p.base.ListRuntimes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for index := range items {
+		items[index] = p.apply(ctx, items[index])
+	}
+	return items, nil
+}
+
+func (p runtimeSummaryOverride) GetRuntime(ctx context.Context, runtimeID string) (runtimeregistry.RuntimeSummary, bool, error) {
+	item, ok, err := p.base.GetRuntime(ctx, runtimeID)
+	if err != nil || !ok {
+		return item, ok, err
+	}
+	return p.apply(ctx, item), true, nil
+}
+
+func (p runtimeSummaryOverride) apply(ctx context.Context, item runtimeregistry.RuntimeSummary) runtimeregistry.RuntimeSummary {
+	if p.runtime == nil {
+		return item
+	}
+	caps, err := p.runtime.Capabilities(ctx)
+	if err != nil || caps.Mode != string(envconf.ModeRemote) {
+		return item
+	}
+	item.Managed = false
+	item.Configured = caps.Configured
+	item.AutoStart = false
+	status, err := p.runtime.RuntimeGatewayStatus(ctx)
+	if err != nil {
+		item.Status = "failed"
+		item.Health = "unhealthy"
+		lastError := err.Error()
+		item.LastError = &lastError
+		return item
+	}
+	if status.Status != "" {
+		item.Status = status.Status
+	}
+	if status.Health != "" {
+		item.Health = status.Health
+	}
+	if strings.TrimSpace(status.GatewayURL) != "" {
+		item.GatewayURL = &status.GatewayURL
+	}
+	if status.LastError != nil && strings.TrimSpace(*status.LastError) != "" {
+		item.LastError = status.LastError
+	} else {
+		item.LastError = nil
+	}
+	return item
 }
 
 func ResolveDeckStatePath() string {

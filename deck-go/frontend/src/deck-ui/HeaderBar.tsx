@@ -27,8 +27,11 @@ export function DeckHeaderBar() {
   const { isMobile } = useDeckViewport();
   const { capabilities } = useCapabilities();
   const entry = findPanel(activePanel);
-  const gatewayConnected = bootstrap?.gateway.connected ?? false;
   const runtimeStatus = runtime?.runtime.status ?? bootstrap?.runtime.status;
+  const remoteRuntime = runtime?.runtime.mode === "remote" ? runtime.runtime : null;
+  const gatewayConnected = Boolean(
+    bootstrap?.gateway.connected || (remoteRuntime?.lastConnectedAt && !remoteRuntime.lastError),
+  );
   const statusKind = gatewayConnected
     ? "connected"
     : refreshingSummary ||

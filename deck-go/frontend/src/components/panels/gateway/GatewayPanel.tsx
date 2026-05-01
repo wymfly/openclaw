@@ -192,6 +192,9 @@ export function GatewayPanel() {
   const runtimeOwnership = bundledRuntime?.ownershipState || "none";
   const restartAttempts = bundledRuntime?.restartAttempts ?? 0;
   const gatewayUrl = runtimePayload?.gatewayUrl || t("runtime.notResolved");
+  const gatewayConnected =
+    bootstrap?.gateway.connected ||
+    (remoteRuntime?.lastConnectedAt != null && !remoteRuntime.lastError);
   const healthChannelCount = countRecordEntries(healthResponse?.channels);
   const statusChannelCount = countRecordEntries(statusResponse?.channels);
   const selectedRun = monitorRuns.find((run) => run.runId === selectedRunId) ?? null;
@@ -244,8 +247,7 @@ export function GatewayPanel() {
                 {t("runtime.health")} {runtimeHealth}
               </span>
               <span className="deckgo-pill">
-                {t("runtime.gateway")}{" "}
-                {bootstrap?.gateway.connected ? t("connected") : t("runtime.pending")}
+                {t("runtime.gateway")} {gatewayConnected ? t("connected") : t("runtime.pending")}
               </span>
               <span className="deckgo-pill">
                 {t("runtime.refreshState")}{" "}

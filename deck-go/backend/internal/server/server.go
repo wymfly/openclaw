@@ -47,7 +47,7 @@ func NewRootHandlerWithRuntimeFacade(
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set(
 				"Access-Control-Allow-Headers",
-				"Authorization, Content-Type, Last-Event-ID, x-deck-token",
+				"Authorization, Content-Type, Last-Event-ID, x-deck-token, X-Request-Id",
 			)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
 			if req.Method == http.MethodOptions {

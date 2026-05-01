@@ -95,6 +95,10 @@ type StreamEvent struct {
 
 type RuntimeStatus struct {
 	Mode            string  `json:"mode"`
+	Configured      bool    `json:"configured,omitempty"`
+	Status          string  `json:"status,omitempty"`
+	Health          string  `json:"health,omitempty"`
+	GatewayURL      string  `json:"gatewayUrl,omitempty"`
 	PID             *int    `json:"pid,omitempty"`
 	OwnershipState  string  `json:"ownershipState,omitempty"`
 	RestartAttempts int     `json:"restartAttempts,omitempty"`

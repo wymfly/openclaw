@@ -150,13 +150,34 @@ func (f *Facade) RuntimeGatewayStatus(context.Context) (facade.RuntimeStatus, er
 	lastError := snapshot.LastError
 	latencyP50 := 0
 	tlsVerified := endpoint.TLSVerify
+	status, health := remoteLifecycle(snapshot.Status, lastError)
 	return facade.RuntimeStatus{
 		Mode:            string(envconf.ModeRemote),
+		Configured:      true,
+		Status:          status,
+		Health:          health,
+		GatewayURL:      endpoint.URL,
 		LastConnectedAt: &lastConnectedAt,
 		LastError:       &lastError,
 		LatencyP50:      &latencyP50,
 		TLSVerified:     &tlsVerified,
 	}, nil
+}
+
+func remoteLifecycle(status RemoteConnectionStatus, lastError string) (string, string) {
+	switch status {
+	case RemoteConnectionConnected:
+		return "running", "healthy"
+	case RemoteConnectionConnecting:
+		return "starting", "unknown"
+	case RemoteConnectionError:
+		return "failed", "unhealthy"
+	default:
+		if strings.TrimSpace(lastError) != "" {
+			return "failed", "unhealthy"
+		}
+		return "stopped", "unknown"
+	}
 }
 
 func (f *Facade) Start(context.Context) (facade.RuntimeStatus, error) {

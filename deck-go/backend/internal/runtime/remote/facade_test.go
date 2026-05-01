@@ -65,6 +65,9 @@ func TestRuntimeGatewayStatusUsesRemoteFieldShape(t *testing.T) {
 	if status.Mode != "remote" || status.PID != nil {
 		t.Fatalf("unexpected status shape: %#v", status)
 	}
+	if !status.Configured || status.Status != "stopped" || status.Health != "unknown" || status.GatewayURL != "https://gateway.example.test" {
+		t.Fatalf("remote status omitted lifecycle fields: %#v", status)
+	}
 	if status.LastConnectedAt == nil || status.LastError == nil || status.LatencyP50 == nil || status.TLSVerified == nil {
 		t.Fatalf("remote status omitted remote fields: %#v", status)
 	}
@@ -97,6 +100,13 @@ func TestUpdateRemoteEndpointPersistsCompleteEndpoint(t *testing.T) {
 	}
 	if state.Remote == nil || state.Remote.URL != "https://gateway.example.test" || state.Remote.Token != "token-1" || state.Remote.TLSVerify {
 		t.Fatalf("unexpected persisted state: %#v", state.Remote)
+	}
+	status, err := rt.RuntimeGatewayStatus(context.Background())
+	if err != nil {
+		t.Fatalf("RuntimeGatewayStatus() error = %v", err)
+	}
+	if status.Status != "running" || status.Health != "healthy" || status.GatewayURL != "https://gateway.example.test" {
+		t.Fatalf("connected endpoint did not project healthy runtime status: %#v", status)
 	}
 }
 

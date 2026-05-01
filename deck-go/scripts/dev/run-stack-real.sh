@@ -89,7 +89,7 @@ load_env() {
   fi
 
   : "${RUNTIME_BUNDLED_COMMAND:=pnpm}"
-  : "${RUNTIME_BUNDLED_ARGS:=openclaw gateway run --bind loopback --port 18789}"
+  : "${RUNTIME_BUNDLED_ARGS:=openclaw gateway run --bind loopback --port 18789 --allow-unconfigured}"
   : "${RUNTIME_BUNDLED_WORKDIR:=${REPO_ROOT}}"
   : "${RUNTIME_BUNDLED_BIND_HOST:=127.0.0.1}"
   : "${RUNTIME_BUNDLED_BIND_PORT:=18789}"
