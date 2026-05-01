@@ -1,6 +1,6 @@
 # frontend/ — Real Engineering Workspace ⚠️ FROZEN
 
-> **⚠️ 此目录已冻结（2026-05-01，protocol-v1）。新工作请转到 [`../frontend-new/CLAUDE.md`](../frontend-new/CLAUDE.md)。**
+> **⚠️ 此目录已冻结（2026-05-01，protocol-v1）。新工作请转到 [`../frontend-new/CLAUDE.md`](../frontend-new/CLAUDE.md)，那里已 scaffolded 完整 design system canonical（tokens · 36 atoms · 5 hooks · Gallery）。**
 >
 > 本目录保留可运行状态：包含 chat 模块 pilot 工程代码、36 atoms canonical、44 个 `--ds-*` token、5 hooks——这些会在 `deck-go-frontend-new-scaffold` 和 `deck-go-chat-protocol-pilot` 两个 OpenSpec change 中物理迁移到 `../frontend-new/`。
 >

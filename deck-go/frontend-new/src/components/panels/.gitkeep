@@ -1,0 +1,6 @@
+# panels/
+
+This directory will receive business-module panels migrated through the
+double-agent handoff protocol (`../../../../frontend-handoff/CLAUDE.md`).
+
+First module to land: `chat/` via OpenSpec change `deck-go-chat-protocol-pilot`.

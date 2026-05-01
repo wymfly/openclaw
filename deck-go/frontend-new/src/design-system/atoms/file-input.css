@@ -1,0 +1,41 @@
+.ds-file-input {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  padding: 0 var(--ds-sp-3);
+  height: var(--ds-row-h);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  cursor: pointer;
+}
+.ds-file-input:hover {
+  background: var(--ds-bg-hover);
+  color: var(--ds-text-1);
+}
+.ds-file-input:focus-within {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+.ds-file-input--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ds-file-input__visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ds-file-input__native {
+  font: inherit;
+  color: inherit;
+}

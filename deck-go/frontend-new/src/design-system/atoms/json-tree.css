@@ -1,0 +1,50 @@
+.ds-json {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: var(--ds-line);
+  color: var(--ds-text-1);
+  padding: var(--ds-sp-3);
+  background: var(--ds-code-bg);
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  overflow-x: auto;
+}
+.ds-json__null,
+.ds-json__primitive {
+  color: var(--ds-accent);
+}
+.ds-json__string {
+  color: var(--ds-success);
+}
+.ds-json__key {
+  color: var(--ds-text-2);
+}
+.ds-json__node {
+  display: inline-block;
+}
+.ds-json__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  background: transparent;
+  border: none;
+  color: var(--ds-text-2);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.ds-json__toggle:hover {
+  color: var(--ds-text-1);
+}
+.ds-json__toggle:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+.ds-json__summary {
+  color: var(--ds-text-3);
+}
+.ds-json__children {
+  padding-left: var(--ds-sp-5);
+  border-left: 1px solid var(--ds-border-subtle);
+  margin-top: 2px;
+}

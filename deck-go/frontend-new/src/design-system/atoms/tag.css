@@ -1,0 +1,13 @@
+.ds-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--ds-sp-2);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-3);
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

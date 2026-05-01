@@ -1,0 +1,34 @@
+.ds-drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  z-index: 100;
+}
+.ds-drawer-scrim > div {
+  margin-left: auto;
+  display: flex;
+}
+
+.ds-drawer {
+  position: relative;
+  background: var(--ds-bg-0);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  font-family: var(--ds-font-sans);
+  color: var(--ds-text-1);
+}
+.ds-drawer--right {
+  border-left: 1px solid var(--ds-border-subtle);
+}
+.ds-drawer--left {
+  border-right: 1px solid var(--ds-border-subtle);
+}
+.ds-drawer:focus {
+  outline: none;
+}
+.ds-drawer-scrim .ds-drawer {
+  box-shadow: var(--ds-shadow-lg);
+}

@@ -149,7 +149,11 @@ ship
 ## Status
 
 - **Protocol version**：`protocol-v1` (locked 2026-05-01)
-- **物理工程树**：⏳ 待 OpenSpec change `deck-go-frontend-new-scaffold` 落地（cp 工程基础 + 整体迁移 design system canonical）
+- **物理工程树**：✅ scaffolded（OpenSpec change `deck-go-frontend-new-scaffold` 已落地）
+  - 配置：Vite 7.1 / React 19.2 / TS 5.9 / vitest-axe 0.1，端口 5175 (dev) / 4175 (preview)
+  - DS 整体迁移：tokens（44 个 `--ds-*`）/ 36 atoms（扁平）/ 5 hooks / Gallery
+  - 验证全绿：tsc clean · vitest 240/240 · drift exit 0 · dev server 渲染正常 · `?dsGallery=1` 显示 8 大类全部 atom
+- **Tokens canonical**：✅ 本目录 `src/design-system/tokens/index.css`（已成为权威源；drift 脚本自动适配，与 `../frontend-handoff/design-system/tokens.css` 一致）
+- **占位 App**：本工作区当前渲染最小 placeholder，含 theme + density 切换 demo，等待业务模块迁入
 - **First module migration**：⏳ chat（待 OpenSpec change `deck-go-chat-protocol-pilot`）
-- **Tokens canonical**：当前位于老 `../frontend/src/design-system/tokens/index.css`，change 2 期间整体迁过来；drift 防护脚本 `../scripts/check-tokens-drift.sh` 自动适配（一旦本目录的 `src/design-system/tokens/index.css` 存在，自动改用本路径）
-- **24 legacy panel**：在老 `../frontend/src/components/panels/` 下；按协议化重做 pipeline 陆续迁入本目录
+- **24 legacy panel**：在老 `../frontend/src/components/panels/` 下；按协议化重做 pipeline 陆续迁入本目录的 `src/components/panels/`（当前空，仅 `.gitkeep` 占位）

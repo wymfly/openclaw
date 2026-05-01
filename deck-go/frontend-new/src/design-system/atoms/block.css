@@ -1,0 +1,127 @@
+.ds-block {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  overflow: hidden;
+  font-family: var(--ds-font-sans);
+  color: var(--ds-text-1);
+}
+.ds-block--accent {
+  border-color: var(--ds-accent-dim);
+}
+.ds-block--thinking {
+  background: var(--ds-bg-2);
+  border-style: dashed;
+}
+.ds-block--error {
+  border-color: var(--ds-error);
+}
+.ds-block--warn {
+  border-color: var(--ds-warn);
+}
+
+/* Role markers — semantic-only, no visual override. Consumers keep their
+ * existing per-component chrome (tool-pair.css, file-block.css, etc.); these
+ * tags let cross-cutting selectors target every block-shaped surface
+ * (e.g. transcript spacing, future axe rules, theming hooks). Mirrors
+ * bundle `.block` cascade pattern. See §10. */
+.ds-block--tool-use,
+.ds-block--tool-result,
+.ds-block--file,
+.ds-block--canvas,
+.ds-block--unknown {
+  /* intentionally empty — chrome owned by consumer */
+}
+
+.ds-block__head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  text-align: left;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
+.ds-block__head--static {
+  cursor: default;
+}
+.ds-block__head:hover:not(.ds-block__head--static) {
+  background: var(--ds-bg-hover);
+}
+.ds-block__head:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: -2px;
+}
+
+.ds-block--running .ds-block__head {
+  background: linear-gradient(
+    90deg,
+    var(--ds-bg-2),
+    var(--ds-accent-bg) 50%,
+    var(--ds-bg-2)
+  );
+  background-size: 200% 100%;
+  animation: ds-block-shimmer 2.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ds-block--running .ds-block__head {
+    animation: none;
+  }
+}
+@keyframes ds-block-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.ds-block__label {
+  font-weight: 500;
+  color: var(--ds-text-1);
+}
+.ds-block--accent .ds-block__label {
+  color: var(--ds-accent);
+}
+.ds-block--thinking .ds-block__label {
+  color: var(--ds-text-2);
+}
+.ds-block--error .ds-block__label {
+  color: var(--ds-error);
+}
+.ds-block__summary {
+  flex: 1;
+  min-width: 0;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-block__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  margin-left: auto;
+}
+
+.ds-block__body {
+  border-top: 1px solid var(--ds-border-subtle);
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: var(--ds-bg-1);
+}
+.ds-block__body--flush {
+  padding: 0;
+}
+
+[data-density="compact"] .ds-block__head {
+  padding: var(--ds-sp-1) var(--ds-sp-3);
+}
+[data-density="compact"] .ds-block__body {
+  padding: var(--ds-sp-2) var(--ds-sp-3);
+}

@@ -1,0 +1,38 @@
+.ds-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--ds-bg-3);
+  border-radius: 5px;
+}
+.ds-segmented__tab {
+  padding: 2px var(--ds-sp-3);
+  border: none;
+  background: transparent;
+  border-radius: 3px;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  color: var(--ds-text-3);
+  cursor: pointer;
+  font-weight: 400;
+}
+.ds-segmented__tab:hover:not(:disabled):not(.ds-segmented__tab--active) {
+  color: var(--ds-text-2);
+}
+.ds-segmented__tab:focus-visible {
+  outline: 2px solid var(--ds-accent);
+  outline-offset: 1px;
+}
+.ds-segmented__tab--active {
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.ds-segmented__tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.ds-segmented--xs .ds-segmented__tab {
+  padding: 1px var(--ds-sp-2);
+  font-size: 10.5px;
+}

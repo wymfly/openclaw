@@ -1,0 +1,28 @@
+.ds-context-menu {
+  position: absolute;
+  z-index: 90;
+  min-width: 180px;
+  list-style: none;
+  margin: 0;
+  padding: var(--ds-sp-1) 0;
+  background: var(--ds-bg-elev);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-md);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  color: var(--ds-text-1);
+  outline: none;
+}
+.ds-context-menu__item {
+  padding: var(--ds-sp-2) var(--ds-sp-4);
+  cursor: pointer;
+}
+.ds-context-menu__item--active,
+.ds-context-menu__item:hover {
+  background: var(--ds-bg-hover);
+}
+.ds-context-menu__item--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
