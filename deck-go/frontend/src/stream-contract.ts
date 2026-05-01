@@ -1,4 +1,6 @@
 import type {
+  DeckGoActivityStreamEvent,
+  DeckGoAgentStatusChangedStreamEvent,
   DeckGoLogStreamEvent,
   DeckGoProjectionGapEvent,
   DeckGoSessionMessageStreamEvent,
@@ -16,6 +18,8 @@ export type DeckGoParsedServerEvent =
   | { kind: "session.message"; payload: DeckGoSessionMessageStreamEvent }
   | { kind: "session.tool"; payload: DeckGoSessionToolStreamEvent }
   | { kind: "sessions.changed"; payload: DeckGoSessionsChangedStreamEvent }
+  | { kind: "activity.event"; payload: DeckGoActivityStreamEvent }
+  | { kind: "agent.status.changed"; payload: DeckGoAgentStatusChangedStreamEvent }
   | { kind: "unknown"; event: DeckGoServerEvent };
 
 export type DeckGoParsedLogEvent =
@@ -33,14 +37,14 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function runtimeStatusPayload(value: unknown): DeckGoRuntimeGatewayStatus {
   const record = asRecord(value);
   if (record?.mode === "remote") {
-    return record as DeckGoRuntimeGatewayStatus;
+    return record as unknown as DeckGoRuntimeGatewayStatus;
   }
   return {
     ...record,
     autoStart: typeof record?.autoStart === "boolean" ? record.autoStart : false,
     managed: typeof record?.managed === "boolean" ? record.managed : false,
     mode: "bundled",
-  } as DeckGoRuntimeGatewayStatus;
+  } as unknown as DeckGoRuntimeGatewayStatus;
 }
 
 export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEvent {
@@ -90,6 +94,22 @@ export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEv
           ts: 0,
         },
       };
+    case "activity.event":
+      return {
+        kind: "activity.event",
+        payload: (event.json as DeckGoActivityStreamEvent | undefined) ?? {
+          agentId: "",
+          type: "",
+        },
+      };
+    case "agent.status.changed":
+      return {
+        kind: "agent.status.changed",
+        payload: (event.json as DeckGoAgentStatusChangedStreamEvent | undefined) ?? {
+          agentId: "",
+          status: "idle",
+        },
+      };
     default:
       return { kind: "unknown", event };
   }
@@ -136,6 +156,10 @@ export function summarizeServerEvent(event: DeckGoServerEvent): string {
     }
     case "sessions.changed":
       return `sessions.changed for ${parsed.payload.sessionKey || "unknown-session"} (${parsed.payload.reason || parsed.payload.phase || "unknown"})`;
+    case "activity.event":
+      return `activity.event for ${parsed.payload.agentId || "unknown-agent"} (${parsed.payload.type || "unknown"})`;
+    case "agent.status.changed":
+      return `agent.status.changed for ${parsed.payload.agentId || "unknown-agent"} -> ${parsed.payload.status || "unknown"}`;
     default:
       return parsed.event.event || "unknown";
   }

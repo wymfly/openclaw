@@ -2313,12 +2313,7 @@ export async function fetchEffectiveTools(params: { agentId: string; sessionKey:
   );
 }
 
-export async function createAgent(params: {
-  name: string;
-  workspace?: string;
-  emoji?: string;
-  avatar?: string;
-}) {
+export async function createAgent(params: DeckApi.DeckGoAgentCreateRequest) {
   return fetchDeckJson<DeckGoAgentMutationResponse>(
     "/agents",
     {
@@ -2330,10 +2325,7 @@ export async function createAgent(params: {
   );
 }
 
-export async function updateAgent(
-  agentId: string,
-  params: { name?: string; workspace?: string; emoji?: string; avatar?: string },
-) {
+export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPatchRequest) {
   return fetchDeckJson<DeckGoAgentMutationResponse>(
     `/agents/${encodeURIComponent(agentId)}`,
     {
@@ -2502,7 +2494,7 @@ export async function steerChatSession(body: DeckGoChatSteerRequest) {
   );
 }
 
-export async function resetSession(body: { sessionKey: string; reason?: "new" | "reset" }) {
+export async function resetSession(body: DeckApi.DeckGoChatSessionResetRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/reset",
     {
@@ -2514,7 +2506,7 @@ export async function resetSession(body: { sessionKey: string; reason?: "new" | 
   );
 }
 
-export async function clearSession(body: { sessionKey: string }) {
+export async function clearSession(body: DeckApi.DeckGoChatSessionClearRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/clear",
     {
@@ -2526,7 +2518,7 @@ export async function clearSession(body: { sessionKey: string }) {
   );
 }
 
-export async function deleteSession(body: { sessionKey: string; agentId?: string | null }) {
+export async function deleteSession(body: DeckApi.DeckGoChatSessionDeleteRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions",
     {
@@ -2538,7 +2530,7 @@ export async function deleteSession(body: { sessionKey: string; agentId?: string
   );
 }
 
-export async function patchSession(body: Record<string, unknown>) {
+export async function patchSession(body: DeckApi.DeckGoChatSessionPatchRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/patch",
     {
@@ -2575,36 +2567,47 @@ export async function compactChatSession(sessionKey: string) {
 }
 
 export async function fetchCompactionCheckpoints(sessionKey: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = { action: "list", key: sessionKey };
   return fetchDeckJson<DeckGoCompactionListResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "list", key: sessionKey }),
+      body: JSON.stringify(body),
     },
     "compaction checkpoints fetch failed",
   );
 }
 
 export async function branchCompactionCheckpoint(sessionKey: string, checkpointId: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = {
+    action: "branch",
+    key: sessionKey,
+    checkpointId,
+  };
   return fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "branch", key: sessionKey, checkpointId }),
+      body: JSON.stringify(body),
     },
     "compaction branch failed",
   );
 }
 
 export async function restoreCompactionCheckpoint(sessionKey: string, checkpointId: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = {
+    action: "restore",
+    key: sessionKey,
+    checkpointId,
+  };
   return fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "restore", key: sessionKey, checkpointId }),
+      body: JSON.stringify(body),
     },
     "compaction restore failed",
   );
@@ -2622,46 +2625,49 @@ export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequ
   );
 }
 
-export async function persistChatProjection(body: {
+export async function persistChatProjection(input: {
   sessionKey: string;
   a2uiState: A2UIState | null;
 }) {
+  const body: DeckApi.DeckGoChatProjectionRequest = {
+    sessionKey: input.sessionKey,
+    a2uiState: sanitizeA2UIState(input.a2uiState),
+  };
   const response = await deckFetch(buildApiPath("/chat/projection"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sessionKey: body.sessionKey,
-      a2uiState: sanitizeA2UIState(body.a2uiState),
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "chat projection failed"));
   }
 }
 
-export async function setCanvasBridgeReady(body: { sessionKey: string; ready: boolean }) {
+export async function setCanvasBridgeReady(input: { sessionKey: string; ready: boolean }) {
+  const body: DeckApi.DeckGoCanvasBridgeReadyRequest = {
+    action: input.ready ? "ready" : "unready",
+    sessionKey: input.sessionKey,
+  };
   const response = await deckFetch(buildApiPath("/deck/canvas"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: body.ready ? "ready" : "unready",
-      sessionKey: body.sessionKey,
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "canvas bridge update failed"));
   }
 }
 
-export async function resolveCanvasEval(body: { evalId: string; result: unknown }) {
+export async function resolveCanvasEval(input: { evalId: string; result: unknown }) {
+  const body: DeckApi.DeckGoCanvasBridgeEvalRequest = {
+    action: "resolve",
+    evalId: input.evalId,
+    result: input.result,
+  };
   const response = await deckFetch(buildApiPath("/deck/canvas"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "resolve",
-      evalId: body.evalId,
-      result: body.result,
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "canvas eval resolve failed"));

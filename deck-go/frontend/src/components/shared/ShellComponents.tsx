@@ -54,6 +54,12 @@ function summarizeTranscriptBlock(
         title: t("transcriptText"),
         preview: block.text?.trim() || t("emptyTextBlock"),
       };
+    case "thinking":
+      return {
+        label: t("text"),
+        title: t("transcriptText"),
+        preview: block.text?.trim() || t("emptyTextBlock"),
+      };
     case "tool_use":
       return {
         label: t("toolUse"),
@@ -69,24 +75,36 @@ function summarizeTranscriptBlock(
         title: block.toolUseId?.trim() || t("toolOutput"),
         preview: stringifyBlockValue(block.content, t) || t("emptyResultBlock"),
       };
-    default:
+    case "image":
       return {
-        label: block.type?.trim() || t("block"),
-        title: block.name?.trim() || block.title?.trim() || t("transcriptPayload"),
-        preview:
-          block.text?.trim() ||
-          stringifyBlockValue(
-            {
-              input: block.input,
-              content: block.content,
-              summary: block.summary,
-              data: block.data,
-              url: block.url,
-            },
-            t,
-          ) ||
-          t("emptyBlock"),
+        label: t("block"),
+        title: block.fileName?.trim() || t("transcriptPayload"),
+        preview: stringifyBlockValue({ data: block.data, mimeType: block.mimeType }, t),
       };
+    case "file":
+      return {
+        label: t("block"),
+        title: block.fileName?.trim() || t("transcriptPayload"),
+        preview: stringifyBlockValue(
+          { data: block.data, mimeType: block.mimeType, size: block.size },
+          t,
+        ),
+      };
+    case "canvas":
+      return {
+        label: t("block"),
+        title: block.title?.trim() || t("transcriptPayload"),
+        preview: stringifyBlockValue({ url: block.url }, t) || t("emptyBlock"),
+      };
+    case "unknown":
+      return {
+        label: block.rawType?.trim() || t("block"),
+        title: t("transcriptPayload"),
+        preview: stringifyBlockValue({ summary: block.summary }, t) || t("emptyBlock"),
+      };
+    default:
+      // Exhaustive switch — `block` narrows to `never` here.
+      return { label: t("block"), title: t("transcriptPayload"), preview: t("emptyBlock") };
   }
 }
 
@@ -97,9 +115,11 @@ function TranscriptBlockCard(props: {
 }) {
   const t = useTranslations("shellComponents");
   const summary = summarizeTranscriptBlock(props.block, t);
+  const blockText =
+    props.block.type === "text" || props.block.type === "thinking" ? props.block.text : undefined;
   const rawPayload = {
     ...props.block,
-    ...(props.block.text?.trim() ? {} : { text: undefined }),
+    ...(blockText?.trim() ? {} : { text: undefined }),
   };
 
   return (

@@ -115,11 +115,12 @@ skills / subagents / threads / usage / webhooks
 
 ## 当前进行中的 OpenSpec change（本目录范围内）
 
-| change                          | 状态   | 含义                                                     |
-| ------------------------------- | ------ | -------------------------------------------------------- |
-| `deck-go-frontend-protocol-v1`  | 实施中 | 协议层 + 反向同步 tokens + drift 脚本                    |
-| `deck-go-frontend-new-scaffold` | 待批准 | 建 `frontend-new/` 物理树（cp design system / 工程基础） |
-| `deck-go-chat-protocol-pilot`   | 待批准 | chat 6 件套反推 + 物理迁移到 `frontend-new/`             |
+| change                                | 状态   | 含义                                                                                                                                           |
+| ------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deck-go-frontend-protocol-v1`        | 实施中 | 协议层 + 反向同步 tokens + drift 脚本                                                                                                          |
+| `deck-go-frontend-new-scaffold`       | 待批准 | 建 `frontend-new/` 物理树（cp design system / 工程基础）                                                                                       |
+| `deck-go-chat-protocol-pilot`         | 待批准 | chat 6 件套反推 + 物理迁移到 `frontend-new/`                                                                                                   |
+| `deck-go-chat-agents-contract-typing` | 实施完 | chat / agents 契约面收齐（TranscriptBlock union / activeApproval typed / 2 SSE event / 11 write DTO / codegen pointer 支持）；浏览器烟测待用户 |
 
 可用 `openspec list` 看完整队列。
 

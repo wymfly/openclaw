@@ -110,7 +110,12 @@ describe("chat-host-adapter", () => {
         runtimeMs: 10,
       },
       messages: [{ id: "msg-1", role: "assistant", content: [{ type: "text", text: "hi" }] }],
-      activeApproval: { id: "approval-1", toolName: "exec" },
+      activeApproval: {
+        id: "approval-1",
+        request: { command: "exec" },
+        createdAtMs: 0,
+        expiresAtMs: 0,
+      },
       a2uiState: { visible: true, surfaces: ["summary"] },
     };
 
@@ -124,7 +129,12 @@ describe("chat-host-adapter", () => {
 
     const session = useChatStore.getState().sessions.get("sess-1");
     expect(session?.messages).toHaveLength(1);
-    expect(session?.activeApproval).toEqual({ id: "approval-1", toolName: "exec" });
+    expect(session?.activeApproval).toEqual({
+      id: "approval-1",
+      request: { command: "exec" },
+      createdAtMs: 0,
+      expiresAtMs: 0,
+    });
     expect(session?.a2uiState).toEqual({ visible: true, surfaces: ["summary"] });
     expect(session?.status).toBe("running");
     expect(session?.startedAt).toBe(10);

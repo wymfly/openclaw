@@ -19,6 +19,10 @@ function stringifyValue(value: unknown): string {
 }
 
 export function transcriptBlockToPlainText(block: DeckGoTranscriptBlock): string {
+  // DeckGoTranscriptBlock is a discriminated union; the switch must cover all
+  // 8 variants (text / image / file / tool_use / tool_result / thinking /
+  // canvas / unknown). TypeScript narrows `block` per case, so each branch
+  // sees only the fields that variant carries.
   switch (block.type) {
     case "text":
     case "thinking":
@@ -28,20 +32,18 @@ export function transcriptBlockToPlainText(block: DeckGoTranscriptBlock): string
     case "tool_result":
       return stringifyValue(block.content);
     case "image":
+      return [block.fileName, block.mimeType].filter(Boolean).join(" ");
     case "file":
-      return [block.fileName, block.mimeType, block.size].filter(Boolean).join(" ");
+      return [block.fileName, block.mimeType, block.size]
+        .filter((value) => value !== undefined && value !== "")
+        .join(" ");
+    case "canvas":
+      return [block.title, block.url].filter(Boolean).join(" ");
+    case "unknown":
+      return stringifyValue({ rawType: block.rawType, summary: block.summary });
     default:
-      return (
-        block.text ||
-        block.title ||
-        stringifyValue({
-          content: block.content,
-          data: block.data,
-          input: block.input,
-          summary: block.summary,
-          url: block.url,
-        })
-      );
+      // Exhaustive switch — `block` narrows to `never` here.
+      return "";
   }
 }
 

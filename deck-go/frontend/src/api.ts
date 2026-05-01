@@ -1,6 +1,46 @@
+import type * as DeckApi from "../../contracts/generated/ts/deck-api.generated";
 import type {
-  DeckGoBootstrapStatusResponse as GeneratedDeckGoBootstrapStatusResponse,
+  DeckGoActivityEvent,
+  DeckGoActivityResponse,
+  DeckGoAgentDetailResponse,
+  DeckGoAgentEventStreamsResponse,
+  DeckGoAgentEventStreamsSetResponse,
+  DeckGoAgentFile,
+  DeckGoAgentFileResponse,
+  DeckGoAgentFilesResponse,
+  DeckGoAgentHealthSnapshot,
+  DeckGoAgentIdentityResponse,
+  DeckGoAgentMutationResponse,
+  DeckGoAgentRawConfig,
+  DeckGoAgentSkillEntry,
+  DeckGoAgentSkillsResponse,
+  DeckGoAgentSkillsSetResponse,
+  DeckGoAgentsListResponse,
+  DeckGoAgentSubagentConfigResponse,
+  DeckGoAgentSubagentConfigSetResponse,
+  DeckGoAgentSummary,
+  DeckGoAgentSystemPromptPreviewResponse,
+  DeckGoAgentToolPolicyPreviewResponse,
+  DeckGoAlertAction,
+  DeckGoAlertRule,
+  DeckGoAlertRuleResponse,
+  DeckGoAlertsResponse,
+  DeckGoApprovalPolicy,
+  DeckGoApprovalPolicyDefaults,
+  DeckGoApprovalPolicyResponse,
+  DeckGoBootstrapStatusResponse,
+  DeckGoBudgetDimension,
+  DeckGoBudgetEvaluation,
+  DeckGoBudgetEvaluationsResponse,
+  DeckGoBudgetRule,
+  DeckGoBudgetRulesResponse,
+  DeckGoBudgetStatus,
+  DeckGoBundledRuntimeGatewayStatus,
+  DeckGoCatalogProvider,
   DeckGoChannelsStatusResponse,
+  DeckGoChannelTestResponse,
+  DeckGoChannelThroughputBucket,
+  DeckGoChannelThroughputResponse,
   DeckGoChatAbortRequest,
   DeckGoChatHistoryResponse,
   DeckGoChatSendRequest,
@@ -8,16 +48,110 @@ import type {
   DeckGoChatSnapshotResponse,
   DeckGoChatSteerRequest,
   DeckGoChatSteerResponse,
+  DeckGoCompactionActionResponse,
+  DeckGoCompactionCheckpoint,
+  DeckGoCompactionListResponse,
+  DeckGoConfigApplyResponse,
+  DeckGoConfigLookupChild,
+  DeckGoConfigLookupResponse,
   DeckGoConfigSchemaLookupRequest,
+  DeckGoConfigSnapshotResponse,
+  DeckGoContextWeightReport,
+  DeckGoCronJob,
+  DeckGoCronJobInput,
+  DeckGoCronJobsParams,
+  DeckGoCronJobsResponse,
+  DeckGoCronRunEntry,
+  DeckGoCronRunParams,
+  DeckGoCronRunsParams,
+  DeckGoCronRunsResponse,
+  DeckGoCronSchedule,
+  DeckGoCronStatus,
+  DeckGoDevicesResponse,
+  DeckGoDeviceTokenRotateResponse,
+  DeckGoDeviceTokenSummary,
+  DeckGoDoc,
+  DeckGoDocCategory,
+  DeckGoDocsExtractResponse,
+  DeckGoDocsResponse,
+  DeckGoEffectiveTool,
+  DeckGoEffectiveToolGroup,
+  DeckGoEffectiveToolsResponse,
+  DeckGoGatewayDescribeEvent,
+  DeckGoGatewayDescribeMethod,
+  DeckGoGatewayDescribeResponse,
+  DeckGoGatewayHealthResponse,
+  DeckGoGatewayStatusResponse,
+  DeckGoIdentityLink,
+  DeckGoIdentityLinksResponse,
+  DeckGoIdentityPeer,
+  DeckGoLogsTailResponse,
   DeckGoLogStreamEvent,
+  DeckGoMemoryBrowseResponse,
+  DeckGoMemoryDreamAction,
+  DeckGoMemoryDreamActionResult,
+  DeckGoMemoryDreamDiaryResult,
+  DeckGoMemoryDreamsResult,
+  DeckGoMemoryFileNode,
+  DeckGoMemoryHealthEntry,
+  DeckGoMemoryHealthResponse,
+  DeckGoMemorySearchResponse,
+  DeckGoMemorySearchResult,
+  DeckGoMemorySearchScope,
+  DeckGoModelAuthOverviewResponse,
+  DeckGoModelAuthProvider,
+  DeckGoModelCatalogProvidersResponse,
+  DeckGoModelProbeResponse,
+  DeckGoModelsConfigResponse,
+  DeckGoMonitorRun,
+  DeckGoMonitorRunDetailResponse,
+  DeckGoMonitorRunEvent,
+  DeckGoMonitorRunsResponse,
+  DeckGoMonitorRunStatus,
+  DeckGoMonitorRunSummary,
+  DeckGoMonitorStatsResponse,
+  DeckGoMonitorTopAgent,
+  DeckGoNodeInvokeResponse,
+  DeckGoNodePairingResponse,
+  DeckGoNodePairRequestInput,
+  DeckGoNodePairRequestResponse,
+  DeckGoNodePendingEnqueueResponse,
+  DeckGoNodePendingWorkPriority,
+  DeckGoNodePendingWorkType,
+  DeckGoNodesResponse,
+  DeckGoNodeSummary,
+  DeckGoPairedDevice,
+  DeckGoPairingRequest,
+  DeckGoPendingApproval,
+  DeckGoPendingApprovalsResponse,
+  DeckGoPendingDeviceRequest,
+  DeckGoPluginApprovalEntry,
+  DeckGoPluginApprovalsResponse,
+  DeckGoPluginCapability,
   DeckGoPluginsListResponse,
+  DeckGoRemoteRuntimeGatewayStatus,
+  DeckGoRoutingAddResponse,
+  DeckGoRoutingBinding,
+  DeckGoRoutingConflict,
+  DeckGoRoutingListResponse,
+  DeckGoRoutingMatch,
+  DeckGoRoutingPeer,
+  DeckGoRoutingRemoveResponse,
+  DeckGoRoutingSimulateResponse,
+  DeckGoRoutingSimulationTier,
+  DeckGoRoutingValidateResponse,
   DeckGoRuntimeCapabilities,
+  DeckGoRuntimeConfiguredModel,
+  DeckGoRuntimeConfiguredModelsResponse,
   DeckGoRuntimeEndpointPutRequest,
   DeckGoRuntimeEndpointResponse,
   DeckGoRuntimeEndpointTestRequest,
   DeckGoRuntimeEndpointTestResponse,
-  DeckGoRuntimeGatewayStatus as GeneratedDeckGoRuntimeGatewayStatus,
+  DeckGoRuntimeGatewayResponse,
+  DeckGoRuntimeGatewayStatus,
+  DeckGoSelfDeviceResponse,
   DeckGoServerEvent,
+  DeckGoSession,
   DeckGoSessionAbortResponse,
   DeckGoSessionCreateResponse,
   DeckGoSessionDetailResponse,
@@ -25,63 +159,274 @@ import type {
   DeckGoSessionEventsResponse,
   DeckGoSessionMutationResponse,
   DeckGoSessionSendResponse,
-  DeckGoSessionMeta,
   DeckGoSessionsListResponse,
   DeckGoSessionsPreviewResponse,
   DeckGoSettings,
+  DeckGoSettingsConnectionResponse,
   DeckGoSettingsResponse,
   DeckGoSettingsSaveResponse,
-} from "../../contracts/generated/ts/deck-api.generated";
+  DeckGoSettingsVersionResponse,
+  DeckGoSkillEntry,
+  DeckGoSkillHubBinsResponse,
+  DeckGoSkillHubDetailResponse,
+  DeckGoSkillHubMutationResponse,
+  DeckGoSkillHubSearchResponse,
+  DeckGoSkillHubSearchResult,
+  DeckGoSkillInstallOption,
+  DeckGoSkillsResponse,
+  DeckGoSkillStatus,
+  DeckGoSkillUpdateResponse,
+  DeckGoSubagentKillResponse,
+  DeckGoSubagentLineageNode,
+  DeckGoSubagentLineageRoot,
+  DeckGoSubagentRun,
+  DeckGoSubagentsLineageResponse,
+  DeckGoSubagentsListResponse,
+  DeckGoSubagentSteerResponse,
+  DeckGoThreadEntry,
+  DeckGoThreadsResponse,
+  DeckGoToolCatalogEntry,
+  DeckGoToolCatalogGroup,
+  DeckGoToolsCatalogResponse,
+  DeckGoUsageAggregateEntry,
+  DeckGoUsageCostEntry,
+  DeckGoUsageCostResponse,
+  DeckGoUsageDailyAggregate,
+  DeckGoUsageDailyModelAggregate,
+  DeckGoUsageLatencyStats,
+  DeckGoUsageMessageCounts,
+  DeckGoUsageProvidersResponse,
+  DeckGoUsageProviderStatus,
+  DeckGoUsageProviderWindow,
+  DeckGoUsageSessionEntry,
+  DeckGoUsageSessionLogEntry,
+  DeckGoUsageSessionLogsResponse,
+  DeckGoUsageSessionsResponse,
+  DeckGoUsageTimePoint,
+  DeckGoUsageTimeseriesResponse,
+  DeckGoUsageToolSummary,
+  DeckGoUsageTotals,
+  DeckGoWebhook,
+  DeckGoWebhookDeliveriesResponse,
+  DeckGoWebhookDelivery,
+  DeckGoWebhooksResponse,
+} from "./api-types";
+export type {
+  DeckGoActivityEvent,
+  DeckGoActivityResponse,
+  DeckGoAgentDetailResponse,
+  DeckGoAgentEventStreamsResponse,
+  DeckGoAgentEventStreamsSetResponse,
+  DeckGoAgentFile,
+  DeckGoAgentFileResponse,
+  DeckGoAgentFilesResponse,
+  DeckGoAgentHealthSnapshot,
+  DeckGoAgentIdentityResponse,
+  DeckGoAgentMutationResponse,
+  DeckGoAgentRawConfig,
+  DeckGoAgentSkillEntry,
+  DeckGoAgentSkillsResponse,
+  DeckGoAgentSkillsSetResponse,
+  DeckGoAgentsListResponse,
+  DeckGoAgentSubagentConfigResponse,
+  DeckGoAgentSubagentConfigSetResponse,
+  DeckGoAgentSummary,
+  DeckGoAgentSystemPromptPreviewResponse,
+  DeckGoAgentToolPolicyPreviewResponse,
+  DeckGoAlertAction,
+  DeckGoAlertRule,
+  DeckGoAlertRuleResponse,
+  DeckGoAlertsResponse,
+  DeckGoApprovalPolicy,
+  DeckGoApprovalPolicyDefaults,
+  DeckGoApprovalPolicyResponse,
+  DeckGoBootstrapStatusResponse,
+  DeckGoBudgetDimension,
+  DeckGoBudgetEvaluation,
+  DeckGoBudgetEvaluationsResponse,
+  DeckGoBudgetRule,
+  DeckGoBudgetRulesResponse,
+  DeckGoBudgetStatus,
+  DeckGoBundledRuntimeGatewayStatus,
+  DeckGoCatalogProvider,
+  DeckGoChannelsStatusResponse,
+  DeckGoChannelTestResponse,
+  DeckGoChannelThroughputBucket,
+  DeckGoChannelThroughputResponse,
+  DeckGoChatAbortRequest,
+  DeckGoChatHistoryResponse,
+  DeckGoChatSendRequest,
+  DeckGoChatSessionCreateRequest,
+  DeckGoChatSnapshotResponse,
+  DeckGoChatSteerRequest,
+  DeckGoChatSteerResponse,
+  DeckGoCompactionActionResponse,
+  DeckGoCompactionCheckpoint,
+  DeckGoCompactionListResponse,
+  DeckGoConfigApplyResponse,
+  DeckGoConfigLookupChild,
+  DeckGoConfigLookupResponse,
+  DeckGoConfigSchemaLookupRequest,
+  DeckGoConfigSnapshotResponse,
+  DeckGoContextWeightReport,
+  DeckGoCronJob,
+  DeckGoCronJobInput,
+  DeckGoCronJobsParams,
+  DeckGoCronJobsResponse,
+  DeckGoCronRunEntry,
+  DeckGoCronRunParams,
+  DeckGoCronRunsParams,
+  DeckGoCronRunsResponse,
+  DeckGoCronSchedule,
+  DeckGoCronStatus,
+  DeckGoDevicesResponse,
+  DeckGoDeviceTokenRotateResponse,
+  DeckGoDeviceTokenSummary,
+  DeckGoDoc,
+  DeckGoDocCategory,
+  DeckGoDocsExtractResponse,
+  DeckGoDocsResponse,
+  DeckGoEffectiveTool,
+  DeckGoEffectiveToolGroup,
+  DeckGoEffectiveToolsResponse,
+  DeckGoGatewayDescribeEvent,
+  DeckGoGatewayDescribeMethod,
+  DeckGoGatewayDescribeResponse,
+  DeckGoGatewayHealthResponse,
+  DeckGoGatewayStatusResponse,
+  DeckGoIdentityLink,
+  DeckGoIdentityLinksResponse,
+  DeckGoIdentityPeer,
+  DeckGoLogsTailResponse,
+  DeckGoLogStreamEvent,
+  DeckGoMemoryBrowseResponse,
+  DeckGoMemoryDreamAction,
+  DeckGoMemoryDreamActionResult,
+  DeckGoMemoryDreamDiaryResult,
+  DeckGoMemoryDreamsResult,
+  DeckGoMemoryFileNode,
+  DeckGoMemoryHealthEntry,
+  DeckGoMemoryHealthResponse,
+  DeckGoMemorySearchResponse,
+  DeckGoMemorySearchResult,
+  DeckGoMemorySearchScope,
+  DeckGoModelAuthOverviewResponse,
+  DeckGoModelAuthProvider,
+  DeckGoModelCatalogProvidersResponse,
+  DeckGoModelProbeResponse,
+  DeckGoModelsConfigResponse,
+  DeckGoMonitorRun,
+  DeckGoMonitorRunDetailResponse,
+  DeckGoMonitorRunEvent,
+  DeckGoMonitorRunsResponse,
+  DeckGoMonitorRunStatus,
+  DeckGoMonitorRunSummary,
+  DeckGoMonitorStatsResponse,
+  DeckGoMonitorTopAgent,
+  DeckGoNodeInvokeResponse,
+  DeckGoNodePairingResponse,
+  DeckGoNodePairRequestInput,
+  DeckGoNodePairRequestResponse,
+  DeckGoNodePendingEnqueueResponse,
+  DeckGoNodePendingWorkPriority,
+  DeckGoNodePendingWorkType,
+  DeckGoNodesResponse,
+  DeckGoNodeSummary,
+  DeckGoPairedDevice,
+  DeckGoPairingRequest,
+  DeckGoPendingApproval,
+  DeckGoPendingApprovalsResponse,
+  DeckGoPendingDeviceRequest,
+  DeckGoPluginApprovalEntry,
+  DeckGoPluginApprovalsResponse,
+  DeckGoPluginCapability,
+  DeckGoPluginsListResponse,
+  DeckGoRemoteRuntimeGatewayStatus,
+  DeckGoRoutingAddResponse,
+  DeckGoRoutingBinding,
+  DeckGoRoutingConflict,
+  DeckGoRoutingListResponse,
+  DeckGoRoutingMatch,
+  DeckGoRoutingPeer,
+  DeckGoRoutingRemoveResponse,
+  DeckGoRoutingSimulateResponse,
+  DeckGoRoutingSimulationTier,
+  DeckGoRoutingValidateResponse,
+  DeckGoRuntimeCapabilities,
+  DeckGoRuntimeConfiguredModel,
+  DeckGoRuntimeConfiguredModelsResponse,
+  DeckGoRuntimeEndpointPutRequest,
+  DeckGoRuntimeEndpointResponse,
+  DeckGoRuntimeEndpointTestRequest,
+  DeckGoRuntimeEndpointTestResponse,
+  DeckGoRuntimeGatewayResponse,
+  DeckGoRuntimeGatewayStatus,
+  DeckGoSelfDeviceResponse,
+  DeckGoServerEvent,
+  DeckGoSession,
+  DeckGoSessionAbortResponse,
+  DeckGoSessionCreateResponse,
+  DeckGoSessionDetailResponse,
+  DeckGoSessionEventsRequest,
+  DeckGoSessionEventsResponse,
+  DeckGoSessionMutationResponse,
+  DeckGoSessionSendResponse,
+  DeckGoSessionsListResponse,
+  DeckGoSessionsPreviewResponse,
+  DeckGoSettings,
+  DeckGoSettingsConnectionResponse,
+  DeckGoSettingsResponse,
+  DeckGoSettingsSaveResponse,
+  DeckGoSettingsVersionResponse,
+  DeckGoSkillEntry,
+  DeckGoSkillHubBinsResponse,
+  DeckGoSkillHubDetailResponse,
+  DeckGoSkillHubMutationResponse,
+  DeckGoSkillHubSearchResponse,
+  DeckGoSkillHubSearchResult,
+  DeckGoSkillInstallOption,
+  DeckGoSkillsResponse,
+  DeckGoSkillStatus,
+  DeckGoSkillUpdateResponse,
+  DeckGoSubagentKillResponse,
+  DeckGoSubagentLineageNode,
+  DeckGoSubagentLineageRoot,
+  DeckGoSubagentRun,
+  DeckGoSubagentsLineageResponse,
+  DeckGoSubagentsListResponse,
+  DeckGoSubagentSteerResponse,
+  DeckGoThreadEntry,
+  DeckGoThreadsResponse,
+  DeckGoToolCatalogEntry,
+  DeckGoToolCatalogGroup,
+  DeckGoToolsCatalogResponse,
+  DeckGoUsageAggregateEntry,
+  DeckGoUsageCostEntry,
+  DeckGoUsageCostResponse,
+  DeckGoUsageDailyAggregate,
+  DeckGoUsageDailyModelAggregate,
+  DeckGoUsageLatencyStats,
+  DeckGoUsageMessageCounts,
+  DeckGoUsageProvidersResponse,
+  DeckGoUsageProviderStatus,
+  DeckGoUsageProviderWindow,
+  DeckGoUsageSessionEntry,
+  DeckGoUsageSessionLogEntry,
+  DeckGoUsageSessionLogsResponse,
+  DeckGoUsageSessionsResponse,
+  DeckGoUsageTimePoint,
+  DeckGoUsageTimeseriesResponse,
+  DeckGoUsageToolSummary,
+  DeckGoUsageTotals,
+  DeckGoWebhook,
+  DeckGoWebhookDeliveriesResponse,
+  DeckGoWebhookDelivery,
+  DeckGoWebhooksResponse,
+} from "./api-types";
 import { writeStoredDeckAccessToken } from "./lib/deck-auth-storage";
 import { deckFetch, deckStream, type DeckEvent } from "./lib/deck-client";
 import { createDeckGatewayClient } from "./lib/gateway-client";
 import type { A2UIState } from "./stores/chat-types";
-
-export type DeckGoSession = DeckGoSessionMeta;
-export type { DeckGoServerEvent };
-type RuntimeGatewaySharedStatus = Pick<
-  GeneratedDeckGoRuntimeGatewayStatus,
-  "configured" | "status" | "health" | "gatewayUrl" | "lastError"
->;
-
-export type DeckGoBundledRuntimeGatewayStatus = RuntimeGatewaySharedStatus & {
-  mode: "bundled";
-  managed?: boolean;
-  failurePhase?: GeneratedDeckGoRuntimeGatewayStatus["failurePhase"];
-  pid?: number;
-  startedAt?: string;
-  lastExitAt?: string;
-  lastExitCode?: number;
-  autoStart: boolean;
-  owner?: string;
-  ownershipState?: GeneratedDeckGoRuntimeGatewayStatus["ownershipState"];
-  ownershipFile?: string;
-  restartAttempts?: number;
-  restartDelayMs?: number;
-};
-
-export type DeckGoRemoteRuntimeGatewayStatus = RuntimeGatewaySharedStatus & {
-  mode: "remote";
-  lastConnectedAt?: string;
-  latencyP50?: number;
-  tlsVerified?: boolean;
-};
-
-export type DeckGoRuntimeGatewayStatus =
-  | DeckGoBundledRuntimeGatewayStatus
-  | DeckGoRemoteRuntimeGatewayStatus;
-
-export type DeckGoBootstrapStatusResponse = Omit<
-  GeneratedDeckGoBootstrapStatusResponse,
-  "runtime"
-> & {
-  runtime: DeckGoRuntimeGatewayStatus;
-};
-
-export type DeckGoRuntimeGatewayResponse = {
-  ok?: boolean;
-  runtime: DeckGoRuntimeGatewayStatus;
-};
 
 export function isBundledRuntimeStatus(
   runtime: DeckGoRuntimeGatewayStatus | null | undefined,
@@ -96,7 +441,7 @@ export function isRemoteRuntimeStatus(
 }
 
 function normalizeRuntimeGatewayStatus(
-  raw: GeneratedDeckGoRuntimeGatewayStatus,
+  raw: DeckApi.DeckGoRuntimeGatewayStatus,
 ): DeckGoRuntimeGatewayStatus {
   if (raw.mode === "remote") {
     return {
@@ -203,17 +548,6 @@ export async function saveSettings(settings: DeckGoSettings) {
   );
 }
 
-export type DeckGoSettingsConnectionResponse = {
-  ok?: boolean;
-  error?: string;
-};
-
-export type DeckGoSettingsVersionResponse = {
-  deck?: string;
-  gateway?: string;
-  cli?: string;
-};
-
 export async function testSettingsConnection(url: string, token: string) {
   return fetchDeckJson<DeckGoSettingsConnectionResponse>(
     "/settings/test-connection",
@@ -233,57 +567,6 @@ export async function fetchSettingsVersion() {
     "settings version fetch failed",
   );
 }
-
-export type DeckGoDeviceTokenSummary = {
-  role: string;
-  scopes?: string[];
-  createdAtMs?: number;
-  rotatedAtMs?: number;
-  revokedAtMs?: number;
-  lastUsedAtMs?: number;
-};
-
-export type DeckGoPairedDevice = {
-  deviceId: string;
-  displayName?: string;
-  platform?: string;
-  deviceFamily?: string;
-  clientId?: string;
-  clientMode?: string;
-  role?: string;
-  roles?: string[];
-  scopes?: string[];
-  remoteIp?: string;
-  tokens?: DeckGoDeviceTokenSummary[];
-  createdAtMs?: number;
-  approvedAtMs?: number;
-};
-
-export type DeckGoPendingDeviceRequest = {
-  requestId: string;
-  deviceId: string;
-  displayName?: string;
-  platform?: string;
-  deviceFamily?: string;
-  role?: string;
-  roles?: string[];
-  scopes?: string[];
-  remoteIp?: string;
-  ts: number;
-};
-
-export type DeckGoDevicesResponse = {
-  pending?: DeckGoPendingDeviceRequest[];
-  paired?: DeckGoPairedDevice[];
-};
-
-export type DeckGoSelfDeviceResponse = {
-  deviceId?: string | null;
-};
-
-export type DeckGoDeviceTokenRotateResponse = Record<string, unknown> & {
-  token?: string;
-};
 
 export async function fetchDevices() {
   return fetchDeckJson<DeckGoDevicesResponse>("/devices", undefined, "devices fetch failed");
@@ -358,7 +641,7 @@ export async function revokeDeviceToken(deviceId: string, role: string) {
 }
 
 export async function fetchBootstrapStatus() {
-  const payload = await fetchDeckJsonNoPrompt<GeneratedDeckGoBootstrapStatusResponse>(
+  const payload = await fetchDeckJsonNoPrompt<DeckApi.DeckGoBootstrapStatusResponse>(
     "/bootstrap/status",
     undefined,
     "bootstrap fetch failed",
@@ -370,7 +653,7 @@ export async function fetchBootstrapStatus() {
 }
 
 export async function fetchRuntimeGatewayStatus() {
-  const runtime = await fetchDeckJsonNoPrompt<GeneratedDeckGoRuntimeGatewayStatus>(
+  const runtime = await fetchDeckJsonNoPrompt<DeckApi.DeckGoRuntimeGatewayStatus>(
     "/runtime/gateway",
     undefined,
     "runtime gateway fetch failed",
@@ -421,25 +704,6 @@ export async function testEndpoint(payload?: DeckGoRuntimeEndpointTestRequest) {
   );
 }
 
-export type DeckGoGatewayHealthResponse = Record<string, unknown> & {
-  ok?: boolean;
-  durationMs?: number;
-  agents?: Array<{ sessions?: { count?: number } }>;
-  channels?: Record<string, unknown>;
-};
-
-export type DeckGoGatewayStatusResponse = Record<string, unknown> & {
-  state?: string;
-  heartbeat?:
-    | string
-    | {
-        agents?: Array<{ agentId?: string; enabled?: boolean; every?: string; everyMs?: number }>;
-        defaultAgentId?: string;
-      };
-  sessions?: number | { count?: number };
-  channels?: Record<string, unknown>;
-};
-
 export async function fetchGatewayHealth() {
   return fetchDeckJsonNoPrompt<DeckGoGatewayHealthResponse>(
     "/gateway/health",
@@ -484,27 +748,6 @@ export async function fetchChannels() {
   );
 }
 
-export type DeckGoChannelTestResponse = Record<string, unknown> & {
-  ok?: boolean;
-  channelId?: string;
-  check?: string;
-  error?: string;
-  latencyMs?: number;
-  checkedAt?: number;
-};
-
-export type DeckGoChannelThroughputBucket = {
-  time?: number;
-  in?: number;
-  out?: number;
-};
-
-export type DeckGoChannelThroughputResponse = {
-  buckets?: DeckGoChannelThroughputBucket[];
-  messagesIn?: number;
-  messagesOut?: number;
-};
-
 export async function testChannel(channelId: string) {
   const res = await deckFetch(buildApiPath(`/channels/${encodeURIComponent(channelId)}/test`), {
     method: "POST",
@@ -546,8 +789,6 @@ export async function fetchPlugins() {
   return fetchPluginsWithCapability();
 }
 
-export type DeckGoPluginCapability = "channel" | "all";
-
 export async function fetchPluginsWithCapability(capability: DeckGoPluginCapability = "channel") {
   const suffix = capability === "all" ? "?capability=all" : "";
   return fetchDeckJson<DeckGoPluginsListResponse>(
@@ -556,532 +797,6 @@ export async function fetchPluginsWithCapability(capability: DeckGoPluginCapabil
     "plugins fetch failed",
   );
 }
-
-export type DeckGoLogsTailResponse = {
-  cursor?: number;
-  lines?: unknown[];
-  reset?: boolean;
-};
-
-export type DeckGoGatewayDescribeMethod = {
-  scope?: string;
-  params?: Record<string, unknown>;
-  result?: Record<string, unknown>;
-  since?: number;
-};
-
-export type DeckGoGatewayDescribeEvent = {
-  payload?: Record<string, unknown>;
-  since?: number;
-};
-
-export type DeckGoGatewayDescribeResponse = {
-  methods?: Record<string, DeckGoGatewayDescribeMethod>;
-  events?: Record<string, DeckGoGatewayDescribeEvent>;
-  untyped?: string[];
-};
-
-export type DeckGoPendingApproval = {
-  id: string;
-  command: string;
-  commandArgv?: string[];
-  agentId?: string;
-  sessionKey?: string;
-  runId?: string;
-  cwd?: string;
-  createdAtMs: number;
-  expiresAtMs: number;
-};
-
-export type DeckGoApprovalPolicyDefaults = {
-  security?: "deny" | "allowlist" | "full";
-  ask?: "off" | "on-miss" | "always";
-  askFallback?: "deny" | "allowlist" | "full";
-  autoAllowSkills?: boolean;
-};
-
-export type DeckGoApprovalPolicy = {
-  defaults: DeckGoApprovalPolicyDefaults;
-  agents: Record<string, DeckGoApprovalPolicyDefaults>;
-  allowlist: string[];
-};
-
-export type DeckGoApprovalPolicyResponse = {
-  hash?: string;
-  file?: {
-    defaults?: DeckGoApprovalPolicyDefaults;
-    agents?: Record<string, DeckGoApprovalPolicyDefaults>;
-    allowlist?: string[];
-  };
-};
-
-export type DeckGoPendingApprovalsResponse = {
-  pending?: DeckGoPendingApproval[];
-};
-
-export type DeckGoPluginApprovalEntry = {
-  id: string;
-  pluginId?: string;
-  command?: string;
-  description?: string;
-  createdAtMs?: number;
-  expiresAtMs?: number;
-  status?: string;
-  decision?: string | null;
-};
-
-export type DeckGoPluginApprovalsResponse =
-  | DeckGoPluginApprovalEntry[]
-  | {
-      entries?: DeckGoPluginApprovalEntry[];
-    };
-
-export type DeckGoSkillStatus = "ready" | "needs-setup" | "disabled";
-
-export type DeckGoSkillInstallOption = {
-  id: string;
-  label: string;
-  bins: string[];
-};
-
-export type DeckGoSkillEntry = {
-  key: string;
-  name: string;
-  status: DeckGoSkillStatus;
-  source: "bundled" | "managed" | "plugin";
-  enabled: boolean;
-  missingRequirements?: string[];
-  config?: Record<string, unknown>;
-  description?: string;
-  emoji?: string;
-  homepage?: string;
-  installOptions?: DeckGoSkillInstallOption[];
-  primaryEnv?: string;
-};
-
-export type DeckGoSkillsResponse = {
-  skills?: Record<string, unknown>[];
-};
-
-export type DeckGoSkillUpdateResponse = {
-  ok?: boolean;
-  config?: Record<string, unknown>;
-};
-
-export type DeckGoSkillHubSearchResult = {
-  score?: number;
-  slug: string;
-  displayName: string;
-  summary?: string;
-  version?: string;
-  updatedAt?: number;
-};
-
-export type DeckGoSkillHubSearchResponse = {
-  results?: DeckGoSkillHubSearchResult[];
-};
-
-export type DeckGoSkillHubDetailResponse = {
-  skill: {
-    slug: string;
-    displayName: string;
-    summary?: string;
-    tags?: Record<string, string>;
-    createdAt?: number;
-    updatedAt?: number;
-  } | null;
-  latestVersion?: {
-    version: string;
-    createdAt?: number;
-    changelog?: string;
-  } | null;
-  metadata?: {
-    os?: string[] | null;
-    systems?: string[] | null;
-  } | null;
-  owner?: {
-    handle?: string;
-    displayName?: string;
-  } | null;
-};
-
-export type DeckGoSkillHubBinsResponse = {
-  bins?: string[];
-};
-
-export type DeckGoSkillHubMutationResponse = Record<string, unknown> & {
-  ok?: boolean;
-  message?: string;
-  error?: string;
-};
-
-export type DeckGoCronSchedule = {
-  kind: "at" | "every" | "cron";
-  at?: string;
-  everyMs?: number;
-  anchorMs?: number;
-  expr?: string;
-  tz?: string;
-  staggerMs?: number;
-};
-
-export type DeckGoCronJob = {
-  id: string;
-  name: string;
-  schedule: DeckGoCronSchedule;
-  sessionTarget?: string;
-  wakeMode?: string;
-  payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
-  delivery?: unknown;
-  failureAlert?: boolean;
-  agentId?: string;
-  description?: string;
-  enabled: boolean;
-  deleteAfterRun?: boolean;
-  nextRunAtMs?: number;
-  updatedAtMs?: number;
-  createdAtMs?: number;
-};
-
-export type DeckGoCronJobInput = {
-  name: string;
-  schedule: DeckGoCronSchedule;
-  sessionTarget: string;
-  wakeMode: string;
-  payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
-  agentId?: string;
-  description?: string;
-  enabled?: boolean;
-};
-
-export type DeckGoCronRunEntry = {
-  id: string;
-  jobId: string;
-  status: "ok" | "error" | "skipped";
-  ts: number;
-  runAtMs?: number;
-  durationMs?: number;
-  delivery?: unknown;
-  error?: string;
-};
-
-export type DeckGoCronStatus = {
-  running: boolean;
-  jobCount?: number;
-  nextRunAtMs?: number;
-};
-
-export type DeckGoCronJobsResponse = {
-  jobs?: DeckGoCronJob[];
-};
-
-export type DeckGoCronRunsResponse = {
-  entries?: DeckGoCronRunEntry[];
-};
-
-export type DeckGoCronJobsParams = {
-  includeDisabled?: boolean;
-  limit?: number;
-  offset?: number;
-  query?: string;
-  enabled?: "all" | "enabled" | "disabled";
-  sortBy?: "nextRunAtMs" | "updatedAtMs" | "name";
-  sortDir?: "asc" | "desc";
-};
-
-export type DeckGoCronRunsParams = {
-  limit?: number;
-  offset?: number;
-  statuses?: DeckGoCronRunEntry["status"][];
-  sortDir?: "asc" | "desc";
-};
-
-export type DeckGoCronRunParams = {
-  mode?: "due" | "force";
-};
-
-export type DeckGoDocCategory = "summary" | "plan" | "spec" | "manual" | "draft";
-
-export type DeckGoDoc = {
-  id: string;
-  title: string;
-  category: DeckGoDocCategory;
-  content: string;
-  sourceSession: string | null;
-  sourceAgent: string | null;
-  keywords: string[];
-  language: string;
-  extractedAt: string;
-  updatedAt: string;
-};
-
-export type DeckGoDocsResponse = {
-  docs?: DeckGoDoc[];
-};
-
-export type DeckGoDocsExtractResponse = {
-  extracted?: number;
-  docs?: DeckGoDoc[];
-};
-
-export type DeckGoAlertAction = "toast" | "activity" | "webhook";
-
-export type DeckGoAlertRule = {
-  id: string;
-  name: string;
-  entityType: string;
-  condition: string;
-  threshold: number;
-  action: DeckGoAlertAction;
-  cooldownMs: number;
-  lastFiredAt: string | null;
-  enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type DeckGoAlertsResponse = {
-  rules: DeckGoAlertRule[];
-};
-
-export type DeckGoAlertRuleResponse = {
-  rule: DeckGoAlertRule;
-};
-
-export type DeckGoWebhook = {
-  id: string;
-  name: string;
-  url: string;
-  secret: string | null;
-  events: string[];
-  enabled: boolean;
-  consecutiveFailures: number;
-  lastFiredAt: string | null;
-  lastStatus: number | null;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type DeckGoWebhookDelivery = {
-  id: string;
-  webhookId: string;
-  eventType: string;
-  payload: string;
-  statusCode: number | null;
-  responseBody?: string | null;
-  error: string | null;
-  durationMs: number | null;
-  attempt?: number | null;
-  isRetry: boolean;
-  parentDeliveryId?: string | null;
-  success: boolean;
-  nextRetryAt?: number | null;
-  createdAt: string;
-};
-
-export type DeckGoWebhooksResponse = {
-  webhooks: DeckGoWebhook[];
-};
-
-export type DeckGoWebhookDeliveriesResponse = {
-  deliveries: DeckGoWebhookDelivery[];
-};
-
-export type DeckGoNodeSummary = {
-  nodeId: string;
-  displayName?: string;
-  platform?: string;
-  version?: string;
-  coreVersion?: string;
-  uiVersion?: string;
-  deviceFamily?: string;
-  modelIdentifier?: string;
-  remoteIp?: string;
-  caps: string[];
-  commands: string[];
-  pathEnv?: string;
-  permissions?: Record<string, boolean>;
-  connectedAtMs?: number;
-  paired: boolean;
-  connected: boolean;
-};
-
-export type DeckGoPairingRequest = {
-  requestId: string;
-  nodeId: string;
-  displayName?: string;
-  platform?: string;
-  silent?: boolean;
-  isRepair?: boolean;
-  ts: number;
-};
-
-export type DeckGoNodesResponse = {
-  nodes?: DeckGoNodeSummary[];
-};
-
-export type DeckGoNodePairingResponse = {
-  pending?: DeckGoPairingRequest[];
-};
-
-export type DeckGoNodePairRequestInput = {
-  nodeId: string;
-  displayName?: string;
-  platform?: string;
-  version?: string;
-  coreVersion?: string;
-  uiVersion?: string;
-  deviceFamily?: string;
-  modelIdentifier?: string;
-  caps?: string[];
-  commands?: string[];
-  remoteIp?: string;
-  silent?: boolean;
-};
-
-export type DeckGoNodePairRequestResponse = {
-  status?: string;
-  request?: DeckGoPairingRequest;
-  created?: boolean;
-};
-
-export type DeckGoNodeInvokeResponse = {
-  ok?: boolean;
-  nodeId?: string;
-  command?: string;
-  payload?: unknown;
-  payloadJSON?: string | null;
-};
-
-export type DeckGoNodePendingWorkType = "status.request" | "location.request";
-export type DeckGoNodePendingWorkPriority = "normal" | "high";
-
-export type DeckGoNodePendingEnqueueResponse = {
-  nodeId?: string;
-  revision?: number;
-  queued?: Record<string, unknown>;
-  wakeTriggered?: boolean;
-};
-
-export type DeckGoMemoryFileNode = {
-  name: string;
-  path: string;
-  type: "file" | "directory";
-  size?: number;
-};
-
-export type DeckGoMemoryHealthEntry = {
-  agentId: string;
-  provider: string;
-  embeddingStatus: "ok" | "error" | "unknown";
-  error?: string;
-};
-
-export type DeckGoMemoryBrowseResponse = {
-  files?: DeckGoMemoryFileNode[];
-  content?: string;
-  path?: string;
-};
-
-export type DeckGoMemoryHealthResponse = {
-  entries?: DeckGoMemoryHealthEntry[];
-  lanceDbEnabled?: boolean;
-  agentId?: string;
-  provider?: string;
-  embedding?: { ok?: boolean; error?: string };
-  error?: string;
-};
-
-export type DeckGoMemorySearchScope = "all" | "global" | "agent";
-
-export type DeckGoMemorySearchResult = {
-  path: string;
-  content: string;
-  relevance: number;
-  tier?: "core" | "working" | "peripheral";
-  scope?: string;
-  decayScore?: number;
-};
-
-export type DeckGoMemorySearchResponse = {
-  results?: DeckGoMemorySearchResult[];
-  unavailableReason?: string | null;
-  lanceDbEnabled?: boolean;
-};
-
-export type DeckGoMemoryDreamAction =
-  | "read"
-  | "backfill"
-  | "reset"
-  | "resetShortTerm"
-  | "repair"
-  | "dedupe";
-
-export type DeckGoMemoryDreamDiaryResult = {
-  agentId: string;
-  found: boolean;
-  path: string;
-  content?: string;
-  updatedAtMs?: number;
-};
-
-export type DeckGoMemoryDreamActionResult = {
-  agentId: string;
-  action: string;
-  path?: string;
-  found?: boolean;
-  scannedFiles?: number;
-  written?: number;
-  replaced?: number;
-  removedEntries?: number;
-  removedShortTermEntries?: number;
-  changed?: boolean;
-  archiveDir?: string;
-  archivedDreamsDiary?: boolean;
-  archivedSessionCorpus?: boolean;
-  archivedSessionIngestion?: boolean;
-  warnings?: string[];
-  dedupedEntries?: number;
-  keptEntries?: number;
-};
-
-export type DeckGoMemoryDreamsResult = DeckGoMemoryDreamDiaryResult | DeckGoMemoryDreamActionResult;
-
-export type DeckGoBudgetDimension = "tokensIn" | "tokensOut" | "totalTokens" | "cost";
-export type DeckGoBudgetStatus = "ok" | "warn" | "over";
-
-export type DeckGoBudgetRule = {
-  id: string;
-  name: string;
-  scope: string;
-  agentId: string | null;
-  taskId: string | null;
-  dimension: DeckGoBudgetDimension;
-  warnThreshold: number | null;
-  overThreshold: number | null;
-  period: string;
-  enabled: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type DeckGoBudgetEvaluation = {
-  ruleId: string;
-  ruleName: string;
-  status: DeckGoBudgetStatus;
-  current: number;
-  warnThreshold: number | null;
-  overThreshold: number | null;
-  dimension: DeckGoBudgetDimension;
-};
-
-export type DeckGoBudgetRulesResponse = {
-  rules: DeckGoBudgetRule[];
-};
-
-export type DeckGoBudgetEvaluationsResponse = {
-  evaluations: DeckGoBudgetEvaluation[];
-};
 
 type DeckGoBudgetEvaluationWire = Omit<DeckGoBudgetEvaluation, "current"> & {
   current?: number;
@@ -1102,624 +817,6 @@ function normalizeBudgetEvaluation(evaluation: DeckGoBudgetEvaluationWire): Deck
         : 0;
   return { ...rest, current: resolvedCurrent };
 }
-
-export type DeckGoIdentityPeer = {
-  channel: string;
-  peerId: string;
-};
-
-export type DeckGoIdentityLink = {
-  canonical: string;
-  peers: DeckGoIdentityPeer[];
-};
-
-export type DeckGoIdentityLinksResponse = {
-  links: DeckGoIdentityLink[];
-  configHash?: string;
-};
-
-export type DeckGoThreadEntry = {
-  threadId: string;
-  channelId: string;
-  agentId: string;
-  targetSessionKey: string;
-  targetKind: string;
-  boundAt: number;
-  lastActivityAt: number;
-  accountId: string;
-  boundBy: string;
-  label?: string;
-};
-
-export type DeckGoThreadsResponse = {
-  threads?: DeckGoThreadEntry[];
-};
-
-export type DeckGoRoutingPeer = {
-  kind: "direct" | "group" | "channel";
-  id: string;
-};
-
-export type DeckGoRoutingMatch = {
-  channel: string;
-  accountId?: string;
-  peer?: DeckGoRoutingPeer;
-  guildId?: string;
-  roles?: string[];
-  teamId?: string;
-};
-
-export type DeckGoRoutingBinding = {
-  id: string;
-  agentId: string;
-  tier: string;
-  match: DeckGoRoutingMatch;
-  comment?: string;
-};
-
-export type DeckGoRoutingConflict = {
-  type: string;
-  bindingId: string;
-  agentId: string;
-  detail: string;
-};
-
-export type DeckGoRoutingListResponse = {
-  bindings: DeckGoRoutingBinding[];
-  defaultAgentId: string;
-  dmScope: string;
-  configHash: string;
-};
-
-export type DeckGoRoutingAddResponse = {
-  ok: boolean;
-  binding: DeckGoRoutingBinding;
-  configHash: string;
-  warnings: DeckGoRoutingConflict[];
-};
-
-export type DeckGoRoutingRemoveResponse = {
-  ok: boolean;
-  removed: DeckGoRoutingBinding;
-  configHash: string;
-  impact: string;
-};
-
-export type DeckGoRoutingValidateResponse = {
-  ok: boolean;
-  tier: string;
-  conflicts: DeckGoRoutingConflict[];
-};
-
-export type DeckGoRoutingSimulationTier = {
-  tier: string;
-  matched: boolean;
-  checked: boolean;
-};
-
-export type DeckGoRoutingSimulateResponse = {
-  agentId: string;
-  matchedBy: string;
-  sessionKey: string;
-  tiers: DeckGoRoutingSimulationTier[];
-};
-
-export type DeckGoSubagentRun = {
-  runId: string;
-  childSessionKey: string;
-  childAgentId: string;
-  childAgentName?: string;
-  requesterSessionKey: string;
-  requesterAgentId: string;
-  requesterAgentName?: string;
-  task?: string;
-  label?: string;
-  model?: string;
-  spawnMode: string;
-  depth: number;
-  createdAt: number;
-  startedAt?: number;
-  endedAt?: number;
-  durationMs?: number;
-  status: string;
-  outcome?: unknown;
-};
-
-export type DeckGoSubagentsListResponse = {
-  runs: DeckGoSubagentRun[];
-  total: number;
-};
-
-export type DeckGoSubagentLineageRoot = {
-  sessionKey: string;
-  agentId: string;
-  agentName?: string;
-};
-
-export type DeckGoSubagentLineageNode = {
-  runId: string;
-  sessionKey: string;
-  agentId: string;
-  agentName?: string;
-  task?: string;
-  depth: number;
-  parentRunId: string;
-  status: string;
-  durationMs?: number;
-};
-
-export type DeckGoSubagentsLineageResponse = {
-  root: DeckGoSubagentLineageRoot;
-  nodes: DeckGoSubagentLineageNode[];
-};
-
-export type DeckGoSubagentKillResponse = {
-  ok: boolean;
-  runId: string;
-  childSessionKey: string;
-};
-
-export type DeckGoSubagentSteerResponse = {
-  success: boolean;
-  dedupKey?: string;
-  deduped?: boolean;
-  newRunId?: string;
-};
-
-export type DeckGoActivityEvent = {
-  id: string;
-  timestamp: number;
-  type: string;
-  agentId?: string;
-  agentName?: string;
-  description: string;
-  details?: string;
-};
-
-export type DeckGoActivityResponse = {
-  events: DeckGoActivityEvent[];
-};
-
-export type DeckGoMonitorRunStatus = "running" | "completed" | "error" | (string & {});
-
-export type DeckGoMonitorRun = {
-  runId: string;
-  agentId: string | null;
-  sessionKey: string | null;
-  firstEventAt: string;
-  lastEventAt: string;
-  eventCount: number;
-  status: DeckGoMonitorRunStatus;
-  toolCalls: number;
-  modelCalls: number;
-  totalTokens: number;
-};
-
-export type DeckGoMonitorRunsResponse = {
-  runs: DeckGoMonitorRun[];
-  nextCursor?: string | null;
-};
-
-export type DeckGoMonitorTopAgent = {
-  agentId: string;
-  runCount: number;
-};
-
-export type DeckGoMonitorStatsResponse = {
-  totalRuns: number;
-  todayRuns: number;
-  avgDurationMs: number;
-  topAgents: DeckGoMonitorTopAgent[];
-};
-
-export type DeckGoMonitorRunEvent = {
-  id: number;
-  run_id: string;
-  seq: number;
-  stream: string;
-  data: string;
-  agent_id: string | null;
-  session_key: string | null;
-  created_at: string;
-};
-
-export type DeckGoMonitorRunSummary = {
-  toolCalls?: number;
-  modelCalls?: number;
-  fileOps?: number;
-  subagentSpawns?: number;
-  compacted?: boolean;
-  totalTokens?: number;
-  totalInputTokens?: number;
-  totalOutputTokens?: number;
-  totalCacheTokens?: number;
-  durationMs?: number;
-  eventCount?: number;
-};
-
-export type DeckGoMonitorRunDetailResponse = {
-  summary?: DeckGoMonitorRunSummary | null;
-  events?: DeckGoMonitorRunEvent[];
-};
-
-export type DeckGoUsageCostEntry = {
-  date: string;
-  totalCost?: number;
-  cost?: number;
-};
-
-export type DeckGoUsageCostResponse = {
-  updatedAt?: number;
-  days?: number;
-  daily: DeckGoUsageCostEntry[];
-};
-
-export type DeckGoUsageTotals = {
-  input?: number;
-  output?: number;
-  cacheRead?: number;
-  cacheWrite?: number;
-  totalTokens?: number;
-  totalCost?: number;
-  [key: string]: unknown;
-};
-
-export type DeckGoContextWeightReport = {
-  source: "run" | "estimate";
-  generatedAt: number;
-  sessionId?: string;
-  sessionKey?: string;
-  provider?: string;
-  model?: string;
-  workspaceDir?: string;
-  systemPrompt: {
-    chars: number;
-    projectContextChars: number;
-    nonProjectContextChars: number;
-  };
-  injectedWorkspaceFiles: Array<{
-    name: string;
-    path: string;
-    missing: boolean;
-    rawChars: number;
-    injectedChars: number;
-    truncated: boolean;
-  }>;
-  skills: {
-    promptChars: number;
-    entries: Array<{ name: string; blockChars: number }>;
-  };
-  tools: {
-    listChars: number;
-    schemaChars: number;
-    entries: Array<{
-      name: string;
-      summaryChars: number;
-      schemaChars: number;
-      propertiesCount?: number | null;
-    }>;
-  };
-  [key: string]: unknown;
-};
-
-export type DeckGoUsageSessionEntry = {
-  key: string;
-  label?: string;
-  sessionId?: string;
-  updatedAt?: number;
-  agentId?: string;
-  channel?: string;
-  usage: {
-    input?: number;
-    output?: number;
-    totalTokens?: number;
-    totalCost?: number;
-  } | null;
-  contextWeight?: DeckGoContextWeightReport | null;
-};
-
-export type DeckGoUsageAggregateEntry = {
-  agentId?: string;
-  channel?: string;
-  model?: string;
-  provider?: string;
-  totals: DeckGoUsageTotals;
-};
-
-export type DeckGoUsageMessageCounts = {
-  total: number;
-  user: number;
-  assistant: number;
-  toolCalls: number;
-  toolResults: number;
-  errors: number;
-};
-
-export type DeckGoUsageToolSummary = {
-  totalCalls: number;
-  uniqueTools: number;
-  tools: Array<{ name: string; count: number }>;
-};
-
-export type DeckGoUsageLatencyStats = {
-  count: number;
-  avgMs: number;
-  p95Ms: number;
-  minMs: number;
-  maxMs: number;
-};
-
-export type DeckGoUsageDailyAggregate = {
-  date: string;
-  tokens: number;
-  cost: number;
-  messages: number;
-  toolCalls: number;
-  errors: number;
-};
-
-export type DeckGoUsageDailyModelAggregate = {
-  date: string;
-  provider?: string;
-  model?: string;
-  tokens: number;
-  cost: number;
-  count: number;
-};
-
-export type DeckGoUsageSessionsResponse = {
-  updatedAt?: number;
-  startDate?: string;
-  endDate?: string;
-  sessions: DeckGoUsageSessionEntry[];
-  totals?: DeckGoUsageTotals;
-  aggregates?: {
-    byAgent?: DeckGoUsageAggregateEntry[];
-    byChannel?: DeckGoUsageAggregateEntry[];
-    byModel?: DeckGoUsageAggregateEntry[];
-    byProvider?: DeckGoUsageAggregateEntry[];
-    daily?: DeckGoUsageDailyAggregate[];
-    dailyLatency?: Array<DeckGoUsageLatencyStats & { date: string }>;
-    latency?: DeckGoUsageLatencyStats;
-    messages?: DeckGoUsageMessageCounts;
-    modelDaily?: DeckGoUsageDailyModelAggregate[];
-    tools?: DeckGoUsageToolSummary;
-    [key: string]: unknown;
-  };
-};
-
-export type DeckGoUsageSessionLogEntry = {
-  timestamp: number;
-  role: string;
-  content: string;
-  tokens?: number;
-  cost?: number;
-};
-
-export type DeckGoUsageSessionLogsResponse = {
-  logs?: DeckGoUsageSessionLogEntry[];
-};
-
-export type DeckGoUsageTimePoint = {
-  timestamp: number;
-  input: number;
-  output: number;
-  cacheRead: number;
-  cacheWrite: number;
-  totalTokens: number;
-  cost: number;
-  cumulativeTokens: number;
-  cumulativeCost: number;
-};
-
-export type DeckGoUsageTimeseriesResponse = {
-  sessionId?: string;
-  points: DeckGoUsageTimePoint[];
-};
-
-export type DeckGoUsageProviderWindow = {
-  label: string;
-  usedPercent: number;
-  resetAt?: number;
-};
-
-export type DeckGoUsageProviderStatus = {
-  provider: string;
-  displayName: string;
-  plan?: string;
-  error?: string;
-  windows: DeckGoUsageProviderWindow[];
-};
-
-export type DeckGoUsageProvidersResponse = {
-  updatedAt?: number;
-  providers: DeckGoUsageProviderStatus[];
-};
-
-export type DeckGoCompactionCheckpoint = {
-  checkpointId: string;
-  sessionKey: string;
-  sessionId: string;
-  createdAt: number;
-  reason: "manual" | "auto-threshold" | "overflow-retry" | "timeout-retry" | (string & {});
-  tokensBefore?: number;
-  tokensAfter?: number;
-  summary?: string;
-};
-
-export type DeckGoCompactionListResponse = {
-  ok?: boolean;
-  key?: string;
-  checkpoints?: DeckGoCompactionCheckpoint[];
-};
-
-export type DeckGoCompactionActionResponse = Record<string, unknown> & {
-  ok?: boolean;
-  key?: string;
-};
-
-export type DeckGoConfigSnapshotResponse = {
-  path?: string;
-  exists?: boolean;
-  valid?: boolean;
-  raw?: string | null;
-  config?: unknown;
-  hash?: string;
-  baseHash?: string;
-};
-
-export type DeckGoConfigApplyResponse = {
-  ok?: boolean;
-  baseHash?: string;
-  hash?: string;
-};
-
-export type DeckGoModelsConfigResponse = {
-  raw?: string | null;
-  hash?: string;
-};
-
-export type DeckGoRuntimeConfiguredModel = {
-  id?: string;
-  name?: string;
-  model?: string;
-  modelIdentifier?: string;
-  provider?: string;
-  contextWindow?: number;
-  reasoning?: boolean;
-  input?: string[];
-  cost?: {
-    input?: number;
-    output?: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-  };
-  maxTokens?: number;
-  authStatus?: string;
-  source?: string;
-  scope?: string;
-  editable?: boolean;
-  [key: string]: unknown;
-};
-
-export type DeckGoRuntimeConfiguredModelsResponse = {
-  runtimeId?: string;
-  payload?: {
-    models?: DeckGoRuntimeConfiguredModel[];
-    items?: DeckGoRuntimeConfiguredModel[];
-    [key: string]: unknown;
-  };
-  requestId?: string;
-};
-
-export type DeckGoModelAuthProvider = {
-  provider: string;
-  status: string;
-  source?: string;
-  scope?: string;
-  configPresent?: boolean;
-  authPresent?: boolean;
-  editable?: boolean;
-  auth?: { type?: string | null; source?: string; profileId?: string } | null;
-  oauth?: { expiresAt?: number; remainingMs?: number; status?: string };
-  cooldown?: { reason?: string; remainingMs?: number; until?: number };
-  usage?: {
-    plan?: string;
-    windows?: Array<{ label: string; usedPercent: number; resetsInMs?: number }>;
-  };
-  [key: string]: unknown;
-};
-
-export type DeckGoModelAuthOverviewResponse = {
-  runtimeId?: string;
-  payload?: {
-    providers?: DeckGoModelAuthProvider[];
-    [key: string]: unknown;
-  };
-  providers?: DeckGoModelAuthProvider[];
-  requestId?: string;
-};
-
-export type DeckGoCatalogProvider = {
-  id: string;
-  displayName?: string;
-  modelCount?: number;
-  defaultBaseUrl?: string;
-  authType?: string;
-  api?: string;
-  models?: Array<{
-    id: string;
-    name?: string;
-    contextWindow?: number;
-    reasoning?: boolean;
-    maxTokens?: number;
-  }>;
-  [key: string]: unknown;
-};
-
-export type DeckGoModelCatalogProvidersResponse = {
-  runtimeId?: string;
-  payload?: {
-    providers?: DeckGoCatalogProvider[];
-    [key: string]: unknown;
-  };
-  providers?: DeckGoCatalogProvider[];
-  requestId?: string;
-};
-
-export type DeckGoModelProbeResponse = {
-  runtimeId?: string;
-  payload?: {
-    provider?: string;
-    model?: string;
-    profileId?: string;
-    label?: string;
-    source?: string;
-    mode?: string;
-    status?: string;
-    reasonCode?: string;
-    error?: string;
-    latencyMs?: number;
-    [key: string]: unknown;
-  };
-  provider?: string;
-  status?: string;
-  error?: string;
-  latencyMs?: number;
-  requestId?: string;
-};
-
-export type DeckGoConfigLookupChild = {
-  key: string;
-  path: string;
-  type?: string | string[];
-  required: boolean;
-  hasChildren: boolean;
-  hint?: Record<string, unknown>;
-  hintPath?: string;
-};
-
-export type DeckGoConfigLookupResponse = {
-  path: string;
-  schema?: Record<string, unknown>;
-  hint?: Record<string, unknown>;
-  children: DeckGoConfigLookupChild[];
-};
-
-export type DeckGoAgentSummary = {
-  id: string;
-  name?: string;
-  emoji?: string;
-  avatar?: string;
-  workspace?: string;
-  model?: string;
-  [key: string]: unknown;
-};
-
-export type DeckGoAgentsListResponse = {
-  agents: DeckGoAgentSummary[];
-  defaultId?: string;
-};
 
 type TypedGatewayAgentSummary = {
   id: string;
@@ -1746,203 +843,6 @@ function normalizeGatewayAgentSummary(agent: TypedGatewayAgentSummary): DeckGoAg
     name: agent.name ?? agent.identity?.name,
   };
 }
-
-export type DeckGoAgentDetailResponse = {
-  id: string;
-  name?: string;
-  workspace: string;
-  model?: string;
-  reasoningDefault?: "on" | "off" | "stream";
-  fastModeDefault?: boolean;
-  isDefault: boolean;
-  bindingCount: number;
-  sessionCount: number;
-  activeSubagentCount: number;
-  skillMode: string;
-  effectiveSkills: string[];
-  totalAvailableSkills: number;
-  subagents: {
-    allowAgents: string[];
-    model?: string;
-    effectiveMaxSpawnDepth: number;
-    effectiveMaxChildrenPerAgent: number;
-  };
-  sandbox?: unknown;
-  identityExists: boolean;
-  fallbackModels?: string[];
-};
-
-export type DeckGoAgentMutationResponse = {
-  ok?: boolean;
-  id?: string;
-};
-
-export type DeckGoAgentHealthSnapshot = {
-  agents?: Array<Record<string, unknown>>;
-  [key: string]: unknown;
-};
-
-export type DeckGoAgentRawConfig = {
-  agentId: string;
-  defaults: Record<string, unknown>;
-  entry: Record<string, unknown> | null;
-  list: Record<string, unknown>[];
-  baseHash: string | null;
-};
-
-export type DeckGoAgentIdentityResponse = {
-  agentId: string;
-  name?: string;
-  avatar?: string;
-  emoji?: string;
-};
-
-export type DeckGoAgentEventStreamsResponse = {
-  agentId?: string;
-  eventStreams: string[];
-  isDefault?: boolean;
-  configHash: string;
-};
-
-export type DeckGoAgentEventStreamsSetResponse = {
-  ok?: boolean;
-  agentId?: string;
-  eventStreams?: string[];
-  configHash?: string;
-};
-
-export type DeckGoAgentSkillEntry = {
-  key: string;
-  name: string;
-  eligible: boolean;
-  assigned: boolean;
-};
-
-export type DeckGoAgentSkillsResponse = {
-  agentId?: string;
-  mode: string;
-  skills: string[];
-  available: DeckGoAgentSkillEntry[];
-  configHash: string;
-};
-
-export type DeckGoAgentSkillsSetResponse = {
-  ok?: boolean;
-  agentId?: string;
-  mode?: string;
-  skills?: string[];
-  configHash?: string;
-};
-
-export type DeckGoAgentSubagentConfigResponse = {
-  agentId?: string;
-  allowAgents: string[];
-  allowAny?: boolean;
-  model?: string;
-  effectiveMaxSpawnDepth?: number;
-  effectiveMaxChildrenPerAgent?: number;
-  effectiveThinking?: unknown;
-  allowedAgents?: Array<{ id: string; name?: string }>;
-  allAgents?: Array<{ id: string; name?: string }>;
-  configHash: string;
-};
-
-export type DeckGoAgentSubagentConfigSetResponse = {
-  ok?: boolean;
-  agentId?: string;
-  allowAgents?: string[];
-  model?: string;
-  configHash?: string;
-};
-
-export type DeckGoAgentToolPolicyPreviewResponse = {
-  layers?: Array<{ label: string; ruleCount: number; effect: string }>;
-  tools?: Array<{
-    name: string;
-    allowed: boolean;
-    decisiveLayer?: string;
-    trace?: Array<{ layer: string; decision: string }>;
-  }>;
-  configHash?: string;
-};
-
-export type DeckGoAgentSystemPromptPreviewResponse = {
-  layers?: Array<{ label: string; source: string; charCount: number; fileCount: number }>;
-  bootstrapFiles?: Array<{ name: string; exists: boolean; charCount: number }>;
-  totalChars?: number;
-  configHash?: string;
-};
-
-export type DeckGoAgentFile = {
-  name: string;
-  path?: string;
-  missing?: boolean;
-  size?: number;
-  updatedAtMs?: number;
-  content?: string;
-};
-
-export type DeckGoAgentFileResponse = {
-  ok?: boolean;
-  agentId?: string;
-  workspace?: string;
-  file: DeckGoAgentFile;
-};
-
-export type DeckGoAgentFilesResponse = {
-  agentId?: string;
-  workspace?: string;
-  files: DeckGoAgentFile[];
-};
-
-export type DeckGoToolCatalogEntry = {
-  id: string;
-  label: string;
-  description?: string;
-  source?: "core" | "plugin" | "channel";
-  pluginId?: string;
-  channelId?: string;
-  optional?: boolean;
-  defaultProfiles?: string[];
-};
-
-export type DeckGoToolCatalogGroup = {
-  id: string;
-  label: string;
-  source?: "core" | "plugin" | "channel";
-  pluginId?: string;
-  tools: DeckGoToolCatalogEntry[];
-};
-
-export type DeckGoToolsCatalogResponse = {
-  agentId?: string;
-  profiles?: Array<{ id: string; label: string }>;
-  groups: DeckGoToolCatalogGroup[];
-};
-
-export type DeckGoEffectiveTool = {
-  id: string;
-  label?: string;
-  name?: string;
-  description?: string;
-  source?: "core" | "plugin" | "channel";
-  pluginId?: string;
-  channelId?: string;
-};
-
-export type DeckGoEffectiveToolGroup = {
-  id?: string;
-  name?: string;
-  label?: string;
-  source?: "core" | "plugin" | "channel";
-  tools: DeckGoEffectiveTool[];
-};
-
-export type DeckGoEffectiveToolsResponse = {
-  agentId?: string;
-  profile?: string;
-  groups: DeckGoEffectiveToolGroup[];
-};
 
 export async function fetchLogsTail(params?: {
   cursor?: number;
@@ -3413,12 +2313,7 @@ export async function fetchEffectiveTools(params: { agentId: string; sessionKey:
   );
 }
 
-export async function createAgent(params: {
-  name: string;
-  workspace?: string;
-  emoji?: string;
-  avatar?: string;
-}) {
+export async function createAgent(params: DeckApi.DeckGoAgentCreateRequest) {
   return fetchDeckJson<DeckGoAgentMutationResponse>(
     "/agents",
     {
@@ -3430,10 +2325,7 @@ export async function createAgent(params: {
   );
 }
 
-export async function updateAgent(
-  agentId: string,
-  params: { name?: string; workspace?: string; emoji?: string; avatar?: string },
-) {
+export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPatchRequest) {
   return fetchDeckJson<DeckGoAgentMutationResponse>(
     `/agents/${encodeURIComponent(agentId)}`,
     {
@@ -3602,7 +2494,7 @@ export async function steerChatSession(body: DeckGoChatSteerRequest) {
   );
 }
 
-export async function resetSession(body: { sessionKey: string; reason?: "new" | "reset" }) {
+export async function resetSession(body: DeckApi.DeckGoChatSessionResetRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/reset",
     {
@@ -3614,7 +2506,7 @@ export async function resetSession(body: { sessionKey: string; reason?: "new" | 
   );
 }
 
-export async function clearSession(body: { sessionKey: string }) {
+export async function clearSession(body: DeckApi.DeckGoChatSessionClearRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/clear",
     {
@@ -3626,7 +2518,7 @@ export async function clearSession(body: { sessionKey: string }) {
   );
 }
 
-export async function deleteSession(body: { sessionKey: string; agentId?: string | null }) {
+export async function deleteSession(body: DeckApi.DeckGoChatSessionDeleteRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions",
     {
@@ -3638,7 +2530,7 @@ export async function deleteSession(body: { sessionKey: string; agentId?: string
   );
 }
 
-export async function patchSession(body: Record<string, unknown>) {
+export async function patchSession(body: DeckApi.DeckGoChatSessionPatchRequest) {
   return fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/patch",
     {
@@ -3675,36 +2567,47 @@ export async function compactChatSession(sessionKey: string) {
 }
 
 export async function fetchCompactionCheckpoints(sessionKey: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = { action: "list", key: sessionKey };
   return fetchDeckJson<DeckGoCompactionListResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "list", key: sessionKey }),
+      body: JSON.stringify(body),
     },
     "compaction checkpoints fetch failed",
   );
 }
 
 export async function branchCompactionCheckpoint(sessionKey: string, checkpointId: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = {
+    action: "branch",
+    key: sessionKey,
+    checkpointId,
+  };
   return fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "branch", key: sessionKey, checkpointId }),
+      body: JSON.stringify(body),
     },
     "compaction branch failed",
   );
 }
 
 export async function restoreCompactionCheckpoint(sessionKey: string, checkpointId: string) {
+  const body: DeckApi.DeckGoChatCompactionRequest = {
+    action: "restore",
+    key: sessionKey,
+    checkpointId,
+  };
   return fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "restore", key: sessionKey, checkpointId }),
+      body: JSON.stringify(body),
     },
     "compaction restore failed",
   );
@@ -3722,46 +2625,49 @@ export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequ
   );
 }
 
-export async function persistChatProjection(body: {
+export async function persistChatProjection(input: {
   sessionKey: string;
   a2uiState: A2UIState | null;
 }) {
+  const body: DeckApi.DeckGoChatProjectionRequest = {
+    sessionKey: input.sessionKey,
+    a2uiState: sanitizeA2UIState(input.a2uiState),
+  };
   const response = await deckFetch(buildApiPath("/chat/projection"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sessionKey: body.sessionKey,
-      a2uiState: sanitizeA2UIState(body.a2uiState),
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "chat projection failed"));
   }
 }
 
-export async function setCanvasBridgeReady(body: { sessionKey: string; ready: boolean }) {
+export async function setCanvasBridgeReady(input: { sessionKey: string; ready: boolean }) {
+  const body: DeckApi.DeckGoCanvasBridgeReadyRequest = {
+    action: input.ready ? "ready" : "unready",
+    sessionKey: input.sessionKey,
+  };
   const response = await deckFetch(buildApiPath("/deck/canvas"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: body.ready ? "ready" : "unready",
-      sessionKey: body.sessionKey,
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "canvas bridge update failed"));
   }
 }
 
-export async function resolveCanvasEval(body: { evalId: string; result: unknown }) {
+export async function resolveCanvasEval(input: { evalId: string; result: unknown }) {
+  const body: DeckApi.DeckGoCanvasBridgeEvalRequest = {
+    action: "resolve",
+    evalId: input.evalId,
+    result: input.result,
+  };
   const response = await deckFetch(buildApiPath("/deck/canvas"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "resolve",
-      evalId: body.evalId,
-      result: body.result,
-    }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "canvas eval resolve failed"));

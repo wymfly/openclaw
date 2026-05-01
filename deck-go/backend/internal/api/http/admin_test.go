@@ -420,9 +420,11 @@ func TestMountAdminRoutes(t *testing.T) {
 		detail: deckapi.DeckGoSessionDetailResponse{
 			Session: deckapi.DeckGoSessionMeta{Key: "session-1", AgentId: "main", Status: "running"},
 			Messages: []deckapi.DeckGoTranscriptMessage{
-				{Id: "msg-1", Role: "assistant", Content: []deckapi.DeckGoTranscriptBlock{{Type: "text", Text: "hi"}}},
+				{Id: "msg-1", Role: "assistant", Content: []deckapi.DeckGoTranscriptBlock{
+					map[string]any{"type": "text", "text": "hi"},
+				}},
 			},
-			ActiveApproval: map[string]any{"id": "approval-1"},
+			ActiveApproval: &deckapi.DeckGoApprovalRequest{Id: "approval-1"},
 		},
 	}
 	assets := &stubAssetProvider{

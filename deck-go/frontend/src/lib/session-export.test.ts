@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type {
+  DeckGoSessionMeta,
+  DeckGoTranscriptMessage,
+} from "../../../contracts/generated/ts/deck-api.generated";
 import {
   buildSessionExportJson,
   buildSessionExportMarkdown,
@@ -6,7 +10,7 @@ import {
   transcriptMessageToPlainText,
 } from "./session-export";
 
-const session = {
+const session: DeckGoSessionMeta = {
   key: "sess-main",
   agentId: "main",
   title: "Main Session",
@@ -16,7 +20,7 @@ const session = {
   modelProvider: "openai",
 };
 
-const messages = [
+const messages: DeckGoTranscriptMessage[] = [
   {
     id: "m1",
     role: "user",

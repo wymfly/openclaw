@@ -266,27 +266,54 @@ func normalizeTranscriptBlocks(raw any) []deckapi.DeckGoTranscriptBlock {
 		if !ok {
 			continue
 		}
-		result = append(result, deckapi.DeckGoTranscriptBlock{
-			Type:            coerce.String(block["type"], ""),
-			Text:            coerce.String(block["text"], ""),
-			Id:              coerce.String(block["id"], ""),
-			Name:            coerce.String(block["name"], ""),
-			Input:           coerce.Map(block["input"]),
-			ToolUseId:       coerce.String(block["toolUseId"], ""),
-			Content:         block["content"],
-			IsError:         coerce.Bool(block["isError"]),
-			Data:            coerce.String(block["data"], ""),
-			MimeType:        coerce.String(block["mimeType"], ""),
-			FileName:        coerce.String(block["fileName"], ""),
-			Size:            coerce.Number(block["size"]),
-			Kind:            coerce.String(block["kind"], ""),
-			Surface:         coerce.String(block["surface"], ""),
-			Render:          coerce.String(block["render"], ""),
-			Url:             coerce.String(block["url"], ""),
-			Title:           coerce.String(block["title"], ""),
-			PreferredHeight: coerce.Number(block["preferredHeight"]),
-			Summary:         coerce.Map(block["summary"]),
-		})
+		// DeckGoTranscriptBlock is now a discriminated union on the TS side;
+		// the Go codegen resolves the union to `any`, so the normalizer
+		// builds a map matching the wire shape. Fields are emitted only when
+		// they carry a real value, preserving the omitempty semantics that
+		// the prior flat-struct codegen produced.
+		normalized := map[string]any{
+			"type": coerce.String(block["type"], ""),
+		}
+		setIfNonEmpty := func(key, value string) {
+			if value != "" {
+				normalized[key] = value
+			}
+		}
+		setIfNonZero := func(key string, value float64) {
+			if value != 0 {
+				normalized[key] = value
+			}
+		}
+		setIfNonNil := func(key string, value map[string]any) {
+			if value != nil {
+				normalized[key] = value
+			}
+		}
+		setIfNonEmpty("text", coerce.String(block["text"], ""))
+		setIfNonEmpty("id", coerce.String(block["id"], ""))
+		setIfNonEmpty("name", coerce.String(block["name"], ""))
+		setIfNonNil("input", coerce.Map(block["input"]))
+		setIfNonEmpty("toolUseId", coerce.String(block["toolUseId"], ""))
+		if content, present := block["content"]; present && content != nil {
+			normalized["content"] = content
+		}
+		if coerce.Bool(block["isError"]) {
+			normalized["isError"] = true
+		}
+		setIfNonEmpty("data", coerce.String(block["data"], ""))
+		setIfNonEmpty("mimeType", coerce.String(block["mimeType"], ""))
+		setIfNonEmpty("fileName", coerce.String(block["fileName"], ""))
+		setIfNonZero("size", coerce.Number(block["size"]))
+		setIfNonEmpty("kind", coerce.String(block["kind"], ""))
+		setIfNonEmpty("surface", coerce.String(block["surface"], ""))
+		setIfNonEmpty("render", coerce.String(block["render"], ""))
+		setIfNonEmpty("url", coerce.String(block["url"], ""))
+		setIfNonEmpty("title", coerce.String(block["title"], ""))
+		setIfNonZero("preferredHeight", coerce.Number(block["preferredHeight"]))
+		setIfNonNil("summary", coerce.Map(block["summary"]))
+		// `unknown` variant carries the original wire `type` in `rawType`.
+		setIfNonEmpty("rawType", coerce.String(block["rawType"], ""))
+		result = append(result, normalized)
 	}
 	return result
 }
