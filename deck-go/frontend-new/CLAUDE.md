@@ -155,5 +155,5 @@ ship
   - 验证全绿：tsc clean · vitest 240/240 · drift exit 0 · dev server 渲染正常 · `?dsGallery=1` 显示 8 大类全部 atom
 - **Tokens canonical**：✅ 本目录 `src/design-system/tokens/index.css`（已成为权威源；drift 脚本自动适配，与 `../frontend-handoff/design-system/tokens.css` 一致）
 - **占位 App**：本工作区当前渲染最小 placeholder，含 theme + density 切换 demo，等待业务模块迁入
-- **First module migration**：⏳ chat（待 OpenSpec change `deck-go-chat-protocol-pilot`）
-- **24 legacy panel**：在老 `../frontend/src/components/panels/` 下；按协议化重做 pipeline 陆续迁入本目录的 `src/components/panels/`（当前空，仅 `.gitkeep` 占位）
+- **First module migration**：✅ chat migrated（OpenSpec change `deck-go-chat-protocol-pilot` 已落地；6 件套交付包在 `../frontend-handoff/modules/chat/`，工程代码 + 9 stores + 8 lib + 3 hooks + i18n + compat shim 已全部 cp 进本目录；641/641 tests passing；浏览器 chat 三栏布局视觉与 frontend 等价；i18n 临时沿用 `next-intl-via-compat-shim`，待 stack-decisions 决议后单独 change 替换）
+- **24 legacy panel**：⏳ 协议化重做 pipeline 待开（agents 下一个；设计 agent 基于本目录的 design system + chat 6 件套示例 + 该模块契约出原型，Claude Code 基于老 `../frontend/src/components/panels/<x>/` + 设计原型按协议收敛）

@@ -8,7 +8,9 @@ import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "./design-system/tokens/index.css";
-import { App } from "./App";
+import "./theme.css";
+import { ChatPanel } from "./components/panels/chat/ChatPanel";
+import { DeckRoot } from "./i18n/provider";
 
 const dsGallery =
   import.meta.env.DEV &&
@@ -29,7 +31,9 @@ if (dsGallery) {
 } else {
   root.render(
     <React.StrictMode>
-      <App />
+      <DeckRoot>
+        <ChatPanel />
+      </DeckRoot>
     </React.StrictMode>,
   );
 }

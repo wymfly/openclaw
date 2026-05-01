@@ -1,0 +1,687 @@
+/* Smaller chat widgets — config bar, filters, tool ladder, compaction notice,
+ * empty state, steer dialog, transcript search, subagent tree, message actions.
+ *
+ * Each surface gets a `ds-*` class while keeping the legacy `deck-ui-*` class
+ * so theme.css visuals stay valid until P2d 7.3 cleanup.
+ */
+
+/* Steer-dialog button — shared chip-style ghost button used by SteerDialog.
+ * Was previously shared with `.ds-session-config__button` (chat-parity §5
+ * collapsed SessionConfigBar into the 5-cell ChatContextBar). */
+.ds-steer-dialog__button {
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-2);
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.ds-steer-dialog__button:hover {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}
+
+/* Block-filter-bar — bundle .block-filter-bar (lines 241-260).
+ * Sits between transcript and composer; chip visuals owned by the Chip atom
+ * (`design-system/atoms/Chip.css`) so this rule only owns frame chrome.
+ * `flex-wrap: wrap` retained beyond bundle to keep three chips visible at
+ * narrow viewports / compact density. */
+.ds-block-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 6px 22px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+}
+
+.ds-block-filter-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ds-text-3);
+  margin-right: 4px;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-block-filter-bar__label-icon {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+}
+
+.ds-block-filter-bar__chip-state {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  margin-right: 2px;
+}
+
+/* Tool-ladder — bundle .tool-progress-bar (lines 262-270).
+ * Bundle uses a flat horizontal flex of `.tpb-item` chips; deck-go's
+ * JSX renders multi-line `<section>` cards (label + name + id +
+ * elapsed) per tool-use, so we keep an auto-fit grid for content
+ * density but adopt the bundle surface palette (border-top
+ * --ds-border-subtle + --ds-bg-2). Step variants reuse design-system
+ * status tokens. */
+.ds-tool-ladder {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  padding: 6px 22px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+  overflow-x: auto;
+}
+
+.ds-tool-ladder__step {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+}
+
+.ds-tool-ladder__step strong {
+  color: var(--ds-text-1);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-tool-ladder__step span {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-tool-ladder__step--running {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+}
+
+.ds-tool-ladder__step--completed {
+  border-color: var(--ds-success);
+}
+
+.ds-tool-ladder__step--error,
+.ds-tool-ladder__step--failed {
+  border-color: var(--ds-error);
+  background: var(--ds-error-bg);
+}
+
+.ds-tool-ladder__step-label {
+  margin: 0;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 680px) {
+  .ds-tool-ladder {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Compaction notice — bundle .compaction-notice (lines 605-616).
+ * Inline pill that surfaces context-window summarization events between
+ * messages; align-self: center so it floats centred in the message list.
+ */
+.ds-compaction-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  margin: 12px auto;
+  padding: 7px 12px;
+  max-width: 540px;
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: transparent;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-compaction-notice__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-warn-bg);
+  color: var(--ds-warn);
+  font-family: var(--ds-font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ds-compaction-notice__counts {
+  font-family: var(--ds-font-mono);
+}
+
+.ds-compaction-notice__time {
+  margin-left: auto;
+  font-family: var(--ds-font-mono);
+}
+
+.ds-compaction-notice__view-summary {
+  margin-left: 4px;
+}
+
+/* Compaction summary modal — bundle has no direct counterpart; deck-go
+ * surfaces the openclaw `sessions.compaction.list` RPC as a stack of
+ * checkpoint cards (timestamp + reason + token delta + markdown summary)
+ * inside the Modal atom (size lg). */
+.ds-compaction-summary {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 70vh;
+}
+
+.ds-compaction-summary__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+
+.ds-compaction-summary__title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ds-text-1);
+}
+
+.ds-compaction-summary__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 16px;
+}
+
+.ds-compaction-summary__status {
+  margin: 8px 0;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-compaction-summary__status--error {
+  color: var(--ds-error);
+}
+
+.ds-compaction-summary__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ds-compaction-summary__item {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-1);
+  padding: 10px 12px;
+}
+
+.ds-compaction-summary__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-compaction-summary__time {
+  color: var(--ds-text-2);
+}
+
+.ds-compaction-summary__reason {
+  padding: 1px 6px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+}
+
+.ds-compaction-summary__counts {
+  color: var(--ds-text-3);
+}
+
+.ds-compaction-summary__text {
+  font-size: var(--ds-fs-body);
+}
+
+.ds-compaction-summary__foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+
+/* Empty-state — bundle has no explicit empty-state, so this rule
+ * stays bespoke. Surface palette aligned to bundle (transparent on
+ * --ds-bg-1 transcript), eyebrow uses the bundle's accent eyebrow
+ * pattern (mono / accent / uppercase 0.06em), title/description
+ * absorbed from legacy `.deck-ui-empty-state h2 / p`. */
+.ds-empty-state {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  max-width: 540px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.ds-empty-state__eyebrow {
+  margin: 0;
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ds-empty-state__title {
+  margin: 0;
+  color: var(--ds-text-1);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ds-empty-state__description {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
+}
+
+.ds-empty-state__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.ds-steer-dialog {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elev);
+}
+
+.ds-steer-dialog__icon {
+  width: 14px;
+  height: 14px;
+  color: var(--ds-accent);
+}
+
+.ds-steer-dialog__input {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-steer-dialog__input input {
+  flex: 1;
+}
+
+/* Transcript-search — bundle .t-search (lines 232-241).
+ * Floats above the transcript when the user opens the search affordance
+ * from the context-bar; Input atom owns the input chrome so this rule
+ * only owns frame + label sr-only + controls + count chrome. */
+.ds-transcript-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-2);
+}
+
+.ds-transcript-search__icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--ds-text-3);
+}
+
+.ds-transcript-search__field {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ds-transcript-search__field > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.ds-transcript-search__field input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ds-transcript-search__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ds-transcript-search__count {
+  padding-inline: 4px;
+  white-space: nowrap;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+/* Subagent-tree — bundle .subagent-tree (lines 618-635). Bundle uses
+ * inline `.sat-node` rows; deck-go renders bordered cards (one per
+ * subagent run, with collapsible children). We keep the card layout
+ * for the richer status/elapsed/badge metadata but adopt the bundle
+ * surface palette. */
+.ds-subagent-tree {
+  margin: 10px 22px;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  font-family: var(--ds-font-mono);
+  font-size: 12px;
+}
+
+.ds-subagent-tree__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--ds-text-2);
+}
+
+.ds-subagent-tree__loading {
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-subagent-tree__list,
+.ds-subagent-tree__children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ds-subagent-tree__children {
+  margin-left: 12px;
+  padding-left: 8px;
+  border-left: 1px solid var(--ds-border-subtle);
+}
+
+.ds-subagent-tree__node {
+  min-width: 0;
+}
+
+.ds-subagent-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+}
+
+.ds-subagent-card + .ds-subagent-card {
+  margin-top: 4px;
+}
+
+.ds-subagent-card--running,
+.ds-subagent-card--active {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+}
+
+.ds-subagent-card--failed,
+.ds-subagent-card--timeout,
+.ds-subagent-card--killed {
+  border-color: var(--ds-error);
+  background: var(--ds-error-bg);
+}
+
+.ds-subagent-card__row {
+  width: 100%;
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: auto minmax(80px, max-content) minmax(0, 1fr) auto auto;
+  gap: 7px;
+  align-items: center;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ds-text-1);
+  font: inherit;
+  font-family: var(--ds-font-mono);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ds-subagent-card__row:hover {
+  background: var(--ds-bg-hover);
+}
+
+.ds-subagent-card__status {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ds-text-3);
+}
+
+.ds-subagent-card__status--running,
+.ds-subagent-card__status--active {
+  background: var(--ds-accent);
+  animation: ds-subagent-pulse 1.4s ease-in-out infinite;
+}
+
+.ds-subagent-card__status--completed,
+.ds-subagent-card__status--done,
+.ds-subagent-card__status--success {
+  background: var(--ds-success);
+}
+
+.ds-subagent-card__status--error,
+.ds-subagent-card__status--failed,
+.ds-subagent-card__status--killed,
+.ds-subagent-card__status--timeout {
+  background: var(--ds-error);
+}
+
+@keyframes ds-subagent-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.ds-subagent-card__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-subagent-card__task {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-meta);
+  font-style: normal;
+}
+
+.ds-subagent-card__badge {
+  padding: 2px 7px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 999px;
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-3);
+  font-size: 10.5px;
+  white-space: nowrap;
+}
+
+.ds-subagent-card__elapsed {
+  color: var(--ds-text-3);
+  font-style: normal;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-subagent-card__body {
+  padding: 0 6px 6px 17px;
+}
+
+.ds-message-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Inline "thinking…" pill — surfaces during partial assistant
+ * stream when the model has emitted a thinking block but no
+ * visible text yet. Centered in the message body slot. */
+.ds-thinking-inline {
+  margin: 0;
+  align-self: center;
+  justify-self: center;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-body);
+}
+
+/* Transcript text wrapper — used by TranscriptBlocks for plain
+ * text blocks (user message body) so the pre/code block-level
+ * cascade matches the markdown viewer. */
+.ds-transcript-text {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.ds-transcript-text pre {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-code-bg);
+  color: var(--ds-text-1);
+  overflow: auto;
+}
+
+/* File-block — bundle .file-block (lines 547-554). Card atom owns
+ * the outer surface chrome via `<Card surface="flat" padded={false}>`;
+ * this rule supplies the inner flex row + name/size typography +
+ * --ds-bg-2 background that matches bundle. */
+.ds-file-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--ds-bg-2);
+  font-size: var(--ds-fs-body);
+}
+
+.ds-file-block__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-file-block__size {
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-transform: uppercase;
+}
+
+/* Image-block — bundle has no direct counterpart for the inline
+ * thumbnail surface (.img-result lines 526-533 covers a different
+ * stub state). Deck-go renders a click-to-zoom preview; the
+ * thumbnail card is bordered on --ds-bg-elev, the preview overlay
+ * is full-screen with a darker scrim. */
+.ds-image-block {
+  display: inline-grid;
+  max-width: min(100%, 520px);
+  padding: 6px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  cursor: zoom-in;
+}
+
+.ds-image-block img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: var(--ds-radius-sm);
+}
+
+.ds-image-block__preview {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(8 13 20 / 82%);
+  cursor: zoom-out;
+}
+
+.ds-image-block__preview img {
+  max-width: min(100%, 1100px);
+  max-height: 90vh;
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg, var(--ds-shadow-md));
+}

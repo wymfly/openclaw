@@ -177,8 +177,8 @@ deck-go 采用双 Agent 协作：
 
 ## Status — 当前 deck-go 工作进展
 
-- ✅ **协议 v1 落定**（OpenSpec change `deck-go-frontend-protocol-v1`）：三份 CLAUDE.md 互引、栈决策解耦到 `project/stack-decisions.md`、tokens 反向同步 + drift 防护脚本、协议加 8 条结构性增强
-- ✅ chat 模块设计开发完成（工程代码在老 `frontend/src/components/panels/chat/`）
+- ✅ **协议 v1 落定 + 经 chat 模块自我验证**（OpenSpec changes `deck-go-frontend-protocol-v1` + `deck-go-chat-protocol-pilot`）：三份 CLAUDE.md 互引、栈决策解耦到 `project/stack-decisions.md`、tokens 反向同步 + drift 防护脚本、协议加 8 条结构性增强；chat 模块作为协议第一个真实样本完成 6 件套反推 + 物理迁移到 `frontend-new/`，**协议在真模块复杂度下可执行已验证，可开放给其他模块**（agents / settings / models 等按 forward 流程依次进场）
+- ✅ chat 模块设计开发完成（6 件套在 `../frontend-handoff/modules/chat/`；工程代码已迁移到 `../frontend-new/src/components/panels/chat/`；老 `../frontend/src/components/panels/chat/` 保留可运行）
 - ✅ tokens 完成（44 个 `--ds-*` 变量，dark/light，老 `frontend/src/design-system/tokens/index.css`）
 - ✅ 36 atoms 完成（扁平结构 `Badge.tsx + badge.css`，不是三件套）
 - ✅ 5 hooks 完成（use-click-outside / use-escape-close / use-focus-trap / use-keyboard-nav / use-popover）

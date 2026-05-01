@@ -32,6 +32,7 @@
     "dist-runtime/",
     "docs/_layouts/",
     "docs/design-bundles/",
+    "deck-go/frontend-handoff/modules/",
     "node_modules/",
     "patches/",
     "pnpm-lock.yaml",

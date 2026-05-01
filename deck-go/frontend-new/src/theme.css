@@ -1,0 +1,8685 @@
+@import "./design-system/tokens/index.css";
+
+/*
+ * Legacy token namespace — Phase 1 alias layer (2026-04-30).
+ * Most legacy tokens now resolve through `var(--ds-*)`. A small set
+ * (--secondary, --primary-strong, --shadow-*, --focus-ring, --radius-card,
+ * --doc-plan) has no ds equivalent and keeps its original literal value.
+ * New code should reference `--ds-*` directly; this layer exists only so
+ * the 8000+ lines of legacy `.deckgo-*` / `.deck-ui-*` CSS below pick up
+ * the new design system without rewrite.
+ */
+:root {
+  --font-display: var(--ds-font-sans);
+  --font-body: var(--ds-font-sans);
+  --font-mono: var(--ds-font-mono);
+  --radius-pill: var(--ds-radius-pill);
+  --radius-card: 8px;
+  --radius-inner: var(--ds-radius-md);
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 14px 40px rgba(15, 23, 42, 0.12);
+  --grain-opacity: 0;
+  --control-height: var(--ds-row-h);
+  --focus-ring: rgba(96, 165, 250, 0.38);
+}
+
+:root[data-theme="dark"] {
+  --bg: var(--ds-bg-1);
+  --bg-alt: var(--ds-bg-2);
+  --panel: var(--ds-bg-elev);
+  --panel-strong: var(--ds-bg-3);
+  --panel-float: var(--ds-bg-elev);
+  --panel-bright: var(--ds-bg-elev);
+  --surface-elevated: var(--ds-bg-2);
+  --surface-floating: var(--ds-bg-elev);
+  --surface-inset: var(--ds-bg-2);
+  --text: var(--ds-text-1);
+  --text-soft: var(--ds-text-2);
+  --text-faint: var(--ds-text-3);
+  --primary: var(--ds-accent);
+  --primary-strong: #3b82f6;
+  --primary-muted: var(--ds-accent-bg);
+  --primary-foreground: #ffffff;
+  --secondary: #22c55e;
+  --success: var(--ds-success);
+  --warning: var(--ds-warn);
+  --danger: var(--ds-error);
+  --destructive: var(--ds-error);
+  --destructive-fg: #ffffff;
+  --accent: var(--ds-accent);
+  --border: var(--ds-border);
+  --shadow-accent: rgba(96, 165, 250, 0.18);
+  --input-bg: var(--ds-bg-1);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel-float);
+  --popover-foreground: var(--text);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-faint);
+  --input: var(--border);
+  --ring: var(--primary);
+  --status-connected: var(--success);
+  --status-disconnected: var(--danger);
+  --status-reconnecting: var(--warning);
+  --doc-summary: var(--ds-accent);
+  --doc-plan: #a78bfa;
+  --doc-spec: var(--ds-warn);
+  --doc-manual: var(--ds-success);
+  --doc-draft: var(--ds-text-3);
+}
+
+:root[data-theme="light"] {
+  --bg: var(--ds-bg-1);
+  --bg-alt: var(--ds-bg-2);
+  --panel: var(--ds-bg-elev);
+  --panel-strong: var(--ds-bg-3);
+  --panel-float: var(--ds-bg-elev);
+  --panel-bright: var(--ds-bg-elev);
+  --surface-elevated: var(--ds-bg-2);
+  --surface-floating: var(--ds-bg-elev);
+  --surface-inset: var(--ds-bg-2);
+  --text: var(--ds-text-1);
+  --text-soft: var(--ds-text-2);
+  --text-faint: var(--ds-text-3);
+  --primary: var(--ds-accent);
+  --primary-strong: #1d4ed8;
+  --primary-muted: var(--ds-accent-bg);
+  --primary-foreground: #ffffff;
+  --secondary: #0f766e;
+  --success: var(--ds-success);
+  --warning: var(--ds-warn);
+  --danger: var(--ds-error);
+  --destructive: var(--ds-error);
+  --destructive-fg: #ffffff;
+  --accent: var(--ds-accent);
+  --border: var(--ds-border);
+  --shadow-accent: rgba(37, 99, 235, 0.18);
+  --input-bg: var(--ds-bg-1);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel-float);
+  --popover-foreground: var(--text);
+  --muted: var(--surface-elevated);
+  --muted-foreground: var(--text-faint);
+  --input: var(--border);
+  --ring: var(--primary);
+  --status-connected: var(--success);
+  --status-disconnected: var(--danger);
+  --status-reconnecting: var(--warning);
+  --doc-summary: var(--ds-accent);
+  --doc-plan: #8b5cf6;
+  --doc-spec: var(--ds-warn);
+  --doc-manual: var(--ds-success);
+  --doc-draft: var(--ds-text-3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.deckgo-kicker {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.deckgo-stat {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.deckgo-stat-label {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.deckgo-stat-value {
+  margin: 8px 0 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: 0;
+}
+
+.deckgo-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 360px;
+  gap: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+.deckgo-grid.deckgo-grid-2,
+.deckgo-grid.deckgo-grid-3 {
+  max-width: none;
+  margin: 0;
+}
+
+.deckgo-grid.deckgo-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deckgo-grid.deckgo-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deckgo-column {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.deckgo-panel-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 0.9fr);
+  gap: 20px;
+}
+
+.deckgo-panel-chat-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1.35fr) minmax(300px, 0.9fr);
+  gap: 20px;
+}
+
+.deckgo-panel-main {
+  min-width: 0;
+}
+
+.deckgo-panel-hero-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  margin: 18px 0;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
+}
+
+.deckgo-panel-readiness {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deckgo-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.deckgo-card.is-float {
+  background: var(--surface-floating);
+}
+
+.deckgo-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 0;
+}
+
+.deckgo-card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.deckgo-card-subtitle {
+  margin: 8px 18px 0;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.deckgo-card-body {
+  padding: 16px 18px 18px;
+}
+
+.deckgo-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.deckgo-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  line-height: 1.2;
+}
+
+.deckgo-pill.is-primary {
+  color: #fff;
+  border-color: transparent;
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.deckgo-pill.is-positive {
+  color: color-mix(in srgb, var(--success) 78%, var(--text));
+  border-color: color-mix(in srgb, var(--success) 34%, var(--border));
+  background: color-mix(in srgb, var(--success) 13%, var(--surface-elevated));
+}
+
+.deckgo-pill.is-danger {
+  color: color-mix(in srgb, var(--danger) 82%, var(--text));
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-elevated));
+}
+
+.deckgo-pill.is-warning {
+  color: color-mix(in srgb, var(--warning) 82%, var(--text));
+  border-color: color-mix(in srgb, var(--warning) 36%, var(--border));
+  background: color-mix(in srgb, var(--warning) 14%, var(--surface-elevated));
+}
+
+.deckgo-pill.is-muted {
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-strong) 94%, transparent);
+}
+
+.deckgo-inline-action {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  min-height: 18px;
+  border-radius: var(--radius-pill);
+  color: #fff;
+  background: color-mix(in srgb, var(--danger) 82%, transparent);
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.deckgo-inline-action:hover,
+.deckgo-inline-action:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.deck-ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.deckgo-icon-button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  min-height: 28px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+}
+
+.deckgo-icon-button:hover,
+.deckgo-icon-button:focus-visible,
+.deckgo-icon-button.is-active {
+  border-color: var(--border);
+  background: var(--surface-elevated);
+  color: var(--text);
+  outline: none;
+}
+
+.deckgo-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.deckgo-list-search {
+  display: grid;
+  gap: 8px;
+}
+
+.deckgo-list-search-row,
+.deckgo-list-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  background: var(--surface-elevated);
+}
+
+.deckgo-list-filter-row {
+  flex-wrap: wrap;
+  border-color: var(--border-subtle);
+}
+
+.deckgo-list-search-icon {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+.deckgo-list-search-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  outline: none;
+}
+
+.deckgo-list-search-count {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.deckgo-list-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+}
+
+.deckgo-list-filter .deckgo-input {
+  min-height: 28px;
+  padding-block: 4px;
+}
+
+.deckgo-list-filter-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.deckgo-batch-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, var(--border));
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--primary) 9%, var(--surface-elevated));
+}
+
+.deckgo-batch-action-count {
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.deckgo-batch-action-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deckgo-batch-action-clear {
+  margin-left: auto;
+}
+
+.deckgo-sortable-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.deckgo-sortable-header:hover,
+.deckgo-sortable-header:focus-visible,
+.deckgo-sortable-header.is-active {
+  color: var(--text);
+  outline: none;
+}
+
+.deckgo-inline-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+
+.deckgo-inline-edit svg {
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.deckgo-inline-edit:hover svg,
+.deckgo-inline-edit:focus-visible svg {
+  opacity: 0.72;
+}
+
+.deckgo-inline-edit .is-placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.deckgo-inline-edit-control {
+  min-width: 80px;
+  width: auto;
+}
+
+.deckgo-paginated-list {
+  display: grid;
+  gap: 10px;
+}
+
+.deckgo-paginated-count,
+.deckgo-paginated-end,
+.deckgo-paginated-sentinel {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.deckgo-paginated-loading {
+  display: grid;
+  gap: 8px;
+}
+
+.deckgo-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.deckgo-session-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.deckgo-session-key-separator {
+  color: var(--text-muted);
+  opacity: 0.48;
+}
+
+.deckgo-session-key .is-primary {
+  color: var(--primary);
+}
+
+.deckgo-session-key .is-positive {
+  color: var(--success);
+}
+
+.deckgo-session-key .is-warning {
+  color: var(--warning);
+}
+
+.deckgo-session-key .is-accent {
+  color: #a78bfa;
+}
+
+.deckgo-session-key .is-info {
+  color: #22d3ee;
+}
+
+.deckgo-toast-region {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 90;
+  display: grid;
+  gap: 8px;
+  width: min(380px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.deckgo-toast {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius-inner);
+  background: var(--surface-elevated);
+  box-shadow: 0 14px 36px color-mix(in srgb, #000 24%, transparent);
+  color: var(--text);
+  pointer-events: auto;
+}
+
+.deckgo-toast.is-info {
+  border-left-color: var(--primary);
+}
+
+.deckgo-toast.is-success {
+  border-left-color: var(--success);
+}
+
+.deckgo-toast.is-warning {
+  border-left-color: var(--warning);
+}
+
+.deckgo-toast.is-error {
+  border-left-color: var(--danger);
+}
+
+.deckgo-toast-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.deckgo-toast-type,
+.deckgo-toast-message {
+  margin: 0;
+}
+
+.deckgo-toast-type {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.deckgo-toast-message {
+  color: var(--text);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.deckgo-toast-dismiss {
+  width: auto;
+  padding-inline: 8px;
+  font-size: 0.76rem;
+}
+
+.deckgo-form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.deckgo-form-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deckgo-label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+}
+
+.deckgo-input,
+.deckgo-textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  padding: 9px 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.deckgo-input {
+  min-height: var(--control-height);
+}
+
+.deckgo-input:focus,
+.deckgo-textarea:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--focus-ring),
+    inset 0 0 0 1px color-mix(in srgb, var(--primary) 34%, transparent);
+}
+
+.deckgo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.deckgo-doc-category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deckgo-doc-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  color: var(--text-soft);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.deckgo-doc-category:hover {
+  border-color: var(--doc-category-color);
+  background: color-mix(in srgb, var(--doc-category-color) 8%, transparent);
+}
+
+.deckgo-doc-category.is-active {
+  color: #fff;
+  border-color: transparent;
+  background: var(--doc-category-color);
+}
+
+.deckgo-doc-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--doc-category-color, var(--primary));
+}
+
+.deckgo-doc-count {
+  color: inherit;
+  opacity: 0.72;
+}
+
+.deckgo-button {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  min-height: var(--control-height);
+  padding: 7px 11px;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--surface-elevated);
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.deckgo-button:hover {
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deckgo-doc-category:focus-visible,
+.deckgo-inline-action:focus-visible,
+.deckgo-input:focus-visible,
+.deckgo-textarea:focus-visible,
+.deckgo-button:focus-visible,
+.deckgo-selectable-card:focus-visible,
+.deckgo-checkbox-row input:focus-visible,
+.deckgo-checkbox-label input:focus-visible,
+details summary:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.deckgo-button.is-primary {
+  color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+  box-shadow: none;
+}
+
+.deckgo-button.is-danger {
+  color: #fff;
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.deckgo-button-compact {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.deckgo-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+  box-shadow: none;
+}
+
+.deckgo-shell-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.deckgo-shell-list li {
+  border-radius: var(--radius-inner);
+}
+
+.deckgo-selectable-card {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--text);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+}
+
+@media (max-width: 1023px) {
+  .deckgo-panel-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .deckgo-panel-chat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .deckgo-panel-hero-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  box-shadow: none;
+}
+
+.deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-activity {
+  grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-activity-column {
+  gap: 12px;
+}
+
+.deck-ui-activity-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-activity-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-activity-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-activity-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-activity-status-row {
+  gap: 6px;
+}
+
+.deck-ui-activity-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-activity-stats,
+.deck-ui-activity-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-activity-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-activity-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-activity .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-activity .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-activity .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-activity-surface {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-activity-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-activity-input {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-activity-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-activity-actions {
+  gap: 8px;
+}
+
+.deck-ui-activity-actions-offset,
+.deck-ui-activity-list-offset {
+  margin-top: 10px;
+}
+
+.deck-ui-activity-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-activity-list {
+  gap: 8px;
+}
+
+.deck-ui-activity-row {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-activity-row:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-activity-row.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-activity-hero {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-activity {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-activity-stats,
+  .deck-ui-activity-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.deck-ui-logs {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-logs-column {
+  gap: 12px;
+}
+
+.deck-ui-logs-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-logs-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-logs-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-logs-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-logs-body > *,
+.deck-ui-logs-surface,
+.deck-ui-logs-controls,
+.deck-ui-logs-input,
+.deck-ui-logs-list,
+.deck-ui-logs-row,
+.deck-ui-logs-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-logs-status-row,
+.deck-ui-logs-levels,
+.deck-ui-logs-actions {
+  gap: 6px;
+}
+
+.deck-ui-logs-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-logs-surface {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-logs-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-logs-level {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 4px 8px;
+  color: var(--text-soft);
+  background: var(--panel);
+  font-size: 0.78rem;
+}
+
+.deck-ui-logs-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 0.48fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.deck-ui-logs-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-logs-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-logs-actions {
+  align-items: center;
+}
+
+.deck-ui-logs-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-logs-list {
+  gap: 8px;
+}
+
+.deck-ui-logs-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-logs-row {
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--panel);
+  box-shadow: none;
+}
+
+.deck-ui-logs-row:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-logs-code {
+  width: 100%;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.deck-ui-logs-error {
+  color: var(--danger);
+}
+
+.deck-ui-logs-sidecar {
+  min-width: 0;
+}
+
+.deck-ui-logs-sidecar .deck-ui-logs-card {
+  background: var(--surface-floating);
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-logs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-logs-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-threads {
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-threads-column {
+  gap: 12px;
+}
+
+.deck-ui-threads-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-threads-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-threads-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-threads-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-threads-body > *,
+.deck-ui-threads-controls,
+.deck-ui-threads-input,
+.deck-ui-threads-list-wrap,
+.deck-ui-threads-list-header,
+.deck-ui-threads-list,
+.deck-ui-threads-row,
+.deck-ui-threads-row-cell,
+.deck-ui-threads-relation,
+.deck-ui-threads-relation-grid,
+.deck-ui-threads-relation-node {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-threads-status-row,
+.deck-ui-threads-actions {
+  gap: 6px;
+}
+
+.deck-ui-threads-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-threads-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.deck-ui-threads-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-threads-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-threads-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-threads-stats {
+  max-width: none;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-ui-threads .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-threads .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-threads .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-threads-list-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-threads-list-header {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.75fr) minmax(88px, 0.75fr) minmax(140px, 1.35fr) minmax(
+      72px,
+      0.6fr
+    ) minmax(78px, 0.7fr) minmax(92px, 0.8fr);
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.deck-ui-threads-list {
+  gap: 0;
+}
+
+.deck-ui-threads-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-threads-row {
+  display: grid;
+  grid-template-columns: minmax(84px, 0.75fr) minmax(88px, 0.75fr) minmax(140px, 1.35fr) minmax(
+      72px,
+      0.6fr
+    ) minmax(78px, 0.7fr) minmax(92px, 0.8fr);
+  gap: 5px 8px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  padding: 9px 10px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.deck-ui-threads-row-cell,
+.deck-ui-threads-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-threads-row-summary {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+}
+
+.deck-ui-threads-kind {
+  justify-content: center;
+  min-width: 0;
+}
+
+.deck-ui-threads-row:hover {
+  transform: none;
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-threads-row.is-selected {
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-threads-hero,
+.deck-ui-threads-relation {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-threads-relation {
+  display: grid;
+  gap: 10px;
+}
+
+.deck-ui-threads-relation-grid {
+  max-width: none;
+  margin: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-ui-threads-relation-node {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--panel);
+}
+
+.deck-ui-threads-relation-node strong,
+.deck-ui-threads-relation-summary,
+.deck-ui-threads-handoff {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-threads details .deckgo-code {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-threads-error {
+  color: var(--danger);
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-threads {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-threads-controls,
+  .deck-ui-threads-stats,
+  .deck-ui-threads-list-header,
+  .deck-ui-threads-row,
+  .deck-ui-threads-relation-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-memory {
+  grid-template-columns: minmax(320px, 0.86fr) minmax(0, 1.14fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-memory-column {
+  gap: 12px;
+}
+
+.deck-ui-memory-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-memory-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-memory-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-memory-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-memory-body > *,
+.deck-ui-memory-controls,
+.deck-ui-memory-actions,
+.deck-ui-memory-input,
+.deck-ui-memory-list,
+.deck-ui-memory-row,
+.deck-ui-memory-surface,
+.deck-ui-memory-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-memory-status-row,
+.deck-ui-memory-actions {
+  gap: 6px;
+}
+
+.deck-ui-memory-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-memory-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(5, auto);
+  gap: 8px;
+  align-items: center;
+}
+
+.deck-ui-memory-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-memory-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-memory-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-memory-stats {
+  max-width: none;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-ui-memory .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-memory .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-memory .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-memory-list {
+  gap: 8px;
+}
+
+.deck-ui-memory-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-memory-row {
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-memory-row strong,
+.deck-ui-memory-meta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-memory-row:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-memory-row.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-memory-surface {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-memory-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-memory-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-memory-code-wrap {
+  white-space: pre-wrap;
+}
+
+.deck-ui-memory details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-memory-error {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-memory-empty,
+.deck-ui-memory-diary,
+.deck-ui-memory-meta {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-memory {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .deck-ui-memory-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-memory-controls,
+  .deck-ui-memory-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-usage {
+  grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1.08fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-usage-column {
+  gap: 12px;
+}
+
+.deck-ui-usage-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-usage-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-usage-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-usage-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-usage-body > *,
+.deck-ui-usage-controls,
+.deck-ui-usage-actions,
+.deck-ui-usage-input,
+.deck-ui-usage-list,
+.deck-ui-usage-row,
+.deck-ui-usage-surface,
+.deck-ui-usage-chart,
+.deck-ui-usage-chart-row,
+.deck-ui-usage-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-usage-status-row,
+.deck-ui-usage-actions {
+  gap: 6px;
+}
+
+.deck-ui-usage-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-usage-controls {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.deck-ui-usage-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-usage-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-usage-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-usage-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-usage .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-usage .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-usage .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-usage-surface {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-usage-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-usage-section-head {
+  align-items: center;
+  gap: 10px;
+}
+
+.deck-ui-usage-list {
+  gap: 8px;
+}
+
+.deck-ui-usage-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-usage-row {
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-usage-row strong,
+.deck-ui-usage-meta,
+.deck-ui-usage-chart-detail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-usage-row:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-usage-row.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-usage-detail {
+  margin-top: 8px;
+}
+
+.deck-ui-usage-hero {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-usage-error {
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-usage-empty {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-usage {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-usage-controls,
+  .deck-ui-usage-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-usage-section-head,
+  .deck-ui-usage-actions {
+    align-items: stretch;
+  }
+}
+
+.deckgo-doc-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+
+.deckgo-doc-category-label {
+  color: var(--doc-category-color, var(--text-soft));
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.deckgo-doc-date {
+  margin-left: auto;
+}
+
+.deckgo-doc-card-title {
+  display: block;
+  margin-top: 8px;
+}
+
+.deckgo-doc-preview {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.deckgo-doc-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.deckgo-doc-keyword {
+  border-radius: var(--radius-pill);
+  padding: 4px 9px;
+  color: var(--text-soft);
+  background: color-mix(in srgb, var(--bg-alt) 82%, transparent);
+  box-shadow: inset 0 0 0 1px var(--border);
+  font-size: 0.76rem;
+}
+
+.deckgo-meta {
+  margin-top: 6px;
+  color: var(--text-faint);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.deckgo-code {
+  margin: 0;
+  padding: 16px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--bg-alt) 88%, transparent);
+  color: var(--text);
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.deckgo-doc-prose {
+  padding: 16px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--bg-alt) 88%, transparent);
+  color: var(--text);
+  overflow: auto;
+}
+
+.deckgo-doc-prose :first-child {
+  margin-top: 0;
+}
+
+.deckgo-doc-prose :last-child {
+  margin-bottom: 0;
+}
+
+.deckgo-doc-prose pre {
+  overflow: auto;
+}
+
+.deckgo-note {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.94rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.deckgo-state,
+.deckgo-empty,
+.deckgo-error {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  min-height: 120px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-elevated);
+  color: var(--text-soft);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.deckgo-error {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--border));
+  background: color-mix(in srgb, var(--danger) 9%, var(--surface-elevated));
+  color: color-mix(in srgb, var(--danger) 82%, var(--text));
+}
+
+.deckgo-skeleton {
+  position: relative;
+  overflow: hidden;
+  min-height: 32px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
+}
+
+.deckgo-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--text) 8%, transparent),
+    transparent
+  );
+  animation: deckgo-skeleton-shimmer 1.25s ease-in-out infinite;
+}
+
+@keyframes deckgo-skeleton-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deckgo-skeleton::after {
+    animation: none;
+  }
+}
+
+.deckgo-surface-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deckgo-surface-tile {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  box-shadow: none;
+}
+
+.deckgo-surface-label {
+  margin: 0 0 10px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+:where(
+  .deck-ui-activity-inspector,
+  .deck-ui-api-detail-column,
+  .deck-ui-approvals-detail-column,
+  .deck-ui-cron-detail-column,
+  .deck-ui-memory-detail-column,
+  .deck-ui-sessions-detail-column,
+  .deck-ui-threads-detail-column,
+  .deck-ui-usage-detail-column,
+  .deck-ui-webhooks-detail-column
+) {
+  min-width: 0;
+  align-content: start;
+}
+
+.deck-ui-api-event-row,
+.deck-ui-threads-empty {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-config-field-list {
+  display: grid;
+  gap: 8px;
+}
+
+.deck-ui-channels-wecom {
+  border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
+}
+
+.deck-ui-logs-filter,
+.deck-ui-logs-lines,
+.deck-ui-logs-export,
+.deck-ui-logs-tape,
+.deck-ui-logs-stream-events,
+.deck-ui-logs-seam,
+.deck-ui-usage-trend {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.deck-ui-memory-tab {
+  justify-content: center;
+}
+
+.deckgo-schema-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.deckgo-schema-toggle,
+.deckgo-schema-toggle-placeholder {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.deckgo-schema-toggle {
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--text-soft);
+  background: var(--panel-strong);
+  cursor: pointer;
+}
+
+.deckgo-schema-toggle:hover {
+  color: #fff;
+  background: var(--primary);
+}
+
+.deckgo-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deckgo-usage-chart {
+  display: grid;
+  gap: 10px;
+}
+
+.deckgo-usage-chart-row {
+  display: grid;
+  grid-template-columns: minmax(86px, 116px) minmax(0, 1fr) minmax(88px, auto);
+  align-items: center;
+  gap: 10px;
+}
+
+.deckgo-usage-chart-label,
+.deckgo-usage-chart-value {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.deckgo-usage-chart-value {
+  justify-self: end;
+}
+
+.deckgo-usage-chart-track {
+  display: block;
+  min-width: 0;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--bg-alt) 70%, transparent);
+}
+
+.deckgo-usage-chart-bar {
+  display: block;
+  width: 100%;
+  min-width: 4px;
+  height: 100%;
+  border-radius: inherit;
+  border: 0;
+  appearance: none;
+  background: var(--primary);
+}
+
+.deckgo-usage-chart-bar::-webkit-progress-bar {
+  border-radius: inherit;
+  background: transparent;
+}
+
+.deckgo-usage-chart-bar::-webkit-progress-value {
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.deckgo-usage-chart-bar::-moz-progress-bar {
+  border-radius: inherit;
+  background: var(--primary);
+}
+
+.deckgo-usage-chart-bar.is-cost {
+  background: var(--secondary);
+}
+
+.deckgo-usage-chart-bar.is-cost::-webkit-progress-value {
+  background: var(--secondary);
+}
+
+.deckgo-usage-chart-bar.is-cost::-moz-progress-bar {
+  background: var(--secondary);
+}
+
+.deckgo-usage-chart-bar.is-model {
+  background: var(--warning);
+}
+
+.deckgo-usage-chart-bar.is-model::-webkit-progress-value {
+  background: var(--warning);
+}
+
+.deckgo-usage-chart-bar.is-model::-moz-progress-bar {
+  background: var(--warning);
+}
+
+.deckgo-usage-chart-detail {
+  grid-column: 2 / -1;
+  margin-top: -4px;
+}
+
+.deck-ui-usage-chart {
+  gap: 8px;
+}
+
+.deck-ui-usage-chart-row {
+  grid-template-columns: minmax(90px, 0.7fr) minmax(120px, 1.4fr) minmax(90px, 0.7fr);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-ui-usage-chart-row:last-child {
+  border-bottom: 0;
+}
+
+.deck-ui-usage-chart-bar {
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .deck-ui-usage-chart-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-sessions {
+  grid-template-columns: minmax(300px, 0.42fr) minmax(560px, 1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-sessions-column {
+  gap: 12px;
+}
+
+.deck-ui-sessions-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-sessions-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-sessions-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-sessions-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-sessions-body > *,
+.deck-ui-sessions-controls,
+.deck-ui-sessions-actions,
+.deck-ui-sessions-input,
+.deck-ui-sessions-list,
+.deck-ui-sessions-list-shell,
+.deck-ui-sessions-preview-shell,
+.deck-ui-sessions-detail-shell,
+.deck-ui-sessions-surface,
+.deck-ui-sessions-hero,
+.deck-ui-sessions-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-sessions-status-row,
+.deck-ui-sessions-actions {
+  gap: 6px;
+}
+
+.deck-ui-sessions-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-sessions-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-sessions-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-sessions-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-sessions-controls,
+.deck-ui-sessions-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-sessions-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-sessions-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-sessions-action-column .deck-ui-sessions-controls {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.deck-ui-sessions-action-column {
+  grid-column: 2;
+}
+
+.deck-ui-sessions .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-sessions .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-sessions .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-sessions-surface,
+.deck-ui-sessions-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-sessions-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-sessions-list,
+.deck-ui-sessions-list-shell .deckgo-shell-list,
+.deck-ui-sessions-preview-shell .deckgo-shell-list,
+.deck-ui-sessions-detail-shell .deckgo-shell-list {
+  gap: 8px;
+}
+
+.deck-ui-sessions-list > li,
+.deck-ui-sessions-list-shell .deckgo-shell-list > li,
+.deck-ui-sessions-preview-shell .deckgo-shell-list > li,
+.deck-ui-sessions-detail-shell .deckgo-shell-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-sessions-list > li,
+.deck-ui-sessions-usage .deckgo-shell-list > li,
+.deck-ui-sessions-compaction .deckgo-shell-list > li,
+.deck-ui-sessions-subagent .deckgo-shell-list > li,
+.deck-ui-sessions-relations .deckgo-shell-list > li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-sessions-list-shell .deckgo-selectable-card,
+.deck-ui-sessions-preview-shell .deckgo-selectable-card,
+.deck-ui-sessions-detail-shell .deckgo-transcript-message,
+.deck-ui-sessions-detail-shell .deckgo-transcript-block,
+.deck-ui-sessions .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-sessions-list-shell .deckgo-selectable-card:hover,
+.deck-ui-sessions-preview-shell .deckgo-selectable-card:hover,
+.deck-ui-sessions .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-sessions-list-shell .deckgo-selectable-card.is-selected,
+.deck-ui-sessions-preview-shell .deckgo-selectable-card.is-selected,
+.deck-ui-sessions .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-sessions-meta,
+.deck-ui-sessions-error,
+.deck-ui-sessions-empty,
+.deck-ui-sessions .deckgo-meta,
+.deck-ui-sessions .deckgo-note,
+.deck-ui-sessions .deckgo-transcript-message,
+.deck-ui-sessions .deckgo-transcript-block {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-sessions-code,
+.deck-ui-sessions details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-sessions-error {
+  color: var(--danger);
+}
+
+.deck-ui-sessions-pagination,
+.deck-ui-sessions-actions-offset,
+.deck-ui-sessions-list-offset,
+.deck-ui-sessions-preview-shell {
+  margin-top: 10px;
+}
+
+@media (max-width: 1280px) {
+  .deck-ui-sessions {
+    grid-template-columns: minmax(320px, 0.88fr) minmax(0, 1.12fr);
+  }
+
+  .deck-ui-sessions-action-column {
+    grid-column: 2;
+  }
+}
+
+@media (max-width: 900px) {
+  .deck-ui-sessions {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-ui-sessions-action-column {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-sessions-controls,
+  .deck-ui-sessions-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-api-explorer {
+  grid-template-columns: minmax(340px, 0.82fr) minmax(480px, 1.18fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-api-column {
+  gap: 12px;
+}
+
+.deck-ui-api-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-api-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-api-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-api-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-api-body > *,
+.deck-ui-api-status-row,
+.deck-ui-api-actions,
+.deck-ui-api-stats,
+.deck-ui-api-detail-stats,
+.deck-ui-api-input,
+.deck-ui-api-domain-list,
+.deck-ui-api-method-list,
+.deck-ui-api-event-list,
+.deck-ui-api-row,
+.deck-ui-api-surface,
+.deck-ui-api-hero,
+.deck-ui-api-schema,
+.deck-ui-api-schema-list,
+.deck-ui-api-array-items {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-api-status-row,
+.deck-ui-api-actions,
+.deck-ui-api-schema-pills {
+  gap: 6px;
+}
+
+.deck-ui-api-status-row .deckgo-pill,
+.deck-ui-api-schema-pills .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-api-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-api-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-api-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-api-stats,
+.deck-ui-api-detail-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-api-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-api-detail-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-api-explorer .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-api-explorer .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-api-explorer .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-api-surface,
+.deck-ui-api-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-api-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-api-domain-list,
+.deck-ui-api-method-list,
+.deck-ui-api-event-list,
+.deck-ui-api-schema-list {
+  gap: 8px;
+}
+
+.deck-ui-api-domain {
+  min-width: 0;
+}
+
+.deck-ui-api-domain-title {
+  margin-bottom: 8px;
+}
+
+.deck-ui-api-row,
+.deck-ui-api-explorer .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-api-row:hover,
+.deck-ui-api-explorer .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-api-row.is-selected,
+.deck-ui-api-explorer .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-api-schema.is-nested {
+  padding-left: 12px;
+}
+
+.deck-ui-api-schema-list,
+.deck-ui-api-array-items {
+  margin-top: 12px;
+}
+
+.deck-ui-api-schema-row {
+  align-items: start;
+  min-width: 0;
+}
+
+.deck-ui-api-schema-body {
+  min-width: 0;
+}
+
+.deck-ui-api-toggle,
+.deck-ui-api-toggle-placeholder {
+  flex: 0 0 auto;
+}
+
+.deck-ui-api-explorer strong,
+.deck-ui-api-explorer .deckgo-meta,
+.deck-ui-api-explorer .deckgo-note,
+.deck-ui-api-explorer .deckgo-kicker,
+.deck-ui-api-schema-body {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-api-explorer details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-api-explorer {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-api-stats,
+  .deck-ui-api-detail-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-cron {
+  grid-template-columns: minmax(360px, 0.9fr) minmax(460px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-cron-column {
+  gap: 12px;
+}
+
+.deck-ui-cron-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-cron-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-cron-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-cron-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-cron-body > *,
+.deck-ui-cron-status-row,
+.deck-ui-cron-actions,
+.deck-ui-cron-template-row,
+.deck-ui-cron-stats,
+.deck-ui-cron-form-grid,
+.deck-ui-cron-detail-stats,
+.deck-ui-cron-input,
+.deck-ui-cron-list,
+.deck-ui-cron-row,
+.deck-ui-cron-surface,
+.deck-ui-cron-hero,
+.deck-ui-cron-details {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-cron-status-row,
+.deck-ui-cron-actions,
+.deck-ui-cron-template-row {
+  gap: 6px;
+}
+
+.deck-ui-cron-status-row .deckgo-pill,
+.deck-ui-cron-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-cron-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-cron-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-cron-textarea,
+.deck-ui-cron-actions-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-cron-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-cron-stats,
+.deck-ui-cron-form-grid,
+.deck-ui-cron-detail-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-cron-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-cron-form-grid,
+.deck-ui-cron-detail-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-cron .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-cron .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-cron .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-cron-surface,
+.deck-ui-cron-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-cron-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-cron-list {
+  gap: 8px;
+}
+
+.deck-ui-cron-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-cron-row,
+.deck-ui-cron .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-cron-row:hover,
+.deck-ui-cron .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-cron-row.is-selected,
+.deck-ui-cron .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-cron-details {
+  display: grid;
+  gap: 10px;
+}
+
+.deck-ui-cron-error {
+  color: var(--danger);
+}
+
+.deck-ui-cron strong,
+.deck-ui-cron .deckgo-meta,
+.deck-ui-cron .deckgo-note,
+.deck-ui-cron-empty,
+.deck-ui-cron-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-cron details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-cron {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-cron-stats,
+  .deck-ui-cron-form-grid,
+  .deck-ui-cron-detail-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-webhooks {
+  grid-template-columns: minmax(360px, 0.9fr) minmax(480px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-webhooks-column {
+  gap: 12px;
+}
+
+.deck-ui-webhooks-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-webhooks-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-webhooks-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-webhooks-body > *,
+.deck-ui-webhooks-status-row,
+.deck-ui-webhooks-actions,
+.deck-ui-webhooks-event-row,
+.deck-ui-webhooks-stats,
+.deck-ui-webhooks-form-grid,
+.deck-ui-webhooks-input,
+.deck-ui-webhooks-list,
+.deck-ui-webhooks-row,
+.deck-ui-webhooks-surface,
+.deck-ui-webhooks-hero,
+.deck-ui-webhooks-details,
+.deck-ui-webhooks-delivery-list,
+.deck-ui-webhooks-delivery-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-webhooks-status-row,
+.deck-ui-webhooks-actions,
+.deck-ui-webhooks-event-row,
+.deck-ui-webhooks-delivery-meta {
+  gap: 6px;
+}
+
+.deck-ui-webhooks-status-row .deckgo-pill,
+.deck-ui-webhooks-hero .deckgo-pill,
+.deck-ui-webhooks-delivery-meta .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-webhooks-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-webhooks-stats,
+.deck-ui-webhooks-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-webhooks-stats,
+.deck-ui-webhooks-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-webhooks-actions-offset,
+.deck-ui-webhooks-event-row,
+.deck-ui-webhooks-delivery-list,
+.deck-ui-webhooks-delivery-meta,
+.deck-ui-webhooks-delivery-detail {
+  margin-top: 12px;
+}
+
+.deck-ui-webhooks .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-webhooks .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-webhooks-surface,
+.deck-ui-webhooks-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-webhooks-list,
+.deck-ui-webhooks-delivery-list {
+  gap: 8px;
+}
+
+.deck-ui-webhooks-list > li,
+.deck-ui-webhooks-delivery-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-webhooks-row,
+.deck-ui-webhooks-delivery-row,
+.deck-ui-webhooks .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-row:hover,
+.deck-ui-webhooks-delivery-row:hover,
+.deck-ui-webhooks .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-webhooks-row.is-selected,
+.deck-ui-webhooks .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-webhooks-details {
+  display: grid;
+  gap: 10px;
+}
+
+.deck-ui-webhooks-error {
+  color: var(--danger);
+}
+
+.deck-ui-webhooks strong,
+.deck-ui-webhooks .deckgo-meta,
+.deck-ui-webhooks .deckgo-note,
+.deck-ui-webhooks-empty,
+.deck-ui-webhooks-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-webhooks details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-webhooks {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-webhooks-stats,
+  .deck-ui-webhooks-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-approvals {
+  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-approvals-column {
+  gap: 12px;
+}
+
+.deck-ui-approvals-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-approvals-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-approvals-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-approvals-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-approvals-body > *,
+.deck-ui-approvals-status-row,
+.deck-ui-approvals-tab-row,
+.deck-ui-approvals-actions,
+.deck-ui-approvals-stats,
+.deck-ui-approvals-detail-stats,
+.deck-ui-approvals-input,
+.deck-ui-approvals-textarea,
+.deck-ui-approvals-list,
+.deck-ui-approvals-row,
+.deck-ui-approvals-surface,
+.deck-ui-approvals-hero,
+.deck-ui-approvals-details,
+.deck-ui-approvals-policy-grid,
+.deck-ui-approvals-policy-card,
+.deck-ui-approvals-agent-list,
+.deck-ui-approvals-allowlist-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-approvals-status-row,
+.deck-ui-approvals-tab-row,
+.deck-ui-approvals-actions,
+.deck-ui-approvals-allowlist-row {
+  gap: 6px;
+}
+
+.deck-ui-approvals-status-row .deckgo-pill,
+.deck-ui-approvals-hero .deckgo-pill,
+.deck-ui-approvals-allowlist-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-approvals-input,
+.deck-ui-approvals-textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-approvals-textarea {
+  min-height: 260px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.deck-ui-approvals-input:focus,
+.deck-ui-approvals-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-approvals-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-approvals-stats,
+.deck-ui-approvals-detail-stats,
+.deck-ui-approvals-policy-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-approvals-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-approvals-detail-stats,
+.deck-ui-approvals-policy-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-approvals-section-title,
+.deck-ui-approvals-actions-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-approvals-actions-bottom {
+  margin-bottom: 12px;
+}
+
+.deck-ui-approvals-agent-list {
+  margin-bottom: 12px;
+}
+
+.deck-ui-approvals .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-approvals .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-approvals .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-approvals-surface,
+.deck-ui-approvals-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-approvals-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-approvals-list,
+.deck-ui-approvals-agent-list {
+  gap: 8px;
+}
+
+.deck-ui-approvals-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-approvals-row,
+.deck-ui-approvals-policy-card,
+.deck-ui-approvals .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-approvals-row:hover,
+.deck-ui-approvals .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-approvals-row.is-selected,
+.deck-ui-approvals .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-approvals-details {
+  display: grid;
+  gap: 10px;
+}
+
+.deck-ui-approvals-error {
+  color: var(--danger);
+}
+
+.deck-ui-approvals strong,
+.deck-ui-approvals code,
+.deck-ui-approvals .deckgo-meta,
+.deck-ui-approvals .deckgo-note,
+.deck-ui-approvals-empty,
+.deck-ui-approvals-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-approvals details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-approvals {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-approvals-stats,
+  .deck-ui-approvals-detail-stats,
+  .deck-ui-approvals-policy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.deck-ui-skills {
+  grid-template-columns: minmax(380px, 0.86fr) minmax(560px, 1.14fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-skills-column {
+  gap: 12px;
+}
+
+.deck-ui-skills-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-skills-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-skills-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-skills-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-skills-body > *,
+.deck-ui-skills-status-row,
+.deck-ui-skills-actions,
+.deck-ui-skills-stats,
+.deck-ui-skills-detail-stats,
+.deck-ui-skills-input,
+.deck-ui-skills-textarea,
+.deck-ui-skills-list,
+.deck-ui-skills-row,
+.deck-ui-skills-surface,
+.deck-ui-skills-hero,
+.deck-ui-skills-table-shell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-skills-status-row,
+.deck-ui-skills-actions {
+  gap: 6px;
+}
+
+.deck-ui-skills-status-row .deckgo-pill,
+.deck-ui-skills-hero .deckgo-pill,
+.deck-ui-skills-table-shell .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-skills-input,
+.deck-ui-skills-textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-skills-textarea {
+  min-height: 220px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.deck-ui-skills-input:focus,
+.deck-ui-skills-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-skills-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-skills-stats,
+.deck-ui-skills-detail-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-skills-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.deck-ui-skills-detail-stats {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-skills-actions-offset,
+.deck-ui-skills-table-shell {
+  margin-top: 12px;
+}
+
+.deck-ui-skills .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-skills .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-skills .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-skills-surface,
+.deck-ui-skills-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-skills-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-skills-list {
+  gap: 8px;
+}
+
+.deck-ui-skills-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-skills-row,
+.deck-ui-skills .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-skills-row:hover,
+.deck-ui-skills .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-skills-row.is-selected,
+.deck-ui-skills .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-skills-table-shell {
+  overflow-x: auto;
+}
+
+.deck-ui-skills-table-shell .deckgo-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.deck-ui-skills-table-shell th,
+.deck-ui-skills-table-shell td {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-skills-table-shell .deckgo-button,
+.deck-ui-skills-table-shell .deckgo-pill {
+  white-space: normal;
+}
+
+.deck-ui-skills-error {
+  color: var(--danger);
+}
+
+.deck-ui-skills strong,
+.deck-ui-skills code,
+.deck-ui-skills .deckgo-meta,
+.deck-ui-skills .deckgo-note,
+.deck-ui-skills-empty,
+.deck-ui-skills-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-skills details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-skills {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .deck-ui-skills-stats,
+  .deck-ui-skills-detail-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-skills-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-cron > .deck-ui-cron-column:first-child,
+.deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
+.deck-ui-approvals > .deck-ui-approvals-column:first-child {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: calc(100vh - 116px);
+}
+
+.deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-card,
+.deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
+.deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  max-height: calc(100vh - 116px);
+}
+
+.deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-body,
+.deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-body,
+.deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-body {
+  overflow: auto;
+}
+
+.deck-ui-cron .deckgo-stat,
+.deck-ui-webhooks .deckgo-stat,
+.deck-ui-approvals .deckgo-stat,
+.deck-ui-skills .deckgo-stat {
+  padding: 9px 10px;
+}
+
+.deck-ui-cron .deckgo-stat-value,
+.deck-ui-webhooks .deckgo-stat-value,
+.deck-ui-approvals .deckgo-stat-value,
+.deck-ui-skills .deckgo-stat-value {
+  margin-top: 5px;
+  font-size: 0.98rem;
+}
+
+.deck-ui-cron .deckgo-selectable-card,
+.deck-ui-webhooks .deckgo-selectable-card,
+.deck-ui-approvals .deckgo-selectable-card,
+.deck-ui-skills .deckgo-selectable-card {
+  padding: 10px 11px;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-cron > .deck-ui-cron-column:first-child,
+  .deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
+  .deck-ui-approvals > .deck-ui-approvals-column:first-child,
+  .deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-card,
+  .deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
+  .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
+    position: static;
+    max-height: none;
+  }
+}
+
+.deck-ui-control-shell,
+.deck-ui-control-single {
+  min-height: 520px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--background);
+  overflow: hidden;
+}
+
+.deck-ui-control-shell {
+  display: grid;
+  grid-template-columns: 256px minmax(0, 1fr);
+}
+
+.deck-ui-control-single {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.deck-ui-control-sidebar {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--card);
+}
+
+.deck-ui-control-sidebar-header,
+.deck-ui-control-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.deck-ui-control-sidebar-header h2 {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.deck-ui-control-sidebar-meta,
+.deck-ui-control-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-ui-control-topbar-actions {
+  padding: 0;
+  border-bottom: 0;
+}
+
+.deck-ui-control-sidebar-scroll,
+.deck-ui-control-detail,
+.deck-ui-control-panel-body {
+  min-width: 0;
+  overflow: auto;
+}
+
+.deck-ui-control-sidebar-scroll {
+  flex: 1 1 auto;
+}
+
+.deck-ui-control-detail,
+.deck-ui-control-panel-body {
+  padding: 16px;
+  background: var(--background);
+}
+
+.deck-ui-control-stack,
+.deck-ui-control-form,
+.deck-ui-control-status-list {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-ui-control-section-title {
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.deck-ui-control-list {
+  display: grid;
+}
+
+.deck-ui-control-row {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+
+.deck-ui-control-row:hover,
+.deck-ui-control-row:focus-visible,
+.deck-ui-control-row.is-selected {
+  outline: none;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-control-row.is-selected {
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-control-row-main,
+.deck-ui-control-row-header {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.deck-ui-control-row-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.deck-ui-control-row-header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-control-row-pills,
+.deck-ui-control-row-actions,
+.deck-ui-control-tabs,
+.deck-ui-control-form-grid,
+.deck-ui-control-danger-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.deck-ui-control-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.deck-ui-control-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+  font-weight: 550;
+}
+
+.deck-ui-control-segmented {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.deck-ui-control-segmented-wrap {
+  flex-wrap: wrap;
+}
+
+.deck-ui-control-segmented button,
+.deck-ui-control-tabs button {
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.deck-ui-control-segmented button {
+  padding: 5px 9px;
+}
+
+.deck-ui-control-tabs button {
+  padding: 6px 11px;
+}
+
+.deck-ui-control-segmented button:hover,
+.deck-ui-control-segmented button:focus-visible,
+.deck-ui-control-segmented button.is-selected,
+.deck-ui-control-tabs button:hover,
+.deck-ui-control-tabs button:focus-visible,
+.deck-ui-control-tabs button.is-selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  outline: none;
+}
+
+.deck-ui-control-switch {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.deck-ui-control-switch-track {
+  position: relative;
+  display: inline-flex;
+  width: 38px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background-color 160ms ease;
+}
+
+.deck-ui-control-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--primary-foreground);
+  transition: transform 160ms ease;
+}
+
+.deck-ui-control-switch.is-on .deck-ui-control-switch-track {
+  background: var(--primary);
+}
+
+.deck-ui-control-switch.is-on .deck-ui-control-switch-thumb {
+  transform: translateX(18px);
+}
+
+.deck-ui-control-status-card,
+.deck-ui-control-empty-state,
+.deck-ui-control-unavailable {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  background: var(--card);
+}
+
+.deck-ui-control-unavailable {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.deck-ui-control-unavailable strong,
+.deck-ui-control-empty-state h3,
+.deck-ui-control-empty-state p,
+.deck-ui-control-unavailable p {
+  margin: 0;
+}
+
+.deck-ui-control-status-header,
+.deck-ui-control-status-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.deck-ui-control-status-meta {
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
+}
+
+.deck-ui-control-progress-track {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--surface-inset);
+  overflow: hidden;
+}
+
+.deck-ui-control-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.deck-ui-control-progress-bar.is-warning {
+  background: var(--warning);
+}
+
+.deck-ui-control-progress-bar.is-danger {
+  background: var(--danger);
+}
+
+.deck-ui-control-empty,
+.deck-ui-control-error {
+  margin: 0;
+  padding: 12px;
+  color: var(--muted-foreground);
+  font-size: 0.86rem;
+}
+
+.deck-ui-control-error {
+  border: 1px solid color-mix(in srgb, var(--danger) 32%, var(--border));
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+}
+
+.deck-ui-control-danger-row {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.deck-ui-control-shell.deck-ui-budget {
+  grid-template-columns: 256px minmax(0, 1fr);
+}
+
+.deck-ui-control-single.deck-ui-alerts {
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-budget {
+  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-budget-column {
+  gap: 12px;
+}
+
+.deck-ui-budget-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-budget-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-budget-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-budget-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-budget-body > *,
+.deck-ui-budget-status-row,
+.deck-ui-budget-actions,
+.deck-ui-budget-stats,
+.deck-ui-budget-detail-stats,
+.deck-ui-budget-form-grid,
+.deck-ui-budget-input,
+.deck-ui-budget-list,
+.deck-ui-budget-row,
+.deck-ui-budget-surface,
+.deck-ui-budget-hero,
+.deck-ui-budget-chart,
+.deck-ui-budget-chart-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-budget-status-row,
+.deck-ui-budget-actions {
+  gap: 6px;
+}
+
+.deck-ui-budget-status-row .deckgo-pill,
+.deck-ui-budget-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-budget-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-budget-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-budget-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-budget-stats,
+.deck-ui-budget-detail-stats,
+.deck-ui-budget-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-budget-stats,
+.deck-ui-budget-detail-stats,
+.deck-ui-budget-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-budget-actions-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-budget-check {
+  gap: 6px;
+}
+
+.deck-ui-budget-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-budget .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-budget .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-budget .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-budget-surface,
+.deck-ui-budget-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-budget-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-budget-list {
+  gap: 8px;
+}
+
+.deck-ui-budget-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-budget-row,
+.deck-ui-budget .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-budget-row:hover,
+.deck-ui-budget .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-budget-row.is-selected,
+.deck-ui-budget .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-budget-chart {
+  gap: 8px;
+}
+
+.deck-ui-budget-chart-row {
+  grid-template-columns: minmax(92px, 0.78fr) minmax(120px, 1.2fr) minmax(90px, 0.7fr);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-ui-budget-chart-row:last-child {
+  border-bottom: 0;
+}
+
+.deck-ui-budget-chart-row .deckgo-usage-chart-bar {
+  box-shadow: none;
+}
+
+.deck-ui-budget-error {
+  color: var(--danger);
+}
+
+.deck-ui-budget strong,
+.deck-ui-budget code,
+.deck-ui-budget .deckgo-meta,
+.deck-ui-budget .deckgo-note,
+.deck-ui-budget-empty,
+.deck-ui-budget-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-budget details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-budget {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-budget-stats,
+  .deck-ui-budget-detail-stats,
+  .deck-ui-budget-form-grid,
+  .deck-ui-budget-chart-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-budget-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-alerts {
+  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-alerts-column {
+  gap: 12px;
+}
+
+.deck-ui-alerts-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-alerts-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-alerts-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-alerts-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-alerts-body > *,
+.deck-ui-alerts-status-row,
+.deck-ui-alerts-actions,
+.deck-ui-alerts-stats,
+.deck-ui-alerts-detail-stats,
+.deck-ui-alerts-form-grid,
+.deck-ui-alerts-input,
+.deck-ui-alerts-list,
+.deck-ui-alerts-row,
+.deck-ui-alerts-surface,
+.deck-ui-alerts-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-alerts-status-row,
+.deck-ui-alerts-actions {
+  gap: 6px;
+}
+
+.deck-ui-alerts-status-row .deckgo-pill,
+.deck-ui-alerts-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-alerts-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-alerts-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-alerts-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-alerts-stats,
+.deck-ui-alerts-detail-stats,
+.deck-ui-alerts-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-alerts-stats,
+.deck-ui-alerts-detail-stats,
+.deck-ui-alerts-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-alerts-actions-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-alerts-check {
+  gap: 6px;
+}
+
+.deck-ui-alerts-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-alerts .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-alerts .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-alerts .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-alerts-surface,
+.deck-ui-alerts-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-alerts-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-alerts-list {
+  gap: 8px;
+}
+
+.deck-ui-alerts-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-alerts-row,
+.deck-ui-alerts .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-alerts-row:hover,
+.deck-ui-alerts .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-alerts-row.is-selected,
+.deck-ui-alerts .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-alerts-error {
+  color: var(--danger);
+}
+
+.deck-ui-alerts strong,
+.deck-ui-alerts code,
+.deck-ui-alerts .deckgo-meta,
+.deck-ui-alerts .deckgo-note,
+.deck-ui-alerts-empty,
+.deck-ui-alerts-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-alerts details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-alerts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-alerts-stats,
+  .deck-ui-alerts-detail-stats,
+  .deck-ui-alerts-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-alerts-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-channels {
+  grid-template-columns: minmax(380px, 0.78fr) minmax(560px, 1.22fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-channels-column {
+  gap: 12px;
+}
+
+.deck-ui-channels-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-channels-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-channels-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-channels-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-channels-body > *,
+.deck-ui-channels-status-row,
+.deck-ui-channels-actions,
+.deck-ui-channels-stats,
+.deck-ui-channels-detail-stats,
+.deck-ui-channels-form-grid,
+.deck-ui-channels-form-row,
+.deck-ui-channels-input,
+.deck-ui-channels-textarea,
+.deck-ui-channels-list,
+.deck-ui-channels-row,
+.deck-ui-channels-account-card,
+.deck-ui-channels-surface,
+.deck-ui-channels-hero,
+.deck-ui-channels-chart,
+.deck-ui-channels-chart-row,
+.deck-ui-channels-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-channels-status-row,
+.deck-ui-channels-actions {
+  gap: 6px;
+}
+
+.deck-ui-channels-status-row .deckgo-pill,
+.deck-ui-channels-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-channels-input,
+.deck-ui-channels-textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-channels-textarea,
+.deck-ui-channels .deckgo-json-textarea {
+  min-height: 160px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.deck-ui-channels-input:focus,
+.deck-ui-channels-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-channels-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-channels-stats,
+.deck-ui-channels-detail-stats,
+.deck-ui-channels-form-grid,
+.deck-ui-channels-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-channels-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-channels-detail-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-channels-form-grid,
+.deck-ui-channels-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-channels-actions-offset,
+.deck-ui-channels-label-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-channels-check {
+  gap: 6px;
+}
+
+.deck-ui-channels-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-channels .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-channels .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-channels .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-channels-surface,
+.deck-ui-channels-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-channels-surface-head {
+  align-items: flex-start;
+  padding: 0;
+}
+
+.deck-ui-channels-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-channels-list {
+  gap: 8px;
+}
+
+.deck-ui-channels-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-channels-row,
+.deck-ui-channels-account-card,
+.deck-ui-channels .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-channels-row:hover,
+.deck-ui-channels .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-channels-row.is-selected,
+.deck-ui-channels .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-channels-chart {
+  gap: 8px;
+}
+
+.deck-ui-channels-chart-row {
+  grid-template-columns: minmax(92px, 0.78fr) minmax(120px, 1.2fr) minmax(110px, 0.8fr);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-ui-channels-chart-row:last-child {
+  border-bottom: 0;
+}
+
+.deck-ui-channels-chart-row .deckgo-usage-chart-track {
+  display: grid;
+  gap: 3px;
+  height: auto;
+  padding: 2px;
+}
+
+.deck-ui-channels-chart-row .deckgo-usage-chart-bar {
+  height: 6px;
+  box-shadow: none;
+}
+
+.deck-ui-channels-error {
+  color: var(--danger);
+}
+
+.deck-ui-channels strong,
+.deck-ui-channels code,
+.deck-ui-channels .deckgo-meta,
+.deck-ui-channels .deckgo-note,
+.deck-ui-channels-empty,
+.deck-ui-channels-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-channels details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-channels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-channels-stats,
+  .deck-ui-channels-detail-stats,
+  .deck-ui-channels-form-grid,
+  .deck-ui-channels-grid,
+  .deck-ui-channels-chart-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-channels-actions,
+  .deck-ui-channels-surface-head {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-plugins {
+  grid-template-columns: minmax(380px, 0.82fr) minmax(560px, 1.18fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-control-single.deck-ui-plugins {
+  display: flex;
+  gap: 0;
+}
+
+.deck-ui-plugins-header {
+  align-items: flex-start;
+}
+
+.deck-ui-plugins-header h2,
+.deck-ui-plugins-header p {
+  margin: 0;
+}
+
+.deck-ui-plugins-header .deckgo-note,
+.deck-ui-plugins-header .deckgo-meta {
+  margin-top: 5px;
+}
+
+.deck-ui-plugins-column {
+  gap: 12px;
+}
+
+.deck-ui-plugins-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-plugins-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-plugins-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-plugins-body {
+  display: grid;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-plugins-body > *,
+.deck-ui-plugins-status-row,
+.deck-ui-plugins-actions,
+.deck-ui-plugins-stats,
+.deck-ui-plugins-detail-stats,
+.deck-ui-plugins-diagnostics,
+.deck-ui-plugins-list,
+.deck-ui-plugins-row,
+.deck-ui-plugins-surface,
+.deck-ui-plugins-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-plugins-status-row,
+.deck-ui-plugins-actions {
+  gap: 6px;
+}
+
+.deck-ui-plugins-status-row .deckgo-pill,
+.deck-ui-plugins-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-plugins-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-plugins-stats,
+.deck-ui-plugins-detail-stats,
+.deck-ui-plugins-diagnostics {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-plugins-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-plugins-detail-stats,
+.deck-ui-plugins-diagnostics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-plugins .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-plugins .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-plugins .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-plugins-surface,
+.deck-ui-plugins-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-plugins-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-plugins-list {
+  gap: 8px;
+}
+
+.deck-ui-plugins-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-plugins-row,
+.deck-ui-plugins .deckgo-selectable-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-plugins-row:hover,
+.deck-ui-plugins .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-plugins-row.is-selected,
+.deck-ui-plugins .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-plugins-error {
+  color: var(--danger);
+}
+
+.deck-ui-plugins strong,
+.deck-ui-plugins code,
+.deck-ui-plugins .deckgo-meta,
+.deck-ui-plugins .deckgo-note,
+.deck-ui-plugins-empty,
+.deck-ui-plugins-error,
+.deck-ui-plugins-handoff {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-plugins details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-plugins {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-plugins-stats,
+  .deck-ui-plugins-detail-stats,
+  .deck-ui-plugins-diagnostics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-plugins-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-routing {
+  grid-template-columns: minmax(420px, 0.92fr) minmax(560px, 1.08fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-routing-column {
+  gap: 12px;
+}
+
+.deck-ui-routing-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-routing-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-routing-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-routing-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-routing-body > *,
+.deck-ui-routing-status-row,
+.deck-ui-routing-actions,
+.deck-ui-routing-stats,
+.deck-ui-routing-detail-stats,
+.deck-ui-routing-form-grid,
+.deck-ui-routing-input,
+.deck-ui-routing-list,
+.deck-ui-routing-row,
+.deck-ui-routing-surface,
+.deck-ui-routing-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-routing-status-row,
+.deck-ui-routing-actions {
+  gap: 6px;
+}
+
+.deck-ui-routing-status-row .deckgo-pill,
+.deck-ui-routing-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-routing-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-routing-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-routing-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-routing-stats,
+.deck-ui-routing-detail-stats,
+.deck-ui-routing-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-routing-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-routing-detail-stats,
+.deck-ui-routing-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-routing-actions-offset,
+.deck-ui-routing-list-offset {
+  margin-top: 12px;
+}
+
+.deck-ui-routing .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-routing .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-routing .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-routing-surface,
+.deck-ui-routing-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-routing-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-routing-list {
+  gap: 8px;
+}
+
+.deck-ui-routing-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-routing-row,
+.deck-ui-routing .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-routing-row:hover,
+.deck-ui-routing .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-routing-row.is-selected,
+.deck-ui-routing .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-routing-error {
+  color: var(--danger);
+}
+
+.deck-ui-routing strong,
+.deck-ui-routing code,
+.deck-ui-routing .deckgo-meta,
+.deck-ui-routing .deckgo-note,
+.deck-ui-routing-empty,
+.deck-ui-routing-error,
+.deck-ui-routing-result {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-routing details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-routing {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-routing-stats,
+  .deck-ui-routing-detail-stats,
+  .deck-ui-routing-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-routing-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-subagents {
+  grid-template-columns: minmax(430px, 0.92fr) minmax(560px, 1.08fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-subagents-column {
+  gap: 12px;
+}
+
+.deck-ui-subagents-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-subagents-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-subagents-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-subagents-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-subagents-body > *,
+.deck-ui-subagents-status-row,
+.deck-ui-subagents-actions,
+.deck-ui-subagents-stats,
+.deck-ui-subagents-detail-stats,
+.deck-ui-subagents-form-grid,
+.deck-ui-subagents-input,
+.deck-ui-subagents-label,
+.deck-ui-subagents-check,
+.deck-ui-subagents-list,
+.deck-ui-subagents-row,
+.deck-ui-subagents-surface,
+.deck-ui-subagents-hero,
+.deck-ui-subagents-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-subagents-status-row,
+.deck-ui-subagents-actions {
+  gap: 6px;
+}
+
+.deck-ui-subagents-status-row .deckgo-pill,
+.deck-ui-subagents-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-subagents .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-subagents-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-subagents-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-subagents-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-subagents-stats,
+.deck-ui-subagents-detail-stats,
+.deck-ui-subagents-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-subagents-stats,
+.deck-ui-subagents-defaults-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-subagents-detail-stats,
+.deck-ui-subagents-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-subagents-actions-offset,
+.deck-ui-subagents-list-offset,
+.deck-ui-subagents-task-block {
+  margin-top: 12px;
+}
+
+.deck-ui-subagents-label,
+.deck-ui-subagents-field {
+  display: grid;
+  gap: 6px;
+}
+
+.deck-ui-subagents-check {
+  gap: 6px;
+}
+
+.deck-ui-subagents-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-subagents .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-subagents .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-subagents .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-subagents-surface,
+.deck-ui-subagents-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-subagents-surface .deckgo-surface-label,
+.deck-ui-subagents-field .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-subagents-list {
+  gap: 8px;
+}
+
+.deck-ui-subagents-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-subagents-row,
+.deck-ui-subagents .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-subagents-row:hover,
+.deck-ui-subagents .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-subagents-row.is-selected,
+.deck-ui-subagents .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-subagents-lineage-list {
+  margin: 0;
+}
+
+.deck-ui-subagents-lineage-children {
+  margin-left: 16px;
+  margin-top: 8px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.deck-ui-subagents-error {
+  color: var(--danger);
+}
+
+.deck-ui-subagents strong,
+.deck-ui-subagents code,
+.deck-ui-subagents .deckgo-meta,
+.deck-ui-subagents .deckgo-note,
+.deck-ui-subagents-empty,
+.deck-ui-subagents-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-subagents details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-subagents {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-subagents-stats,
+  .deck-ui-subagents-detail-stats,
+  .deck-ui-subagents-form-grid,
+  .deck-ui-subagents-defaults-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-subagents-actions {
+    align-items: stretch;
+  }
+
+  .deck-ui-subagents-lineage-children {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+}
+
+.deck-ui-identity {
+  grid-template-columns: minmax(380px, 0.9fr) minmax(500px, 1.1fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-control-shell.deck-ui-identity {
+  grid-template-columns: 256px minmax(0, 1fr);
+  gap: 0;
+}
+
+.deck-ui-identity-sidebar .deck-ui-control-row {
+  align-items: flex-start;
+}
+
+.deck-ui-identity-detail {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+.deck-ui-identity-detail-header,
+.deck-ui-identity-dialog-header,
+.deck-ui-identity-dialog-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.deck-ui-identity-detail-header h2,
+.deck-ui-identity-detail-header p,
+.deck-ui-identity-dialog-header h3,
+.deck-ui-identity-dialog-header p,
+.deck-ui-identity-surface h3 {
+  margin: 0;
+}
+
+.deck-ui-identity-detail-header h2 {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.deck-ui-identity-detail-header p,
+.deck-ui-identity-dialog-header p {
+  margin-top: 5px;
+  color: var(--muted-foreground);
+  font-size: 0.82rem;
+}
+
+.deck-ui-identity-dialog-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 42%);
+}
+
+.deck-ui-identity-dialog {
+  display: grid;
+  width: min(440px, 100%);
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-panel);
+}
+
+.deck-ui-identity-dialog-actions {
+  justify-content: flex-end;
+}
+
+.deck-ui-identity-column {
+  gap: 12px;
+}
+
+.deck-ui-identity-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-identity-card .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-identity-card .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-identity-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-identity-body > *,
+.deck-ui-identity-status-row,
+.deck-ui-identity-actions,
+.deck-ui-identity-stats,
+.deck-ui-identity-form-grid,
+.deck-ui-identity-input,
+.deck-ui-identity-list,
+.deck-ui-identity-row,
+.deck-ui-identity-surface,
+.deck-ui-identity-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-identity-status-row,
+.deck-ui-identity-actions {
+  gap: 6px;
+}
+
+.deck-ui-identity .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-identity-status-row .deckgo-pill,
+.deck-ui-identity-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-identity-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-identity-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-identity-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-identity-stats,
+.deck-ui-identity-form-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-identity-actions-offset,
+.deck-ui-identity-peer-pills {
+  margin-top: 10px;
+}
+
+.deck-ui-identity .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-identity .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-identity .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-identity-surface,
+.deck-ui-identity-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-identity-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-identity-list {
+  gap: 8px;
+}
+
+.deck-ui-identity-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-identity-row,
+.deck-ui-identity .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-identity-row:hover,
+.deck-ui-identity .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-identity-row.is-selected,
+.deck-ui-identity .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-identity strong,
+.deck-ui-identity code,
+.deck-ui-identity .deckgo-meta,
+.deck-ui-identity .deckgo-note,
+.deck-ui-identity-empty,
+.deck-ui-identity-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-identity-error {
+  color: var(--danger);
+}
+
+.deck-ui-identity details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-identity {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-identity-stats,
+  .deck-ui-identity-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-identity-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-config {
+  grid-template-columns: minmax(440px, 0.92fr) minmax(580px, 1.08fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-config-column {
+  gap: 12px;
+}
+
+.deck-ui-config-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-config-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-config-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-config-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-config-body > *,
+.deck-ui-config-status-row,
+.deck-ui-config-actions,
+.deck-ui-config-stats,
+.deck-ui-config-input,
+.deck-ui-config-textarea,
+.deck-ui-config-label,
+.deck-ui-config-list,
+.deck-ui-config-row,
+.deck-ui-config-surface,
+.deck-ui-config-hero,
+.deck-ui-config-field-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-config-status-row,
+.deck-ui-config-actions {
+  gap: 6px;
+}
+
+.deck-ui-config .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-config-status-row .deckgo-pill,
+.deck-ui-config-dialog .deckgo-pill,
+.deck-ui-config-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-config-input,
+.deck-ui-config-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-config-input {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.deck-ui-config-textarea {
+  min-height: 180px;
+  padding: 9px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.deck-ui-config-input:focus,
+.deck-ui-config-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-config-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-config-stats {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-config .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-config .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-config .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-config-surface,
+.deck-ui-config-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-config-dialog {
+  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
+}
+
+.deck-ui-config-surface .deckgo-surface-label,
+.deck-ui-config-dialog .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-config-list {
+  gap: 8px;
+}
+
+.deck-ui-config-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-config-row,
+.deck-ui-config .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-config-field-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.deck-ui-config-field-card > *,
+.deck-ui-config-field-card .deckgo-card-header,
+.deck-ui-config-field-card details {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-config-field-card .deckgo-card-header {
+  flex-wrap: wrap;
+  padding: 0;
+}
+
+.deck-ui-config-row:hover,
+.deck-ui-config .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-config-row.is-selected,
+.deck-ui-config .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-config-check {
+  gap: 6px;
+}
+
+.deck-ui-config-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-config strong,
+.deck-ui-config code,
+.deck-ui-config .deckgo-meta,
+.deck-ui-config .deckgo-note,
+.deck-ui-config-empty,
+.deck-ui-config-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-config-error {
+  color: var(--danger);
+}
+
+.deck-ui-config details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-config {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-config-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-config-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-nodes {
+  grid-template-columns: minmax(380px, 0.86fr) minmax(560px, 1.14fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-nodes-column {
+  gap: 12px;
+}
+
+.deck-ui-nodes-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-nodes-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-nodes-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-nodes-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-nodes-body > *,
+.deck-ui-nodes-status-row,
+.deck-ui-nodes-actions,
+.deck-ui-nodes-stats,
+.deck-ui-nodes-detail-stats,
+.deck-ui-nodes-surface-grid,
+.deck-ui-nodes-input,
+.deck-ui-nodes-textarea,
+.deck-ui-nodes-list,
+.deck-ui-nodes-row,
+.deck-ui-nodes-surface,
+.deck-ui-nodes-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-nodes-status-row,
+.deck-ui-nodes-actions {
+  gap: 6px;
+}
+
+.deck-ui-nodes .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-nodes-status-row .deckgo-pill,
+.deck-ui-nodes-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-nodes-input,
+.deck-ui-nodes-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-nodes-input {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.deck-ui-nodes-textarea {
+  min-height: 120px;
+  padding: 9px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.deck-ui-nodes-input:focus,
+.deck-ui-nodes-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-nodes-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-nodes-stats,
+.deck-ui-nodes-detail-stats,
+.deck-ui-nodes-surface-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-nodes .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-nodes .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-nodes .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-nodes-surface,
+.deck-ui-nodes-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-nodes-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-nodes-list {
+  gap: 8px;
+}
+
+.deck-ui-nodes-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-nodes-row,
+.deck-ui-nodes .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-nodes-row:hover,
+.deck-ui-nodes .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-nodes-row.is-selected,
+.deck-ui-nodes .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-nodes-check {
+  gap: 6px;
+}
+
+.deck-ui-nodes-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-nodes strong,
+.deck-ui-nodes code,
+.deck-ui-nodes .deckgo-meta,
+.deck-ui-nodes .deckgo-note,
+.deck-ui-nodes-empty,
+.deck-ui-nodes-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-nodes-error {
+  color: var(--danger);
+}
+
+.deck-ui-nodes details,
+.deck-ui-nodes details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-nodes details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-nodes {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-nodes-stats,
+  .deck-ui-nodes-detail-stats,
+  .deck-ui-nodes-surface-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-nodes-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-docs {
+  grid-template-columns: minmax(380px, 0.86fr) minmax(560px, 1.14fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-docs-column {
+  gap: 12px;
+}
+
+.deck-ui-docs-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-docs-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-docs-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-docs-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-docs-body > *,
+.deck-ui-docs-status-row,
+.deck-ui-docs-actions,
+.deck-ui-docs-stats,
+.deck-ui-docs-category-filter,
+.deck-ui-docs-surface-grid,
+.deck-ui-docs-input,
+.deck-ui-docs-list,
+.deck-ui-docs-row,
+.deck-ui-docs-surface,
+.deck-ui-docs-hero,
+.deck-ui-docs .deckgo-doc-prose {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-docs-status-row,
+.deck-ui-docs-actions,
+.deck-ui-docs-category-filter {
+  gap: 6px;
+}
+
+.deck-ui-docs .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-docs-status-row .deckgo-pill,
+.deck-ui-docs-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-docs-input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-docs-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-docs-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-docs-stats,
+.deck-ui-docs-surface-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-docs .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-docs .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-docs .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-docs-surface,
+.deck-ui-docs-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-docs-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-docs-category-filter {
+  align-items: center;
+}
+
+.deck-ui-docs .deckgo-doc-category {
+  min-height: 30px;
+  border-radius: 6px;
+  padding: 5px 9px;
+  box-shadow: none;
+  white-space: normal;
+}
+
+.deck-ui-docs .deckgo-doc-category:hover {
+  transform: none;
+}
+
+.deck-ui-docs .deckgo-doc-category--all {
+  --doc-category-color: var(--primary);
+}
+
+.deck-ui-docs .deckgo-doc-category--summary {
+  --doc-category-color: var(--doc-summary);
+}
+
+.deck-ui-docs .deckgo-doc-category--plan {
+  --doc-category-color: var(--doc-plan);
+}
+
+.deck-ui-docs .deckgo-doc-category--spec {
+  --doc-category-color: var(--doc-spec);
+}
+
+.deck-ui-docs .deckgo-doc-category--manual {
+  --doc-category-color: var(--doc-manual);
+}
+
+.deck-ui-docs .deckgo-doc-category--draft {
+  --doc-category-color: var(--doc-draft);
+}
+
+.deck-ui-docs-list {
+  gap: 8px;
+}
+
+.deck-ui-docs-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-docs-row,
+.deck-ui-docs .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-docs-row:hover,
+.deck-ui-docs .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-docs-row.is-selected,
+.deck-ui-docs .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-docs .deckgo-doc-card-row,
+.deck-ui-docs .deckgo-doc-keywords {
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.deck-ui-docs .deckgo-doc-date {
+  margin-left: 0;
+}
+
+.deck-ui-docs .deckgo-doc-card-title,
+.deck-ui-docs .deckgo-doc-preview,
+.deck-ui-docs .deckgo-doc-keyword,
+.deck-ui-docs strong,
+.deck-ui-docs code,
+.deck-ui-docs .deckgo-meta,
+.deck-ui-docs .deckgo-note,
+.deck-ui-docs-empty,
+.deck-ui-docs-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-docs .deckgo-doc-preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.deck-ui-docs .deckgo-doc-prose {
+  max-height: 520px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  background: var(--surface-inset);
+  overflow: auto;
+}
+
+.deck-ui-docs details,
+.deck-ui-docs details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-docs details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-docs-error {
+  color: var(--danger);
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-docs {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-docs-stats,
+  .deck-ui-docs-surface-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-docs-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-settings {
+  grid-template-columns: minmax(620px, 1.16fr) minmax(360px, 0.84fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-settings-column {
+  gap: 12px;
+}
+
+.deck-ui-settings-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-settings-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-settings-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-settings-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-settings-side-body {
+  display: grid;
+}
+
+.deck-ui-settings-body > *,
+.deck-ui-settings-status-row,
+.deck-ui-settings-actions,
+.deck-ui-settings-form-row,
+.deck-ui-settings-label,
+.deck-ui-settings-input,
+.deck-ui-settings-textarea,
+.deck-ui-settings-check,
+.deck-ui-settings-list,
+.deck-ui-settings-row,
+.deck-ui-settings-surface {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-settings-status-row,
+.deck-ui-settings-actions {
+  gap: 6px;
+}
+
+.deck-ui-settings .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-settings-status-row .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-settings-form-row {
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-settings-label {
+  gap: 6px;
+}
+
+.deck-ui-settings-label > span,
+.deck-ui-settings .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-settings-input,
+.deck-ui-settings-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-settings-input {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.deck-ui-settings-textarea {
+  min-height: 130px;
+  padding: 9px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.deck-ui-settings-input:focus,
+.deck-ui-settings-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-settings-check {
+  gap: 8px;
+  align-items: center;
+}
+
+.deck-ui-settings-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.deck-ui-settings-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-settings-surface {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-settings-list {
+  gap: 8px;
+}
+
+.deck-ui-settings-token-list {
+  margin-top: 10px;
+}
+
+.deck-ui-settings-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-settings-row,
+.deck-ui-settings .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-settings-row:hover,
+.deck-ui-settings .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-settings-row.is-selected,
+.deck-ui-settings .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-settings strong,
+.deck-ui-settings code,
+.deck-ui-settings .deckgo-meta,
+.deck-ui-settings .deckgo-note,
+.deck-ui-settings-empty,
+.deck-ui-settings-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-settings-error {
+  color: var(--danger);
+}
+
+.deck-ui-settings details,
+.deck-ui-settings details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-settings details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-settings-modal-backdrop {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--background) 72%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.deck-ui-settings-modal {
+  display: grid;
+  gap: 14px;
+  width: min(520px, 100%);
+  max-height: min(620px, calc(100vh - 48px));
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  color: var(--text);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-panel);
+}
+
+.deck-ui-settings-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+.deck-ui-settings-modal-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.98rem;
+}
+
+.deck-ui-settings-token-value {
+  max-height: 180px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--surface-inset);
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-settings {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-settings-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-settings-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-budget .deckgo-stat,
+.deck-ui-alerts .deckgo-stat,
+.deck-ui-channels .deckgo-stat,
+.deck-ui-plugins .deckgo-stat,
+.deck-ui-routing .deckgo-stat,
+.deck-ui-subagents .deckgo-stat,
+.deck-ui-identity .deckgo-stat,
+.deck-ui-config .deckgo-stat,
+.deck-ui-nodes .deckgo-stat,
+.deck-ui-docs .deckgo-stat {
+  padding: 9px 10px;
+}
+
+.deck-ui-budget .deckgo-stat-value,
+.deck-ui-alerts .deckgo-stat-value,
+.deck-ui-channels .deckgo-stat-value,
+.deck-ui-plugins .deckgo-stat-value,
+.deck-ui-routing .deckgo-stat-value,
+.deck-ui-subagents .deckgo-stat-value,
+.deck-ui-identity .deckgo-stat-value,
+.deck-ui-config .deckgo-stat-value,
+.deck-ui-nodes .deckgo-stat-value,
+.deck-ui-docs .deckgo-stat-value {
+  margin-top: 5px;
+  font-size: 0.98rem;
+}
+
+.deck-ui-budget .deckgo-selectable-card,
+.deck-ui-alerts .deckgo-selectable-card,
+.deck-ui-channels .deckgo-selectable-card,
+.deck-ui-plugins .deckgo-selectable-card,
+.deck-ui-routing .deckgo-selectable-card,
+.deck-ui-subagents .deckgo-selectable-card,
+.deck-ui-identity .deckgo-selectable-card,
+.deck-ui-config .deckgo-selectable-card,
+.deck-ui-nodes .deckgo-selectable-card,
+.deck-ui-docs .deckgo-selectable-card,
+.deck-ui-settings .deckgo-selectable-card {
+  padding: 10px 11px;
+}
+
+.deck-ui-agents {
+  grid-template-columns: minmax(320px, 0.68fr) minmax(680px, 1.32fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-agents > .deck-ui-agents-column:first-child {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: calc(100vh - 116px);
+}
+
+.deck-ui-agents-column {
+  gap: 12px;
+  min-width: 0;
+}
+
+.deck-ui-agents-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-agents > .deck-ui-agents-column:first-child .deck-ui-agents-card {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  max-height: calc(100vh - 116px);
+}
+
+.deck-ui-agents > .deck-ui-agents-column:first-child .deck-ui-agents-body {
+  overflow: auto;
+}
+
+.deck-ui-agents-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-agents-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-agents-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-agents-body > *,
+.deck-ui-agents-pill-row,
+.deck-ui-agents-actions,
+.deck-ui-agents-grid,
+.deck-ui-agents-label,
+.deck-ui-agents-input,
+.deck-ui-agents-textarea,
+.deck-ui-agents-list,
+.deck-ui-agents-row,
+.deck-ui-agents-surface,
+.deck-ui-agents-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-agents-pill-row,
+.deck-ui-agents-actions {
+  gap: 6px;
+}
+
+.deck-ui-agents-label {
+  display: block;
+}
+
+.deck-ui-agents-actions-bottom {
+  margin-bottom: 12px;
+}
+
+.deck-ui-agents-tabs {
+  flex-wrap: wrap;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-agents-tabs button {
+  flex: 1 1 96px;
+  justify-content: center;
+  color: var(--text-soft);
+}
+
+.deck-ui-agents-spaced {
+  margin-top: 12px;
+}
+
+.deck-ui-agents-spaced-tight {
+  margin-top: 8px;
+}
+
+.deck-ui-agents .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-agents-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-agents-input,
+.deck-ui-agents-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-agents-input {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.deck-ui-agents-textarea {
+  padding: 9px 10px;
+  line-height: 1.45;
+}
+
+.deck-ui-agents-input:focus,
+.deck-ui-agents-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-agents-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-agents-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-agents .deckgo-stat {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-agents .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-agents .deckgo-stat-value {
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: 0.98rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-agents-surface,
+.deck-ui-agents-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-agents-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-agents-list {
+  gap: 8px;
+}
+
+.deck-ui-agent-editor-boundary,
+.deck-ui-agent-compare-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-agents-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-agents-row,
+.deck-ui-agents .deckgo-selectable-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-agents .deckgo-selectable-card {
+  padding: 10px 11px;
+}
+
+.deck-ui-agents-row:hover,
+.deck-ui-agents .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-agents-row.is-selected,
+.deck-ui-agents .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-agents .deckgo-code {
+  max-height: 240px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.deck-ui-agents > .deck-ui-agents-column:first-child .deckgo-code {
+  max-height: 94px;
+}
+
+.deck-ui-agents strong,
+.deck-ui-agents code,
+.deck-ui-agents .deckgo-note,
+.deck-ui-agents .deckgo-meta,
+.deck-ui-agents-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-agents-error {
+  color: var(--danger);
+}
+
+.deck-ui-agents details,
+.deck-ui-agents details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-agents details .deckgo-code {
+  max-height: 360px;
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-agents {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-ui-agents > .deck-ui-agents-column:first-child,
+  .deck-ui-agents > .deck-ui-agents-column:first-child .deck-ui-agents-card {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-agents-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-agents-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-models {
+  grid-template-columns: minmax(420px, 0.78fr) minmax(640px, 1.22fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-models-column {
+  gap: 12px;
+}
+
+.deck-ui-models-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-models-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-models-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-models-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-models-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-bottom: 2px;
+  background: color-mix(in srgb, var(--panel) 94%, transparent);
+}
+
+.deck-ui-models-tabs button {
+  min-width: 128px;
+  justify-content: center;
+}
+
+.deck-ui-models-tab-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.deck-ui-models-tab-panel[hidden] {
+  display: none;
+}
+
+.deck-ui-models-body > *,
+.deck-ui-models-status-row,
+.deck-ui-models-pill-row,
+.deck-ui-models-actions,
+.deck-ui-models-stats,
+.deck-ui-models-grid,
+.deck-ui-models-label,
+.deck-ui-models-input,
+.deck-ui-models-textarea,
+.deck-ui-models-list,
+.deck-ui-models-row,
+.deck-ui-models-surface,
+.deck-ui-models-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-models-status-row,
+.deck-ui-models-pill-row,
+.deck-ui-models-actions {
+  gap: 6px;
+}
+
+.deck-ui-models-actions-center {
+  align-items: center;
+}
+
+.deck-ui-models-actions-bottom {
+  margin-bottom: 8px;
+}
+
+.deck-ui-models-spaced {
+  margin-top: 12px;
+}
+
+.deck-ui-models-spaced-tight {
+  margin-top: 8px;
+}
+
+.deck-ui-models-fallback-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.deck-ui-models-fallback-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.deck-ui-models-fallback-chains,
+.deck-ui-models-split-pane,
+.deck-ui-models-provider-config-layout {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.deck-ui-models-fallback-chains {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-models-chain-card,
+.deck-ui-models-provider-sidebar,
+.deck-ui-models-provider-main,
+.deck-ui-models-catalog-detail {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-models-chain-header,
+.deck-ui-models-chain-primary,
+.deck-ui-models-chain-step,
+.deck-ui-models-model-table-row,
+.deck-ui-models-provider-tree-provider,
+.deck-ui-models-provider-tree-model,
+.deck-ui-models-provider-sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.deck-ui-models-chain-header,
+.deck-ui-models-chain-step,
+.deck-ui-models-model-table-row,
+.deck-ui-models-provider-tree-provider,
+.deck-ui-models-provider-tree-model,
+.deck-ui-models-provider-sidebar-item {
+  justify-content: space-between;
+}
+
+.deck-ui-models-chain-list,
+.deck-ui-models-provider-tree-models,
+.deck-ui-models-provider-sidebar-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.deck-ui-models-chain-list {
+  list-style: none;
+}
+
+.deck-ui-models-chain-dot {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--primary-muted);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.deck-ui-models-split-pane,
+.deck-ui-models-provider-config-layout {
+  grid-template-columns: minmax(220px, 0.36fr) minmax(0, 1fr);
+}
+
+.deck-ui-models-provider-tree,
+.deck-ui-models-provider-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  border-right: 1px solid var(--border);
+}
+
+.deck-ui-models-provider-tree-group {
+  display: grid;
+  gap: 4px;
+}
+
+.deck-ui-models-provider-tree-provider,
+.deck-ui-models-provider-tree-model,
+.deck-ui-models-provider-sidebar-item,
+.deck-ui-models-model-name {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  text-align: left;
+}
+
+.deck-ui-models-provider-tree-provider,
+.deck-ui-models-provider-sidebar-item {
+  padding: 8px 9px;
+  font-weight: 700;
+}
+
+.deck-ui-models-provider-tree-model {
+  padding: 7px 8px 7px 18px;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.deck-ui-models-provider-tree-provider.is-selected,
+.deck-ui-models-provider-tree-model.is-selected,
+.deck-ui-models-provider-sidebar-item.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 52%, var(--border));
+  background: var(--primary-muted);
+  color: var(--primary);
+}
+
+.deck-ui-models-model-table-row {
+  align-items: stretch;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-models-model-name {
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 8px 9px;
+}
+
+.deck-ui-models-model-name span,
+.deck-ui-models-provider-tree-model span,
+.deck-ui-models-provider-sidebar-item span {
+  overflow: hidden;
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-models-add-provider-wizard {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.deck-ui-models-section-heading,
+.deck-ui-models-quota-card-header,
+.deck-ui-models-usage-bar-row,
+.deck-ui-models-quota-window {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.deck-ui-models-section-heading,
+.deck-ui-models-quota-card-header {
+  justify-content: space-between;
+}
+
+.deck-ui-models-section-heading span,
+.deck-ui-models-usage-bar-row span,
+.deck-ui-models-usage-bar-row strong,
+.deck-ui-models-quota-window span,
+.deck-ui-models-quota-window strong {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+
+.deck-ui-models-usage-chart,
+.deck-ui-models-quota-grid,
+.deck-ui-models-quota-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.deck-ui-models-usage-bars,
+.deck-ui-models-quota-window-list {
+  display: grid;
+  gap: 8px;
+}
+
+.deck-ui-models-usage-bar-row,
+.deck-ui-models-quota-window {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+}
+
+.deck-ui-models-usage-bar {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-models-usage-bar::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-models-usage-bar::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.deck-ui-models-usage-bar::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--primary);
+}
+
+.deck-ui-models-quota-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.deck-ui-models-quota-card {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-models-check-end {
+  align-self: end;
+}
+
+.deck-ui-models .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-models-status-row .deckgo-pill,
+.deck-ui-models-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-models-input,
+.deck-ui-models-textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input-bg);
+  box-shadow: none;
+}
+
+.deck-ui-models-input {
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.deck-ui-models-textarea {
+  padding: 9px 10px;
+  line-height: 1.45;
+}
+
+.deck-ui-models-raw-textarea {
+  min-height: 420px;
+  max-height: 70vh;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.deck-ui-models-input:focus,
+.deck-ui-models-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-models-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-models-stats,
+.deck-ui-models-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+}
+
+.deck-ui-models .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-models .deckgo-stat-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-models .deckgo-stat-value {
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 1.02rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-models-surface,
+.deck-ui-models-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-models-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-models-list {
+  gap: 8px;
+}
+
+.deck-ui-models-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-models-row,
+.deck-ui-models .deckgo-selectable-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-models-row:hover,
+.deck-ui-models .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-models strong,
+.deck-ui-models code,
+.deck-ui-models .deckgo-note,
+.deck-ui-models .deckgo-meta,
+.deck-ui-models-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-models-error {
+  color: var(--danger);
+}
+
+.deck-ui-models details,
+.deck-ui-models details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-models details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1180px) {
+  .deck-ui-models {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-models-stats,
+  .deck-ui-models-grid,
+  .deck-ui-models-fallback-chains,
+  .deck-ui-models-split-pane,
+  .deck-ui-models-provider-config-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-models-actions {
+    align-items: stretch;
+  }
+}
+
+.deck-ui-gateway {
+  grid-template-columns: minmax(560px, 1fr) minmax(380px, 0.82fr);
+  gap: 12px;
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-gateway-tabs {
+  grid-column: 1 / -1;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-gateway-tabs button {
+  min-width: 116px;
+  justify-content: center;
+}
+
+.deck-ui-gateway-column {
+  gap: 12px;
+}
+
+.deck-ui-gateway-card {
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.deck-ui-gateway-card > .deckgo-card-header {
+  padding: 14px 16px 0;
+}
+
+.deck-ui-gateway-card > .deckgo-card-subtitle {
+  margin: 6px 16px 0;
+  font-size: 0.82rem;
+}
+
+.deck-ui-gateway-body {
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.deck-ui-gateway-body > *,
+.deck-ui-gateway-status-row,
+.deck-ui-gateway-actions,
+.deck-ui-gateway-surface-grid,
+.deck-ui-gateway-surface,
+.deck-ui-gateway-hero {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-gateway-status-row,
+.deck-ui-gateway-actions {
+  gap: 6px;
+}
+
+.deck-ui-gateway-spaced {
+  margin-top: 12px;
+}
+
+.deck-ui-gateway .deckgo-pill {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-gateway-status-row .deckgo-pill,
+.deck-ui-gateway-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+}
+
+.deck-ui-gateway-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.deck-ui-gateway-surface-grid {
+  max-width: none;
+  margin: 0;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-gateway-surface,
+.deck-ui-gateway-hero {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-gateway-surface .deckgo-surface-label {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+}
+
+.deck-ui-gateway-list {
+  gap: 8px;
+}
+
+.deck-ui-gateway-list > li,
+.deck-ui-gateway-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-gateway-row,
+.deck-ui-gateway .deckgo-selectable-card {
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: none;
+}
+
+.deck-ui-gateway .deckgo-selectable-card {
+  padding: 10px 11px;
+}
+
+.deck-ui-gateway-row:hover,
+.deck-ui-gateway .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--primary) 32%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: none;
+}
+
+.deck-ui-gateway-row.is-selected,
+.deck-ui-gateway .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+  background: var(--primary-muted);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-gateway strong,
+.deck-ui-gateway code,
+.deck-ui-gateway .deckgo-note,
+.deck-ui-gateway .deckgo-meta,
+.deck-ui-gateway-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-gateway-error {
+  color: var(--danger);
+}
+
+.deck-ui-gateway details,
+.deck-ui-gateway details .deckgo-code {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-gateway details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .deck-ui-gateway {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .deck-ui-gateway-surface-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-gateway-actions {
+    align-items: stretch;
+  }
+}
+
+.deckgo-rail-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.deckgo-dividerless {
+  display: grid;
+  gap: 14px;
+}
+
+.deckgo-session-detail-kicker {
+  margin-bottom: 8px;
+}
+
+.deckgo-session-snapshot-meta {
+  margin-top: 12px;
+}
+
+.deckgo-transcript-list {
+  gap: 16px;
+}
+
+.deckgo-transcript-message {
+  display: grid;
+  gap: 12px;
+}
+
+.deckgo-transcript-message-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.deckgo-transcript-blocks {
+  display: grid;
+  gap: 12px;
+}
+
+.deckgo-transcript-block {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.deckgo-transcript-block-label {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.deckgo-transcript-block-preview {
+  padding: 12px 14px;
+}
+
+.deckgo-transcript-block-tool_use {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 72%, transparent);
+}
+
+.deckgo-transcript-block-tool_result {
+  border-left: 3px solid color-mix(in srgb, var(--success) 72%, transparent);
+}
+
+details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-inner);
+  background: color-mix(in srgb, var(--panel-strong) 78%, transparent);
+  padding: 12px 14px;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.deckgo-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+  font-size: 0.84rem;
+}
+
+.deckgo-table th,
+.deckgo-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.deckgo-table th {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--surface-inset);
+}
+
+.deckgo-table tr:hover td {
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.deckgo-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(8, 10, 18, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.deckgo-dialog {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel-float);
+  color: var(--text);
+  box-shadow: var(--shadow-panel);
+}
+
+@media (max-width: 1200px) {
+  .deckgo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .deckgo-surface-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .deckgo-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.deck-ui-loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.deck-ui-status-panel {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface-floating);
+  box-shadow: var(--shadow-panel);
+}
+
+.deck-ui-status-panel h1,
+.deck-ui-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.deck-ui-status-panel p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.deck-ui-auth-panel form {
+  margin-top: 6px;
+}
+
+.deck-ui-shell {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.deck-ui-shell:has(.deck-ui-rail.is-collapsed) {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.deck-ui-main {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.deck-ui-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  background: transparent;
+}
+
+.deck-ui-rail {
+  width: 208px;
+  min-height: 0;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--panel) 96%, var(--bg) 4%);
+  border-right: 1px solid var(--border);
+}
+
+.deck-ui-rail.is-collapsed {
+  width: 56px;
+}
+
+.deck-ui-rail.is-collapsed .deck-ui-rail-brand {
+  justify-items: center;
+}
+
+.deck-ui-rail-brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.deck-ui-nav-glyph {
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--surface-elevated);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.deck-ui-header p,
+.deck-ui-muted-text {
+  color: var(--text-faint);
+}
+
+.deck-ui-rail-scroll,
+.deck-ui-rail-group,
+.deck-ui-rail-footer {
+  display: grid;
+  gap: 3px;
+  align-content: start;
+}
+
+.deck-ui-rail-scroll {
+  overflow: auto;
+  padding: 8px 6px 0;
+}
+
+.deck-ui-rail-footer {
+  padding: 8px 6px;
+  border-top: 1px solid var(--border);
+}
+
+.deck-ui-rail-title {
+  margin: 10px 8px 4px;
+  color: var(--text-faint);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.deck-ui-nav-item,
+.deck-ui-tab-strip button,
+.deck-ui-quiet-button,
+.deck-ui-icon-button {
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.deck-ui-nav-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 0.84rem;
+  min-width: 0;
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.deck-ui-nav-item > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-rail.is-collapsed .deck-ui-nav-item {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding-inline: 0;
+}
+
+.deck-ui-nav-item:hover {
+  background: var(--primary-muted);
+}
+
+.deck-ui-nav-item.is-active {
+  background: var(--primary-muted);
+  color: var(--primary);
+  box-shadow: inset 2px 0 0 var(--primary);
+}
+
+.deck-ui-nav-glyph {
+  width: 24px;
+  height: 24px;
+  position: relative;
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  background: transparent;
+}
+
+.deck-ui-nav-item.is-active .deck-ui-nav-glyph {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.deck-ui-nav-badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  min-width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  border-radius: var(--radius-pill);
+  background: var(--destructive);
+  color: var(--destructive-fg);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.deck-ui-icon-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.deck-ui-icon-button svg,
+.deck-ui-quiet-button svg,
+.deck-ui-nav-glyph svg,
+.deck-ui-segmented svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.deck-ui-icon-button:hover {
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.deck-ui-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 96%, var(--bg) 4%);
+}
+
+.deck-ui-header-left,
+.deck-ui-header-right,
+.deck-ui-status-chip,
+.deck-ui-tab-strip {
+  display: flex;
+  align-items: center;
+}
+
+.deck-ui-header-left {
+  gap: 10px;
+  min-width: 0;
+}
+
+.deck-ui-header h1 {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.deck-ui-header p {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
+}
+
+.deck-ui-header-right {
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.deck-ui-header-alert {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--danger);
+}
+
+.deck-ui-status-chip,
+.deck-ui-quiet-button,
+.deck-ui-primary-button,
+.deck-ui-tab-strip button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: var(--surface-elevated);
+}
+
+.deck-ui-status-chip {
+  gap: 7px;
+  color: var(--text-soft);
+  border: 0;
+  padding-inline: 4px;
+  background: transparent;
+  font-size: 0.78rem;
+}
+
+.deck-ui-status-chip.is-healthy {
+  background: transparent;
+  color: var(--text-soft);
+}
+
+.deck-ui-status-chip.is-muted {
+  background: transparent;
+  color: var(--text-soft);
+}
+
+.deck-ui-status-chip.is-pending {
+  background: transparent;
+  color: var(--text-soft);
+}
+
+.deck-ui-quiet-button {
+  border: 0;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.deck-ui-quiet-button:hover {
+  background: var(--surface-elevated);
+  color: var(--text);
+}
+
+.deck-ui-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--success);
+}
+
+.deck-ui-status-chip.is-muted .deck-ui-dot {
+  background: var(--danger);
+}
+
+.deck-ui-status-chip.is-pending .deck-ui-dot {
+  background: var(--warning);
+}
+
+.deck-ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.deck-ui-dialog {
+  width: min(420px, 100%);
+  max-height: min(680px, calc(100vh - 48px));
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: var(--shadow-panel);
+}
+
+.deck-ui-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 0;
+}
+
+.deck-ui-dialog h2 {
+  margin: 0;
+  font-size: 0.96rem;
+}
+
+.deck-ui-shortcut-list {
+  display: grid;
+  gap: 2px;
+  padding: 0 16px 16px;
+}
+
+.deck-ui-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 30px;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.deck-ui-shortcut-row kbd {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 6px;
+  color: var(--text-faint);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.deck-ui-panel-error {
+  min-height: min(520px, calc(100vh - 96px));
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 32px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.deck-ui-panel-error h2,
+.deck-ui-panel-error p {
+  margin: 0;
+}
+
+.deck-ui-panel-error h2 {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.deck-ui-panel-error-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.deck-ui-panel-error-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.deck-ui-panel-error-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.deck-ui-panel-error-actions svg,
+.deckgo-button svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.deck-ui-segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-segmented button {
+  border: 0;
+  border-radius: 5px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.deck-ui-segmented button.is-active,
+.deck-ui-tab-strip button.is-active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.deck-ui-tab-strip {
+  gap: 6px;
+}
+
+.deck-ui-session-mode-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-inset);
+}
+
+.deck-ui-session-mode-tab {
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font: inherit;
+}
+
+.deck-ui-session-mode-tab {
+  min-width: 0;
+  flex: 1 1 0;
+  min-height: 28px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+}
+
+.deck-ui-session-mode-tab.is-active {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: var(--shadow-soft);
+}
+
+.deck-ui-session-mode-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.deck-ui-tab-strip button {
+  flex: 1;
+  color: var(--text-soft);
+}
+
+.deck-ui-tab-strip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.deck-ui-primary-button {
+  background: var(--primary);
+  color: #fff;
+}
+
+.deck-ui-nav-item:focus-visible,
+.deck-ui-icon-button:focus-visible,
+.deck-ui-quiet-button:focus-visible,
+.deck-ui-status-chip:focus-visible,
+.deck-ui-primary-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--primary) 46%, transparent);
+  outline-offset: 2px;
+}
+
+.deck-ui-markdown {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.deck-ui-markdown h1,
+.deck-ui-markdown h2,
+.deck-ui-markdown h3 {
+  margin: 4px 0 2px;
+  font-family: var(--font-display);
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.deck-ui-markdown h1 {
+  font-size: 1.08rem;
+}
+
+.deck-ui-markdown h2,
+.deck-ui-markdown h3 {
+  font-size: 0.98rem;
+}
+
+.deck-ui-markdown ul,
+.deck-ui-markdown ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.deck-ui-markdown pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-inset);
+  color: var(--text);
+}
+
+.deck-ui-markdown code {
+  border-radius: 4px;
+  padding: 1px 4px;
+  background: var(--surface-inset);
+  font-family: var(--font-mono);
+}
+
+.deck-ui-markdown pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.animate-pulse {
+  animation: deckgo-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes deckgo-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes deckgo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+.deckgo-checkbox-row,
+.deckgo-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.deckgo-checkbox-row input,
+.deckgo-checkbox-label input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .deck-ui-shell {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 820px) {
+  .deck-ui-content {
+    padding: 14px;
+  }
+
+  .deck-ui-header {
+    grid-template-columns: 1fr;
+  }
+
+  .deck-ui-header-right {
+    justify-content: flex-start;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .deck-ui-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-rail-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+  }
+
+  .deck-ui-rail-overlay .deck-ui-rail {
+    width: min(320px, 88vw);
+  }
+
+}

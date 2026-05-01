@@ -1,0 +1,458 @@
+/* Tool pair — tool_use card + tool_result card grouped as a single visual unit.
+ *
+ * Bundle reference: docs/design-bundles/2026-04-29-claude-design-chat-pilot/
+ * project/styles.css lines 572-583 (.tool-pair) + 336-372 (.block chrome) +
+ * 399-406 (.thinking) + 409-417 (.tool-use param-grid) + 420-439 (.tool-result
+ * tabs) + 441-462 (.bash) + 526-533 (.img-result) + 535-545 (.raw-pre) +
+ * 564-570 (.unknown-block).
+ *
+ * Owns: ds-tool-pair wrapper, paired/split/error variants, divider; chrome
+ * for the `<details>`-based tool-result-card / thinking-block / unknown-block /
+ * virtual-result that bypass the Block atom; param grid + tool action buttons
+ * (control / inline / download) + raw toggle; result panes (raw / bash /
+ * structured / media); icon + label tags. Tokens: --ds-* only. */
+
+/* ---- Pair wrapper ----------------------------------------------------- */
+
+.ds-tool-pair {
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-tool-pair--paired {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  overflow: hidden;
+}
+
+.ds-tool-pair--paired .ds-block,
+.ds-tool-pair--paired .ds-tool-result-card,
+.ds-tool-pair--paired .ds-tool-use-card {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ds-tool-pair--error {
+  border-color: var(--ds-error);
+  background: color-mix(in srgb, var(--ds-error) 5%, var(--ds-bg-2));
+}
+
+.ds-tool-pair__divider {
+  height: 1px;
+  background: var(--ds-border-subtle);
+}
+
+.ds-tool-pair__use,
+.ds-tool-pair__result {
+  display: flex;
+  flex-direction: column;
+}
+
+.ds-tool-pair--split {
+  gap: 6px;
+}
+
+/* ---- ToolUseCard paired modifier (Block atom owns inner chrome) ------- */
+
+.ds-tool-use-card--paired {
+  /* Border is suppressed by `.ds-tool-pair--paired .ds-block` rule above. */
+}
+
+.ds-tool-use-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+/* ---- Generic tool-result-card chrome (native <details>, NOT Block atom) */
+
+.ds-tool-result-card {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  overflow: hidden;
+  padding: 0;
+}
+
+.ds-tool-result-card--error {
+  border-color: var(--ds-error);
+  background: color-mix(in srgb, var(--ds-error) 6%, var(--ds-bg-2));
+}
+
+.ds-tool-result-card--error .ds-tool-icon {
+  color: var(--ds-error);
+}
+
+.ds-tool-result-card__summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  color: var(--ds-text-2);
+  cursor: pointer;
+  font-size: var(--ds-fs-meta);
+  list-style: none;
+}
+
+.ds-tool-result-card__summary::-webkit-details-marker {
+  display: none;
+}
+
+.ds-tool-result-card__summary:hover {
+  color: var(--ds-text-1);
+  background: var(--ds-bg-hover);
+}
+
+.ds-tool-result-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-inline-start: auto;
+}
+
+.ds-tool-result-card__download {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+  text-decoration: none;
+}
+
+.ds-tool-result-card__download:hover {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}
+
+/* ---- ThinkingBlock + UnknownBlockCard (native <details>) -------------- */
+
+.ds-thinking-block,
+.ds-unknown-block {
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  overflow: hidden;
+}
+
+.ds-thinking-block {
+  border-style: dashed;
+}
+
+.ds-thinking-block > summary,
+.ds-unknown-block > summary {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  color: var(--ds-text-2);
+  cursor: pointer;
+  font-size: var(--ds-fs-meta);
+  list-style: none;
+}
+
+.ds-thinking-block > summary::-webkit-details-marker,
+.ds-unknown-block > summary::-webkit-details-marker {
+  display: none;
+}
+
+.ds-thinking-block > summary:hover,
+.ds-unknown-block > summary:hover {
+  color: var(--ds-text-1);
+  background: var(--ds-bg-hover);
+}
+
+.ds-thinking-block > pre,
+.ds-unknown-block > pre {
+  margin: 0 8px 8px;
+  padding: 9px 10px;
+  background: var(--ds-bg-3);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* ---- VirtualScrollResult ---------------------------------------------- */
+
+.ds-virtual-result {
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  overflow: hidden;
+}
+
+.ds-virtual-result__head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-virtual-result > pre {
+  margin: 0;
+  padding: 9px 10px;
+  background: var(--ds-bg-3);
+  border-top: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* ---- Icon + label tags ------------------------------------------------ */
+
+.ds-tool-icon {
+  min-width: 24px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-elev);
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ds-tool-label {
+  color: var(--ds-text-1);
+  font-weight: 600;
+}
+
+.ds-tool-summary {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--ds-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-tool-result-card__summary code,
+.ds-tool-result-command code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ds-accent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ds-font-mono);
+}
+
+/* ---- Body container (param grid + structured) ------------------------- */
+
+.ds-tool-use-body,
+.ds-tool-result-structured {
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border-top: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+}
+
+/* ---- Param grid — bundle .param-grid (line 410-417) ------------------- */
+
+.ds-tool-params {
+  display: grid;
+  gap: 5px;
+}
+
+.ds-tool-param-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(86px, max-content) minmax(0, 1fr);
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-3);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-tool-param-key {
+  overflow: hidden;
+  color: var(--ds-text-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--ds-font-mono);
+}
+
+.ds-tool-param-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ds-text-1);
+}
+
+.ds-tool-param-value.is-null,
+.ds-tool-param-empty {
+  margin: 0;
+  color: var(--ds-text-3);
+}
+
+.ds-tool-param-nested > summary {
+  color: var(--ds-accent);
+  cursor: pointer;
+}
+
+.ds-tool-param-nested > pre {
+  margin: 0;
+  padding: 9px 10px;
+  background: var(--ds-bg-3);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+/* ---- Action buttons (control / inline / download) --------------------- */
+
+.ds-tool-control,
+.ds-tool-inline-button,
+.ds-tool-download {
+  min-height: 28px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  padding: 4px 8px;
+  background: var(--ds-bg-elev);
+  color: var(--ds-text-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ds-tool-control:hover,
+.ds-tool-inline-button:hover,
+.ds-tool-download:hover {
+  border-color: var(--ds-accent-dim);
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}
+
+/* ---- Raw toggle ------------------------------------------------------- */
+
+.ds-raw-toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ds-raw-toggle__icon {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--ds-text-3);
+}
+
+.ds-raw-toggle[aria-pressed="true"] .ds-raw-toggle__icon {
+  background: var(--ds-accent);
+}
+
+.ds-raw-toggle > span {
+  font-family: var(--ds-font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* ---- Result panes — bundle .raw-pre / .bash-stream / .img-result ----- */
+
+.ds-tool-result-raw,
+.ds-tool-result-stream > pre {
+  margin: 0;
+  overflow: auto;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  padding: 9px 10px;
+  background: var(--ds-bg-3);
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.ds-tool-result-bash,
+.ds-tool-result-stream {
+  display: grid;
+  gap: 7px;
+}
+
+.ds-tool-result-command,
+.ds-tool-result-exit,
+.ds-tool-result-binary {
+  padding: 7px 9px;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-3);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-tool-result-stream > strong {
+  color: var(--ds-text-1);
+  font-size: 0.76rem;
+}
+
+.ds-tool-result-stream.is-error > pre {
+  border-color: var(--ds-error);
+  color: var(--ds-error);
+}
+
+.ds-tool-result-exit.is-error {
+  color: var(--ds-error);
+  background: color-mix(in srgb, var(--ds-error) 8%, var(--ds-bg-3));
+}
+
+.ds-tool-result-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.ds-tool-result-media img {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: var(--ds-radius-sm);
+}
+
+/* ---- Density compact -------------------------------------------------- */
+
+[data-density="compact"] .ds-tool-result-card__summary,
+[data-density="compact"] .ds-thinking-block > summary,
+[data-density="compact"] .ds-unknown-block > summary,
+[data-density="compact"] .ds-virtual-result__head {
+  padding: 5px 9px;
+}
+
+[data-density="compact"] .ds-tool-use-body,
+[data-density="compact"] .ds-tool-result-structured {
+  padding: 7px;
+}

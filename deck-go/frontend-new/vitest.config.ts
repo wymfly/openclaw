@@ -36,6 +36,10 @@ export default defineConfig({
         find: /^@\/(.*)$/,
         replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/$1`,
       },
+      {
+        find: /^next-intl$/,
+        replacement: fileURLToPath(new URL("./src/compat/next-intl.tsx", import.meta.url)),
+      },
     ],
     dedupe: ["react", "react-dom"],
   },
