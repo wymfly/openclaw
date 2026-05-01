@@ -1,130 +1,150 @@
 /**
  * deck-go design tokens — design source mirror
  *
- * Canonical file: ../../frontend/src/design-system/tokens/tokens.css
- * This file should match the canonical one after every sync cycle.
- * Edit here when proposing changes (then drop a memo in proposals/).
+ * Canonical file: ../../frontend/src/design-system/tokens/index.css
+ * (将随 change `deck-go-frontend-new-scaffold` 改为 ../../frontend-new/src/design-system/tokens/index.css)
  *
- * All tokens are CSS custom properties on :root, namespaced --ds-*.
- * Categories: bg, text, border, accent, state, radius, space, shadow, type, motion.
+ * This file MUST stay byte-identical to the canonical file from `:root` onwards.
+ * Drift detection: `scripts/check-tokens-drift.sh` (exit 0 = ok, exit 1 = drift).
  *
- * (Placeholder — real values to be filled in during DS implementation.
- *  See ../../docs/project/design-system-implementation-plan.md.)
+ * 编辑流程：
+ *   1) 设计 agent 在本文件提议变更 + 在 design-system/proposals/YYYY-MM-DD-*.md 写说明
+ *   2) Claude Code 审查 → 决定是否同步到 canonical file
+ *   3) 同步落定后，drift 脚本必须再次返回 0
+ *
+ * 命名空间：所有 token 用 `--ds-*` 前缀，与遗留 `theme.css` 的 `--accent` / `--bg` / `--text-soft` 等不冲突。
+ * 主题选择器：<html data-theme="dark"> (默认) 或 "light"。
+ * 密度选择器：<html data-density="comfortable"> (默认) 或 "compact"。
+ *
+ * 参考：
+ *   docs/superpowers/specs/2026-04-29-chat-gateway-capability-map.md §10
+ *   openspec/changes/frontend-design-system-via-chat/design.md Decision 7
+ *   openspec/changes/deck-go-frontend-protocol-v1/specs/frontend-handoff-protocol/spec.md
  */
 
+/* Webfont families (Inter + JetBrains Mono) are loaded via @fontsource
+ * side-effect imports in main.tsx — self-hosted to keep deck-go usable
+ * offline / on restricted networks and avoid third-party tracking.
+ * System-font fallbacks below cover boot before woff2 finishes loading. */
+
 :root {
-  /* ──────────────────────────────────────────────────────────
-     COLOR — backgrounds
-     ────────────────────────────────────────────────────────── */
-  --ds-bg-0: #ffffff;          /* page background, deepest */
-  --ds-bg-1: #fafaf9;          /* surface 1 (cards, panels) */
-  --ds-bg-2: #f5f4f2;          /* surface 2 (subtle inset) */
-  --ds-bg-hover: #efedeb;      /* hover wash */
-  --ds-bg-active: #e9e7e4;     /* pressed wash */
+  /* Type — Inter first for sans, JetBrains Mono first for mono. */
+  --ds-font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+  --ds-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* ──────────────────────────────────────────────────────────
-     COLOR — text
-     ────────────────────────────────────────────────────────── */
-  --ds-text-primary: #1a1a1a;
-  --ds-text-secondary: #555555;
-  --ds-text-tertiary: #888888;
-  --ds-text-disabled: #b8b8b8;
-  --ds-text-on-accent: #ffffff;
+  /* Spacing scale */
+  --ds-sp-1: 4px;
+  --ds-sp-2: 6px;
+  --ds-sp-3: 8px;
+  --ds-sp-4: 12px;
+  --ds-sp-5: 16px;
+  --ds-sp-6: 20px;
+  --ds-sp-7: 24px;
+  --ds-sp-8: 32px;
 
-  /* ──────────────────────────────────────────────────────────
-     COLOR — border
-     ────────────────────────────────────────────────────────── */
-  --ds-border-subtle: #ebe9e6;
-  --ds-border-default: #d8d5d0;
-  --ds-border-strong: #b8b4ad;
+  /* Radii */
+  --ds-radius-sm: 4px;
+  --ds-radius-md: 6px;
+  --ds-radius-lg: 10px;
+  --ds-radius-pill: 9999px;
 
-  /* ──────────────────────────────────────────────────────────
-     COLOR — accent (brand)
-     ────────────────────────────────────────────────────────── */
-  --ds-accent-50: #fff5f0;
-  --ds-accent-100: #ffe6d8;
-  --ds-accent-500: #d97757;    /* Claude orange — primary brand */
-  --ds-accent-600: #c66645;
-  --ds-accent-700: #a85234;
-
-  /* ──────────────────────────────────────────────────────────
-     COLOR — state
-     ────────────────────────────────────────────────────────── */
-  --ds-state-success: #2d8a4e;
-  --ds-state-warning: #b87a1f;
-  --ds-state-error: #c93030;
-  --ds-state-info: #2871c4;
-
-  /* ──────────────────────────────────────────────────────────
-     RADIUS
-     ────────────────────────────────────────────────────────── */
-  --ds-radius-xs: 4px;
-  --ds-radius-sm: 6px;
-  --ds-radius-md: 8px;
-  --ds-radius-lg: 12px;
-  --ds-radius-xl: 16px;
-  --ds-radius-full: 9999px;
-
-  /* ──────────────────────────────────────────────────────────
-     SPACING (4px base)
-     ────────────────────────────────────────────────────────── */
-  --ds-space-0: 0;
-  --ds-space-1: 4px;
-  --ds-space-2: 8px;
-  --ds-space-3: 12px;
-  --ds-space-4: 16px;
-  --ds-space-5: 20px;
-  --ds-space-6: 24px;
-  --ds-space-8: 32px;
-  --ds-space-10: 40px;
-  --ds-space-12: 48px;
-  --ds-space-16: 64px;
-
-  /* ──────────────────────────────────────────────────────────
-     SHADOW
-     ────────────────────────────────────────────────────────── */
-  --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --ds-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --ds-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-
-  /* ──────────────────────────────────────────────────────────
-     TYPE
-     ────────────────────────────────────────────────────────── */
-  --ds-font-sans: "Inter", "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --ds-font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-  --ds-font-serif: "Source Serif 4", Georgia, serif;
-
-  --ds-text-xs: 11px;
-  --ds-text-sm: 12px;
-  --ds-text-base: 14px;
-  --ds-text-md: 15px;
-  --ds-text-lg: 17px;
-  --ds-text-xl: 20px;
-  --ds-text-2xl: 24px;
-  --ds-text-3xl: 32px;
-
-  --ds-leading-tight: 1.25;
-  --ds-leading-normal: 1.5;
-  --ds-leading-relaxed: 1.65;
-
-  --ds-weight-regular: 400;
-  --ds-weight-medium: 500;
-  --ds-weight-semibold: 600;
-  --ds-weight-bold: 700;
-
-  /* ──────────────────────────────────────────────────────────
-     MOTION
-     ────────────────────────────────────────────────────────── */
-  --ds-duration-fast: 120ms;
-  --ds-duration-normal: 200ms;
-  --ds-duration-slow: 320ms;
-  --ds-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ds-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* Density (default: comfortable) */
+  --ds-row-h: 32px;
+  --ds-line: 1.5;
+  --ds-fs-body: 13.5px;
+  --ds-fs-code: 12.5px;
+  --ds-fs-meta: 11.5px;
 }
 
-/* Dark mode placeholder — to be designed */
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* TODO: dark palette */
-  }
+[data-density="compact"] {
+  --ds-row-h: 26px;
+  --ds-line: 1.4;
+  --ds-fs-body: 12.5px;
+  --ds-fs-code: 12px;
+  --ds-fs-meta: 11px;
+}
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --ds-bg-0: #0a0b0d;
+  --ds-bg-1: #0f1115;
+  --ds-bg-2: #14171c;
+  --ds-bg-3: #1a1e25;
+  --ds-bg-elev: #1c2028;
+  --ds-bg-hover: #20252e;
+  --ds-bg-active: #262d38;
+
+  --ds-text-1: #e6e8ec;
+  --ds-text-2: #a8aeba;
+  --ds-text-3: #6e7585;
+  --ds-text-4: #4a5160;
+
+  --ds-border-subtle: #1f2530;
+  --ds-border: #262d3a;
+  --ds-border-strong: #313947;
+
+  --ds-accent: #7aa2ff;
+  --ds-accent-dim: #4f72c7;
+  --ds-accent-bg: #1a2342;
+
+  --ds-success: #6ec48a;
+  --ds-success-bg: #142a1d;
+  --ds-warn: #d4a86a;
+  --ds-warn-bg: #2a1f10;
+  --ds-error: #e26b6b;
+  --ds-error-bg: #2c1518;
+
+  --ds-code-bg: #0c0e12;
+  --ds-code-border: #1d2330;
+  --ds-diff-add: #1d3324;
+  --ds-diff-add-text: #8fd9a8;
+  --ds-diff-del: #3a1c1f;
+  --ds-diff-del-text: #e6928f;
+
+  --ds-cursor: #7aa2ff;
+  --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --ds-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --ds-bg-0: #f7f7f5;
+  --ds-bg-1: #ffffff;
+  --ds-bg-2: #f3f4f1;
+  --ds-bg-3: #ebede8;
+  --ds-bg-elev: #ffffff;
+  --ds-bg-hover: #ececea;
+  --ds-bg-active: #e0e3dc;
+
+  --ds-text-1: #15171a;
+  --ds-text-2: #555a64;
+  --ds-text-3: #898f99;
+  --ds-text-4: #b7bcc4;
+
+  --ds-border-subtle: #e8eae4;
+  --ds-border: #d8dbd2;
+  --ds-border-strong: #b7bcaf;
+
+  --ds-accent: #3357d4;
+  --ds-accent-dim: #6a85d8;
+  --ds-accent-bg: #e3eaff;
+
+  --ds-success: #2f7a4a;
+  --ds-success-bg: #e1f3e6;
+  --ds-warn: #8a5b14;
+  --ds-warn-bg: #fbeed3;
+  --ds-error: #b8302f;
+  --ds-error-bg: #fbe2e1;
+
+  --ds-code-bg: #f5f5f0;
+  --ds-code-border: #e3e5dd;
+  --ds-diff-add: #def0e0;
+  --ds-diff-add-text: #1f5a32;
+  --ds-diff-del: #f6dcdc;
+  --ds-diff-del-text: #8a2424;
+
+  --ds-cursor: #3357d4;
+  --ds-shadow-md: 0 4px 14px rgba(20, 20, 30, 0.08);
+  --ds-shadow-lg: 0 12px 40px rgba(20, 20, 30, 0.14);
 }

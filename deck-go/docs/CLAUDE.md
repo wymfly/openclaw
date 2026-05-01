@@ -3,10 +3,19 @@
 > 这是 deck-go 项目的设计与工程文档目录。本文件是给 **Claude（AI 协作者）** 看的目录索引。
 > 所有文档都按"用途"而非"格式"分组。看这一份就能定位需要的文档。
 
-> **重要：deck-go 仓库现在有三个 Claude 入口文件，分工明确：**
+> **Protocol version:** `protocol-v1`（2026-05-01 locked，OpenSpec change `deck-go-frontend-protocol-v1`）
+>
+> **deck-go 仓库的协议三入口（必须互引）：**
 > - **本文件** (`docs/CLAUDE.md`) — 项目文档导航；先读这里
-> - [`../frontend/CLAUDE.md`](../frontend/CLAUDE.md) — 真实工程协议（Claude Code 在真实仓库内的工作约定）
-> - [`../frontend-handoff/CLAUDE.md`](../frontend-handoff/CLAUDE.md) — 设计 ↔ 工程交接协议（设计 Agent 与 Claude Code 协作的契约）
+> - [`../frontend-new/CLAUDE.md`](../frontend-new/CLAUDE.md) — 真实工程协议（Claude Code 在新工程区的工作约定，**新工作落这里**）
+> - [`../frontend-handoff/CLAUDE.md`](../frontend-handoff/CLAUDE.md) — 双 agent 协作协议（设计 Agent 与 Claude Code 协作的契约）
+>
+> 老入口（已冻结）：
+> - [`../frontend/CLAUDE.md`](../frontend/CLAUDE.md) — ⚠️ **frozen**；新工作转到 `frontend-new/CLAUDE.md`
+>
+> **解耦的支撑文档（CLAUDE.md 链接它们而不嵌入项目细节）：**
+> - [`./project/stack-decisions.md`](./project/stack-decisions.md) — 当前技术栈选择（locked / defaulting / pending）
+> - [`./project/current-state.md`](./project/current-state.md) — 项目代码现状人类可读快照（5 分钟入门）
 
 ---
 
@@ -15,13 +24,17 @@
 ```
 deck-go/
 ├── docs/                         ← 文档（你正在这里）
-├── frontend/                     ← 真实工程（Vite + React + TS）— Claude Code 维护
-│   └── CLAUDE.md                  · 真实工程协议
-└── frontend-handoff/             ← 设计 ↔ 工程交接区 — 设计 Agent 维护
-    ├── CLAUDE.md                  · 交接协议总入口
-    ├── design-system/             · DS 提议层（tokens + atoms + preview）
-    ├── modules/                   · 已定稿的模块交接包队列
-    └── explorations/              · 设计探索区（Claude Code 不读）
+├── frontend-new/                 ← 真实工程（新）— Claude Code 维护，**新工作落这里**
+│   └── CLAUDE.md                  · 真实工程协议（protocol-v1）
+├── frontend/                     ← 老真实工程 — ⚠️ **frozen**（包含 chat pilot 工程代码、36 atoms canonical 等，等待协议化迁移）
+│   └── CLAUDE.md                  · 冻结提示，引导切换
+├── frontend-handoff/             ← 设计 ↔ 工程交接区 — 设计 Agent 维护
+│   ├── CLAUDE.md                  · 双 agent 协作协议（protocol-v1）
+│   ├── design-system/             · DS 提议层（tokens mirror + atoms + preview + proposals）
+│   ├── modules/                   · 已定稿的模块交接包队列
+│   └── explorations/              · 设计探索区（Claude Code 不读）
+└── scripts/
+    └── check-tokens-drift.sh      · tokens 双向一致检查（protocol-v1 增强 #7）
 ```
 
 ## docs 目录结构
@@ -31,6 +44,8 @@ docs/
 ├── CLAUDE.md                     ← 你正在看的这个（目录索引）
 │
 ├── project/                      ← deck-go 项目专属的方案、记录、计划
+│   ├── stack-decisions.md          · ⭐ 当前技术栈决策（解耦自协议）
+│   ├── current-state.md            · ⭐ 项目代码现状人类可读快照（5 分钟入门）
 │   └── design-system-implementation-plan.md
 │
 ├── skills/                       ← 内置 skill 原文 + 设计工作流方法论
@@ -82,7 +97,9 @@ docs/
 
 | 文件 | 用途 |
 |---|---|
-| [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md) | deck-go 在已有 chat 模块 + tokens + atoms 之上，做 design-system 工程化第二阶段（建 molecules、review canvas、README、收敛旧 token）的具体方案。可直接喂给 Claude Code 在仓库本地执行。 |
+| [`project/stack-decisions.md`](./project/stack-decisions.md) | ⭐ 当前技术栈决策（locked / defaulting / pending）。协议层不绑库——具体库选择记在这里。任何 agent 想知道"现在用什么 routing / state / i18n"先读这份。 |
+| [`project/current-state.md`](./project/current-state.md) | ⭐ 项目代码现状人类可读快照——5 分钟入门读物。chat pilot done、36 atoms canonical、tokens 实际内容、24 legacy panel 列表。**它是快照，不是 journal**——过期 1-2 个版本不算 bug。 |
+| [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md) | deck-go design-system 工程化方案——建 molecules、review canvas、README、收敛旧 token。可直接喂给 Claude Code 在仓库本地执行。 |
 
 > 以后这个目录会增加：`design-system-audit.md`（现状审计）、`api-contract.md`（API 契约）、各模块的设计 brief 和决策记录等。
 
@@ -149,21 +166,24 @@ deck-go 采用双 Agent 协作：
 | 角色 | 工作目录 | 职责 |
 |---|---|---|
 | **设计 Agent**（当前 Claude） | `../frontend-handoff/` | 视觉、交互、状态机原型；产出 handoff 包；提议 token / atom 变更 |
-| **Claude Code** | `../frontend/` | 真实工程实现；接 API；写 store；写测试；最终决策权 |
+| **Claude Code** | `../frontend-new/` | 真实工程实现；接 API；写 store；写测试；最终决策权 |
 | **人类（你）** | 仲裁 | 拍板设计变体、token 变更；推动节奏 |
 
-**流向**：设计 Agent 在 `frontend-handoff/modules/<module>/` 产出 6 件套（README / prototype.html / components.md / states.md / interactions.md / api-usage.md）→ Claude Code 读包 → 翻译到 `frontend/src/`。
+**流向**：设计 Agent 在 `frontend-handoff/modules/<module>/` 产出 6 件套（README / prototype.html / components.md / states.md / interactions.md / api-usage.md）→ Claude Code 读包 → 翻译到 `frontend-new/src/`。
 
 详细协议见 [`../frontend-handoff/CLAUDE.md`](../frontend-handoff/CLAUDE.md)。
 
 ---
 
-## 当前 deck-go design system 工作进展
+## Status — 当前 deck-go 工作进展
 
-- ✅ chat 模块设计开发完成（`frontend/src/components/panels/chat/`）
-- ✅ tokens 完成（`frontend/src/design-system/tokens/index.css`）
-- ✅ atoms 完成（30+ 个，分 8 大类）
+- ✅ **协议 v1 落定**（OpenSpec change `deck-go-frontend-protocol-v1`）：三份 CLAUDE.md 互引、栈决策解耦到 `project/stack-decisions.md`、tokens 反向同步 + drift 防护脚本、协议加 8 条结构性增强
+- ✅ chat 模块设计开发完成（工程代码在老 `frontend/src/components/panels/chat/`）
+- ✅ tokens 完成（44 个 `--ds-*` 变量，dark/light，老 `frontend/src/design-system/tokens/index.css`）
+- ✅ 36 atoms 完成（扁平结构 `Badge.tsx + badge.css`，不是三件套）
+- ✅ 5 hooks 完成（use-click-outside / use-escape-close / use-focus-trap / use-keyboard-nav / use-popover）
 - ✅ 视觉光谱锚点确立（3 张参考卡）
-- ✅ 双 Agent 协作骨架建立（`frontend-handoff/` + 两份 CLAUDE.md 协议）
-- ⏳ 下一步：让 Claude Code 审核并落地 `frontend/` 真实工程骨架
-- ⏳ 之后：molecules 层 / review canvas / README / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)
+- ⏳ **下一步**：建 `frontend-new/` 物理工程树（OpenSpec change `deck-go-frontend-new-scaffold`）→ 把 design system canonical 整体迁过去
+- ⏳ **之后**：chat 模块协议化迁移（OpenSpec change `deck-go-chat-protocol-pilot`）→ 6 件套反推 + 物理迁移到 `frontend-new/src/components/panels/chat/`
+- ⏳ **再之后**：24 个 legacy panel 协议化重做（agents / models / channels / sessions / logs / settings / etc.）—— 等 chat pilot 验证协议在真实复杂度下可执行后逐个开
+- ⏳ molecules / patterns / review canvas / README / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)

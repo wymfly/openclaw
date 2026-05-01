@@ -1,4 +1,17 @@
-# frontend/ — Real Engineering Workspace
+# frontend/ — Real Engineering Workspace ⚠️ FROZEN
+
+> **⚠️ 此目录已冻结（2026-05-01，protocol-v1）。新工作请转到 [`../frontend-new/CLAUDE.md`](../frontend-new/CLAUDE.md)。**
+>
+> 本目录保留可运行状态：包含 chat 模块 pilot 工程代码、36 atoms canonical、44 个 `--ds-*` token、5 hooks——这些会在 `deck-go-frontend-new-scaffold` 和 `deck-go-chat-protocol-pilot` 两个 OpenSpec change 中物理迁移到 `../frontend-new/`。
+>
+> **本文件下方内容是协议 v1 落定前的旧描述**（含 next-intl / TanStack Query / Zustand / React Router 等当时的硬编码栈假设和 `<Atom>/` 三件套结构假设——**这些都不准确**）。仅供 chat pilot 完成迁移之前作历史参考；不要据此做新模块。当前真相：
+>
+> - 真实 atom 结构是扁平 `Badge.tsx + badge.css`（不是三件套）
+> - tokens canonical 文件名是 `tokens/index.css`（不是 `tokens.css`）
+> - 当前栈见 [`../docs/project/stack-decisions.md`](../docs/project/stack-decisions.md)（protocol-v1 解耦）
+> - 项目代码现状见 [`../docs/project/current-state.md`](../docs/project/current-state.md)
+>
+> ---
 
 > **The actual Vite + React + TypeScript app.** This is what gets deployed.
 > Maintained by **Claude Code**. The design agent (this Claude) only **reads** here for context.
