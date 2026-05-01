@@ -1,9 +1,9 @@
-import { extractCanvasShortcodes } from "@/lib/embed-parser";
-import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 import type {
   SessionMessageEventPayload,
   TranscriptMessage,
-} from "@/types/gateway-protocol.generated";
+} from "@/generated/gateway-protocol.generated";
+import { extractCanvasShortcodes } from "@/lib/embed-parser";
+import type { ChatMessage, ContentBlock } from "@/stores/chat-types";
 
 type TranscriptRecord = TranscriptMessage | Record<string, unknown>;
 type SessionMessagePayloadRecord =

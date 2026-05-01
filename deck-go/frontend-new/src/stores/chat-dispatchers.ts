@@ -12,6 +12,13 @@
  * interface, which matches the Zustand store's public API 1-to-1.
  */
 
+import type {
+  AgentEventPayload as GatewayAgentEventPayload,
+  ChatEventPayload as GatewayChatEventPayload,
+  SessionMessageEventPayload,
+  SessionToolEventPayload,
+  TranscriptMessage,
+} from "@/generated/gateway-protocol.generated";
 import { deckFetch } from "@/lib/deck-client";
 import {
   normalizeSessionMessagePayload,
@@ -20,13 +27,6 @@ import {
 } from "@/lib/transcript-adapter";
 import { invalidateTranscript, setCachedTranscript } from "@/lib/transcript-cache";
 import { useSessionsStore, type SessionsChangedPayload } from "@/stores/sessions";
-import type {
-  AgentEventPayload as GatewayAgentEventPayload,
-  ChatEventPayload as GatewayChatEventPayload,
-  SessionMessageEventPayload,
-  SessionToolEventPayload,
-  TranscriptMessage,
-} from "@/types/gateway-protocol.generated";
 import type {
   ApprovalRequest,
   A2UIEvent,
