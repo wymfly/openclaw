@@ -10,7 +10,7 @@ Source format: `sibling-ui-contract-json`
 | ---------------------- | ----: |
 | Domains                |     5 |
 | Field metadata entries |    24 |
-| Actions                |    17 |
+| Actions                |    24 |
 | Validation issues      |     0 |
 
 ## Domains
@@ -18,7 +18,7 @@ Source format: `sibling-ui-contract-json`
 | Domain             | Label                              | Status   | DTOs | Endpoints | Actions |
 | ------------------ | ---------------------------------- | -------- | ---: | --------: | ------: |
 | `runtime-settings` | Runtime and settings               | migrated |   10 |        13 |       7 |
-| `agents-tools`     | Agents, tools, and model inventory | partial  |    3 |         6 |       2 |
+| `agents-tools`     | Agents, tools, and model inventory | partial  |   21 |        15 |       9 |
 | `sessions-chat`    | Sessions and chat                  | partial  |    8 |         8 |       3 |
 | `usage-monitor`    | Usage and monitor                  | partial  |    3 |         6 |       2 |
 | `approvals`        | Approvals                          | partial  |    2 |         5 |       3 |
@@ -54,25 +54,32 @@ Source format: `sibling-ui-contract-json`
 
 ## Actions
 
-| Action                    | Label                  | Endpoint                             | Safety        |
-| ------------------------- | ---------------------- | ------------------------------------ | ------------- |
-| `runtime.gateway.refresh` | Refresh runtime        | `GET /api/runtime/gateway`           | `read`        |
-| `runtime.gateway.start`   | Start Gateway          | `POST /api/runtime/gateway/start`    | `mutating`    |
-| `runtime.gateway.stop`    | Stop Gateway           | `POST /api/runtime/gateway/stop`     | `destructive` |
-| `runtime.endpoint.save`   | Save endpoint          | `PUT /api/runtime/endpoint`          | `mutating`    |
-| `runtime.endpoint.test`   | Test endpoint          | `POST /api/runtime/endpoint:test`    | `read`        |
-| `settings.save`           | Save settings          | `PUT /api/settings`                  | `mutating`    |
-| `settings.testConnection` | Test connection        | `POST /api/settings/test-connection` | `read`        |
-| `agents.refresh`          | Refresh agents         | `GET /api/deck/agents`               | `read`        |
-| `tools.catalog.refresh`   | Refresh tools          | `POST /api/tools/catalog`            | `read`        |
-| `sessions.refresh`        | Refresh sessions       | `GET /api/sessions`                  | `read`        |
-| `chat.send`               | Send message           | `POST /api/chat/send`                | `mutating`    |
-| `chat.abort`              | Abort run              | `POST /api/chat/abort`               | `destructive` |
-| `usage.refresh`           | Refresh usage          | `GET /api/usage/sessions`            | `read`        |
-| `monitor.runs.refresh`    | Refresh monitor runs   | `GET /api/monitor/runs`              | `read`        |
-| `approvals.refresh`       | Refresh approvals      | `GET /api/approvals/pending`         | `read`        |
-| `approval.decide`         | Decide approval        | `POST /api/approvals`                | `destructive` |
-| `pluginApproval.decide`   | Decide plugin approval | `POST /api/approvals/plugins`        | `destructive` |
+| Action                     | Label                      | Endpoint                             | Safety        |
+| -------------------------- | -------------------------- | ------------------------------------ | ------------- |
+| `runtime.gateway.refresh`  | Refresh runtime            | `GET /api/runtime/gateway`           | `read`        |
+| `runtime.gateway.start`    | Start Gateway              | `POST /api/runtime/gateway/start`    | `mutating`    |
+| `runtime.gateway.stop`     | Stop Gateway               | `POST /api/runtime/gateway/stop`     | `destructive` |
+| `runtime.endpoint.save`    | Save endpoint              | `PUT /api/runtime/endpoint`          | `mutating`    |
+| `runtime.endpoint.test`    | Test endpoint              | `POST /api/runtime/endpoint:test`    | `read`        |
+| `settings.save`            | Save settings              | `PUT /api/settings`                  | `mutating`    |
+| `settings.testConnection`  | Test connection            | `POST /api/settings/test-connection` | `read`        |
+| `agents.refresh`           | Refresh agents             | `GET /api/deck/agents`               | `read`        |
+| `agents.create`            | Create agent               | `POST /api/agents`                   | `mutating`    |
+| `agents.update`            | Update agent               | `PATCH /api/agents/{agentId}`        | `mutating`    |
+| `agents.delete`            | Delete agent               | `DELETE /api/agents`                 | `destructive` |
+| `agents.skills.save`       | Save agent skills          | `POST /api/deck/agents`              | `mutating`    |
+| `agents.subagents.save`    | Save agent subagent policy | `POST /api/deck/agents`              | `mutating`    |
+| `agents.eventStreams.save` | Save agent event streams   | `POST /api/deck/agents`              | `mutating`    |
+| `agents.files.save`        | Save agent file            | `POST /api/agents/{agentId}/files`   | `mutating`    |
+| `tools.catalog.refresh`    | Refresh tools              | `POST /api/tools/catalog`            | `read`        |
+| `sessions.refresh`         | Refresh sessions           | `GET /api/sessions`                  | `read`        |
+| `chat.send`                | Send message               | `POST /api/chat/send`                | `mutating`    |
+| `chat.abort`               | Abort run                  | `POST /api/chat/abort`               | `destructive` |
+| `usage.refresh`            | Refresh usage              | `GET /api/usage/sessions`            | `read`        |
+| `monitor.runs.refresh`     | Refresh monitor runs       | `GET /api/monitor/runs`              | `read`        |
+| `approvals.refresh`        | Refresh approvals          | `GET /api/approvals/pending`         | `read`        |
+| `approval.decide`          | Decide approval            | `POST /api/approvals`                | `destructive` |
+| `pluginApproval.decide`    | Decide plugin approval     | `POST /api/approvals/plugins`        | `destructive` |
 
 ## Validation Issues
 

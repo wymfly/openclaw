@@ -3,3 +3,7 @@ frontend/dist/
 frontend/node_modules/
 frontend/.vite/
 frontend/tsconfig.tsbuildinfo
+frontend-new/dist/
+frontend-new/node_modules/
+frontend-new/.vite/
+frontend-new/tsconfig.tsbuildinfo

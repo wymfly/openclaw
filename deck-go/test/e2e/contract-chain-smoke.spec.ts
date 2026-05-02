@@ -4,7 +4,8 @@ import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from
 test.describe("contract-chain browser smoke", () => {
   let stack: E2EStack;
 
-  test.beforeAll(async (_fixtures, testInfo) => {
+  test.beforeAll(async ({ browserName }, testInfo) => {
+    void browserName;
     stack = await startBundledStack(testInfo);
   });
 
@@ -14,7 +15,7 @@ test.describe("contract-chain browser smoke", () => {
 
   test("exercises migrated contract surfaces through Deck Go", async ({ page, request }) => {
     await openDeck(page, stack.frontendBase, "agents");
-    await expect(page.locator("main")).toContainText(/Agents|Agent detail/);
+    await expect(page.getByRole("region", { name: /Agents|Agent detail/i }).first()).toBeVisible();
 
     const agents = await postJSON(
       request,

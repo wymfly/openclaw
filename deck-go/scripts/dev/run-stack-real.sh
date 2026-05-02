@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# run-stack-real.sh — 一键启 deck-go + 真实 OpenClaw Gateway + Vite preview（全栈 dev/E2E 用）。
+# run-stack-real.sh — 一键启 deck-go + 真实 OpenClaw Gateway + Vite dev server（全栈 dev/E2E 用）。
 #
 # 与 manage-local-stack.sh（默认 mock Gateway）正交：本脚本只走真 Gateway 路径，
 # 保留 mock 体系不动；前后端绑定固定端口（18789/19566/4174），启动前先清理占用。
 #
 # 用法：
-#   scripts/dev/run-stack-real.sh start    # build + 启 backend + 真 Gateway + Vite
+#   scripts/dev/run-stack-real.sh start    # 启 backend + 真 Gateway + Vite dev server
 #   scripts/dev/run-stack-real.sh stop     # 停所有服务，清端口
 #   scripts/dev/run-stack-real.sh restart  # stop + start
 #   scripts/dev/run-stack-real.sh status   # 检查端口/PID
@@ -30,12 +30,11 @@ FRONTEND_PID_FILE="${PID_DIR}/frontend.pid"
 BACKEND_LOG="${LOG_DIR}/backend.log"
 FRONTEND_LOG="${LOG_DIR}/frontend.log"
 BACKEND_BIN="${BIN_DIR}/deck-go"
-FRONTEND_BIN="${DECK_GO_DIR}/frontend/node_modules/.bin/vite"
+FRONTEND_DIR="${DECK_GO_DIR}/frontend-new"
+FRONTEND_BIN="${FRONTEND_DIR}/node_modules/.bin/vite"
 
 GO_ENV=(
   GOCACHE=/tmp/deck-go-buildcache
-  GOMODCACHE=/tmp/deck-go-gomodcache
-  GOPATH=/tmp/deck-go-gopath
   GOSUMDB=off
 )
 DEFAULT_NPM_CACHE="/tmp/deck-go-npm-cache"
@@ -47,7 +46,7 @@ usage() {
 usage: deck-go/scripts/dev/run-stack-real.sh <command>
 
 commands:
-  start    build + 启 backend + 真 Gateway（由 deck-go 自动 spawn）+ Vite preview
+  start    启 backend + 真 Gateway（由 deck-go 自动 spawn）+ Vite dev server
   stop     停 backend + Vite，清 18789/19566/4174 端口
   restart  stop 后再 start
   status   显示进程和端口状态
@@ -56,6 +55,7 @@ commands:
 env file:
   默认读 deck-go/.env.real-stack；用 DECK_GO_STACK_ENV 覆盖路径。
   可参考 deck-go/.env.real-stack.example。
+  前端默认 DECK_GO_FRONTEND_MODE=dev；如需验证构建产物，设为 preview。
 EOF
 }
 
@@ -75,10 +75,15 @@ load_env() {
   : "${DECK_GO_ACCESS_TOKEN:=real-stack-deck-token}"
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
+  : "${DECK_GO_FRONTEND_MODE:=dev}"
+  if [[ "${DECK_GO_FRONTEND_MODE}" != "dev" && "${DECK_GO_FRONTEND_MODE}" != "preview" ]]; then
+    echo "[real-stack] DECK_GO_FRONTEND_MODE must be dev or preview, got ${DECK_GO_FRONTEND_MODE}" >&2
+    exit 1
+  fi
   : "${VITE_DECK_GO_API_BASE:=http://${DECK_GO_ADDR}}"
   : "${VITE_DECK_VISUAL_STATE:=1}"
-  # Auto-unlock: bundle the deck access token into the preview build so the
-  # browser bypasses the manual auth gate. Only safe for local dev/E2E.
+  # Auto-unlock: expose the deck access token to Vite so the browser bypasses
+  # the manual auth gate. Only safe for local dev/E2E.
   : "${VITE_DECK_GO_ACCESS_TOKEN:=${DECK_GO_ACCESS_TOKEN}}"
   : "${VITE_DECK_GO_AUTO_UNLOCK:=1}"
 
@@ -116,7 +121,7 @@ load_env() {
   FRONTEND_PORT="${DECK_GO_FRONTEND_PORT}"
 
   export DECK_GO_ADDR DECK_GO_DATA_DIR DECK_GO_ACCESS_TOKEN
-  export DECK_GO_FRONTEND_HOST DECK_GO_FRONTEND_PORT
+  export DECK_GO_FRONTEND_HOST DECK_GO_FRONTEND_PORT DECK_GO_FRONTEND_MODE
   export VITE_DECK_GO_API_BASE VITE_DECK_VISUAL_STATE
   export VITE_DECK_GO_ACCESS_TOKEN VITE_DECK_GO_AUTO_UNLOCK
   export RUNTIME_MODE RUNTIME_BUNDLED_COMMAND RUNTIME_BUNDLED_ARGS RUNTIME_BUNDLED_WORKDIR
@@ -127,6 +132,62 @@ load_env() {
 
 listener_pid() {
   lsof -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null | head -n 1 || true
+}
+
+launch_detached() {
+  local pid_file="$1"
+  local log_file="$2"
+  local cwd="$3"
+  shift 3
+  rm -f "${pid_file}"
+  python3 - "${pid_file}" "${log_file}" "${cwd}" "$@" <<'PY'
+import os
+import subprocess
+import sys
+
+pid_file, log_file, cwd, *command = sys.argv[1:]
+os.makedirs(os.path.dirname(pid_file), exist_ok=True)
+os.makedirs(os.path.dirname(log_file), exist_ok=True)
+with open(log_file, "ab", buffering=0) as log:
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=os.environ.copy(),
+        stdin=subprocess.DEVNULL,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        close_fds=True,
+        start_new_session=True,
+    )
+with open(pid_file, "w", encoding="utf-8") as handle:
+    handle.write(str(process.pid))
+PY
+  for _ in {1..30}; do
+    if [[ -s "${pid_file}" ]] && kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo "[real-stack] failed to launch detached process: $*" >&2
+  return 1
+}
+
+curl_local() {
+  curl --noproxy '*' "$@"
+}
+
+gateway_listener_kind() {
+  local body
+  body="$(curl_local -sS -m 2 "http://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}/" 2>/dev/null || true)"
+  if grep -qi "mock gateway only serves" <<<"${body}"; then
+    echo "mock"
+  elif grep -Eqi "(OpenClaw|<!doctype html|<html)" <<<"${body}"; then
+    echo "real"
+  elif [[ -n "${body}" ]]; then
+    echo "unknown"
+  else
+    echo "unresponsive"
+  fi
 }
 
 kill_port() {
@@ -153,14 +214,39 @@ cleanup_ports() {
 
 build_backend() {
   echo "[real-stack] building deck-go binary..."
-  ( cd "${DECK_GO_DIR}/backend" && env "${GO_ENV[@]}" go build -o "${BACKEND_BIN}" ./cmd/deck-go )
+  (
+    cd "${DECK_GO_DIR}/backend"
+    if env "${GO_ENV[@]}" go build -o "${BACKEND_BIN}" ./cmd/deck-go; then
+      exit 0
+    fi
+    echo "[real-stack] backend build failed; clearing temporary Go caches and retrying" >&2
+    rm -rf /tmp/deck-go-buildcache /tmp/deck-go-gomodcache /tmp/deck-go-gopath
+    mkdir -p /tmp/deck-go-buildcache
+    env "${GO_ENV[@]}" go build -o "${BACKEND_BIN}" ./cmd/deck-go
+  )
 }
 
 build_frontend() {
   echo "[real-stack] building frontend..."
-  ( cd "${DECK_GO_DIR}/frontend" \
+  ( cd "${FRONTEND_DIR}" \
       && npm_config_cache="${NPM_CONFIG_CACHE}" npm install --no-audit --no-fund --silent \
       && npm_config_cache="${NPM_CONFIG_CACHE}" npm run build )
+}
+
+ensure_frontend_deps() {
+  if [[ -x "${FRONTEND_BIN}" ]]; then
+    return 0
+  fi
+  echo "[real-stack] installing frontend dependencies..."
+  ( cd "${FRONTEND_DIR}" && npm_config_cache="${NPM_CONFIG_CACHE}" npm install --no-audit --no-fund --silent )
+}
+
+prepare_frontend() {
+  if [[ "${DECK_GO_FRONTEND_MODE}" == "preview" ]]; then
+    build_frontend
+    return 0
+  fi
+  ensure_frontend_deps
 }
 
 wait_for_http() {
@@ -168,8 +254,8 @@ wait_for_http() {
   local label="$2"
   local timeout="${3:-60}"
   for _ in $(seq 1 "${timeout}"); do
-    if curl -sSfL -m 1 "${url}" >/dev/null 2>&1 \
-       || curl -sSfL -m 1 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${url}" >/dev/null 2>&1; then
+    if curl_local -sSfL -m 1 "${url}" >/dev/null 2>&1 \
+       || curl_local -sSfL -m 1 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${url}" >/dev/null 2>&1; then
       return 0
     fi
     if [[ -s "${BACKEND_LOG}" ]] && grep -qE "(EADDRINUSE|exit 64|panic|fatal)" "${BACKEND_LOG}" 2>/dev/null; then
@@ -183,6 +269,63 @@ wait_for_http() {
   return 1
 }
 
+wait_for_gateway_ready() {
+  local timeout="${1:-180}"
+  local last_error="not checked yet"
+  echo "[real-stack] waiting for real Gateway readiness through deck-go..."
+  for _ in $(seq 1 "${timeout}"); do
+    local kind
+    kind="$(gateway_listener_kind)"
+    if [[ "${kind}" == "mock" ]]; then
+      echo "[real-stack] Gateway port ${RUNTIME_BUNDLED_BIND_PORT} is a mock Gateway, not the real Gateway" >&2
+      return 1
+    fi
+
+    local runtime_body=""
+    if runtime_body="$(curl_local -sSfL -m 3 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${BACKEND_BASE}/api/runtime/gateway" 2>/dev/null)"; then
+      if grep -q '"mode":"bundled"' <<<"${runtime_body}" && grep -q '"pid":' <<<"${runtime_body}"; then
+        local health_body=""
+        if health_body="$(curl_local -sSfL -m 5 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${BACKEND_BASE}/api/gateway/health" 2>/dev/null)"; then
+          if grep -q '"ok":false' <<<"${health_body}"; then
+            last_error="gateway health reported ok=false: ${health_body}"
+          else
+            local rpc_body=""
+            if rpc_body="$(curl_local -sSfL -m 5 \
+              -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data '{"method":"agents.list","params":{}}' \
+              "${BACKEND_BASE}/api/v1/runtimes/rt_local/gateway/rpc" 2>/dev/null)"; then
+              if grep -q '"agents":' <<<"${rpc_body}"; then
+                echo "[real-stack] real Gateway ready (pid from runtime: ${runtime_body})"
+                return 0
+              fi
+              last_error="agents.list response missing agents: ${rpc_body}"
+            else
+              last_error="agents.list RPC not ready"
+            fi
+          fi
+        else
+          last_error="gateway health not ready"
+        fi
+      else
+        last_error="runtime is not bundled with a pid yet: ${runtime_body}"
+      fi
+    else
+      last_error="runtime gateway endpoint not ready"
+    fi
+
+    if [[ -s "${BACKEND_LOG}" ]] && grep -qE "(EADDRINUSE|exit 64|panic|fatal)" "${BACKEND_LOG}" 2>/dev/null; then
+      echo "[real-stack] Gateway startup error detected; tail of backend log:" >&2
+      tail -n 60 "${BACKEND_LOG}" >&2
+      return 1
+    fi
+    sleep 1
+  done
+  echo "[real-stack] real Gateway did not become ready within ${timeout}s: ${last_error}" >&2
+  tail -n 80 "${BACKEND_LOG}" >&2 || true
+  return 1
+}
+
 start_backend() {
   if [[ -s "${BACKEND_PID_FILE}" ]] && kill -0 "$(cat "${BACKEND_PID_FILE}")" 2>/dev/null; then
     echo "[real-stack] backend already running (pid $(cat "${BACKEND_PID_FILE}"))"
@@ -190,8 +333,7 @@ start_backend() {
   fi
   echo "[real-stack] launching backend (deck-go will spawn the real Gateway via supervisor)..."
   : > "${BACKEND_LOG}"
-  nohup "${BACKEND_BIN}" >>"${BACKEND_LOG}" 2>&1 &
-  echo $! >"${BACKEND_PID_FILE}"
+  launch_detached "${BACKEND_PID_FILE}" "${BACKEND_LOG}" "${DECK_GO_DIR}" "${BACKEND_BIN}"
   wait_for_http "${BACKEND_BASE}/healthz" "backend" 90 || {
     echo "[real-stack] backend failed to start; tail:" >&2
     tail -n 60 "${BACKEND_LOG}" >&2
@@ -206,14 +348,19 @@ start_frontend() {
     return 0
   fi
   : > "${FRONTEND_LOG}"
-  echo "[real-stack] launching Vite preview at ${FRONTEND_BASE}..."
-  ( cd "${DECK_GO_DIR}/frontend" \
-      && nohup "${FRONTEND_BIN}" preview \
-        --host "${DECK_GO_FRONTEND_HOST}" \
-        --port "${DECK_GO_FRONTEND_PORT}" \
-        --strictPort \
-        >>"${FRONTEND_LOG}" 2>&1 &
-    echo $! >"${FRONTEND_PID_FILE}" )
+  echo "[real-stack] launching Vite ${DECK_GO_FRONTEND_MODE} server at ${FRONTEND_BASE}..."
+  local vite_args=()
+  if [[ "${DECK_GO_FRONTEND_MODE}" == "preview" ]]; then
+    vite_args=(preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  else
+    vite_args=(--host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  fi
+  launch_detached \
+    "${FRONTEND_PID_FILE}" \
+    "${FRONTEND_LOG}" \
+    "${FRONTEND_DIR}" \
+    "${FRONTEND_BIN}" \
+    "${vite_args[@]}"
   wait_for_http "${FRONTEND_BASE}" "frontend" 30 || {
     echo "[real-stack] frontend failed to start; tail:" >&2
     tail -n 60 "${FRONTEND_LOG}" >&2
@@ -222,18 +369,38 @@ start_frontend() {
   echo "[real-stack] frontend ready at ${FRONTEND_BASE}"
 }
 
+verify_stack_post_start() {
+  local missing=0
+  for label_port in "backend:${BACKEND_PORT}" "gateway:${RUNTIME_BUNDLED_BIND_PORT}" "frontend:${FRONTEND_PORT}"; do
+    local label="${label_port%:*}"
+    local port="${label_port#*:}"
+    local pid
+    pid="$(listener_pid "${port}")"
+    if [[ -z "${pid}" ]]; then
+      echo "[real-stack] ${label} port ${port} has no listener after startup" >&2
+      missing=1
+    fi
+  done
+  if [[ "${missing}" != "0" ]]; then
+    return 1
+  fi
+  wait_for_gateway_ready 10
+}
+
 cmd_start() {
   cleanup_ports
   build_backend
-  build_frontend
+  prepare_frontend
   start_backend
+  wait_for_gateway_ready
   start_frontend
+  verify_stack_post_start
 
   cat <<EOF
 
 [real-stack] ✅ all services up:
   backend       ${BACKEND_BASE}
-  frontend      ${FRONTEND_BASE}
+  frontend      ${FRONTEND_BASE} (${DECK_GO_FRONTEND_MODE})
   Gateway       ws://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}
   deck token    ${DECK_GO_ACCESS_TOKEN}
   gateway token ${RUNTIME_BUNDLED_TOKEN}
@@ -271,7 +438,11 @@ cmd_status() {
     local pid
     pid="$(listener_pid "${port}")"
     if [[ -n "${pid}" ]]; then
-      echo "[real-stack] ${label} (port ${port}) — pid ${pid}"
+      if [[ "${label}" == "gateway" ]]; then
+        echo "[real-stack] ${label} (port ${port}) — pid ${pid} [$(gateway_listener_kind)]"
+      else
+        echo "[real-stack] ${label} (port ${port}) — pid ${pid}"
+      fi
     else
       echo "[real-stack] ${label} (port ${port}) — DOWN"
     fi

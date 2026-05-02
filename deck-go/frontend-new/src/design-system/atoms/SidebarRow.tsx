@@ -37,24 +37,27 @@ export function SidebarRow({
   if (streaming) {
     classes.push("ds-sidebar-row--streaming");
   }
+  if (trailing !== undefined) {
+    classes.push("ds-sidebar-row--has-trailing");
+  }
   if (className) {
     classes.push(className);
   }
   return (
-    <button
-      type="button"
-      aria-current={active ? "true" : undefined}
-      className={classes.join(" ")}
-      {...rest}
-    >
-      <div className="ds-sidebar-row__title-line">
-        <span className="ds-sidebar-row__title">{title}</span>
-        {trailing !== undefined ? (
-          <span className="ds-sidebar-row__trailing">{trailing}</span>
-        ) : null}
-      </div>
-      {preview !== undefined ? <div className="ds-sidebar-row__preview">{preview}</div> : null}
-      {meta !== undefined ? <div className="ds-sidebar-row__meta">{meta}</div> : null}
-    </button>
+    <div className={classes.join(" ")}>
+      <button
+        type="button"
+        aria-current={active ? "true" : undefined}
+        className="ds-sidebar-row__button"
+        {...rest}
+      >
+        <div className="ds-sidebar-row__title-line">
+          <span className="ds-sidebar-row__title">{title}</span>
+        </div>
+        {preview !== undefined ? <div className="ds-sidebar-row__preview">{preview}</div> : null}
+        {meta !== undefined ? <div className="ds-sidebar-row__meta">{meta}</div> : null}
+      </button>
+      {trailing !== undefined ? <span className="ds-sidebar-row__trailing">{trailing}</span> : null}
+    </div>
   );
 }

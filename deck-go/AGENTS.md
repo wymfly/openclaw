@@ -111,14 +111,16 @@ Read deeper frontend protocol files when touching those areas:
   - `scripts/dev/run-stack-real.sh`
 
 `run-stack-real.sh` is the default E2E infrastructure for real Gateway coverage.
-It starts OpenClaw Gateway, backend, and Vite preview, and clears the fixed ports
-before startup.
+It starts OpenClaw Gateway, backend, and a Vite frontend server, and clears the
+fixed ports before startup. The frontend defaults to Vite dev mode for visual
+debugging; set `DECK_GO_FRONTEND_MODE=preview` when a built-output smoke is
+needed.
 
 Important L2 real-stack facts:
 
 - Gateway: `18789`
 - backend: `19566`
-- Vite preview: `4174`
+- Vite frontend: `4174`
 - `RUNTIME_BUNDLED_ARGS` must include `--allow-unconfigured` for bundled real
   Gateway startup.
 - OpenClaw state intentionally uses `~/.openclaw` for real LLM key/channel

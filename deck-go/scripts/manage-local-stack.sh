@@ -14,7 +14,8 @@ FRONTEND_PID_FILE="${PID_DIR}/frontend.pid"
 BACKEND_LOG="${LOG_DIR}/backend.log"
 FRONTEND_LOG="${LOG_DIR}/frontend.log"
 BACKEND_BIN="${BIN_DIR}/deck-go"
-FRONTEND_BIN="${ROOT_DIR}/frontend/node_modules/.bin/vite"
+FRONTEND_DIR="${ROOT_DIR}/frontend-new"
+FRONTEND_BIN="${FRONTEND_DIR}/node_modules/.bin/vite"
 GO_ENV=(
   GOCACHE=/tmp/deck-go-buildcache
   GOSUMDB=off
@@ -28,13 +29,13 @@ usage() {
 usage: deck-go/scripts/manage-local-stack.sh <command>
 
 commands:
-  start         build frontend, start backend, start Vite preview
+  start         start backend and Vite dev server
   stop          stop frontend and backend
   restart       stop then start
   status        show process and runtime status
   logs          tail backend/frontend logs
   backend-fg    build and run backend in the foreground
-  frontend-fg   run Vite preview in the foreground
+  frontend-fg   run Vite frontend in the foreground
   runtime-start deprecated: bundled runtime starts from RUNTIME_BUNDLED_AUTO_START
   runtime-stop  deprecated: stop the stack instead
   chat-smoke    deprecated: use the Codex Playwright plugin instead
@@ -56,8 +57,18 @@ load_env() {
   : "${DECK_GO_ACCESS_TOKEN:=stage3-local-access-token}"
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
+  : "${DECK_GO_FRONTEND_MODE:=dev}"
+  if [[ "${DECK_GO_FRONTEND_MODE}" != "dev" && "${DECK_GO_FRONTEND_MODE}" != "preview" ]]; then
+    echo "[deck-go-local] DECK_GO_FRONTEND_MODE must be dev or preview, got ${DECK_GO_FRONTEND_MODE}" >&2
+    exit 1
+  fi
   : "${VITE_DECK_GO_API_BASE:=http://${DECK_GO_ADDR}}"
   : "${VITE_DECK_VISUAL_STATE:=1}"
+  # Local dev/E2E convenience: expose the deck token to Vite so the browser
+  # bypasses the manual auth prompt. Do not export these vars in production
+  # builds; Vite inlines them into the frontend bundle.
+  : "${VITE_DECK_GO_ACCESS_TOKEN:=${DECK_GO_ACCESS_TOKEN}}"
+  : "${VITE_DECK_GO_AUTO_UNLOCK:=1}"
   : "${RUNTIME_MODE:=bundled}"
 
   if [[ "${RUNTIME_MODE}" == "bundled" ]]; then
@@ -116,6 +127,7 @@ load_env() {
   export DECK_GO_ACCESS_TOKEN
   export DECK_GO_FRONTEND_HOST
   export DECK_GO_FRONTEND_PORT
+  export DECK_GO_FRONTEND_MODE
   export RUNTIME_MODE
   export RUNTIME_BUNDLED_COMMAND
   export RUNTIME_BUNDLED_ARGS
@@ -133,6 +145,8 @@ load_env() {
   export RUNTIME_ADMIN_SOCKET
   export VITE_DECK_GO_API_BASE
   export VITE_DECK_VISUAL_STATE
+  export VITE_DECK_GO_ACCESS_TOKEN
+  export VITE_DECK_GO_AUTO_UNLOCK
   export BACKEND_BASE
   export FRONTEND_BASE
   export NO_PROXY
@@ -160,6 +174,48 @@ listener_pid() {
 
 port_running() {
   [[ -n "$(listener_pid "$1")" ]]
+}
+
+launch_detached() {
+  local pid_file="$1"
+  local log_file="$2"
+  local cwd="$3"
+  shift 3
+  rm -f "${pid_file}"
+  python3 - "${pid_file}" "${log_file}" "${cwd}" "$@" <<'PY'
+import os
+import subprocess
+import sys
+
+pid_file, log_file, cwd, *command = sys.argv[1:]
+os.makedirs(os.path.dirname(pid_file), exist_ok=True)
+os.makedirs(os.path.dirname(log_file), exist_ok=True)
+with open(log_file, "ab", buffering=0) as log:
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=os.environ.copy(),
+        stdin=subprocess.DEVNULL,
+        stdout=log,
+        stderr=subprocess.STDOUT,
+        close_fds=True,
+        start_new_session=True,
+    )
+with open(pid_file, "w", encoding="utf-8") as handle:
+    handle.write(str(process.pid))
+PY
+  for _ in {1..30}; do
+    if [[ -s "${pid_file}" ]] && kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo "[deck-go-local] failed to launch detached process: $*" >&2
+  return 1
+}
+
+curl_local() {
+  curl --noproxy '*' "$@"
 }
 
 stop_pid() {
@@ -226,7 +282,7 @@ wait_for_url() {
   local label="$2"
   shift 2
   for _ in {1..40}; do
-    if curl --max-time 5 -sf "$@" "${url}" >/dev/null 2>&1; then
+    if curl_local --max-time 5 -sf "$@" "${url}" >/dev/null 2>&1; then
       return 0
     fi
     sleep 0.5
@@ -236,7 +292,7 @@ wait_for_url() {
 }
 
 runtime_snapshot() {
-  curl --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway"
+  curl_local --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway"
 }
 
 wait_for_runtime_healthy() {
@@ -293,11 +349,32 @@ wait_for_backend_autostart_runtime() {
 build_frontend() {
   echo "[deck-go-local] building frontend against ${VITE_DECK_GO_API_BASE}"
   (
-    cd "${ROOT_DIR}/frontend"
+    cd "${FRONTEND_DIR}"
     VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
       VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
+      VITE_DECK_GO_ACCESS_TOKEN="${VITE_DECK_GO_ACCESS_TOKEN}" \
+      VITE_DECK_GO_AUTO_UNLOCK="${VITE_DECK_GO_AUTO_UNLOCK}" \
       npm run build
   )
+}
+
+ensure_frontend_deps() {
+  if [[ -x "${FRONTEND_BIN}" ]]; then
+    return 0
+  fi
+  echo "[deck-go-local] installing frontend dependencies"
+  (
+    cd "${FRONTEND_DIR}"
+    npm_config_cache="${NPM_CONFIG_CACHE}" npm install --no-audit --no-fund --silent
+  )
+}
+
+prepare_frontend() {
+  if [[ "${DECK_GO_FRONTEND_MODE}" == "preview" ]]; then
+    build_frontend
+    return 0
+  fi
+  ensure_frontend_deps
 }
 
 build_backend() {
@@ -315,52 +392,63 @@ build_backend() {
 }
 
 start_backend() {
-  if port_running "${BACKEND_PORT}" && curl -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/bootstrap/status" >/dev/null 2>&1; then
+  if port_running "${BACKEND_PORT}" && curl_local -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/bootstrap/status" >/dev/null 2>&1; then
     listener_pid "${BACKEND_PORT}" >"${BACKEND_PID_FILE}"
     echo "[deck-go-local] backend already running ($(cat "${BACKEND_PID_FILE}"))"
     return 0
   fi
   build_backend
   echo "[deck-go-local] starting backend on ${DECK_GO_ADDR}"
-  (
-    cd "${ROOT_DIR}"
-    nohup env \
-      DECK_GO_ADDR="${DECK_GO_ADDR}" \
-      DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
-      DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
-      RUNTIME_MODE="${RUNTIME_MODE}" \
-      RUNTIME_BUNDLED_COMMAND="${RUNTIME_BUNDLED_COMMAND:-}" \
-      RUNTIME_BUNDLED_ARGS="${RUNTIME_BUNDLED_ARGS:-}" \
-      RUNTIME_BUNDLED_WORKDIR="${RUNTIME_BUNDLED_WORKDIR:-}" \
-      RUNTIME_BUNDLED_BIND_HOST="${RUNTIME_BUNDLED_BIND_HOST:-}" \
-      RUNTIME_BUNDLED_BIND_PORT="${RUNTIME_BUNDLED_BIND_PORT:-}" \
-      RUNTIME_BUNDLED_TOKEN="${RUNTIME_BUNDLED_TOKEN:-}" \
-      RUNTIME_BUNDLED_AUTO_START="${RUNTIME_BUNDLED_AUTO_START:-}" \
-      RUNTIME_REMOTE_URL="${RUNTIME_REMOTE_URL:-}" \
-      RUNTIME_REMOTE_TOKEN="${RUNTIME_REMOTE_TOKEN:-}" \
-      RUNTIME_REMOTE_TLS_VERIFY="${RUNTIME_REMOTE_TLS_VERIFY:-true}" \
-      RUNTIME_ADMIN_SOCKET="${RUNTIME_ADMIN_SOCKET}" \
-      "${BACKEND_BIN}" >"${BACKEND_LOG}" 2>&1 </dev/null &
-  )
+  launch_detached \
+    "${BACKEND_PID_FILE}" \
+    "${BACKEND_LOG}" \
+    "${ROOT_DIR}" \
+    env \
+    DECK_GO_ADDR="${DECK_GO_ADDR}" \
+    DECK_GO_DATA_DIR="${DECK_GO_DATA_DIR}" \
+    DECK_GO_ACCESS_TOKEN="${DECK_GO_ACCESS_TOKEN}" \
+    RUNTIME_MODE="${RUNTIME_MODE}" \
+    RUNTIME_BUNDLED_COMMAND="${RUNTIME_BUNDLED_COMMAND:-}" \
+    RUNTIME_BUNDLED_ARGS="${RUNTIME_BUNDLED_ARGS:-}" \
+    RUNTIME_BUNDLED_WORKDIR="${RUNTIME_BUNDLED_WORKDIR:-}" \
+    RUNTIME_BUNDLED_BIND_HOST="${RUNTIME_BUNDLED_BIND_HOST:-}" \
+    RUNTIME_BUNDLED_BIND_PORT="${RUNTIME_BUNDLED_BIND_PORT:-}" \
+    RUNTIME_BUNDLED_TOKEN="${RUNTIME_BUNDLED_TOKEN:-}" \
+    RUNTIME_BUNDLED_AUTO_START="${RUNTIME_BUNDLED_AUTO_START:-}" \
+    RUNTIME_REMOTE_URL="${RUNTIME_REMOTE_URL:-}" \
+    RUNTIME_REMOTE_TOKEN="${RUNTIME_REMOTE_TOKEN:-}" \
+    RUNTIME_REMOTE_TLS_VERIFY="${RUNTIME_REMOTE_TLS_VERIFY:-true}" \
+    RUNTIME_ADMIN_SOCKET="${RUNTIME_ADMIN_SOCKET}" \
+    "${BACKEND_BIN}"
   wait_for_url "${BACKEND_BASE}/api/bootstrap/status" "deck-go backend" "${CURL_AUTH_ARGS[@]}"
   listener_pid "${BACKEND_PORT}" >"${BACKEND_PID_FILE}"
 }
 
 start_frontend() {
-  if port_running "${FRONTEND_PORT}" && curl -sf "${FRONTEND_BASE}/" >/dev/null 2>&1; then
+  if port_running "${FRONTEND_PORT}" && curl_local -sf "${FRONTEND_BASE}/" >/dev/null 2>&1; then
     listener_pid "${FRONTEND_PORT}" >"${FRONTEND_PID_FILE}"
     echo "[deck-go-local] frontend already running ($(cat "${FRONTEND_PID_FILE}"))"
     return 0
   fi
-  echo "[deck-go-local] starting frontend preview on ${FRONTEND_BASE}"
-  (
-    cd "${ROOT_DIR}/frontend"
-    nohup env \
-      VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
-      VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
-      "${FRONTEND_BIN}" preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" >"${FRONTEND_LOG}" 2>&1 </dev/null &
-  )
-  wait_for_url "${FRONTEND_BASE}/" "frontend preview"
+  echo "[deck-go-local] starting frontend ${DECK_GO_FRONTEND_MODE} server on ${FRONTEND_BASE}"
+  local vite_args=()
+  if [[ "${DECK_GO_FRONTEND_MODE}" == "preview" ]]; then
+    vite_args=(preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  else
+    vite_args=(--host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  fi
+  launch_detached \
+    "${FRONTEND_PID_FILE}" \
+    "${FRONTEND_LOG}" \
+    "${FRONTEND_DIR}" \
+    env \
+    VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
+    VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
+    VITE_DECK_GO_ACCESS_TOKEN="${VITE_DECK_GO_ACCESS_TOKEN}" \
+    VITE_DECK_GO_AUTO_UNLOCK="${VITE_DECK_GO_AUTO_UNLOCK}" \
+    "${FRONTEND_BIN}" \
+    "${vite_args[@]}"
+  wait_for_url "${FRONTEND_BASE}/" "frontend ${DECK_GO_FRONTEND_MODE}"
   listener_pid "${FRONTEND_PORT}" >"${FRONTEND_PID_FILE}"
 }
 
@@ -388,23 +476,23 @@ show_status() {
     rm -f "${BACKEND_PID_FILE}"
   fi
   if [[ -n "${frontend_pid}" ]]; then
-    echo "[deck-go-local] frontend pid: ${frontend_pid}"
+    echo "[deck-go-local] frontend pid: ${frontend_pid} (${DECK_GO_FRONTEND_MODE})"
     echo "${frontend_pid}" >"${FRONTEND_PID_FILE}"
   else
     echo "[deck-go-local] frontend pid: stopped"
     rm -f "${FRONTEND_PID_FILE}"
   fi
-  if curl --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/bootstrap/status" >/dev/null 2>&1; then
+  if curl_local --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/bootstrap/status" >/dev/null 2>&1; then
     echo "[deck-go-local] bootstrap: reachable"
   else
     echo "[deck-go-local] bootstrap: unreachable"
   fi
-  if curl --max-time 5 -sf "${FRONTEND_BASE}/" >/dev/null 2>&1; then
+  if curl_local --max-time 5 -sf "${FRONTEND_BASE}/" >/dev/null 2>&1; then
     echo "[deck-go-local] frontend: reachable"
   else
     echo "[deck-go-local] frontend: unreachable"
   fi
-  if curl --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway" >/dev/null 2>&1; then
+  if curl_local --max-time 5 -sf "${CURL_AUTH_ARGS[@]}" "${BACKEND_BASE}/api/runtime/gateway" >/dev/null 2>&1; then
     echo "[deck-go-local] runtime:"
     runtime_snapshot
   else
@@ -441,12 +529,20 @@ run_backend_fg() {
 }
 
 run_frontend_fg() {
-  build_frontend
-  cd "${ROOT_DIR}/frontend"
+  prepare_frontend
+  cd "${FRONTEND_DIR}"
+  local vite_args=()
+  if [[ "${DECK_GO_FRONTEND_MODE}" == "preview" ]]; then
+    vite_args=(preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  else
+    vite_args=(--host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}" --strictPort)
+  fi
   exec env \
     VITE_DECK_GO_API_BASE="${VITE_DECK_GO_API_BASE}" \
     VITE_DECK_VISUAL_STATE="${VITE_DECK_VISUAL_STATE}" \
-    "${FRONTEND_BIN}" preview --host "${DECK_GO_FRONTEND_HOST}" --port "${DECK_GO_FRONTEND_PORT}"
+    VITE_DECK_GO_ACCESS_TOKEN="${VITE_DECK_GO_ACCESS_TOKEN}" \
+    VITE_DECK_GO_AUTO_UNLOCK="${VITE_DECK_GO_AUTO_UNLOCK}" \
+    "${FRONTEND_BIN}" "${vite_args[@]}"
 }
 
 chat_smoke() {
@@ -460,7 +556,7 @@ load_env
 command="${1:-}"
 case "${command}" in
   start)
-    build_frontend
+    prepare_frontend
     start_backend
     wait_for_backend_autostart_runtime
     start_frontend
@@ -475,7 +571,7 @@ case "${command}" in
     stop_pid "${FRONTEND_PID_FILE}" "frontend" "${FRONTEND_PORT}"
     stop_pid "${BACKEND_PID_FILE}" "backend" "${BACKEND_PORT}"
     stop_runtime_listener_if_configured
-    build_frontend
+    prepare_frontend
     start_backend
     wait_for_backend_autostart_runtime
     start_frontend

@@ -128,6 +128,159 @@
     "pageInfo": "第 {current} / {total} 页",
     "loading": "加载中..."
   },
+  "agentsPanel": {
+    "title": "智能体",
+    "subtitle": "管理 OpenClaw 智能体的身份、运行状态和配置。",
+    "detailLabel": "{name} 的智能体详情",
+    "sectionNavLabel": "智能体配置分区",
+    "backToList": "返回列表",
+    "defaultBadge": "默认",
+    "tableLabel": "智能体表格",
+    "searchLabel": "搜索智能体",
+    "searchPlaceholder": "按名称、ID、模型或工作区搜索",
+    "filterLabel": "过滤智能体",
+    "sortLabel": "智能体排序",
+    "loading": "正在加载智能体",
+    "retry": "重试",
+    "reload": "重新加载",
+    "recompute": "重新计算",
+    "saveChanges": "保存变更",
+    "saving": "保存中...",
+    "cancel": "取消",
+    "inherit": "默认",
+    "yes": "是",
+    "no": "否",
+    "allowed": "允许",
+    "denied": "拒绝",
+    "exists": "存在",
+    "missing": "缺失",
+    "dirtyBanner": "未保存变更：{sections}",
+    "statusLabel": "状态：{status}",
+    "filters": {
+      "all": "全部",
+      "busy": "忙碌",
+      "default": "默认"
+    },
+    "sort": {
+      "name": "名称",
+      "recent": "最近",
+      "sessions": "会话数"
+    },
+    "columns": {
+      "agent": "智能体",
+      "status": "状态",
+      "sessions": "会话",
+      "bindings": "绑定"
+    },
+    "status": {
+      "idle": "空闲",
+      "busy": "忙碌",
+      "error": "错误",
+      "offline": "离线"
+    },
+    "stream": {
+      "connecting": "实时连接中",
+      "connected": "实时",
+      "reconnecting": "实时重连中",
+      "error": "实时不可用"
+    },
+    "empty": {
+      "noAgentsTitle": "还没有智能体",
+      "noAgentsBody": "创建第一个智能体后即可配置身份、技能、子智能体、文件和事件流。",
+      "noSearchTitle": "没有匹配的智能体",
+      "noSearchBody": "没有智能体匹配“{query}”。",
+      "clearSearch": "清除搜索"
+    },
+    "sections": {
+      "overview": "概览",
+      "skills": "技能",
+      "subagents": "子智能体",
+      "toolPolicy": "工具策略",
+      "systemPrompt": "系统提示词",
+      "files": "文件",
+      "eventStreams": "事件流"
+    },
+    "overview": {
+      "description": "编辑后端 patch 契约支持的身份、模型、工作区和头像字段。"
+    },
+    "fields": {
+      "name": "名称",
+      "model": "模型",
+      "workspace": "工作区",
+      "emoji": "Emoji",
+      "avatar": "头像 URL"
+    },
+    "meta": {
+      "sessions": "会话 {count}",
+      "bindings": "绑定 {count}",
+      "default": "默认 {value}",
+      "activeSubagents": "活跃子智能体 {count}"
+    },
+    "skills": {
+      "description": "使用当前 Gateway 技能语义：全部技能或显式白名单。",
+      "modeLabel": "技能模式",
+      "all": "全部",
+      "whitelist": "白名单",
+      "empty": "运行时未返回技能。",
+      "toggle": "切换技能 {name}"
+    },
+    "subagents": {
+      "description": "选择该智能体可以委派的其他智能体。视图会把 Gateway allow-list 真相适配成行级权限。",
+      "empty": "运行时未返回可委派智能体。",
+      "toggle": "允许子智能体 {name}"
+    },
+    "toolPolicy": {
+      "description": "只读展示解析后的工具策略及来源。",
+      "layer": "{count} 条规则，效果 {effect}"
+    },
+    "systemPrompt": {
+      "description": "只读展示解析后的系统提示词层级和 bootstrap 文件。",
+      "totalChars": "共 {count} 字符",
+      "layerMeta": "{chars} 字符，{files} 个文件"
+    },
+    "files": {
+      "description": "浏览、读取并保存后端支持的智能体工作区文件。",
+      "empty": "该工作区还没有文件。",
+      "name": "文件名",
+      "content": "文件内容"
+    },
+    "streams": {
+      "description": "配置已声明的事件流，不虚构新的 payload 类型。",
+      "optionDescription": "已声明的流契约",
+      "toggle": "切换事件流 {name}"
+    },
+    "create": {
+      "open": "新建智能体",
+      "title": "创建智能体",
+      "description": "先创建身份，再配置需要后端 hash 的分区。",
+      "stepsLabel": "创建智能体步骤",
+      "step0": "身份",
+      "step1": "运行时",
+      "step2": "复核",
+      "followUp": "创建后拿到后端 ID 和 config hash，再保存模型、技能、子智能体和事件流。",
+      "afterCreate": "创建后配置",
+      "back": "上一步",
+      "next": "下一步",
+      "submit": "创建智能体"
+    },
+    "delete": {
+      "open": "删除智能体",
+      "title": "删除智能体",
+      "body": "删除 {name}？这会从运行时配置中移除该智能体。",
+      "confirm": "删除"
+    },
+    "errors": {
+      "listTitle": "无法加载智能体",
+      "detailTitle": "无法加载该智能体",
+      "saveTitle": "无法保存",
+      "conflictTitle": "其他人已更新此配置",
+      "fileNameRequired": "必须填写文件名。"
+    },
+    "validation": {
+      "nameRequired": "必须填写智能体名称。",
+      "workspaceAbsolute": "工作区必须是绝对路径。"
+    }
+  },
   "chat": {
     "placeholder": "输入消息...",
     "attachFiles": "附件",

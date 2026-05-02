@@ -14,13 +14,16 @@ func normalizeAgentsList(payload generated.AgentsListResult) deckapi.DeckGoAgent
 		Agents:    make([]deckapi.DeckGoAgentSummary, 0, len(payload.Agents)),
 	}
 	for _, agent := range payload.Agents {
+		agentID := agent.Id
 		response.Agents = append(response.Agents, deckapi.DeckGoAgentSummary{
-			Id:        agent.Id,
-			Name:      firstNonEmpty(agent.Name, agent.Identity.Name),
+			Id:        agentID,
+			Name:      firstNonEmpty(agent.Name, agent.Identity.Name, agentID),
 			Emoji:     agent.Identity.Emoji,
 			Avatar:    firstNonEmpty(agent.Identity.Avatar, agent.Identity.AvatarUrl),
 			Workspace: agent.Workspace,
 			Model:     agent.Model.Primary,
+			IsDefault: agentID == payload.DefaultId,
+			Status:    deckapi.DeckGoAgentStatus("idle"),
 		})
 	}
 	return response

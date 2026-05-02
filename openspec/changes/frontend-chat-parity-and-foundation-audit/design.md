@@ -13,6 +13,12 @@ Despite that, two open questions remain after the user's 2026-04-30 review:
 
 This change addresses both with one verification protocol per goal, plus the visual remediation work needed to close the gaps the protocols surface.
 
+2026-05-03 current-code re-check:
+
+- `deck-go/frontend-handoff/modules/chat/{composer.jsx,right-panel.jsx,styles.css}` is byte-identical to `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/{composer.jsx,right-panel.jsx,styles.css}`, so the handoff package and archived design bundle are the same reference for this change.
+- Fresh Playwright capture against `frontend-new` at `http://127.0.0.1:4174/?surface=deck-ui&panel=chat&deckVisualState=chat-rich&nav=expanded` produced `/tmp/deck-go-chat-current-fresh.png`. The measured layout is: global shell 1440×960, header 208×0→1232×48, content 208×48→1232×912, chat shell 224×64→1200×876, sidebar 224px, main 494px, right drawer 480px. This confirms chat is still rendered as an inset card inside padded deck content rather than an edge-to-edge workbench.
+- The same run emitted React DOM errors: `<button> cannot be a descendant of <button>` from `SessionSidebar` rendering an `IconButton` inside `SidebarRow`'s root `<button>`. This is a design-system composition bug, not just a chat bug.
+
 ## Goals / Non-Goals
 
 **Goals:**
@@ -23,6 +29,9 @@ This change addresses both with one verification protocol per goal, plus the vis
 - Ship axe automation across the 36 atoms (small `vitest-axe` devDep, project-wide a11y regression net).
 - Run user-driven Lighthouse + keyboard walkthrough on the post-remediation chat surface.
 - Refresh the 4 deck-baseline PNGs so future P3+ visual diffs anchor on the post-parity state.
+- Align the chat workbench with the handoff intent while preserving the `frontend-new` Deck skeleton: nav/header remain global, but chat gets an edge-to-edge workbench content mode with no redundant padded card chrome.
+- Fix design-system row composition so interactive trailing actions never create nested buttons, and lock it with atom/unit and visual E2E evidence.
+- Add mock-backed visual E2E coverage for `chat-rich` that fails on console/page errors unless explicitly documented and filtered.
 
 **Non-Goals:**
 
@@ -31,6 +40,7 @@ This change addresses both with one verification protocol per goal, plus the vis
 - **No theme.css migration of `.deck-ui-markdown` / `.deck-ui-sr-only`.** These remain dual-class (per the previous proposal's documented exceptions).
 - **Not yet migrating non-chat panels.** This change produces the readiness matrix; actual panel migrations are downstream proposals.
 - **No new runtime npm dependencies.** Only `vitest-axe` (devDep).
+- **No full-screen takeover outside the Deck shell.** The handoff prototype has no nav/header, but `frontend-new` owns a product-wide shell. Alignment means first-class workbench embedding inside that shell, not deleting the shell.
 
 ## Decisions
 
@@ -62,6 +72,34 @@ This change addresses both with one verification protocol per goal, plus the vis
 
 **Why:** The previous proposal's per-atom workflow (commit per visual replacement) was the smoothest reviewable cadence. Continuing that pattern here keeps every gauntlet (tsc + vitest + axe + build) green between atoms, so any regression is bisectable.
 
+### D6: Reuse this change instead of opening a duplicate handoff-alignment change
+
+**Why:** The active handoff package under `frontend-handoff/modules/chat/` and the archived design bundle under `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/` are identical for the audited bundle surfaces. The existing `frontend-chat-parity-and-foundation-audit` change already owns chat parity, DS readiness, a11y, visual baselines, and post-remediation verification. Opening a second change would split the same acceptance criteria across two places.
+
+**Alternative considered:** create `frontend-chat-handoff-alignment` — rejected as duplicate scope. The correct action is to add the current-code addendum and remaining tasks here.
+
+### D7: Chat uses an edge-to-edge workbench content mode inside the Deck shell
+
+**Why:** The prototype is a full-viewport three-column workspace, while `frontend-new` must keep global Deck navigation and header. The current implementation compromises poorly: `deck-ui-content` adds 16px padding and `ds-chat-shell` adds a second card border/radius/shadow with `height: calc(100vh - 84px)`. The result is neither the handoff's workbench nor a native Deck shell surface.
+
+The implementation should give the active chat panel a shell/content modifier (for example `data-active-panel="chat"` plus `.deck-ui-content--workbench`, or an equivalent existing panel metadata path). In that mode `deck-ui-content` becomes a zero-padding, overflow-hidden workbench viewport, and `ds-chat-shell` fills `height: 100%` with no outer card chrome. Sidebar/main/right-drawer borders remain as internal column separators.
+
+**Alternative considered:** remove the Deck nav/header for chat — rejected because it would damage the `frontend-new` skeleton and panel-navigation model.
+
+### D8: SidebarRow owns safe interactive-row composition
+
+**Why:** `SidebarRow` currently renders a root `<button>` and accepts arbitrary `trailing`. Passing an `IconButton` as `trailing` creates nested buttons and React logs a hydration-risk DOM error. This proves the atom API allows an invalid composition.
+
+The atom should render a non-interactive root container with a dedicated row-selection button region plus an optional trailing action region outside that button, or otherwise provide an equivalent API that guarantees no nested interactive descendants. Existing callers keep row selection behavior, keyboard Enter/Space semantics, active/current styling, and trailing action click isolation.
+
+**Alternative considered:** fix only `SessionSidebar` by replacing `IconButton` with a `<span>` or moving the delete affordance outside the row locally — rejected because the invalid composition remains possible for future panel migrations.
+
+### D9: Visual E2E must capture console/page errors, not just screenshots
+
+**Why:** The current screenshot looks close enough at a glance for several subcomponents, but the console proves the DOM tree is invalid. The mock-backed `chat-rich` route should collect `console.error` and `pageerror` events while it captures the layout screenshot. Expected iframe noise must either be fixed or explicitly filtered with a one-line justification in the test.
+
+**Alternative considered:** rely on atom `vitest-axe` only — rejected because the nested-button bug appears in the composed chat page, not in the current `SidebarRow` atom test fixture.
+
 ## Risks / Trade-offs
 
 - **[Bundle JSX is a prototype, not source-of-truth]** → The bundle was shipped as a one-shot Claude Design pilot; future iterations may diverge. Mitigation: lock the parity gate to the **2026-04-29 bundle hash** captured in the gap report; new bundles would require a new audit cycle.
@@ -69,6 +107,9 @@ This change addresses both with one verification protocol per goal, plus the vis
 - **[Cross-module audit may surface "missing atom X" required for 3+ panels]** → That blocks the panel migrations. Mitigation: the matrix has a clear "needs new atom X" column; each missing atom becomes a small follow-up change, not blocking this one.
 - **[Visual remediation may break existing chat behavioral tests]** → Adding `CpCard` sub-components inside CanvasPanel changes the DOM structure. Mitigation: every atom commit runs the full vitest gauntlet; chat behavioral tests live separately and are 840+ assertions strong.
 - **[Lighthouse score < 95]** → If the user-driven Lighthouse run fails, we have to remediate before close. Mitigation: gate the close on Lighthouse pass; if it fails, treat each violation as a follow-up sub-task rather than re-opening axe-style automation gaps.
+- **[Workbench content mode may affect other panels]** → If implemented as a generic `.deck-ui-content` change, padding/overflow changes could regress other panels. Mitigation: gate it on active panel id and add shell tests proving non-chat panels keep current padding.
+- **[SidebarRow markup change can break selectors]** → Moving from root button to container + inner select button changes DOM shape. Mitigation: keep class names/data hooks stable, update tests to assert roles rather than tag names, and add a composed `SessionSidebar` regression test.
+- **[Console-clean E2E can be noisy because of iframe `srcdoc`/data URL behavior]** → The fresh run surfaced a `localStorage` pageerror from an iframe/data URL path. Mitigation: first determine whether the iframe can avoid storage access in visual seed mode; if not, filter only that exact known-safe message with a report entry.
 
 ## Migration Plan
 
@@ -79,6 +120,7 @@ This change has no production migration. The work is layered:
 3. **axe automation** (1 commit). devDep added via `pnpm add -D vitest-axe`; assertions added incrementally to atom test files.
 4. **Lighthouse + keyboard walkthrough** (user-driven, recorded in tasks.md).
 5. **Refresh visual baselines** (4 PNG re-capture).
+6. **Current-code addendum** (workbench shell, SidebarRow nested-button fix, console-clean mock visual E2E), then re-run the visual baseline refresh against the final page.
 
 Rollback strategy: each atom remediation commit is independently revertable. axe automation is opt-in via the matcher; if it surfaces too many false positives the matcher can be relaxed without touching atom code.
 

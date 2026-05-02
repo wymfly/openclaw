@@ -10,7 +10,8 @@ import {
 test.describe("bundled runtime mode", () => {
   let stack: E2EStack;
 
-  test.beforeAll(async (_fixtures, testInfo) => {
+  test.beforeAll(async ({ browserName }, testInfo) => {
+    void browserName;
     stack = await startBundledStack(testInfo);
   });
 

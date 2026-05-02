@@ -27,7 +27,11 @@ func TestContractAdaptersConvertGeneratedGatewayDTOs(t *testing.T) {
 	if agentResponse.DefaultId != "main" || len(agentResponse.Agents) != 1 {
 		t.Fatalf("unexpected agent response: %#v", agentResponse)
 	}
-	if agentResponse.Agents[0].Id != "main" || agentResponse.Agents[0].Model != "gpt-5.4" || agentResponse.Agents[0].Avatar == "" {
+	if agentResponse.Agents[0].Id != "main" ||
+		agentResponse.Agents[0].Model != "gpt-5.4" ||
+		agentResponse.Agents[0].Avatar == "" ||
+		!agentResponse.Agents[0].IsDefault ||
+		agentResponse.Agents[0].Status != "idle" {
 		t.Fatalf("agent fields were not converted to Deck DTO: %#v", agentResponse.Agents[0])
 	}
 
@@ -111,7 +115,12 @@ func TestContractAdaptersPreserveSelectedPreMigrationJSONShape(t *testing.T) {
 	agentJSON := objectFromAny(normalizeAgentsList(agents))
 	agentItems, _ := agentJSON["agents"].([]any)
 	firstAgent, _ := agentItems[0].(map[string]any)
-	if agentJSON["defaultId"] != "main" || firstAgent["id"] != "main" || firstAgent["workspace"] != "/work/main" {
+	if agentJSON["defaultId"] != "main" ||
+		firstAgent["id"] != "main" ||
+		firstAgent["workspace"] != "/work/main" ||
+		firstAgent["name"] != "Main" ||
+		firstAgent["isDefault"] != true ||
+		firstAgent["status"] != "idle" {
 		t.Fatalf("agent JSON compatibility shape changed: %#v", agentJSON)
 	}
 

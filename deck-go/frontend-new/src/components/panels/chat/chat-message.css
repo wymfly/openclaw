@@ -125,7 +125,10 @@
   gap: 8px;
 }
 
-/* Right-align IM bubble for user — bundle .align-right.is-user (298-313). */
+/* Right-align user text. The locked handoff CSS contains a `.md-user` bubble
+ * rule, but the rendered prototype passes `isUser={false}` to TextBlock and
+ * therefore shows transparent user text. The visual baseline follows the
+ * rendered prototype rather than the unreachable CSS branch. */
 .ds-chat-message--user {
   grid-template-columns: minmax(0, 1fr) 28px;
 }
@@ -148,10 +151,10 @@
 .ds-chat-message--user .ds-chat-message__bubble {
   display: inline-block;
   max-width: 720px;
-  padding: 10px 14px;
-  background: var(--ds-accent-bg);
-  border: 1px solid var(--ds-accent-dim);
-  border-radius: var(--ds-radius-lg);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   margin-left: auto;
   word-break: break-word;
   color: var(--ds-text-1);

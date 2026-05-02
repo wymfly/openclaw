@@ -2,6 +2,7 @@ import type * as DeckApi from "../../contracts/generated/ts/deck-api.generated";
 import type {
   DeckGoActivityEvent,
   DeckGoActivityResponse,
+  DeckGoAgentCreateRequest,
   DeckGoAgentDetailResponse,
   DeckGoAgentEventStreamsResponse,
   DeckGoAgentEventStreamsSetResponse,
@@ -12,12 +13,15 @@ import type {
   DeckGoAgentIdentityResponse,
   DeckGoAgentMutationResponse,
   DeckGoAgentRawConfig,
+  DeckGoAgentStatus,
+  DeckGoAgentPatchRequest,
   DeckGoAgentSkillEntry,
   DeckGoAgentSkillsResponse,
   DeckGoAgentSkillsSetResponse,
   DeckGoAgentsListResponse,
   DeckGoAgentSubagentConfigResponse,
   DeckGoAgentSubagentConfigSetResponse,
+  DeckGoAgentSubagentPermissionOption,
   DeckGoAgentSummary,
   DeckGoAgentSystemPromptPreviewResponse,
   DeckGoAgentToolPolicyPreviewResponse,
@@ -214,6 +218,7 @@ import type {
 export type {
   DeckGoActivityEvent,
   DeckGoActivityResponse,
+  DeckGoAgentCreateRequest,
   DeckGoAgentDetailResponse,
   DeckGoAgentEventStreamsResponse,
   DeckGoAgentEventStreamsSetResponse,
@@ -224,12 +229,15 @@ export type {
   DeckGoAgentIdentityResponse,
   DeckGoAgentMutationResponse,
   DeckGoAgentRawConfig,
+  DeckGoAgentStatus,
+  DeckGoAgentPatchRequest,
   DeckGoAgentSkillEntry,
   DeckGoAgentSkillsResponse,
   DeckGoAgentSkillsSetResponse,
   DeckGoAgentsListResponse,
   DeckGoAgentSubagentConfigResponse,
   DeckGoAgentSubagentConfigSetResponse,
+  DeckGoAgentSubagentPermissionOption,
   DeckGoAgentSummary,
   DeckGoAgentSystemPromptPreviewResponse,
   DeckGoAgentToolPolicyPreviewResponse,
@@ -834,13 +842,18 @@ type TypedGatewayAgentSummary = {
   workspace?: string;
 };
 
-function normalizeGatewayAgentSummary(agent: TypedGatewayAgentSummary): DeckGoAgentSummary {
+function normalizeGatewayAgentSummary(
+  agent: TypedGatewayAgentSummary,
+  defaultId?: string,
+): DeckGoAgentSummary {
   return {
     ...agent,
     avatar: agent.identity?.avatar ?? agent.identity?.avatarUrl,
     emoji: agent.identity?.emoji,
+    isDefault: agent.id === defaultId,
     model: agent.model?.primary,
-    name: agent.name ?? agent.identity?.name,
+    name: agent.name ?? agent.identity?.name ?? agent.id,
+    status: "idle",
   };
 }
 
@@ -2110,7 +2123,7 @@ export async function lookupConfigPath(path: string) {
 export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
   const payload = await createDeckGatewayClient({ runtimeId: "rt_local" }).agents.list({});
   return {
-    agents: payload.agents.map(normalizeGatewayAgentSummary),
+    agents: payload.agents.map((agent) => normalizeGatewayAgentSummary(agent, payload.defaultId)),
     defaultId: payload.defaultId,
   };
 }
@@ -2206,6 +2219,24 @@ export async function fetchAgentSubagentConfig(agentId: string) {
     },
     "agent subagent config fetch failed",
   );
+}
+
+export function normalizeAgentSubagentPermissionOptions(
+  response: DeckGoAgentSubagentConfigResponse,
+): DeckGoAgentSubagentPermissionOption[] {
+  const allowed = new Set(response.allowAgents);
+  const sourceRows: Array<{ id: string; name?: string }> =
+    response.allAgents && response.allAgents.length > 0
+      ? response.allAgents
+      : response.allowedAgents && response.allowedAgents.length > 0
+        ? response.allowedAgents
+        : response.allowAgents.map((id) => ({ id }));
+
+  return sourceRows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    allowed: allowed.has(row.id),
+  }));
 }
 
 export async function updateAgentSubagentConfig(

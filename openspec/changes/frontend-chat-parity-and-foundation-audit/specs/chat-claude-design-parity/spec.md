@@ -42,3 +42,47 @@ The parity gap report SHALL record the SHA-256 hash of each bundle JSX file (com
 - **WHEN** any bundle JSX file's SHA-256 hash differs from the recorded value in the gap report
 - **THEN** the parity gate SHALL be marked stale
 - **AND** the next chat-surface change SHALL trigger a re-audit before being allowed to merge
+
+### Requirement: Chat workbench embedding inside Deck shell
+
+The chat panel SHALL render as an edge-to-edge workbench inside the `frontend-new` Deck shell. The global nav rail and header SHALL remain present, but the active chat panel SHALL use a workbench content mode with no extra `deck-ui-content` padding and no redundant outer card border/radius/shadow around `ds-chat-shell`.
+
+#### Scenario: Chat panel is active on desktop
+
+- **WHEN** the active panel is `chat` at a desktop viewport
+- **THEN** the Deck shell SHALL keep the nav rail and header visible
+- **AND** the chat workbench SHALL fill the remaining content viewport height and width
+- **AND** `ds-chat-shell` SHALL use internal column separators for sidebar/main/right drawer rather than an extra outer card chrome
+
+#### Scenario: Non-chat panel is active
+
+- **WHEN** any panel other than `chat` is active
+- **THEN** the existing `deck-ui-content` padding and overflow behavior SHALL remain unchanged
+
+### Requirement: Console-clean chat visual route
+
+The mock-backed `chat-rich` visual route SHALL be covered by Playwright evidence that captures a screenshot and fails on unexpected `console.error` or `pageerror` events. Known-safe iframe noise MAY be filtered only when the exact message and justification are recorded in the parity gap report.
+
+#### Scenario: Visual route emits React DOM nesting errors
+
+- **WHEN** Playwright opens `?surface=deck-ui&panel=chat&deckVisualState=chat-rich` in dark theme with expanded nav
+- **AND** React logs an invalid DOM nesting error
+- **THEN** the visual E2E SHALL fail
+- **AND** the implementation SHALL be fixed before refreshing visual baselines
+
+#### Scenario: Visual route emits iframe page errors
+
+- **WHEN** the visual route emits a `pageerror` from a canvas or artifact iframe
+- **THEN** the error SHALL be fixed if it comes from deck-go-controlled visual seed code
+- **OR** filtered only if the report documents that it is browser sandbox noise that cannot affect the parent Deck UI
+
+### Requirement: Interactive row composition
+
+Design-system row/list atoms consumed by chat SHALL NOT render nested interactive elements. A row with a selectable body and a trailing action SHALL expose separate interactive regions while preserving keyboard selection behavior and trailing action click isolation.
+
+#### Scenario: Sidebar row has a delete IconButton
+
+- **WHEN** `SessionSidebar` renders a session row with a trailing delete `IconButton`
+- **THEN** the resulting DOM SHALL NOT contain a `<button>` descendant inside another `<button>`
+- **AND** pressing Enter or Space on the row-selection control SHALL select the session
+- **AND** clicking the trailing delete action SHALL open delete confirmation without selecting the row

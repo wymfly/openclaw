@@ -107,13 +107,18 @@
 
 /* Iframe-mock shell — bundle .cp-iframe-mock. Wraps the runtime iframe with
  * a mono-small status strip (`__iframe-bar`) above. Bundle's cp-card /
- * cp-row / cp-actions mock content is skipped (deck-go runs a real iframe;
- * see chat-parity-gap-report.md "skip" list). */
+ * cp-row / cp-actions mock content is reproduced inside visual-seed iframe
+ * content only; normal sessions still run the real A2UI iframe. */
 .ds-canvas-panel__iframe-mock {
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin: 12px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-elev);
+  overflow: hidden;
 }
 
 /* Status strip above iframe — bundle .cp-iframe-bar (mono small). Surfaces
@@ -125,9 +130,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding: 4px 12px;
+  padding: 5px 10px;
   border-bottom: 1px solid var(--ds-border-subtle);
-  background: var(--ds-bg-elev, var(--ds-bg-2));
+  background: var(--ds-bg-2);
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);

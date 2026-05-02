@@ -27,26 +27,94 @@ function visualSeedCanvasHtml() {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
-      :root { color-scheme: dark; font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-      body { margin: 0; background: #0f0f23; color: #e5e7eb; }
-      main { min-height: 100vh; padding: 28px; display: grid; gap: 18px; align-content: start; }
-      h1 { margin: 0; font-size: 20px; }
-      p { margin: 0; color: #cbd5e1; line-height: 1.5; }
-      .grid { display: grid; gap: 10px; }
-      .item { border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 12px; background: rgba(255,255,255,.05); }
-      .ok { color: #4ade80; font-weight: 700; }
-      code { color: #93c5fd; }
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --bg-2: #14171c;
+        --bg-elev: #1c2028;
+        --text-1: #e6e8ec;
+        --text-2: #a8aeba;
+        --text-3: #8992a3;
+        --border-subtle: #1f2530;
+        --accent: #7aa2ff;
+        --accent-bg: #1a2342;
+        --accent-dim: #4f72c7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg-elev);
+        color: var(--text-1);
+        font-size: 13.5px;
+        line-height: 1.5;
+      }
+      main {
+        min-height: 100vh;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .cp-card {
+        border: 1px solid var(--border-subtle);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .cp-card-h {
+        padding: 6px 10px;
+        background: var(--bg-2);
+        border-bottom: 1px solid var(--border-subtle);
+        color: var(--text-2);
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 11px;
+      }
+      .cp-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        padding: 5px 10px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 12px;
+      }
+      .cp-row:last-child { border-bottom: 0; }
+      .cp-row:first-of-type {
+        background: var(--bg-2);
+        color: var(--text-3);
+        font-size: 11px;
+      }
+      .cp-actions {
+        display: flex;
+        gap: 8px;
+        padding: 0 0 4px;
+      }
+      button {
+        border: 1px solid var(--border-subtle);
+        border-radius: 4px;
+        padding: 6px 10px;
+        background: transparent;
+        color: var(--text-2);
+        font: inherit;
+      }
+      button.primary {
+        background: var(--accent-bg);
+        border-color: var(--accent-dim);
+        color: var(--accent);
+      }
     </style>
   </head>
   <body>
     <main>
-      <h1>Gateway launch checklist</h1>
-      <p>Deterministic Deck visual seed for canvas and artifact drawer review.</p>
-      <section class="grid">
-        <div class="item"><span class="ok">Ready</span> local source Gateway command</div>
-        <div class="item"><span class="ok">Ready</span> <code>NO_PROXY=localhost,127.0.0.1</code></div>
-        <div class="item">Next: verify Go API proxy and SSE rendering.</div>
+      <section class="cp-card">
+        <div class="cp-card-h">DataTable</div>
+        <div class="cp-row"><span>id</span><span>tokens</span><span>cost</span></div>
+        <div class="cp-row"><span>m1</span><span>4,218</span><span>$0.018</span></div>
+        <div class="cp-row"><span>m2</span><span>9,772</span><span>$0.043</span></div>
+        <div class="cp-row"><span>m3</span><span>1,204</span><span>$0.006</span></div>
       </section>
+      <div class="cp-actions">
+        <button type="button">Refresh</button>
+        <button type="button" class="primary">Export</button>
+      </div>
     </main>
   </body>
 </html>`;

@@ -1,13 +1,21 @@
-import { readStoredDeckAccessToken, writeStoredDeckAccessToken } from "./deck-auth-storage";
+import {
+  readDefaultDeckAccessToken,
+  readStoredDeckAccessToken,
+  writeStoredDeckAccessToken,
+} from "./deck-auth-storage";
 import { createDeckTransport } from "./deck-transport-core";
 
 function readImportMetaEnv(name: string) {
   return (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.[name];
 }
 
+function readDeckAccessToken() {
+  return readStoredDeckAccessToken() ?? readDefaultDeckAccessToken();
+}
+
 const transport = createDeckTransport({
   readControlPlaneBase: () => readImportMetaEnv("VITE_DECK_GO_API_BASE"),
-  readStoredToken: readStoredDeckAccessToken,
+  readStoredToken: readDeckAccessToken,
   writeStoredToken: writeStoredDeckAccessToken,
 });
 

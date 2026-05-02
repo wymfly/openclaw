@@ -11,8 +11,9 @@ import { expect, type APIRequestContext, type Page, type TestInfo } from "@playw
 const execFileAsync = promisify(execFile);
 const thisFile = fileURLToPath(import.meta.url);
 const deckRoot = path.resolve(path.dirname(thisFile), "../..");
+const repoRoot = path.resolve(deckRoot, "..");
 const backendRoot = path.join(deckRoot, "backend");
-const frontendRoot = path.join(deckRoot, "frontend");
+const frontendRoot = path.join(deckRoot, "frontend-new");
 const mockGatewayEntry = path.join(deckRoot, "test/fixtures/mock-gateway.mjs");
 const localNoProxy = "localhost,127.0.0.1,::1";
 
@@ -25,7 +26,12 @@ export type E2EStack = {
   backendBase: string;
   frontendBase: string;
   requestLog: string;
+  accessToken?: string;
   mockGateway?: {
+    url: string;
+    token: string;
+  };
+  realGateway?: {
     url: string;
     token: string;
   };
@@ -130,12 +136,13 @@ async function waitForHTTP(
   label: string,
   processOutput: () => string,
   accepts: (response: Response) => boolean = (response) => response.ok,
+  options?: RequestInit,
 ) {
   const deadline = Date.now() + 30_000;
   let lastError = "";
   while (Date.now() < deadline) {
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, options);
       if (accepts(response)) {
         return;
       }
@@ -148,33 +155,88 @@ async function waitForHTTP(
   throw new Error(`${label} did not become ready: ${lastError}\n${processOutput()}`);
 }
 
-async function waitForCapabilities(backendBase: string, configured: boolean) {
+function deckTokenHeaders(accessToken?: string): Record<string, string> {
+  return accessToken ? { "x-deck-token": accessToken } : {};
+}
+
+async function waitForCapabilities(backendBase: string, configured: boolean, accessToken?: string) {
   await expect
-    .poll(async () => {
-      const response = await fetch(`${backendBase}/api/runtime/capabilities`);
-      if (!response.ok) {
-        return null;
-      }
-      const payload = (await response.json()) as { configured?: boolean };
-      return payload.configured;
-    })
+    .poll(
+      async () => {
+        const response = await fetch(`${backendBase}/api/runtime/capabilities`, {
+          headers: deckTokenHeaders(accessToken),
+        });
+        if (!response.ok) {
+          return null;
+        }
+        const payload = (await response.json()) as { configured?: boolean };
+        return payload.configured;
+      },
+      { timeout: 30_000 },
+    )
     .toBe(configured);
 }
 
-async function waitForBundledRuntime(backendBase: string) {
+async function waitForBundledRuntime(backendBase: string, accessToken?: string) {
   await expect
-    .poll(async () => {
-      const response = await fetch(`${backendBase}/api/runtime/gateway`);
-      if (!response.ok) {
-        return 0;
-      }
-      const payload = (await response.json()) as { mode?: string; pid?: number };
-      return payload.mode === "bundled" ? (payload.pid ?? 0) : 0;
-    })
+    .poll(
+      async () => {
+        const response = await fetch(`${backendBase}/api/runtime/gateway`, {
+          headers: deckTokenHeaders(accessToken),
+        });
+        if (!response.ok) {
+          return 0;
+        }
+        const payload = (await response.json()) as { mode?: string; pid?: number };
+        return payload.mode === "bundled" ? (payload.pid ?? 0) : 0;
+      },
+      { timeout: 180_000 },
+    )
     .toBeGreaterThan(0);
 }
 
-async function startFrontend(backendBase: string, frontendPort: number) {
+async function waitForGatewayHealth(backendBase: string, accessToken?: string) {
+  await expect
+    .poll(
+      async () => {
+        const response = await fetch(`${backendBase}/api/gateway/health`, {
+          headers: deckTokenHeaders(accessToken),
+        });
+        if (!response.ok) {
+          return response.status;
+        }
+        const payload = (await response.json()) as { ok?: boolean };
+        return payload.ok === false ? 502 : 200;
+      },
+      { timeout: 180_000 },
+    )
+    .toBe(200);
+}
+
+async function waitForGatewayRPC(backendBase: string, accessToken?: string) {
+  await expect
+    .poll(
+      async () => {
+        const response = await fetch(`${backendBase}/api/v1/runtimes/rt_local/gateway/rpc`, {
+          method: "POST",
+          headers: {
+            ...deckTokenHeaders(accessToken),
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ method: "agents.list", params: {} }),
+        });
+        if (!response.ok) {
+          return response.status;
+        }
+        const payload = (await response.json()) as { result?: { agents?: unknown[] } };
+        return Array.isArray(payload.result?.agents) ? 200 : 502;
+      },
+      { timeout: 180_000 },
+    )
+    .toBe(200);
+}
+
+async function startFrontend(backendBase: string, frontendPort: number, accessToken?: string) {
   const frontendBase = `http://127.0.0.1:${frontendPort}`;
   const process = spawnManaged(
     "frontend",
@@ -186,6 +248,8 @@ async function startFrontend(backendBase: string, frontendPort: number) {
         ...processEnv(),
         VITE_DECK_GO_API_BASE: backendBase,
         VITE_DECK_VISUAL_STATE: "0",
+        VITE_DECK_GO_ACCESS_TOKEN: accessToken ?? "",
+        VITE_DECK_GO_AUTO_UNLOCK: accessToken ? "1" : "0",
       },
     },
   );
@@ -346,13 +410,118 @@ async function startMockGatewayProcess(port: number, token: string, requestLog: 
   return { url, process: mockProcess };
 }
 
-export async function openDeck(page: Page, frontendBase: string, panel: string) {
-  await page.addInitScript(() => {
-    window.localStorage.setItem("deckGoLocale", "en");
-    window.localStorage.setItem("deckGoSidebarCollapsed", "false");
-    window.localStorage.removeItem("deckGoActivePanel");
+export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStack> {
+  const { root, dataDir, logDir } = await createStackDirs(testInfo, "real-gateway");
+  const backendPort = await freePort();
+  const frontendPort = await freePort();
+  const gatewayPort = await freePort();
+  const backendBase = `http://127.0.0.1:${backendPort}`;
+  const requestLog = path.join(logDir, "real-gateway-requests.jsonl");
+  const binary = await buildBackendBinary();
+  const accessToken = `real-e2e-deck-token-${testInfo.workerIndex}`;
+  const gatewayToken = `real-e2e-gateway-token-${testInfo.workerIndex}`;
+
+  const backend = spawnManaged("backend", binary, [], {
+    cwd: deckRoot,
+    env: {
+      ...processEnv(),
+      DECK_GO_ACCESS_TOKEN: accessToken,
+      DECK_GO_ADDR: `127.0.0.1:${backendPort}`,
+      DECK_GO_DATA_DIR: dataDir,
+      DECK_STATE_PATH: path.join(dataDir, "deck-state.json"),
+      RUNTIME_ADMIN_SOCKET: path.join(dataDir, "admin.sock"),
+      RUNTIME_MODE: "bundled",
+      RUNTIME_BUNDLED_COMMAND: "pnpm",
+      RUNTIME_BUNDLED_ARGS: `openclaw gateway run --bind loopback --port ${gatewayPort} --allow-unconfigured`,
+      RUNTIME_BUNDLED_WORKDIR: repoRoot,
+      RUNTIME_BUNDLED_BIND_HOST: "127.0.0.1",
+      RUNTIME_BUNDLED_BIND_PORT: String(gatewayPort),
+      RUNTIME_BUNDLED_TOKEN: gatewayToken,
+      RUNTIME_BUNDLED_AUTO_START: "true",
+      RUNTIME_BUNDLED_ENV_NO_PROXY: localNoProxy,
+    },
   });
-  await page.goto(`${frontendBase}/?surface=deck-ui&panel=${panel}`);
+  const cleanup: Array<() => Promise<void>> = [backend.stop];
+  try {
+    await waitForHTTP(`${backendBase}/healthz`, "backend", backend.output);
+    await waitForBundledRuntime(backendBase, accessToken);
+    await waitForGatewayHealth(backendBase, accessToken);
+    await waitForGatewayRPC(backendBase, accessToken);
+    const frontend = await startFrontend(backendBase, frontendPort, accessToken);
+    cleanup.push(frontend.process.stop);
+    return {
+      backendBase,
+      frontendBase: frontend.frontendBase,
+      requestLog,
+      accessToken,
+      realGateway: {
+        url: `http://127.0.0.1:${gatewayPort}`,
+        token: gatewayToken,
+      },
+      stop: async () => {
+        for (const stop of cleanup.toReversed()) {
+          await stop();
+        }
+        await rm(root, { recursive: true, force: true });
+      },
+    };
+  } catch (error) {
+    for (const stop of cleanup.toReversed()) {
+      await stop();
+    }
+    throw error;
+  }
+}
+
+export async function openDeck(
+  page: Page,
+  frontendBase: string,
+  panel: string,
+  accessToken?: string,
+  options: {
+    deckVisualState?: string;
+    locale?: "en" | "zh";
+    nav?: "expanded" | "collapsed";
+    theme?: "dark" | "light" | "system";
+  } = {},
+) {
+  const token = accessToken ?? null;
+  const locale = options.locale ?? "en";
+  const sidebarCollapsed = options.nav === "collapsed" ? "true" : "false";
+  const theme = options.theme ?? null;
+  await page.addInitScript(
+    ({ localeValue, sidebarCollapsedValue, themeValue }) => {
+      try {
+        window.localStorage.setItem("deckGoLocale", localeValue);
+        window.localStorage.setItem("deckGoSidebarCollapsed", sidebarCollapsedValue);
+        window.localStorage.removeItem("deckGoActivePanel");
+        if (themeValue) {
+          window.localStorage.setItem("deckGoThemeMode", themeValue);
+          window.localStorage.setItem("openclaw-deck-theme", themeValue);
+        }
+      } catch {
+        // Playwright init scripts also run in data: iframes used by visual seeds.
+      }
+    },
+    { localeValue: locale, sidebarCollapsedValue: sidebarCollapsed, themeValue: theme },
+  );
+  if (token) {
+    await page.addInitScript((value) => {
+      try {
+        window.localStorage.setItem("deckGoAccessToken", value);
+      } catch {
+        // Ignore storage-disabled child frames.
+      }
+    }, token);
+  }
+  const url = new URL(frontendBase);
+  url.searchParams.set("surface", "deck-ui");
+  url.searchParams.set("panel", panel);
+  url.searchParams.set("nav", options.nav ?? "expanded");
+  if (options.deckVisualState) {
+    url.searchParams.set("deckVisualState", options.deckVisualState);
+  }
+  await page.goto(url.toString());
 }
 
 export async function waitForGatewayMethod(requestLog: string, method: string) {
@@ -381,8 +550,10 @@ export async function createChatSession(
   request: APIRequestContext,
   backendBase: string,
   message: string,
+  accessToken?: string,
 ) {
   const response = await request.post(`${backendBase}/api/chat/sessions/create`, {
+    headers: deckTokenHeaders(accessToken),
     data: {
       agentId: "main",
       label: "E2E smoke",
@@ -390,6 +561,7 @@ export async function createChatSession(
     },
   });
   expect(response.ok(), `chat session create returned ${response.status()}`).toBe(true);
+  return (await response.json()) as Record<string, unknown>;
 }
 
 export async function sendChatMessage(page: Page, text: string) {
@@ -402,4 +574,8 @@ export async function sendChatMessage(page: Page, text: string) {
 
 export async function waitForRemoteConfigured(backendBase: string) {
   await waitForCapabilities(backendBase, true);
+}
+
+export function authHeaders(accessToken?: string) {
+  return deckTokenHeaders(accessToken);
 }

@@ -128,6 +128,159 @@
     "pageInfo": "Page {current} / {total}",
     "loading": "Loading..."
   },
+  "agentsPanel": {
+    "title": "Agents",
+    "subtitle": "Identity, runtime status, and configuration for OpenClaw agents.",
+    "detailLabel": "Agent detail for {name}",
+    "sectionNavLabel": "Agent configuration sections",
+    "backToList": "Back to list",
+    "defaultBadge": "Default",
+    "tableLabel": "Agents table",
+    "searchLabel": "Search agents",
+    "searchPlaceholder": "Search by name, id, model, or workspace",
+    "filterLabel": "Filter agents",
+    "sortLabel": "Sort agents",
+    "loading": "Loading agents",
+    "retry": "Retry",
+    "reload": "Reload",
+    "recompute": "Recompute",
+    "saveChanges": "Save changes",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "inherit": "default",
+    "yes": "yes",
+    "no": "no",
+    "allowed": "Allowed",
+    "denied": "Denied",
+    "exists": "Exists",
+    "missing": "Missing",
+    "dirtyBanner": "Unsaved changes in: {sections}",
+    "statusLabel": "Status: {status}",
+    "filters": {
+      "all": "All",
+      "busy": "Busy",
+      "default": "Default"
+    },
+    "sort": {
+      "name": "Name",
+      "recent": "Recent",
+      "sessions": "Sessions"
+    },
+    "columns": {
+      "agent": "Agent",
+      "status": "Status",
+      "sessions": "Sessions",
+      "bindings": "Bindings"
+    },
+    "status": {
+      "idle": "Idle",
+      "busy": "Busy",
+      "error": "Error",
+      "offline": "Offline"
+    },
+    "stream": {
+      "connecting": "Live connecting",
+      "connected": "Live",
+      "reconnecting": "Live reconnecting",
+      "error": "Live unavailable"
+    },
+    "empty": {
+      "noAgentsTitle": "No agents yet",
+      "noAgentsBody": "Create the first agent to configure identity, skills, subagents, files, and event streams.",
+      "noSearchTitle": "No matching agents",
+      "noSearchBody": "No agents match \"{query}\".",
+      "clearSearch": "Clear search"
+    },
+    "sections": {
+      "overview": "Overview",
+      "skills": "Skills",
+      "subagents": "Subagents",
+      "toolPolicy": "Tool policy",
+      "systemPrompt": "System prompt",
+      "files": "Files",
+      "eventStreams": "Event streams"
+    },
+    "overview": {
+      "description": "Edit identity, model, workspace, and visible avatar fields supported by the backend patch contract."
+    },
+    "fields": {
+      "name": "Name",
+      "model": "Model",
+      "workspace": "Workspace",
+      "emoji": "Emoji",
+      "avatar": "Avatar URL"
+    },
+    "meta": {
+      "sessions": "Sessions {count}",
+      "bindings": "Bindings {count}",
+      "default": "Default {value}",
+      "activeSubagents": "Active subagents {count}"
+    },
+    "skills": {
+      "description": "Use current Gateway skill semantics: all skills or a whitelist with explicit toggles.",
+      "modeLabel": "Skill mode",
+      "all": "All",
+      "whitelist": "Whitelist",
+      "empty": "No skills are reported by the runtime.",
+      "toggle": "Toggle skill {name}"
+    },
+    "subagents": {
+      "description": "Choose which agents this agent may delegate to. The view adapts Gateway allow-list truth into row permissions.",
+      "empty": "No delegatable agents are reported by the runtime.",
+      "toggle": "Permit subagent {name}"
+    },
+    "toolPolicy": {
+      "description": "Read-only preview of resolved tool policy and provenance.",
+      "layer": "{count} rules, effect {effect}"
+    },
+    "systemPrompt": {
+      "description": "Read-only preview of resolved system prompt layers and bootstrap files.",
+      "totalChars": "{count} chars total",
+      "layerMeta": "{chars} chars, {files} files"
+    },
+    "files": {
+      "description": "Browse, read, and save backend-supported agent workspace files.",
+      "empty": "No files in this workspace yet.",
+      "name": "File name",
+      "content": "File content"
+    },
+    "streams": {
+      "description": "Configure declared event streams without inventing new payload types.",
+      "optionDescription": "Declared stream contract",
+      "toggle": "Toggle stream {name}"
+    },
+    "create": {
+      "open": "New agent",
+      "title": "Create agent",
+      "description": "Create the identity first, then configure sections that require backend hashes.",
+      "stepsLabel": "Create agent steps",
+      "step0": "Identity",
+      "step1": "Runtime",
+      "step2": "Review",
+      "followUp": "Model, skills, subagents, and streams can be saved after creation when the agent has a backend id and config hash.",
+      "afterCreate": "after create",
+      "back": "Back",
+      "next": "Next",
+      "submit": "Create agent"
+    },
+    "delete": {
+      "open": "Delete agent",
+      "title": "Delete agent",
+      "body": "Delete {name}? This removes the agent entry from the runtime configuration.",
+      "confirm": "Delete"
+    },
+    "errors": {
+      "listTitle": "Could not load agents",
+      "detailTitle": "Could not load this agent",
+      "saveTitle": "Could not save",
+      "conflictTitle": "Someone else updated this",
+      "fileNameRequired": "File name is required."
+    },
+    "validation": {
+      "nameRequired": "Agent name is required.",
+      "workspaceAbsolute": "Workspace must be an absolute path."
+    }
+  },
   "chat": {
     "placeholder": "Type a message...",
     "attachFiles": "Attach",

@@ -9,7 +9,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "./design-system/tokens/index.css";
 import "./theme.css";
-import { ChatPanel } from "./components/panels/chat/ChatPanel";
+import { DeckGoApp } from "./deck-ui/App";
 import { DeckRoot } from "./i18n/provider";
 
 const dsGallery =
@@ -24,7 +24,9 @@ if (dsGallery) {
   void import("./design-system/dev/Gallery").then(({ DesignSystemGallery }) => {
     root.render(
       <React.StrictMode>
-        <DesignSystemGallery />
+        <DeckRoot>
+          <DesignSystemGallery />
+        </DeckRoot>
       </React.StrictMode>,
     );
   });
@@ -32,7 +34,7 @@ if (dsGallery) {
   root.render(
     <React.StrictMode>
       <DeckRoot>
-        <ChatPanel />
+        <DeckGoApp />
       </DeckRoot>
     </React.StrictMode>,
   );

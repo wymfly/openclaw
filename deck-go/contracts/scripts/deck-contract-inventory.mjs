@@ -720,6 +720,9 @@ const inventory = {
   dynamicSurfaces,
 };
 
+const missingTypeLines =
+  missingTypes.length === 0 ? [] : ["", ...missingTypes.map((name) => `- \`${name}\``)];
+
 const mdLines = [
   "# Deck Go Contract Inventory",
   "",
@@ -862,9 +865,7 @@ const mdLines = [
   ...(dynamicSurfaces.length === 0 ? ["| n/a | n/a | n/a |"] : []),
   "",
   "## Missing Type Names",
-  "",
-  ...missingTypes.map((name) => `- \`${name}\``),
-  "",
+  ...missingTypeLines,
 ];
 
 await fs.mkdir(docsDir, { recursive: true });

@@ -12,6 +12,8 @@ This change closes the bundle-parity debt on chat, stress-tests the design syste
 - **Atom a11y automation**: introduce `vitest-axe` devDep (~200KB, no runtime impact) and add `expect(container).toHaveNoViolations()` assertions to all P1a + P1b atom tests (36 atoms, ~70 test files), failing CI on regressions.
 - **Lighthouse + keyboard walkthrough**: run user-driven manual a11y verification on the chat panel post-remediation (Lighthouse a11y ≥ 95, keyboard-only walk through chat → tool ladder → approval → artifact → canvas) and record the result in this change's tasks.md.
 - Visual regression baselines (4 PNGs at `docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/screenshots/deck-baseline/`) get refreshed after remediation so future P3+ visual diffs anchor on the post-parity state.
+- **Current-code handoff alignment addendum (2026-05-03)**: `frontend-handoff/modules/chat/{composer,right-panel,styles}.jsx|css` is byte-identical to the archived 2026-04-29 design bundle for the audited surfaces, so this change remains the correct scope. Fresh Playwright evidence against `frontend-new` shows remaining debt is now in the Deck embedding layer and DS composition correctness: the chat workbench is still an inset card inside padded `deck-ui-content`, and `SidebarRow` can render a nested `<button>` when it receives an interactive trailing action.
+- **Mock-backed visual E2E gate**: add a deterministic chat-rich visual route using the existing mock stack / `deckVisualState` seed, dark theme, English locale, expanded nav, and console-error capture. The gate must fail on React DOM nesting errors, API disconnects, and unreviewed iframe/page errors before visual baselines are accepted.
 
 ## Capabilities
 
@@ -19,6 +21,8 @@ This change closes the bundle-parity debt on chat, stress-tests the design syste
 
 - `chat-claude-design-parity`: Defines the bundle-fidelity verification gate every chat-surface change must pass — class-by-class diff against the downloaded Claude Design bundle JSX, screenshot pairs per gap, and a documented divergence justification per missing primitive. Codifies the gate so downstream chat work cannot drift from the bundle without explicit acknowledgment.
 - `design-system-cross-module-readiness`: Defines the readiness audit format that gates any non-chat panel migration to the design system — atom × panel matrix with `applies` / `extend` / `missing` status, a list of follow-up atoms required, and a "no atom re-architecture" promise so panel migrations never block on chat-rooted breaking changes.
+- `chat-workbench-embedding`: Defines how a full-height chat workbench lives inside the deck-go shell: global nav/header stay in place, but the active chat panel owns an edge-to-edge content mode with no extra padded card chrome.
+- `design-system-interactive-row-composition`: Defines the SidebarRow / list-row rule that row selection and trailing actions must not create nested interactive elements, with test coverage for IconButton-style trailing actions.
 
 ### Modified Capabilities
 
@@ -26,9 +30,10 @@ This change closes the bundle-parity debt on chat, stress-tests the design syste
 
 ## Impact
 
-- **Code**: `deck-go/frontend/src/components/panels/chat/{CanvasPanel,ArtifactPanel,MessageInput}.tsx` + their CSS modules; possibly minor JSX in `ApprovalDialog` if visual diff finds extras. Add small new sub-components if bundle structure requires (e.g., `CmdTagChip`, `CpIframeMock`).
-- **Atom tests**: 70+ files in `deck-go/frontend/src/design-system/atoms/__tests__/` get one extra axe assertion each.
+- **Code**: `deck-go/frontend-new/src/components/panels/chat/{CanvasPanel,ArtifactPanel,MessageInput,ChatPanel,SessionSidebar}.tsx` + their CSS modules; `deck-go/frontend-new/src/deck-ui/{Shell,PanelHost}.tsx` or equivalent active-panel shell path if needed; possibly minor JSX in `ApprovalDialog` if visual diff finds extras. Add small new sub-components if bundle structure requires (e.g., `CmdTagChip`, `CpIframeMock`).
+- **Atom tests**: 70+ files in `deck-go/frontend-new/src/design-system/atoms/__tests__/` get one extra axe assertion each; `SidebarRow` gets an explicit interactive trailing-action regression test.
 - **Dependencies**: `vitest-axe` (devDep). Project-wide first new test devDep since the original `frontend-design-system-via-chat` Non-Goal — explicitly opt-in here because the chat migration is no longer the active target.
 - **Docs**: 2 new reports under `docs/design-bundles/2026-04-29-claude-design-chat-pilot/` plus refreshed `deck-baseline/*.png` set.
+- **E2E**: `deck-go/test/e2e` gains a mock-backed chat visual smoke that captures `/tmp`/test-output screenshots and asserts console cleanliness for `?deckVisualState=chat-rich`.
 - **No backend / Gateway / contract changes.**
-- **No breaking changes to existing chat behavior** — visual-only remediation + verification artifacts.
+- **No breaking changes to existing chat behavior** — visual remediation, DS composition fix, and verification artifacts only.

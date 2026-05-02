@@ -11,6 +11,9 @@ export default defineConfig({
   reporter: "list",
   use: {
     actionTimeout: 15_000,
+    launchOptions: {
+      args: ["--no-proxy-server"],
+    },
     navigationTimeout: 30_000,
     trace: "retain-on-failure",
     viewport: { width: 1440, height: 960 },

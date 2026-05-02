@@ -453,4 +453,21 @@ describe("SessionSidebar rename", () => {
     rerenderSidebar();
     expect(screen.queryByText("Primary Session")).toBeNull();
   });
+
+  it("opens delete confirmation without selecting the row", async () => {
+    useChatStore.setState({
+      activeSessionKey: null,
+      sessionMetas: [{ ...baseMeta }],
+      sessionMeta: [{ ...baseMeta }],
+    });
+    mountSidebar();
+
+    const deleteButton = screen.getByRole("button", { name: "Delete session" });
+    await act(async () => {
+      fireEvent.click(deleteButton);
+    });
+
+    expect(chatState.activeSessionKey).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Delete session" })).toBeTruthy();
+  });
 });

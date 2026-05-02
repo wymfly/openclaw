@@ -1,0 +1,1948 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-density="comfortable">
+<head>
+  <meta charset="utf-8" />
+  <title>deck-go agents enterprise prototype v2</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233357d4'/%3E%3Ctext x='16' y='21' text-anchor='middle' font-family='Arial' font-size='12' fill='white' font-weight='700'%3EOC%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ds-font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+      --ds-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --ds-sp-1: 4px;
+      --ds-sp-2: 6px;
+      --ds-sp-3: 8px;
+      --ds-sp-4: 12px;
+      --ds-sp-5: 16px;
+      --ds-sp-6: 20px;
+      --ds-sp-7: 24px;
+      --ds-sp-8: 32px;
+      --ds-radius-sm: 4px;
+      --ds-radius-md: 6px;
+      --ds-radius-lg: 10px;
+      --ds-radius-pill: 9999px;
+      --ds-row-h: 32px;
+      --ds-line: 1.5;
+      --ds-fs-body: 13.5px;
+      --ds-fs-code: 12.5px;
+      --ds-fs-meta: 11.5px;
+      color-scheme: light;
+    }
+
+    [data-density="compact"] {
+      --ds-row-h: 26px;
+      --ds-line: 1.4;
+      --ds-fs-body: 12.5px;
+      --ds-fs-code: 12px;
+      --ds-fs-meta: 11px;
+    }
+
+    [data-theme="light"] {
+      --ds-bg-0: #f7f7f5;
+      --ds-bg-1: #ffffff;
+      --ds-bg-2: #f3f4f1;
+      --ds-bg-3: #ebede8;
+      --ds-bg-elev: #ffffff;
+      --ds-bg-hover: #ececea;
+      --ds-bg-active: #e0e3dc;
+      --ds-text-1: #15171a;
+      --ds-text-2: #555a64;
+      --ds-text-3: #898f99;
+      --ds-text-4: #b7bcc4;
+      --ds-border-subtle: #e8eae4;
+      --ds-border: #d8dbd2;
+      --ds-border-strong: #b7bcaf;
+      --ds-accent: #3357d4;
+      --ds-accent-dim: #6a85d8;
+      --ds-accent-bg: #e3eaff;
+      --ds-success: #2f7a4a;
+      --ds-success-bg: #e1f3e6;
+      --ds-warn: #8a5b14;
+      --ds-warn-bg: #fbeed3;
+      --ds-error: #b8302f;
+      --ds-error-bg: #fbe2e1;
+      --ds-code-bg: #f5f5f0;
+      --ds-code-border: #e3e5dd;
+      --ds-shadow-md: 0 4px 14px rgba(20, 20, 30, 0.08);
+      --ds-shadow-lg: 0 12px 40px rgba(20, 20, 30, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--ds-bg-0);
+      color: var(--ds-text-1);
+      font-family: var(--ds-font-sans);
+      font-size: var(--ds-fs-body);
+      line-height: var(--ds-line);
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .mono,
+    code {
+      font-family: var(--ds-font-mono);
+      font-size: var(--ds-fs-code);
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 214px minmax(0, 1fr);
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0) 36%),
+        var(--ds-bg-0);
+    }
+
+    .nav-rail {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-sp-5);
+      min-width: 0;
+      padding: var(--ds-sp-5) var(--ds-sp-3);
+      border-right: 1px solid var(--ds-border-subtle);
+      background: color-mix(in srgb, var(--ds-bg-1) 84%, transparent);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      padding: 0 var(--ds-sp-2);
+      min-height: 36px;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .brand strong {
+      font-size: 14px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: var(--ds-sp-1);
+    }
+
+    .nav-item,
+    .account-switcher,
+    .icon-button,
+    .button,
+    .tab-button,
+    .agent-row,
+    .plain-row,
+    .modal-close {
+      border: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      min-height: 40px;
+      padding: 0 var(--ds-sp-3);
+      border-radius: var(--ds-radius-md);
+      color: var(--ds-text-2);
+      text-align: left;
+    }
+
+    .nav-item:hover {
+      background: var(--ds-bg-hover);
+      color: var(--ds-text-1);
+    }
+
+    .nav-item.active {
+      background: var(--ds-accent-bg);
+      color: var(--ds-accent);
+      font-weight: 650;
+      box-shadow: inset 3px 0 0 var(--ds-accent);
+    }
+
+    .nav-spacer {
+      flex: 1;
+    }
+
+    .account-switcher {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) 16px;
+      gap: var(--ds-sp-2);
+      align-items: center;
+      min-height: 66px;
+      padding: var(--ds-sp-3);
+      border: 1px solid var(--ds-border-subtle);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      color: var(--ds-text-2);
+      text-align: left;
+    }
+
+    .account-switcher strong,
+    .agent-row strong,
+    .detail-title strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .account-switcher small {
+      display: block;
+      color: var(--ds-text-3);
+    }
+
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-4);
+      height: 72px;
+      padding: 0 var(--ds-sp-7);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      background: color-mix(in srgb, var(--ds-bg-1) 90%, transparent);
+    }
+
+    .crumbs {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      min-width: 210px;
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+    }
+
+    .crumbs strong {
+      color: var(--ds-text-1);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .top-status {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-2);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      margin-left: auto;
+    }
+
+    .global-search {
+      position: relative;
+      width: clamp(220px, 22vw, 330px);
+    }
+
+    .global-search input,
+    .filter-control,
+    .field-control,
+    textarea.field-control {
+      width: 100%;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      color: var(--ds-text-1);
+      outline: none;
+    }
+
+    .global-search input {
+      height: 38px;
+      padding: 0 48px 0 34px;
+    }
+
+    .global-search svg {
+      position: absolute;
+      top: 50%;
+      left: var(--ds-sp-4);
+      transform: translateY(-50%);
+      color: var(--ds-text-3);
+    }
+
+    .kbd {
+      position: absolute;
+      top: 50%;
+      right: var(--ds-sp-3);
+      transform: translateY(-50%);
+      padding: 1px 6px;
+      border: 1px solid var(--ds-border-subtle);
+      border-radius: var(--ds-radius-sm);
+      background: var(--ds-bg-2);
+      color: var(--ds-text-3);
+      font-family: var(--ds-font-mono);
+      font-size: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-sp-2);
+      min-height: 26px;
+      padding: 0 var(--ds-sp-3);
+      border: 1px solid var(--ds-border-subtle);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-2);
+      color: var(--ds-text-2);
+      font-size: var(--ds-fs-meta);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      border-color: color-mix(in srgb, var(--ds-success) 24%, var(--ds-border));
+      background: var(--ds-success-bg);
+      color: var(--ds-success);
+    }
+
+    .pill.warn {
+      border-color: color-mix(in srgb, var(--ds-warn) 24%, var(--ds-border));
+      background: var(--ds-warn-bg);
+      color: var(--ds-warn);
+    }
+
+    .pill.error {
+      border-color: color-mix(in srgb, var(--ds-error) 24%, var(--ds-border));
+      background: var(--ds-error-bg);
+      color: var(--ds-error);
+    }
+
+    .pill.accent {
+      border-color: color-mix(in srgb, var(--ds-accent) 24%, var(--ds-border));
+      background: var(--ds-accent-bg);
+      color: var(--ds-accent);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: var(--ds-radius-pill);
+      background: currentColor;
+    }
+
+    .agents-workbench {
+      display: grid;
+      grid-template-columns: minmax(318px, 346px) minmax(520px, 1fr) minmax(278px, 330px);
+      flex: 1;
+      min-height: 0;
+    }
+
+    .agents-list-panel,
+    .agent-detail-panel,
+    .right-rail {
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .agents-list-panel {
+      border-right: 1px solid var(--ds-border-subtle);
+      background: color-mix(in srgb, var(--ds-bg-1) 74%, var(--ds-bg-0));
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ds-sp-3);
+      padding: var(--ds-sp-6) var(--ds-sp-5) var(--ds-sp-4);
+    }
+
+    .panel-header h1,
+    .panel-header h2,
+    .section h3,
+    .right-section h3,
+    .modal-card h3,
+    .drawer-card h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .count {
+      color: var(--ds-text-3);
+      font-weight: 500;
+    }
+
+    .list-controls {
+      display: grid;
+      gap: var(--ds-sp-3);
+      padding: 0 var(--ds-sp-5) var(--ds-sp-4);
+    }
+
+    .agent-search {
+      position: relative;
+    }
+
+    .agent-search input {
+      width: 100%;
+      height: 40px;
+      padding: 0 var(--ds-sp-4) 0 34px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      outline: none;
+    }
+
+    .agent-search svg {
+      position: absolute;
+      top: 50%;
+      left: var(--ds-sp-4);
+      transform: translateY(-50%);
+      color: var(--ds-text-3);
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--ds-sp-3);
+    }
+
+    .filter-control,
+    .field-control {
+      height: 40px;
+      padding: 0 var(--ds-sp-3);
+      color: var(--ds-text-1);
+    }
+
+    .agent-table-head,
+    .agent-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 72px 82px;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      padding: 0 var(--ds-sp-5);
+    }
+
+    .agent-table-head {
+      min-height: 42px;
+      border-top: 1px solid var(--ds-border-subtle);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+      font-weight: 700;
+    }
+
+    .agent-row {
+      width: 100%;
+      min-height: 78px;
+      border-bottom: 1px solid var(--ds-border-subtle);
+      color: var(--ds-text-1);
+      text-align: left;
+    }
+
+    .agent-row:hover {
+      background: var(--ds-bg-hover);
+    }
+
+    .agent-row.active {
+      background: color-mix(in srgb, var(--ds-accent-bg) 58%, var(--ds-bg-elev));
+      box-shadow: inset 3px 0 0 var(--ds-accent);
+    }
+
+    .agent-identity {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: var(--ds-sp-3);
+      align-items: center;
+      min-width: 0;
+    }
+
+    .agent-row strong,
+    .agent-row small,
+    .detail-title strong,
+    .detail-title span {
+      display: block;
+      min-width: 0;
+    }
+
+    .agent-row small,
+    .muted,
+    .meta {
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+    }
+
+    .agent-avatar {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-accent-bg);
+      color: var(--ds-accent);
+      font-weight: 700;
+    }
+
+    .agent-avatar.large {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--ds-radius-lg);
+      font-size: 22px;
+    }
+
+    .agent-detail-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--ds-bg-1);
+    }
+
+    .detail-hero {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--ds-sp-5);
+      padding: var(--ds-sp-8) var(--ds-sp-7) var(--ds-sp-5);
+      border-bottom: 1px solid var(--ds-border-subtle);
+    }
+
+    .detail-title {
+      min-width: 0;
+    }
+
+    .detail-title strong {
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .detail-title span {
+      margin-top: var(--ds-sp-2);
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      white-space: nowrap;
+    }
+
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-5);
+      min-height: 54px;
+      padding: 0 var(--ds-sp-7);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      position: relative;
+      min-height: 54px;
+      padding: 0;
+      color: var(--ds-text-2);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tab-button.active {
+      color: var(--ds-accent);
+    }
+
+    .tab-button.active::after {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 2px;
+      border-radius: var(--ds-radius-pill);
+      background: var(--ds-accent);
+      content: "";
+    }
+
+    .detail-content {
+      display: grid;
+      gap: var(--ds-sp-7);
+      padding: var(--ds-sp-7);
+    }
+
+    .section {
+      display: grid;
+      gap: var(--ds-sp-5);
+      min-width: 0;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ds-sp-4);
+    }
+
+    .section-kicker {
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ds-sp-5) var(--ds-sp-8);
+      padding-bottom: var(--ds-sp-6);
+      border-bottom: 1px solid var(--ds-border);
+    }
+
+    .info-item {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: var(--ds-sp-4);
+      align-items: center;
+      min-height: var(--ds-row-h);
+    }
+
+    .info-item span:first-child,
+    .metric label {
+      color: var(--ds-text-2);
+      font-size: var(--ds-fs-meta);
+      font-weight: 600;
+    }
+
+    .info-item strong {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .health-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--ds-sp-4);
+      padding-bottom: var(--ds-sp-6);
+      border-bottom: 1px solid var(--ds-border);
+    }
+
+    .metric {
+      display: grid;
+      gap: var(--ds-sp-2);
+      min-width: 0;
+      padding: var(--ds-sp-4);
+      border: 1px solid var(--ds-border-subtle);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-2);
+    }
+
+    .metric strong {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .timeline {
+      display: grid;
+      gap: var(--ds-sp-4);
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr) 116px;
+      gap: var(--ds-sp-3);
+      align-items: start;
+    }
+
+    .timeline-row p {
+      margin: 0;
+      color: var(--ds-text-1);
+      font-weight: 500;
+    }
+
+    .timeline-row small {
+      display: block;
+      margin-top: var(--ds-sp-1);
+      color: var(--ds-text-3);
+    }
+
+    .list {
+      display: grid;
+      border: 1px solid var(--ds-border-subtle);
+      border-radius: var(--ds-radius-md);
+      overflow: hidden;
+      background: var(--ds-bg-elev);
+    }
+
+    .plain-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--ds-sp-4);
+      min-height: 48px;
+      padding: var(--ds-sp-3) var(--ds-sp-4);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      text-align: left;
+    }
+
+    .plain-row:last-child {
+      border-bottom: 0;
+    }
+
+    .plain-row:hover {
+      background: var(--ds-bg-hover);
+    }
+
+    .plain-row strong,
+    .plain-row small {
+      display: block;
+    }
+
+    .policy-meter {
+      display: grid;
+      grid-template-columns: var(--allow, 1fr) var(--approval, 1fr) var(--deny, 1fr);
+      height: 8px;
+      overflow: hidden;
+      border-radius: var(--ds-radius-pill);
+      background: var(--ds-bg-3);
+    }
+
+    .policy-meter span:nth-child(1) {
+      background: var(--ds-success);
+    }
+
+    .policy-meter span:nth-child(2) {
+      background: #e99a22;
+    }
+
+    .policy-meter span:nth-child(3) {
+      background: var(--ds-error);
+    }
+
+    .code-panel {
+      display: grid;
+      gap: var(--ds-sp-3);
+      padding: var(--ds-sp-4);
+      border: 1px solid var(--ds-code-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-code-bg);
+      color: var(--ds-text-2);
+    }
+
+    .code-panel pre {
+      margin: 0;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+
+    .right-rail {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-sp-5);
+      padding: var(--ds-sp-7) var(--ds-sp-5);
+      border-left: 1px solid var(--ds-border-subtle);
+      background: color-mix(in srgb, var(--ds-bg-1) 74%, var(--ds-bg-0));
+    }
+
+    .right-section {
+      display: grid;
+      gap: var(--ds-sp-4);
+      padding: var(--ds-sp-4);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+    }
+
+    .right-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ds-sp-3);
+    }
+
+    .right-metric {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto;
+      gap: var(--ds-sp-3);
+      align-items: center;
+      min-height: 42px;
+      padding-bottom: var(--ds-sp-3);
+      border-bottom: 1px solid var(--ds-border-subtle);
+    }
+
+    .right-metric:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    .right-metric strong {
+      font-size: 18px;
+      font-weight: 650;
+    }
+
+    .right-metric > span:nth-child(2) {
+      display: grid;
+      gap: 1px;
+      min-width: 0;
+    }
+
+    .right-metric > span:nth-child(2) strong,
+    .right-metric > span:nth-child(2) small {
+      display: block;
+      min-width: 0;
+    }
+
+    .event-row {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      gap: var(--ds-sp-3);
+      align-items: center;
+      min-height: 34px;
+    }
+
+    .event-row span:nth-child(2) {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--ds-sp-2);
+      min-height: 36px;
+      padding: 0 var(--ds-sp-4);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      color: var(--ds-text-1);
+      font-weight: 650;
+      white-space: nowrap;
+    }
+
+    .button:hover,
+    .icon-button:hover {
+      border-color: var(--ds-border-strong);
+      background: var(--ds-bg-hover);
+    }
+
+    .button.primary {
+      border-color: var(--ds-accent);
+      background: var(--ds-accent);
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(51, 87, 212, 0.18);
+    }
+
+    .button.danger {
+      color: var(--ds-error);
+    }
+
+    .button.ghost {
+      border-color: transparent;
+      background: transparent;
+      color: var(--ds-text-2);
+    }
+
+    .button.small {
+      min-height: 30px;
+      padding: 0 var(--ds-sp-3);
+      font-size: var(--ds-fs-meta);
+    }
+
+    .icon-button,
+    .modal-close {
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      color: var(--ds-text-2);
+    }
+
+    .mini-icon {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--ds-radius-pill);
+      background: var(--ds-bg-2);
+      color: var(--ds-text-2);
+    }
+
+    .mini-icon.ok {
+      background: var(--ds-success-bg);
+      color: var(--ds-success);
+    }
+
+    .mini-icon.warn {
+      background: var(--ds-warn-bg);
+      color: var(--ds-warn);
+    }
+
+    .mini-icon.error {
+      background: var(--ds-error-bg);
+      color: var(--ds-error);
+    }
+
+    .contract-strip {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--ds-sp-4);
+      margin-top: var(--ds-sp-2);
+      padding-top: var(--ds-sp-5);
+      border-top: 1px solid var(--ds-border);
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+    }
+
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-2);
+      margin-left: var(--ds-sp-2);
+    }
+
+    .segment {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-2);
+    }
+
+    .segment button {
+      min-height: 26px;
+      padding: 0 var(--ds-sp-3);
+      border: 0;
+      border-radius: var(--ds-radius-sm);
+      background: transparent;
+      color: var(--ds-text-2);
+      font-size: var(--ds-fs-meta);
+      font-weight: 650;
+    }
+
+    .segment button.active {
+      background: var(--ds-bg-elev);
+      color: var(--ds-text-1);
+      box-shadow: var(--ds-shadow-md);
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: grid;
+      place-items: center;
+      padding: var(--ds-sp-7);
+      background: rgba(21, 23, 26, 0.28);
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-card,
+    .drawer-card {
+      width: min(560px, 100%);
+      max-height: min(720px, calc(100vh - 64px));
+      overflow: auto;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-lg);
+      background: var(--ds-bg-elev);
+      box-shadow: var(--ds-shadow-lg);
+    }
+
+    .drawer-card {
+      margin-left: auto;
+      width: min(520px, 100%);
+      height: calc(100vh - 48px);
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ds-sp-4);
+      padding: var(--ds-sp-5);
+      border-bottom: 1px solid var(--ds-border-subtle);
+    }
+
+    .modal-body {
+      display: grid;
+      gap: var(--ds-sp-5);
+      padding: var(--ds-sp-5);
+    }
+
+    .field {
+      display: grid;
+      gap: var(--ds-sp-2);
+      color: var(--ds-text-2);
+      font-size: var(--ds-fs-meta);
+      font-weight: 700;
+    }
+
+    textarea.field-control {
+      min-height: 96px;
+      padding: var(--ds-sp-3);
+      resize: vertical;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--ds-sp-3);
+      padding: var(--ds-sp-5);
+      border-top: 1px solid var(--ds-border-subtle);
+    }
+
+    .toast {
+      position: fixed;
+      right: var(--ds-sp-7);
+      bottom: var(--ds-sp-7);
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      min-height: 42px;
+      max-width: min(380px, calc(100vw - 32px));
+      padding: 0 var(--ds-sp-4);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-elev);
+      box-shadow: var(--ds-shadow-lg);
+      font-weight: 650;
+    }
+
+    .hide-right .agents-workbench {
+      grid-template-columns: minmax(318px, 346px) minmax(520px, 1fr);
+    }
+
+    .hide-right .right-rail {
+      display: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 1220px) {
+      .agents-workbench {
+        grid-template-columns: minmax(300px, 342px) minmax(0, 1fr);
+      }
+
+      .right-rail {
+        display: none;
+      }
+
+      .global-search {
+        width: 240px;
+      }
+    }
+
+    @media (max-width: 960px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-rail {
+        display: none;
+      }
+
+      .topbar {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: 72px;
+        padding: var(--ds-sp-4);
+      }
+
+      .crumbs {
+        min-width: 0;
+      }
+
+      .topbar-actions {
+        width: 100%;
+        margin-left: 0;
+      }
+
+      .global-search {
+        flex: 1;
+        width: auto;
+      }
+
+      .agents-workbench,
+      .hide-right .agents-workbench {
+        grid-template-columns: 1fr;
+      }
+
+      .agents-list-panel {
+        max-height: 48vh;
+        border-right: 0;
+        border-bottom: 1px solid var(--ds-border-subtle);
+      }
+
+      .detail-hero,
+      .info-grid,
+      .health-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-actions {
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .panel-header,
+      .detail-content,
+      .detail-hero,
+      .tabs {
+        padding-right: var(--ds-sp-4);
+        padding-left: var(--ds-sp-4);
+      }
+
+      .agent-table-head,
+      .agent-row {
+        grid-template-columns: minmax(0, 1fr) 68px;
+      }
+
+      .agent-table-head span:nth-child(3),
+      .agent-row > span:nth-child(3) {
+        display: none;
+      }
+
+      .filter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .view-controls {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef, useState } = React;
+
+    const navItems = [
+      ["overview", "Overview", "grid"],
+      ["chat", "Chat", "chat"],
+      ["agents", "Agents", "agents"],
+      ["routing", "Routing", "route"],
+      ["subagents", "Subagents", "nodes"],
+      ["channels", "Channels", "channels"],
+      ["models", "Models", "cube"],
+      ["logs", "Logs", "file"],
+      ["settings", "Settings", "settings"],
+    ];
+
+    const tabs = [
+      ["overview", "Overview"],
+      ["model", "Model"],
+      ["tools", "Tool Policy"],
+      ["skills", "Skills"],
+      ["subagents", "Subagents"],
+      ["files", "Files"],
+    ];
+
+    const baseAgents = [
+      {
+        id: "main",
+        name: "Main",
+        status: "busy",
+        provider: "cpa",
+        model: "gpt-5.4",
+        workspace: "/workspaces/acme/agents/main",
+        sessions: 18,
+        bindings: 4,
+        lastActive: "2 min ago",
+        defaultAgent: true,
+        successRate: "98.6%",
+        latency: "1.2s",
+        promptSources: 2,
+        skillMode: "whitelist",
+        skills: ["Data Enrichment v2", "SQL Audit", "Incident Drafting", "Web Search", "Runbook Lookup", "Policy Guard"],
+        availableSkills: 18,
+        tools: { allow: 42, approval: 8, deny: 3 },
+        subagents: ["ops-runner", "data-enricher", "support-triage", "compliance-bot"],
+        fallbackModels: ["gpt-5.4-mini", "gpt-4.1"],
+        risks: [
+          ["High risk warnings", "1", "error"],
+          ["Medium risk warnings", "2", "warn"],
+          ["Default deny", "Enabled", "ok"],
+          ["Pending approvals", "8", "neutral"],
+        ],
+        events: [
+          ["INFO", "Session #a1b2c3 completed", "10:24"],
+          ["WARN", "Tool call requires approval: write_file", "10:22"],
+          ["INFO", "Skill loaded: Data Enrichment v2", "10:19"],
+          ["ERROR", "Subagent call failed: ops-runner", "10:18"],
+        ],
+        changes: [
+          ["Updated tool policy: added 8 allow rules", "admin", "2026-05-03 10:21", "ok"],
+          ["Enabled skill: Data Enrichment v2", "alice", "2026-05-02 16:47", "accent"],
+          ["Added subagent binding: data-enricher", "bob", "2026-05-02 11:09", "warn"],
+        ],
+        files: [
+          ["AGENTS.md", "14.2 KB", "workspace bootstrap"],
+          ["policy.md", "8.8 KB", "runtime guardrails"],
+          ["runbook.md", "22.1 KB", "incident response"],
+        ],
+      },
+      {
+        id: "cpa-analyst",
+        name: "CPA Analyst",
+        status: "idle",
+        provider: "cpa",
+        model: "gpt-5.4",
+        workspace: "/workspaces/acme/agents/cpa-analyst",
+        sessions: 9,
+        bindings: 2,
+        lastActive: "8 min ago",
+        defaultAgent: false,
+        successRate: "96.4%",
+        latency: "1.7s",
+        promptSources: 3,
+        skillMode: "all",
+        skills: ["Financial Review", "Spreadsheet Audit", "Report Drafting"],
+        availableSkills: 18,
+        tools: { allow: 35, approval: 11, deny: 4 },
+        subagents: ["data-enricher"],
+        fallbackModels: ["gpt-4.1"],
+        risks: [["High risk warnings", "0", "ok"], ["Medium risk warnings", "1", "warn"], ["Default deny", "Enabled", "ok"], ["Pending approvals", "3", "neutral"]],
+        events: [["INFO", "Financial model pass completed", "10:10"], ["INFO", "Spreadsheet attachment indexed", "10:04"], ["WARN", "Manual approval requested", "09:59"]],
+        changes: [["Refreshed model fallback chain", "admin", "2026-05-03 09:40", "accent"], ["Loaded skill: Spreadsheet Audit", "alice", "2026-05-02 15:14", "ok"]],
+        files: [["AGENTS.md", "9.4 KB", "workspace bootstrap"], ["finance-policy.md", "6.1 KB", "domain policy"]],
+      },
+      {
+        id: "ops-runner",
+        name: "Ops Runner",
+        status: "busy",
+        provider: "cpa",
+        model: "gpt-4.1",
+        workspace: "/workspaces/acme/agents/ops-runner",
+        sessions: 11,
+        bindings: 6,
+        lastActive: "5 min ago",
+        defaultAgent: false,
+        successRate: "94.2%",
+        latency: "1.9s",
+        promptSources: 2,
+        skillMode: "whitelist",
+        skills: ["Runbook Lookup", "Shell Review", "Incident Drafting"],
+        availableSkills: 18,
+        tools: { allow: 28, approval: 16, deny: 9 },
+        subagents: ["support-triage"],
+        fallbackModels: ["gpt-5.4-mini"],
+        risks: [["High risk warnings", "2", "error"], ["Medium risk warnings", "4", "warn"], ["Default deny", "Enabled", "ok"], ["Pending approvals", "11", "neutral"]],
+        events: [["ERROR", "Command blocked by default deny", "10:18"], ["WARN", "Elevated shell requested", "10:16"], ["INFO", "Incident plan drafted", "10:01"]],
+        changes: [["Restricted shell tool policy", "security", "2026-05-03 09:30", "error"], ["Added runbook lookup skill", "bob", "2026-05-02 14:50", "ok"]],
+        files: [["AGENTS.md", "11.8 KB", "workspace bootstrap"], ["runbook.md", "20.4 KB", "incident response"]],
+      },
+      {
+        id: "support-triage",
+        name: "Support Triage",
+        status: "idle",
+        provider: "cpa",
+        model: "gpt-4.1",
+        workspace: "/workspaces/acme/agents/support-triage",
+        sessions: 7,
+        bindings: 3,
+        lastActive: "12 min ago",
+        defaultAgent: false,
+        successRate: "97.1%",
+        latency: "1.4s",
+        promptSources: 1,
+        skillMode: "all",
+        skills: ["Ticket Summaries", "Account Lookup", "Policy Guard"],
+        availableSkills: 18,
+        tools: { allow: 24, approval: 6, deny: 5 },
+        subagents: ["compliance-bot"],
+        fallbackModels: ["gpt-5.4-mini"],
+        risks: [["High risk warnings", "0", "ok"], ["Medium risk warnings", "1", "warn"], ["Default deny", "Enabled", "ok"], ["Pending approvals", "2", "neutral"]],
+        events: [["INFO", "Ticket cluster summarized", "10:05"], ["INFO", "Account lookup completed", "09:51"]],
+        changes: [["Updated support escalation policy", "maria", "2026-05-02 12:20", "accent"], ["Added compliance-bot binding", "admin", "2026-05-02 10:12", "ok"]],
+        files: [["AGENTS.md", "7.6 KB", "workspace bootstrap"], ["support-policy.md", "5.8 KB", "domain policy"]],
+      },
+      {
+        id: "data-enricher",
+        name: "Data Enricher",
+        status: "busy",
+        provider: "cpa",
+        model: "gpt-4.1",
+        workspace: "/workspaces/acme/agents/data-enricher",
+        sessions: 13,
+        bindings: 5,
+        lastActive: "3 min ago",
+        defaultAgent: false,
+        successRate: "95.8%",
+        latency: "2.1s",
+        promptSources: 2,
+        skillMode: "whitelist",
+        skills: ["Data Enrichment v2", "Web Search", "Schema Mapper"],
+        availableSkills: 18,
+        tools: { allow: 31, approval: 13, deny: 6 },
+        subagents: [],
+        fallbackModels: ["gpt-5.4-mini"],
+        risks: [["High risk warnings", "1", "error"], ["Medium risk warnings", "1", "warn"], ["Default deny", "Enabled", "ok"], ["Pending approvals", "6", "neutral"]],
+        events: [["INFO", "Dataset enrichment completed", "10:13"], ["WARN", "External fetch approval required", "10:02"]],
+        changes: [["Enabled schema mapper skill", "alice", "2026-05-02 17:15", "ok"], ["Updated fetch tool constraints", "security", "2026-05-02 13:00", "warn"]],
+        files: [["AGENTS.md", "10.9 KB", "workspace bootstrap"], ["schema-map.md", "13.3 KB", "mapping policy"]],
+      },
+      {
+        id: "compliance-bot",
+        name: "Compliance Bot",
+        status: "error",
+        provider: "cpa",
+        model: "gpt-4.1",
+        workspace: "/workspaces/acme/agents/compliance-bot",
+        sessions: 4,
+        bindings: 2,
+        lastActive: "25 min ago",
+        defaultAgent: false,
+        successRate: "91.0%",
+        latency: "2.8s",
+        promptSources: 4,
+        skillMode: "whitelist",
+        skills: ["Policy Guard", "Audit Log Review"],
+        availableSkills: 18,
+        tools: { allow: 18, approval: 12, deny: 12 },
+        subagents: [],
+        fallbackModels: ["gpt-5.4-mini"],
+        risks: [["High risk warnings", "3", "error"], ["Medium risk warnings", "5", "warn"], ["Default deny", "Enabled", "ok"], ["Pending approvals", "14", "neutral"]],
+        events: [["ERROR", "Policy preview failed", "09:57"], ["WARN", "Stale config hash detected", "09:48"], ["INFO", "Audit log imported", "09:44"]],
+        changes: [["Policy preview conflict detected", "system", "2026-05-03 09:48", "error"], ["Refreshed audit log connector", "admin", "2026-05-02 16:22", "accent"]],
+        files: [["AGENTS.md", "8.2 KB", "workspace bootstrap"], ["compliance-policy.md", "19.1 KB", "domain policy"]],
+      },
+    ];
+
+    function Icon({ name, size = 16 }) {
+      const common = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.8", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" };
+      const paths = {
+        grid: <><rect x="4" y="4" width="6" height="6" rx="1.5" /><rect x="14" y="4" width="6" height="6" rx="1.5" /><rect x="4" y="14" width="6" height="6" rx="1.5" /><rect x="14" y="14" width="6" height="6" rx="1.5" /></>,
+        chat: <><path d="M5 6.5h14v9H9l-4 3v-12Z" /><path d="M8 10h8" /><path d="M8 13h5" /></>,
+        agents: <><circle cx="8" cy="8" r="3" /><circle cx="16" cy="8" r="3" /><circle cx="8" cy="16" r="3" /><circle cx="16" cy="16" r="3" /></>,
+        route: <><path d="M6 18c5 0 3-12 8-12h4" /><path d="m16 4 2 2-2 2" /><circle cx="6" cy="18" r="2" /></>,
+        nodes: <><rect x="4" y="4" width="6" height="6" rx="2" /><rect x="14" y="4" width="6" height="6" rx="2" /><rect x="9" y="14" width="6" height="6" rx="2" /><path d="M10 8h4" /><path d="m8 10 3 4" /><path d="m16 10-3 4" /></>,
+        channels: <><path d="M5 12h14" /><path d="M12 5v14" /><circle cx="12" cy="12" r="8" /></>,
+        cube: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="M12 12 4.5 7.5" /><path d="M12 12v9" /><path d="m12 12 7.5-4.5" /></>,
+        file: <><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></>,
+        settings: <><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.3 3.1a7 7 0 0 0-1.7 1l-2.4-1-2 3.4 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.3 3.1h5l.3-3.1a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5a7 7 0 0 0 .1-1Z" /></>,
+        search: <><circle cx="11" cy="11" r="6" /><path d="m16 16 4 4" /></>,
+        refresh: <><path d="M20 7v5h-5" /><path d="M4 17v-5h5" /><path d="M18 9a7 7 0 0 0-11.7-2" /><path d="M6 15a7 7 0 0 0 11.7 2" /></>,
+        play: <path d="M8 5v14l11-7L8 5Z" />,
+        edit: <><path d="m4 16-.7 4 4-.7L19 7.6 15.4 4 4 16Z" /><path d="m14 5 5 5" /></>,
+        more: <><circle cx="12" cy="5" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="12" cy="19" r="1" /></>,
+        check: <path d="m5 12 4 4L19 6" />,
+        alert: <><path d="M12 3 2.8 19h18.4L12 3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></>,
+        clock: <><circle cx="12" cy="12" r="8" /><path d="M12 8v5l3 2" /></>,
+        shield: <path d="M12 3 5 6v5c0 5 3.4 8.3 7 10 3.6-1.7 7-5 7-10V6l-7-3Z" />,
+        bell: <><path d="M18 16H6c1-1.4 1.5-3 1.5-5a4.5 4.5 0 0 1 9 0c0 2 .5 3.6 1.5 5Z" /><path d="M10 19h4" /></>,
+        book: <><path d="M5 4h10a4 4 0 0 1 4 4v12H8a3 3 0 0 0-3 3V4Z" /><path d="M5 18a3 3 0 0 1 3-3h11" /></>,
+        plus: <><path d="M12 5v14" /><path d="M5 12h14" /></>,
+        close: <><path d="M6 6l12 12" /><path d="M18 6 6 18" /></>,
+        save: <><path d="M5 4h12l2 2v14H5V4Z" /><path d="M8 4v6h8" /><path d="M8 18h8" /></>,
+        chevron: <path d="m9 6 6 6-6 6" />,
+      };
+      return <svg {...common}>{paths[name] || paths.grid}</svg>;
+    }
+
+    function statusTone(status) {
+      if (status === "busy") return "accent";
+      if (status === "idle") return "ok";
+      if (status === "error") return "error";
+      return "";
+    }
+
+    function Pill({ tone, children }) {
+      return <span className={`pill ${tone || ""}`.trim()}>{children}</span>;
+    }
+
+    function Button({ children, tone, size, onClick, type = "button" }) {
+      return <button type={type} className={`button ${tone || ""} ${size || ""}`.trim()} onClick={onClick}>{children}</button>;
+    }
+
+    function IconButton({ label, icon, onClick }) {
+      return <button type="button" className="icon-button" aria-label={label} title={label} onClick={onClick}><Icon name={icon} /></button>;
+    }
+
+    function App() {
+      const [agents, setAgents] = useState(baseAgents);
+      const [selectedId, setSelectedId] = useState("main");
+      const [query, setQuery] = useState("");
+      const [statusFilter, setStatusFilter] = useState("all");
+      const [providerFilter, setProviderFilter] = useState("all");
+      const [tab, setTab] = useState("overview");
+      const [density, setDensity] = useState("comfortable");
+      const [rightVisible, setRightVisible] = useState(true);
+      const [runOpen, setRunOpen] = useState(false);
+      const [editOpen, setEditOpen] = useState(false);
+      const [toast, setToast] = useState(null);
+      const searchRef = useRef(null);
+
+      const selected = agents.find((agent) => agent.id === selectedId) || agents[0];
+
+      useEffect(() => {
+        document.documentElement.dataset.density = density;
+      }, [density]);
+
+      useEffect(() => {
+        function onKeyDown(event) {
+          const target = event.target;
+          const isText = target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+            event.preventDefault();
+            searchRef.current?.focus();
+          }
+          if (event.key === "Escape") {
+            setRunOpen(false);
+            setEditOpen(false);
+          }
+          if (!isText && event.key.toLowerCase() === "r") {
+            setRunOpen(true);
+          }
+        }
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+      }, []);
+
+      useEffect(() => {
+        if (!toast) return;
+        const id = window.setTimeout(() => setToast(null), 2600);
+        return () => window.clearTimeout(id);
+      }, [toast]);
+
+      const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return agents.filter((agent) => {
+          const haystack = [agent.id, agent.name, agent.model, agent.provider, agent.workspace].join(" ").toLowerCase();
+          const matchesQuery = !q || haystack.includes(q);
+          const matchesStatus = statusFilter === "all" || agent.status === statusFilter;
+          const matchesProvider = providerFilter === "all" || agent.provider === providerFilter;
+          return matchesQuery && matchesStatus && matchesProvider;
+        });
+      }, [agents, providerFilter, query, statusFilter]);
+
+      function updateSelected(patch) {
+        setAgents((items) => items.map((agent) => agent.id === selected.id ? { ...agent, ...patch } : agent));
+      }
+
+      function startTest(message) {
+        updateSelected({
+          status: "busy",
+          lastActive: "now",
+          sessions: selected.sessions + 1,
+          events: [["INFO", `Test run queued: ${message.slice(0, 44) || "default smoke"}`, "now"], ...selected.events].slice(0, 5),
+        });
+        setToast({ tone: "accent", text: `Test run started for ${selected.name}` });
+        setRunOpen(false);
+        window.setTimeout(() => {
+          setAgents((items) => items.map((agent) => agent.id === selected.id ? {
+            ...agent,
+            status: "idle",
+            events: [["INFO", "Test run completed successfully", "now"], ...agent.events].slice(0, 5),
+          } : agent));
+          setToast({ tone: "ok", text: `${selected.name} test completed` });
+        }, 1800);
+      }
+
+      function saveAgent(next) {
+        updateSelected(next);
+        setEditOpen(false);
+        setToast({ tone: "ok", text: `${next.name || selected.name} saved` });
+      }
+
+      return (
+        <div className={`app-shell ${rightVisible ? "" : "hide-right"}`}>
+          <aside className="nav-rail" aria-label="Main navigation">
+            <div className="brand">
+              <span className="brand-mark">OC</span>
+              <strong>OpenClaw Deck</strong>
+            </div>
+            <nav className="nav-list">
+              {navItems.map(([id, label, icon]) => (
+                <button key={id} type="button" className={`nav-item ${id === "agents" ? "active" : ""}`}>
+                  <Icon name={icon} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="nav-spacer" />
+            <button className="account-switcher" type="button">
+              <span className="agent-avatar">AC</span>
+              <span><strong>Acme Corp</strong><small>Production</small></span>
+              <Icon name="chevron" size={14} />
+            </button>
+          </aside>
+
+          <main className="workspace">
+            <header className="topbar">
+              <div className="crumbs"><span>Operations</span><span>/</span><strong>Agents</strong></div>
+              <div className="top-status">
+                <Pill tone="ok"><span className="dot" />Gateway connected</Pill>
+                <Pill tone="ok"><Icon name="check" size={14} />Schema synced</Pill>
+              </div>
+              <div className="topbar-actions">
+                <div className="global-search">
+                  <Icon name="search" />
+                  <input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search agents" />
+                  <span className="kbd">⌘K</span>
+                </div>
+                <div className="view-controls" aria-label="Prototype view options">
+                  <div className="segment">
+                    <button className={density === "comfortable" ? "active" : ""} onClick={() => setDensity("comfortable")}>Calm</button>
+                    <button className={density === "compact" ? "active" : ""} onClick={() => setDensity("compact")}>Compact</button>
+                  </div>
+                  <IconButton label={rightVisible ? "Hide right rail" : "Show right rail"} icon="book" onClick={() => setRightVisible(!rightVisible)} />
+                </div>
+              </div>
+            </header>
+
+            <div className="agents-workbench">
+              <AgentsList
+                agents={filtered}
+                allCount={agents.length}
+                selected={selected}
+                query={query}
+                statusFilter={statusFilter}
+                providerFilter={providerFilter}
+                setQuery={setQuery}
+                setStatusFilter={setStatusFilter}
+                setProviderFilter={setProviderFilter}
+                setSelectedId={(id) => { setSelectedId(id); setTab("overview"); }}
+                onRefresh={() => setToast({ tone: "ok", text: "Agents refreshed from gateway" })}
+              />
+              <AgentDetail agent={selected} tab={tab} setTab={setTab} onRun={() => setRunOpen(true)} onEdit={() => setEditOpen(true)} updateSelected={updateSelected} />
+              <RightRail agent={selected} />
+            </div>
+          </main>
+
+          {runOpen ? <RunTestModal agent={selected} onCancel={() => setRunOpen(false)} onStart={startTest} /> : null}
+          {editOpen ? <EditDrawer agent={selected} onCancel={() => setEditOpen(false)} onSave={saveAgent} /> : null}
+          {toast ? <div className="toast"><Pill tone={toast.tone}><span className="dot" /></Pill><span>{toast.text}</span></div> : null}
+        </div>
+      );
+    }
+
+    function AgentsList({ agents, allCount, selected, query, statusFilter, providerFilter, setQuery, setStatusFilter, setProviderFilter, setSelectedId, onRefresh }) {
+      return (
+        <section className="agents-list-panel" aria-label="Agents inventory">
+          <div className="panel-header">
+            <h1>Agents <span className="count">{allCount}</span></h1>
+            <IconButton label="Refresh agents" icon="refresh" onClick={onRefresh} />
+          </div>
+          <div className="list-controls">
+            <label className="agent-search">
+              <span className="sr-only">Search agents</span>
+              <Icon name="search" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search Agents" />
+            </label>
+            <div className="filter-grid">
+              <select className="filter-control" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Status filter">
+                <option value="all">All status</option>
+                <option value="busy">Running</option>
+                <option value="idle">Idle</option>
+                <option value="error">Error</option>
+              </select>
+              <select className="filter-control" value={providerFilter} onChange={(event) => setProviderFilter(event.target.value)} aria-label="Provider filter">
+                <option value="all">All providers</option>
+                <option value="cpa">cpa</option>
+              </select>
+            </div>
+          </div>
+          <div className="agent-table-head" role="row">
+            <span>Agent</span>
+            <span>Status</span>
+            <span>Activity</span>
+          </div>
+          {agents.map((agent) => (
+            <button key={agent.id} type="button" className={`agent-row ${agent.id === selected.id ? "active" : ""}`} onClick={() => setSelectedId(agent.id)}>
+              <span className="agent-identity">
+                <span className="agent-avatar">{agent.name.slice(0, 2).toUpperCase()}</span>
+                <span><strong>{agent.name}</strong><small>{agent.id}</small></span>
+              </span>
+              <span><Pill tone={statusTone(agent.status)}><span className="dot" />{agent.status === "busy" ? "running" : agent.status}</Pill></span>
+              <span className="meta">{agent.lastActive}</span>
+            </button>
+          ))}
+          {agents.length === 0 ? (
+            <div className="detail-content">
+              <div className="section">
+                <h3>No matching agents</h3>
+                <p className="muted">Adjust search or filters to return to the gateway inventory.</p>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      );
+    }
+
+    function AgentDetail({ agent, tab, setTab, onRun, onEdit, updateSelected }) {
+      return (
+        <section className="agent-detail-panel" aria-label={`${agent.name} detail`}>
+          <div className="detail-hero">
+            <span className="agent-avatar large"><Icon name="agents" size={30} /></span>
+            <div className="detail-title">
+              <strong>{agent.name}</strong>
+              <span><span className="mono">{agent.id}</span> · {agent.provider} · {agent.model}</span>
+            </div>
+            <div className="hero-actions">
+              <Pill tone={statusTone(agent.status)}><span className="dot" />{agent.status === "busy" ? "running" : agent.status}</Pill>
+              <Button tone="primary" onClick={onRun}><Icon name="play" />Run test</Button>
+              <Button onClick={onEdit}><Icon name="edit" />Edit</Button>
+              <IconButton label="More actions" icon="more" onClick={() => {}} />
+            </div>
+          </div>
+          <nav className="tabs" aria-label="Agent detail sections">
+            {tabs.map(([id, label]) => (
+              <button key={id} type="button" className={`tab-button ${tab === id ? "active" : ""}`} onClick={() => setTab(id)}>{label}</button>
+            ))}
+          </nav>
+          <div className="detail-content">
+            {tab === "overview" ? <OverviewTab agent={agent} /> : null}
+            {tab === "model" ? <ModelTab agent={agent} /> : null}
+            {tab === "tools" ? <ToolsTab agent={agent} /> : null}
+            {tab === "skills" ? <SkillsTab agent={agent} updateSelected={updateSelected} /> : null}
+            {tab === "subagents" ? <SubagentsTab agent={agent} updateSelected={updateSelected} /> : null}
+            {tab === "files" ? <FilesTab agent={agent} /> : null}
+            <footer className="contract-strip">
+              <span>Gateway: <span className="mono">agents.list</span> / <span className="mono">deck.agents.detail</span></span>
+              <span>Deck API: <span className="mono">DeckGoAgentSummary</span> / <span className="mono">DeckGoAgentDetailResponse</span></span>
+              <span><Pill tone="ok"><Icon name="check" size={14} />Last sync ok</Pill></span>
+            </footer>
+          </div>
+        </section>
+      );
+    }
+
+    function OverviewTab({ agent }) {
+      return (
+        <>
+          <section className="section">
+            <div className="section-header">
+              <div><div className="section-kicker">A. Identity and runtime</div><h3>Agent operating profile</h3></div>
+            </div>
+            <div className="info-grid">
+              <div className="info-item"><span>Agent ID</span><strong className="mono">{agent.id}</strong></div>
+              <div className="info-item"><span>Workspace</span><strong title={agent.workspace}>{agent.workspace}</strong></div>
+              <div className="info-item"><span>Provider</span><strong>{agent.provider}</strong></div>
+              <div className="info-item"><span>Gateway</span><strong><Pill tone="ok"><span className="dot" />connected</Pill></strong></div>
+              <div className="info-item"><span>Model</span><strong>{agent.model}</strong></div>
+              <div className="info-item"><span>Scope</span><strong>{agent.defaultAgent ? "Default agent" : "Named agent"}</strong></div>
+            </div>
+          </section>
+          <section className="section">
+            <div className="section-header">
+              <div><div className="section-kicker">B. Configuration health</div><h3>What changes runtime behavior</h3></div>
+            </div>
+            <div className="health-strip">
+              <Metric label="Prompt sources" value={`${agent.promptSources}`} icon="file" />
+              <Metric label="Skills enabled" value={`${agent.skills.length}`} icon="agents" />
+              <Metric label="Tool policy" value={`${agent.tools.allow} allow`} icon="shield" />
+              <Metric label="Subagents" value={`${agent.subagents.length}`} icon="nodes" />
+            </div>
+          </section>
+          <section className="section">
+            <div className="section-header">
+              <div><div className="section-kicker">C. Recent changes</div><h3>Configuration timeline</h3></div>
+            </div>
+            <div className="timeline">
+              {agent.changes.map(([text, actor, time, tone]) => (
+                <div key={`${text}-${time}`} className="timeline-row">
+                  <span className={`mini-icon ${tone}`}><Icon name={tone === "error" ? "alert" : "check"} size={14} /></span>
+                  <span><p>{text}</p><small>{actor}</small></span>
+                  <span className="meta">{time}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      );
+    }
+
+    function Metric({ label, value, icon }) {
+      return <div className="metric"><span className="mini-icon"><Icon name={icon} size={14} /></span><label>{label}</label><strong>{value}</strong></div>;
+    }
+
+    function ModelTab({ agent }) {
+      return (
+        <section className="section">
+          <div className="section-header">
+            <div><div className="section-kicker">Model chain</div><h3>Provider routing and reasoning defaults</h3></div>
+            <Pill tone="accent">{agent.provider}</Pill>
+          </div>
+          <div className="info-grid">
+            <div className="info-item"><span>Primary model</span><strong>{agent.model}</strong></div>
+            <div className="info-item"><span>Fallbacks</span><strong>{agent.fallbackModels.join(", ")}</strong></div>
+            <div className="info-item"><span>Reasoning</span><strong>stream</strong></div>
+            <div className="info-item"><span>Fast mode</span><strong>disabled by default</strong></div>
+          </div>
+          <div className="code-panel">
+            <strong>Generated contract read path</strong>
+            <pre className="mono">{`GET /api/v1/runtimes/{runtimeId}/models/configured
+Gateway RPC: agents.list -> model.primary
+Patch path: PATCH /api/agents/{agentId}`}</pre>
+          </div>
+        </section>
+      );
+    }
+
+    function ToolsTab({ agent }) {
+      const total = agent.tools.allow + agent.tools.approval + agent.tools.deny;
+      const style = {
+        "--allow": `${Math.max(1, agent.tools.allow / total)}fr`,
+        "--approval": `${Math.max(1, agent.tools.approval / total)}fr`,
+        "--deny": `${Math.max(1, agent.tools.deny / total)}fr`,
+      };
+      return (
+        <section className="section">
+          <div className="section-header">
+            <div><div className="section-kicker">Tool policy preview</div><h3>Effective tools for this agent</h3></div>
+            <Button size="small"><Icon name="refresh" />Refresh preview</Button>
+          </div>
+          <div className="policy-meter" style={style}><span /><span /><span /></div>
+          <div className="health-strip">
+            <Metric label="Allow" value={agent.tools.allow} icon="check" />
+            <Metric label="Approval" value={agent.tools.approval} icon="alert" />
+            <Metric label="Deny" value={agent.tools.deny} icon="shield" />
+            <Metric label="Layers" value="4" icon="file" />
+          </div>
+          <div className="list">
+            {["read_file", "write_file", "shell_exec", "web_fetch", "apply_patch"].map((name, index) => (
+              <div className="plain-row" key={name}>
+                <span><strong className="mono">{name}</strong><small>{index === 1 ? "requires approval from workspace policy" : "decisive layer: agent policy"}</small></span>
+                <Pill tone={index === 1 ? "warn" : index === 2 ? "error" : "ok"}>{index === 1 ? "approval" : index === 2 ? "deny" : "allow"}</Pill>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    }
+
+    function SkillsTab({ agent, updateSelected }) {
+      function toggleSkill(skill) {
+        const exists = agent.skills.includes(skill);
+        updateSelected({ skills: exists ? agent.skills.filter((item) => item !== skill) : [...agent.skills, skill] });
+      }
+      const catalog = ["Data Enrichment v2", "SQL Audit", "Incident Drafting", "Web Search", "Runbook Lookup", "Policy Guard", "Schema Mapper", "Ticket Summaries"];
+      return (
+        <section className="section">
+          <div className="section-header">
+            <div><div className="section-kicker">Skills</div><h3>{agent.skillMode === "all" ? "All eligible skills" : "Whitelist mode"}</h3></div>
+            <Pill tone="accent">{agent.skills.length} / {agent.availableSkills} enabled</Pill>
+          </div>
+          <div className="list">
+            {catalog.map((skill) => {
+              const active = agent.skills.includes(skill);
+              return (
+                <button key={skill} type="button" className="plain-row" onClick={() => toggleSkill(skill)}>
+                  <span><strong>{skill}</strong><small>{active ? "assigned to this agent" : "eligible but not assigned"}</small></span>
+                  <Pill tone={active ? "ok" : ""}>{active ? "enabled" : "off"}</Pill>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      );
+    }
+
+    function SubagentsTab({ agent, updateSelected }) {
+      const candidates = ["ops-runner", "data-enricher", "support-triage", "compliance-bot", "cpa-analyst"];
+      function toggle(id) {
+        const exists = agent.subagents.includes(id);
+        updateSelected({ subagents: exists ? agent.subagents.filter((item) => item !== id) : [...agent.subagents, id] });
+      }
+      return (
+        <section className="section">
+          <div className="section-header">
+            <div><div className="section-kicker">Subagent policy</div><h3>Delegation allow list</h3></div>
+            <Pill tone="accent">max children 4</Pill>
+          </div>
+          <div className="info-grid">
+            <div className="info-item"><span>Spawn depth</span><strong>3</strong></div>
+            <div className="info-item"><span>Model override</span><strong>{agent.model}</strong></div>
+          </div>
+          <div className="list">
+            {candidates.map((id) => {
+              const active = agent.subagents.includes(id);
+              return (
+                <button key={id} type="button" className="plain-row" onClick={() => toggle(id)}>
+                  <span><strong>{id}</strong><small>{active ? "allowed delegate" : "blocked by agent policy"}</small></span>
+                  <Pill tone={active ? "ok" : ""}>{active ? "allowed" : "blocked"}</Pill>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      );
+    }
+
+    function FilesTab({ agent }) {
+      return (
+        <section className="section">
+          <div className="section-header">
+            <div><div className="section-kicker">Bootstrap files</div><h3>Workspace file inventory</h3></div>
+            <Button size="small"><Icon name="plus" />New file</Button>
+          </div>
+          <div className="list">
+            {agent.files.map(([name, size, purpose]) => (
+              <div key={name} className="plain-row">
+                <span><strong className="mono">{name}</strong><small>{purpose}</small></span>
+                <span className="meta">{size}</span>
+              </div>
+            ))}
+          </div>
+          <div className="code-panel">
+            <strong>Preview</strong>
+            <pre className="mono">{`# ${agent.id}
+
+Use the OpenClaw Gateway contract as the runtime source.
+Prefer explicit tool policy and bounded subagent delegation.
+Provider: ${agent.provider}
+Model: ${agent.model}`}</pre>
+          </div>
+        </section>
+      );
+    }
+
+    function RightRail({ agent }) {
+      return (
+        <aside className="right-rail" aria-label="Agent runtime summary">
+          <section className="right-section">
+            <div className="right-section-header"><h3>Current run</h3><Button size="small" tone="ghost">Details</Button></div>
+            <div className="right-metric"><span className="mini-icon"><Icon name="clock" size={14} /></span><span><strong>{agent.sessions}</strong><small className="muted">active sessions</small></span><span className="meta">15m</span></div>
+            <div className="right-metric"><span className="mini-icon ok"><Icon name="check" size={14} /></span><span><strong>{agent.successRate}</strong><small className="muted">success rate</small></span><span className="meta">24h</span></div>
+            <div className="right-metric"><span className="mini-icon"><Icon name="clock" size={14} /></span><span><strong>{agent.latency}</strong><small className="muted">p95 latency</small></span><span className="meta">24h</span></div>
+          </section>
+          <section className="right-section">
+            <div className="right-section-header"><h3>Risk and permissions</h3><Button size="small" tone="ghost">Review</Button></div>
+            {agent.risks.map(([label, value, tone]) => (
+              <div className="right-metric" key={label}>
+                <span className={`mini-icon ${tone === "neutral" ? "" : tone}`}><Icon name={tone === "ok" ? "check" : tone === "error" ? "alert" : "shield"} size={14} /></span>
+                <span className="muted">{label}</span>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </section>
+          <section className="right-section">
+            <div className="right-section-header"><h3>Recent events</h3><Button size="small" tone="ghost">Open stream</Button></div>
+            {agent.events.map(([level, text, time]) => (
+              <div className="event-row" key={`${level}-${text}-${time}`}>
+                <span className={`dot ${level === "ERROR" ? "error" : level === "WARN" ? "warn" : "accent"}`} style={{ color: level === "ERROR" ? "var(--ds-error)" : level === "WARN" ? "var(--ds-warn)" : "var(--ds-accent)" }} />
+                <span title={text}>{level} · {text}</span>
+                <span className="meta">{time}</span>
+              </div>
+            ))}
+          </section>
+        </aside>
+      );
+    }
+
+    function RunTestModal({ agent, onCancel, onStart }) {
+      const [message, setMessage] = useState("Run a safe status check and report current tool policy risks.");
+      return (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Run agent test">
+          <div className="modal-card">
+            <div className="modal-head"><h3>Run test on {agent.name}</h3><button className="modal-close" onClick={onCancel} aria-label="Close"><Icon name="close" /></button></div>
+            <div className="modal-body">
+              <div className="info-grid">
+                <div className="info-item"><span>Agent</span><strong>{agent.id}</strong></div>
+                <div className="info-item"><span>Model</span><strong>{agent.provider} / {agent.model}</strong></div>
+              </div>
+              <label className="field">Prompt<textarea className="field-control" value={message} onChange={(event) => setMessage(event.target.value)} /></label>
+              <Pill tone="ok"><Icon name="shield" size={14} />No gateway mutation until Start test</Pill>
+            </div>
+            <div className="modal-actions">
+              <Button onClick={onCancel}>Cancel</Button>
+              <Button tone="primary" onClick={() => onStart(message)}><Icon name="play" />Start test</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function EditDrawer({ agent, onCancel, onSave }) {
+      const [draft, setDraft] = useState({ name: agent.name, model: agent.model, workspace: agent.workspace });
+      function patch(key, value) {
+        setDraft((current) => ({ ...current, [key]: value }));
+      }
+      return (
+        <div className="overlay" role="dialog" aria-modal="true" aria-label="Edit agent">
+          <div className="drawer-card">
+            <div className="modal-head"><h3>Edit {agent.name}</h3><button className="modal-close" onClick={onCancel} aria-label="Close"><Icon name="close" /></button></div>
+            <div className="modal-body">
+              <label className="field">Name<input className="field-control" value={draft.name} onChange={(event) => patch("name", event.target.value)} /></label>
+              <label className="field">Model<input className="field-control" value={draft.model} onChange={(event) => patch("model", event.target.value)} /></label>
+              <label className="field">Workspace<input className="field-control mono" value={draft.workspace} onChange={(event) => patch("workspace", event.target.value)} /></label>
+              <div className="code-panel">
+                <strong>Patch contract</strong>
+                <pre className="mono">{`PATCH /api/agents/${agent.id}
+DeckGoAgentPatchRequest = {
+  name?: string,
+  workspace?: string,
+  model?: string,
+  emoji?: string,
+  avatar?: string
+}`}</pre>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <Button onClick={onCancel}>Cancel</Button>
+              <Button tone="primary" onClick={() => onSave(draft)}><Icon name="save" />Save changes</Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

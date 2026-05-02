@@ -103,7 +103,7 @@ host-check:
 	node scripts/check-active-host-paths.mjs
 
 frontend-build:
-	cd frontend && $(NPM_ENV) npm run build
+	cd frontend-new && $(NPM_ENV) npm run build
 
 verify: contracts-check host-check backend-test frontend-build
 

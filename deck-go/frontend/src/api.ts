@@ -834,13 +834,18 @@ type TypedGatewayAgentSummary = {
   workspace?: string;
 };
 
-function normalizeGatewayAgentSummary(agent: TypedGatewayAgentSummary): DeckGoAgentSummary {
+function normalizeGatewayAgentSummary(
+  agent: TypedGatewayAgentSummary,
+  defaultId?: string,
+): DeckGoAgentSummary {
   return {
     ...agent,
     avatar: agent.identity?.avatar ?? agent.identity?.avatarUrl,
     emoji: agent.identity?.emoji,
+    isDefault: agent.id === defaultId,
     model: agent.model?.primary,
-    name: agent.name ?? agent.identity?.name,
+    name: agent.name ?? agent.identity?.name ?? agent.id,
+    status: "idle",
   };
 }
 
@@ -2110,7 +2115,7 @@ export async function lookupConfigPath(path: string) {
 export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
   const payload = await createDeckGatewayClient({ runtimeId: "rt_local" }).agents.list({});
   return {
-    agents: payload.agents.map(normalizeGatewayAgentSummary),
+    agents: payload.agents.map((agent) => normalizeGatewayAgentSummary(agent, payload.defaultId)),
     defaultId: payload.defaultId,
   };
 }

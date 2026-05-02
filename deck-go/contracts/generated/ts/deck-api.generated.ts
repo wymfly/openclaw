@@ -1035,14 +1035,20 @@ export type DeckGoConfigLookupResponse = {
   children: DeckGoConfigLookupChild[];
 };
 
+export type DeckGoAgentStatus = "idle" | "busy" | "error" | "offline";
+
 export type DeckGoAgentSummary = {
   id: string;
-  name?: string;
+  name: string;
   emoji?: string;
   avatar?: string;
   workspace?: string;
   model?: string;
-  [key: string]: unknown;
+  isDefault: boolean;
+  status: DeckGoAgentStatus;
+  sessionCount?: number;
+  bindingCount?: number;
+  lastActiveAtMs?: number;
 };
 
 export type DeckGoAgentsListResponse = {
@@ -1148,6 +1154,12 @@ export type DeckGoAgentSubagentConfigResponse = {
   allowedAgents?: Array<{ id: string; name?: string }>;
   allAgents?: Array<{ id: string; name?: string }>;
   configHash: string;
+};
+
+export type DeckGoAgentSubagentPermissionOption = {
+  id: string;
+  name?: string;
+  allowed: boolean;
 };
 
 export type DeckGoAgentSubagentConfigSetResponse = {

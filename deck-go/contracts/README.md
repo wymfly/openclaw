@@ -53,6 +53,37 @@ Deck Go uses layered contract authorities:
 Frontend-local `DeckGo*` DTOs are migration shims, not source authority. New
 stable Deck-facing DTOs must be added to `deck-api.contract.ts` first.
 
+## Frontend consumption guide
+
+This section is a navigation aid for frontend work, not a separate source of
+truth. If this README disagrees with the source contracts, generated artifacts,
+backend adapters, frontend API code, or contract check output, the code truth
+wins. Update this README after verifying the actual implementation.
+
+For normal UI development, start with:
+
+- `frontend/src/api-types.ts` — frontend `DeckGo*` type facade. Prefer these
+  exports over importing generated DTOs directly from panel code.
+- `frontend/src/api.ts` — Deck Go API request functions. UI components should
+  call these wrappers instead of scattering endpoint strings.
+- `contracts/source/deck-ui.contract.json` — UI metadata source for fields,
+  labels, tables, actions, status semantics, safety, refresh behavior, and empty
+  states.
+- `contracts/generated/ts/deck-ui-metadata.generated.ts` — generated frontend
+  metadata artifact. Do not hand-edit it.
+
+When the UI needs contract changes, use:
+
+- `contracts/source/deck-api.contract.ts` — add or change stable Deck-facing
+  DTOs here first, then regenerate.
+- `contracts/source/deck-endpoints.contract.json` — classify new or tightened
+  browser-facing endpoints before relying on them from UI code.
+- `contracts/source/deck-streams.contract.json` — document SSE stream payloads
+  that are not fully generated DTOs yet.
+- `contracts/source/deck-exceptions.contract.json` and
+  `docs/gateway-untyped-exceptions.md` — inspect remaining dynamic or
+  upstream-schema-missing surfaces before building UI assumptions around them.
+
 ## Contract commands
 
 Run these from `deck-go/`:

@@ -943,13 +943,20 @@ type DeckGoConfigLookupResponse struct {
 	Children []DeckGoConfigLookupChild `json:"children"`
 }
 
+type DeckGoAgentStatus string
+
 type DeckGoAgentSummary struct {
 	Id string `json:"id"`
-	Name string `json:"name,omitempty"`
+	Name string `json:"name"`
 	Emoji string `json:"emoji,omitempty"`
 	Avatar string `json:"avatar,omitempty"`
 	Workspace string `json:"workspace,omitempty"`
 	Model string `json:"model,omitempty"`
+	IsDefault bool `json:"isDefault"`
+	Status DeckGoAgentStatus `json:"status"`
+	SessionCount float64 `json:"sessionCount,omitempty"`
+	BindingCount float64 `json:"bindingCount,omitempty"`
+	LastActiveAtMs float64 `json:"lastActiveAtMs,omitempty"`
 }
 
 type DeckGoAgentsListResponse struct {
@@ -1049,6 +1056,12 @@ type DeckGoAgentSubagentConfigResponse struct {
 	AllowedAgents []map[string]any `json:"allowedAgents,omitempty"`
 	AllAgents []map[string]any `json:"allAgents,omitempty"`
 	ConfigHash string `json:"configHash"`
+}
+
+type DeckGoAgentSubagentPermissionOption struct {
+	Id string `json:"id"`
+	Name string `json:"name,omitempty"`
+	Allowed bool `json:"allowed"`
 }
 
 type DeckGoAgentSubagentConfigSetResponse struct {

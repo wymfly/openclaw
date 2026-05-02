@@ -8054,6 +8054,11 @@ details summary {
   background: transparent;
 }
 
+.deck-ui-content.deck-ui-content--workbench {
+  overflow: hidden;
+  padding: 0;
+}
+
 .deck-ui-rail {
   width: 208px;
   min-height: 0;

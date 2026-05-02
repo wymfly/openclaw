@@ -1,29 +1,37 @@
 /* Chat panel shell — three-column grid (sidebar | main | right-drawer).
  *
  * Ports the layout rules previously living under `.deck-ui-chat`,
- * `.deck-ui-chat-sidebar`, `.deck-ui-chat-main` (theme.css). Visual is
- * intentionally identical to bundle / pre-migration baseline; only the
- * className namespace migrates from `deck-ui-*` to `ds-chat-shell*`.
+ * `.deck-ui-chat-sidebar`, `.deck-ui-chat-main` (theme.css). Chat now renders
+ * as an edge-to-edge workbench inside `.deck-ui-content--workbench`; internal
+ * column separators provide structure instead of an outer card frame.
  *
  * Token swap: `var(--border)` → `var(--ds-border)`, `var(--panel)` →
  * `var(--ds-bg-elev)`, `var(--shadow-soft)` → `var(--ds-shadow-md)`.
  */
 
 .ds-chat-shell {
-  height: calc(100vh - 84px);
+  --ds-chat-sidebar-width: 240px;
+
+  height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: var(--ds-chat-sidebar-width) minmax(0, 1fr);
   gap: 0;
   overflow: hidden;
-  border: 1px solid var(--ds-border);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 0;
   background: var(--ds-bg-elev);
-  box-shadow: var(--ds-shadow-md);
+  box-shadow: none;
+  color: var(--ds-text-1);
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-fs-body);
+  font-weight: 400;
+  line-height: var(--ds-line);
+  letter-spacing: 0;
 }
 
 .ds-chat-shell--has-right-drawer {
-  grid-template-columns: 224px minmax(0, 1fr) auto;
+  grid-template-columns: var(--ds-chat-sidebar-width) minmax(0, 1fr) auto;
 }
 
 .ds-chat-shell__sidebar,
@@ -91,8 +99,7 @@
 @media (max-width: 820px) {
   .ds-chat-shell {
     grid-template-columns: 1fr;
-    height: auto;
-    min-height: calc(100vh - 120px);
+    min-height: 100%;
     overflow: visible;
   }
 

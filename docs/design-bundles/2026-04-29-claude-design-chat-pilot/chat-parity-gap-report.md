@@ -695,3 +695,118 @@ Every `**port**` entry surfaced by the audit either:
 2. **Has been documented as a `divergence` with skip decision** (e.g., `approval-meta` dl/dt/dd vs flat row, `tool-progress-bar` cards vs row, `sat-node` flat-tree vs cards) — preserved as deck-go intentional product features.
 
 No port-status entries remain functionally outstanding. The per-surface tables above retain their original audit markers as historical evidence; the closure map in this section is the load-bearing summary.
+
+Important scope correction: this verdict is **not** a pixel-level or high-fidelity
+visual acceptance verdict. It only means the audited bundle primitives have a
+corresponding implementation path or a documented divergence. Visual fidelity
+still needs a separate pass against the handoff screenshots.
+
+## 2026-05-03 workbench embedding addendum
+
+Fresh comparison against `frontend-handoff/modules/chat/` confirmed the active handoff package and this archived 2026-04-29 bundle are byte-identical for `composer.jsx`, `right-panel.jsx`, and `styles.css`. The remaining current-code gap was not a missing bundle subcomponent; it was how chat was embedded into the `frontend-new` Deck shell.
+
+### Findings
+
+| Finding                                                        | Evidence                                                                                                                                   | Resolution                                                                                                                                                         |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Chat rendered as an inset card inside padded `deck-ui-content` | `/tmp/deck-go-chat-current-fresh.png` measured `deck-ui-content` at x=208/y=48/w=1232/h=912 and `ds-chat-shell` at x=224/y=64/w=1200/h=876 | Added a chat-only workbench content mode; nav/header remain global, `deck-ui-content--workbench` removes padding, and `ds-chat-shell` fills the remaining viewport |
+| `SidebarRow` allowed nested interactive controls               | Fresh Playwright console captured React's `<button>` inside `<button>` error from `SessionSidebar` delete action                           | Refactored `SidebarRow` into a non-interactive row container with a dedicated select button and separate trailing action region                                    |
+| Mock visual route emitted 502s                                 | Initial `chat-visual.spec.ts` run caught `/api/deck/commands/discover` and `/api/chat/sessions/preview` 502s                               | Added `deck.commands.discover` and `sessions.preview` support to `test/fixtures/mock-gateway.mjs`                                                                  |
+
+### Evidence artifacts
+
+- Current workbench screenshot: `project/screenshots/deck-baseline/15.13-chat-workbench-current.png`
+- Handoff workbench screenshot: `project/screenshots/deck-baseline/15.13-chat-workbench-handoff.png`
+- Refreshed baselines: `9.11-chat-rich-final.png`, `9.11-chat-empty-final.png`, `9.11-chat-rich-compact-final.png`, `9.11-chat-rich-light-final.png`
+- Verification: `pnpm exec playwright test --config deck-go/playwright.config.ts chat-visual.spec.ts` passes and asserts no unexpected `console.error`, `pageerror`, API >=400 responses, or nested `button button` DOM.
+
+## 2026-05-03 a11y and screenshot closeout
+
+### Lighthouse
+
+Audit target: `http://127.0.0.1:4174/?surface=deck-ui&panel=chat&deckVisualState=chat-rich&nav=expanded`, desktop Chromium, accessibility category only.
+
+Initial run scored **97** and found two audit failures:
+
+| Audit                         |    Count | Resolution                                                                                                           |
+| ----------------------------- | -------: | -------------------------------------------------------------------------------------------------------------------- |
+| `color-contrast`              | 20 nodes | Raised readable meta-token contrast by updating dark `--ds-text-3` to `#8992a3` and light `--ds-text-3` to `#6c7280` |
+| `label-content-name-mismatch` |   1 node | Updated the language toggle accessible name to include the visible `EN` / `ZH` label                                 |
+
+Post-fix run scored **100** with **0 failed audits**. Raw report: `/tmp/deck-go-chat-rich-lighthouse-a11y-after.json` (local verification artifact, not committed).
+
+### Keyboard Walkthrough
+
+Automated Playwright walkthrough now runs in `deck-go/test/e2e/chat-visual.spec.ts` against the mock stack:
+
+`pnpm exec playwright test --config deck-go/playwright.config.ts chat-visual.spec.ts`
+
+Result: **2 passed**. Coverage:
+
+- Sidebar new session reached with Tab and activated with Enter.
+- Composer textarea reached by keyboard, typed into, and submitted through the Send button.
+- Tool-result segmented tabs navigated with ArrowLeft from `read` to `Show Raw`.
+- Approval `Approve` and `Deny` actions confirmed keyboard-focusable.
+- Canvas drawer closed and reopened through keyboard-triggered controls.
+- Artifact card opened by keyboard, artifact tabs confirmed focusable, and artifact drawer closed by keyboard.
+
+No keyboard blockers were found in this deterministic pass.
+
+### Per-gap Screenshot Pairs
+
+The original audit table has many row-level `port` entries that collapse into the §4-10 implementation groups. The screenshot closeout therefore captures one current-vs-handoff pair per shipped port group; each pair covers the row-level port entries listed in the closure map above.
+
+| Port group                                                    | Current implementation                                                    | Handoff/prototype reference                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Composer command chip + toolbar                               | `project/screenshots/deck-baseline/13.2-composer-cmd-toolbar-current.png` | `project/screenshots/deck-baseline/13.2-composer-cmd-toolbar-handoff.png` |
+| Canvas header + iframe status strip                           | `project/screenshots/deck-baseline/13.2-canvas-iframe-bar-current.png`    | `project/screenshots/deck-baseline/13.2-canvas-iframe-bar-handoff.png`    |
+| Artifact tabs + JSON/code chrome                              | `project/screenshots/deck-baseline/13.2-artifact-tabs-current.png`        | `project/screenshots/deck-baseline/13.2-artifact-tabs-handoff.png`        |
+| Artifact HTML stub                                            | `project/screenshots/deck-baseline/13.2-artifact-html-stub-current.png`   | `project/screenshots/deck-baseline/13.2-artifact-html-stub-handoff.png`   |
+| Transcript blocks, filter bar, tool result, compaction notice | `project/screenshots/deck-baseline/13.2-transcript-blocks-current.png`    | `project/screenshots/deck-baseline/13.2-transcript-blocks-handoff.png`    |
+| Collapsed sidebar                                             | `project/screenshots/deck-baseline/13.2-sidebar-collapsed-current.png`    | `project/screenshots/deck-baseline/13.2-sidebar-collapsed-handoff.png`    |
+
+## 2026-05-03 visual fidelity review reopened
+
+User visual review identified that the current Deck implementation is still not
+fully aligned with the Claude Design high-fidelity chat prototype. The current
+known mismatches are:
+
+| Area                 | Current mismatch                                                                                                  | Likely cause                                                                                                                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typography           | Text weight/scale/rendering does not match the handoff closely enough                                             | Implementation uses self-hosted Inter first, but several host-shell and chat surfaces still inherit legacy `theme.css` sizing/weight rules or use product-specific labels/states that change perceived density |
+| Canvas               | Current canvas drawer renders the real visual seed/iframe content, not the prototype's `cp-card` mock composition | Prior closeout intentionally skipped `cp-card`/`cp-row`/`cp-actions` as mock content because deck-go owns a real A2UI iframe; that is a functional divergence, but visually it remains a mismatch              |
+| Chat text background | User/assistant message bubble backgrounds do not match the prototype                                              | Deck implementation keeps an extra `ds-chat-message__bubble` layer and product-specific user bubble treatment, while the handoff styles `.msg-body` / `.md-user` directly                                      |
+
+Conclusion: the change is **not archive-ready for high-fidelity chat visual
+parity** until a visual fidelity pass either fixes these mismatches or records
+explicit product decisions accepting each divergence.
+
+## 2026-05-03 high-fidelity visual parity pass
+
+This pass treats the rendered handoff prototype as the visual source of truth,
+with code truth used to explain mismatches. The decisive reference is
+`frontend-handoff/modules/chat/prototype.html` plus its byte-identical bundle
+files under `project/`.
+
+### Fixes landed
+
+| Area                 | Resolution                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Evidence                                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typography           | `ds-chat-shell` now pins the chat workbench to `--ds-font-sans`, `--ds-fs-body`, `--ds-line`, `font-weight: 400`, and `letter-spacing: 0` so host `theme.css` sizing cannot leak into chat. Computed style now matches the handoff root: Inter, 13.5px, 20.25px line-height.                                                                                                                                                                                             | Current screenshot `project/screenshots/deck-baseline/16.4-chat-rich-current.png`; handoff screenshot `project/screenshots/deck-baseline/16.4-chat-rich-handoff.png` |
+| Canvas               | The right drawer now gives its content a real `minmax(0, 1fr)` row, so `CanvasPanel` fills the workbench height. The visual-seed iframe now renders the prototype's `cp-card` / `cp-row` / `cp-actions` mock content, while real non-visual-seed sessions still run the A2UI iframe. The wrapper uses the handoff `cp-iframe-mock` margin, border, radius, background, and status-strip treatment.                                                                       | Current `.ds-canvas-panel__iframe-mock`: x=989/y=127/w=423/h=745 at 1440x900 dark; handoff `.cp-iframe-mock` uses the same bg `#1c2028` and border `#1f2530`         |
+| User text background | The first audit assumed `.md-user` was the live handoff branch. Re-checking the locked prototype showed `transcript.jsx` calls `renderBlock(... isUser={false})`, so the rendered user text is transparent even though `styles.css` contains an unreachable `.md-user` bubble rule. Deck now follows rendered truth: the user text layer is transparent (`background: transparent`, `padding: 0`, `border: 0`) while keeping right alignment and the accent user avatar. | Current `.ds-chat-message__bubble`: transparent background, 0px padding; handoff first user message renders `.md` without `.md-user`                                 |
+
+### Remaining accepted differences
+
+| Difference                                                                                                 | Reason                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deck global nav/header remain visible                                                                      | This is required by `frontend-new` shell architecture and was already accepted in D7: chat is an edge-to-edge workbench inside Deck, not a full-screen replacement for Deck.                     |
+| Visual seed data values differ from handoff (`2 surfaces` / `connecting` vs `14 nodes` / `ready in 240ms`) | Current values are backed by deck-go mock runtime state. The visual treatment now matches; the exact copy is runtime data, not a static design token.                                            |
+| `--ds-text-3` is lighter than the original bundle token                                                    | This is an intentional accessibility correction from the Lighthouse pass: dark `--ds-text-3` remains `#8992a3` instead of the bundle's `#6e7585`, preserving Lighthouse accessibility score 100. |
+
+### Refreshed visual artifacts
+
+- Baselines refreshed after this pass: `9.11-chat-rich-final.png`, `9.11-chat-empty-final.png`, `9.11-chat-rich-compact-final.png`, `9.11-chat-rich-light-final.png`
+- Updated current canvas pair: `13.2-canvas-iframe-bar-current.png`
+- Updated workbench current shot: `15.13-chat-workbench-current.png`
+- New high-fidelity comparison pair: `16.4-chat-rich-current.png` and `16.4-chat-rich-handoff.png`

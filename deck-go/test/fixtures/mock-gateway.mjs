@@ -58,6 +58,17 @@ function defaultMethods() {
       ],
       ts: Date.now(),
     }),
+    "sessions.preview": (params) => ({
+      previews: (params?.keys ?? ["session:mock:1"]).map((key) => ({
+        key,
+        status: "ok",
+        items: [
+          { role: "user", text: "mock preview" },
+          { role: "assistant", text: "ready" },
+        ],
+      })),
+      ts: Date.now(),
+    }),
     "agents.list": () => ({
       agents: [
         {
@@ -71,6 +82,17 @@ function defaultMethods() {
       defaultId: "main",
       mainKey: "main",
       scope: "local",
+    }),
+    "deck.commands.discover": () => ({
+      commands: [
+        {
+          name: "/compact",
+          source: "builtin",
+          description: "Compact the active session",
+          category: "session",
+        },
+      ],
+      version: "mock-commands-v1",
     }),
     "deck.agents.detail": () => ({
       id: "main",
