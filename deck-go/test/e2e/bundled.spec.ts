@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
+  createChatSession,
   openDeck,
-  sendChatMessage,
   startBundledStack,
   waitForGatewayMethod,
   type E2EStack,
@@ -10,7 +10,7 @@ import {
 test.describe("bundled runtime mode", () => {
   let stack: E2EStack;
 
-  test.beforeAll(async (_, testInfo) => {
+  test.beforeAll(async (_fixtures, testInfo) => {
     stack = await startBundledStack(testInfo);
   });
 
@@ -20,6 +20,7 @@ test.describe("bundled runtime mode", () => {
 
   test("renders bundled-only controls and routes chat through the spawned Gateway", async ({
     page,
+    request,
   }) => {
     await openDeck(page, stack.frontendBase, "settings");
 
@@ -35,7 +36,7 @@ test.describe("bundled runtime mode", () => {
     await expect(page.getByText(/owner/).first()).toBeVisible();
 
     await openDeck(page, stack.frontendBase, "chat");
-    await sendChatMessage(page, "hello from bundled e2e");
+    await createChatSession(request, stack.backendBase, "hello from bundled e2e");
     await waitForGatewayMethod(stack.requestLog, "sessions.create");
   });
 });

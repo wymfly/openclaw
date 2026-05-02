@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -944,6 +945,56 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		errorEnvelope, ok := payload["error"].(map[string]any)
 		if !ok || errorEnvelope["code"] != "RUNTIME_NOT_FOUND" {
 			t.Fatalf("unexpected error payload: %#v", payload)
+		}
+	})
+
+	t.Run("returns typed error envelope for invalid gateway rpc body", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("X-Request-Id", "req-invalid-body")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		errorEnvelope, ok := payload["error"].(map[string]any)
+		if !ok || errorEnvelope["code"] != "INVALID_BODY" || payload["requestId"] != "req-invalid-body" {
+			t.Fatalf("unexpected typed error payload: %#v", payload)
+		}
+	})
+
+	t.Run("returns typed error envelope for gateway unavailable", func(t *testing.T) {
+		diagnostics.rpcErr = errors.New("gateway unavailable")
+		defer func() { diagnostics.rpcErr = nil }()
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"agents.list","params":{}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("X-Request-Id", "req-gateway-down")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadGateway {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		errorEnvelope, ok := payload["error"].(map[string]any)
+		if !ok || errorEnvelope["code"] != "GATEWAY_RPC_FAILED" || payload["requestId"] != "req-gateway-down" {
+			t.Fatalf("unexpected typed error payload: %#v", payload)
 		}
 	})
 

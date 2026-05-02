@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
@@ -1374,24 +1375,7 @@ func registerInventoryRoutes(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 			return
 		}
-		items, _ := payload.([]any)
-		pending := make([]map[string]any, 0, len(items))
-		for _, rawItem := range items {
-			record, _ := rawItem.(map[string]any)
-			request, _ := record["request"].(map[string]any)
-			pending = append(pending, map[string]any{
-				"id":          coerce.String(record["id"], ""),
-				"command":     coerce.String(request["command"], ""),
-				"commandArgv": request["commandArgv"],
-				"agentId":     coerce.String(request["agentId"], ""),
-				"sessionKey":  coerce.String(request["sessionKey"], ""),
-				"runId":       coerce.String(request["runId"], ""),
-				"cwd":         coerce.String(request["cwd"], ""),
-				"createdAtMs": coerce.Number(record["createdAtMs"]),
-				"expiresAtMs": coerce.Number(record["expiresAtMs"]),
-			})
-		}
-		writeJSON(w, http.StatusOK, map[string]any{"pending": pending})
+		writeJSON(w, http.StatusOK, payload)
 	})
 
 	mux.MethodFunc("POST", "/exec/approval", func(w http.ResponseWriter, r *http.Request) {
@@ -1804,6 +1788,14 @@ func channelProbeStatus(payload any, channelID string) (bool, string) {
 }
 
 func agentFromListPayload(payload any, agentID string) (any, bool) {
+	if result, ok := payload.(deckapi.DeckGoAgentsListResponse); ok {
+		for _, agent := range result.Agents {
+			if agent.Id == agentID {
+				return agent, true
+			}
+		}
+		return nil, false
+	}
 	if result, ok := payload.(generated.AgentsListResult); ok {
 		for _, agent := range result.Agents {
 			if agent.Id == agentID {

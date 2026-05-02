@@ -6,8 +6,15 @@
 
 ## Project Structure
 
-- Source code: `src/` (CLI in `src/cli`, commands in `src/commands`, infra in `src/infra`, media in `src/media`).
-- Tests: colocated `*.test.ts`. Docs: `docs/`. Built output: `dist/`.
+- Workspace map:
+  - `src/` — OpenClaw Node/TypeScript core (CLI, commands, infra, media, Gateway, agents, channels, plugin runtime).
+  - `extensions/` — bundled plugins. Treat these as third-party plugins that happen to live in-tree.
+  - `packages/` — internal workspace packages.
+  - `ui/` — Control UI workspace.
+  - `apps/` and `Swabble/` — native app surfaces.
+  - `dashboard/`, `deck-e2e/`, and `deploy/` — legacy Deck surfaces kept for reference and maintenance only.
+  - `deck-go/` — current second-development mainline. It has its own Go backend, React/Vite frontend, contracts, and local guide in `deck-go/AGENTS.md`.
+- Tests: colocated `*.test.ts` for the TypeScript core, with additional scoped test conventions under local guides. Docs: `docs/`. Built output: `dist/`.
 - Nomenclature: use "plugin" / "plugins" in docs, UI, changelogs.
 - Plugins: live in the bundled workspace plugin tree. Keep plugin-only deps in the extension `package.json`.
 - Import boundaries: extensions use `openclaw/plugin-sdk/*` plus local `api.ts` / `runtime-api.ts` as public surface. Do not import core `src/**` from extension code.
@@ -49,16 +56,17 @@ Workflow hygiene:
 - `docs/AGENTS.md` — Mintlify docs, docs links, docs i18n
 - `ui/AGENTS.md` — Control UI i18n and generated locale
 - `scripts/AGENTS.md` — script-runner, local-check lock, test/lint wrappers
+- `deck-go/AGENTS.md` — deck-go runtime-mode, contracts, Go backend, frontend-new, and stack-specific checks
 
 ## Build, Test, and Development Commands
 
-- Runtime: Node **22+** (keep Node + Bun paths working).
+- Runtime: Node **>=22.14.0** for the OpenClaw TypeScript workspace; `deck-go/backend` uses Go **1.24**.
 - Install deps: `pnpm install` (also supported: `bun install`)
 - If deps are missing, run `pnpm install` then retry the command once.
-- Prefer Bun for TypeScript execution: `bun <file.ts>` / `bunx <tool>`.
+- Prefer existing `package.json`, `Makefile`, or wrapper scripts. Use Bun when an existing script uses Bun, or for a standalone TypeScript utility that is not already wrapped.
 - Run CLI in dev: `pnpm openclaw ...` or `pnpm dev`.
 
-**Core commands:**
+**OpenClaw TypeScript core commands:**
 
 | Command                    | Purpose                              |
 | -------------------------- | ------------------------------------ |
@@ -70,18 +78,31 @@ Workflow hygiene:
 | `pnpm test:coverage`       | Tests with coverage                  |
 | `FAST_COMMIT=1 git commit` | Skip hook's format + check           |
 
+**deck-go commands:**
+
+| Command                             | Purpose                                                            |
+| ----------------------------------- | ------------------------------------------------------------------ |
+| `cd deck-go && make verify`         | deck-go contracts check, host check, backend tests, frontend build |
+| `cd deck-go && make contract-gate`  | deck-go contract governance gate                                   |
+| `cd deck-go && make protocol-check` | Verify generated Gateway protocol artifacts                        |
+| `cd deck-go && make backend-test`   | Go backend tests                                                   |
+| `cd deck-go && make frontend-build` | Build the active deck-go frontend workspace                        |
+
 **Verification gates:**
 
-- Local dev gate: `pnpm check` (normal edit loop).
-- Landing gate (push `main`): `pnpm check` + `pnpm test` + `pnpm build` (when touching build/packaging/module boundaries).
+- Local OpenClaw TS dev gate: `pnpm check` (normal edit loop).
+- Local deck-go dev gate: choose the narrowest relevant `make` target from `deck-go/AGENTS.md`; use `cd deck-go && make verify` for broad deck-go changes.
+- Landing gate for OpenClaw TS changes: `pnpm check` + `pnpm test` + `pnpm build` when touching build, packaging, or module boundaries.
+- Landing gate for deck-go contract/runtime changes: include the relevant `make contract-gate`, `make protocol-check`, `make backend-test`, and/or `make frontend-build` evidence.
 - Do not land changes with failing checks caused by or plausibly related to the touched surface.
 
 **Drift detection** (run gen + commit `.sha256` when changing these surfaces):
 
 - Config schema: `pnpm config:docs:gen` / `pnpm config:docs:check`
 - Plugin SDK API: `pnpm plugin-sdk:api:gen` / `pnpm plugin-sdk:api:check`
+- deck-go contracts: run the source-specific sync target in `deck-go/` (`make contracts-sync`, `make protocol-update`, `make ui-metadata-sync`, etc.) and verify with the matching check target.
 
-**Type error triage:** group by package/module/type contract, fix the source-of-truth type first, rerun before widening. Check `origin/main` before broad cleanup.
+**Type error triage:** group by package/module/type or contract authority, fix the source-of-truth type first, rerun before widening. Check `origin/main` before broad cleanup.
 
 ## Prompt Cache Stability
 
@@ -90,9 +111,9 @@ Workflow hygiene:
 - Prefer mutating newest/tail content first so cached prefix stays byte-identical.
 - Cache-sensitive changes require a regression test proving prefix stability.
 
-## Coding Style
+## TypeScript Coding Style
 
-- Language: TypeScript (ESM). Strict typing; avoid `any`.
+- Language: TypeScript (ESM / NodeNext in the OpenClaw workspace). Strict typing; avoid `any`.
 - Formatting/linting: Oxlint + Oxfmt. Never add `@ts-nocheck` or inline lint suppressions by default.
 - Prefer `zod` at external boundaries. Prefer discriminated unions and `Result<T, E>` for recoverable decisions.
 - Do not use freeform strings for internal branching; prefer closed code unions.
@@ -100,9 +121,11 @@ Workflow hygiene:
 - Circular deps: keep `pnpm check:import-cycles` and `pnpm check:madge-import-cycles` green.
 - Extension imports: use `openclaw/plugin-sdk/<subpath>` as the only cross-package contract. Internal extension imports go through local barrels (`./api.ts`, `./runtime-api.ts`).
 - No prototype mutation for sharing class behavior. Use explicit inheritance/composition.
-- Keep files under ~700 LOC. Add brief comments for non-obvious logic.
+- Keep files compact; ~700 LOC is a reviewability ceiling, while `pnpm check:loc` is a stricter optional guard for TypeScript surfaces.
 - Naming: **OpenClaw** for product headings; `openclaw` for CLI/package/paths.
 - Written English: American spelling (color, behavior, analyze).
+
+For non-TypeScript surfaces, prefer the local guide and native toolchain first: `deck-go/AGENTS.md` for Go/React/contracts, app-specific guides for native code, and scoped `AGENTS.md` files for docs, UI, scripts, extensions, and protocol areas.
 
 ## Release / Advisory Workflows
 
@@ -163,11 +186,12 @@ Workflow hygiene:
 
 `deck-go/` 是 OpenClaw 之上新建的企业管理/运维平台（Go 后端 + React 前端），按 `RUNTIME_MODE` 在 bundled / remote 两种模式下运行：bundled 模式下 deck-go 本机 spawn Gateway；remote 模式下连接远程 Gateway。新工作均以此目录为主线。
 
+- 详细开发规范：`deck-go/AGENTS.md`
 - 完整设计：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
 - 现状：runtime-mode 解耦正在按 `openspec/changes/runtime-mode-decoupling/tasks.md` 实施
-- 本地后端启动脚本：`deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh`（仅 backend）
-- 真 Gateway 全栈一键脚本（E2E 默认基础设施）：`deck-go/scripts/dev/run-stack-real.sh`
-- `.env` 样例：`deck-go/.env.bundled.example` / `deck-go/.env.remote.example` / `deck-go/.env.real-stack.example`
+- 本地后端启动脚本：`deck-go/scripts/dev/run-bundled.sh` / `deck-go/scripts/dev/run-remote.sh`
+- 真 Gateway 全栈一键脚本：`deck-go/scripts/dev/run-stack-real.sh`
+- 契约链路：`deck-go/contracts/` + `cd deck-go && make contract-gate`
 - 独立于 `deploy/` 的 deck-go 部署产物后续单独规划
 
 ### 已归档参考 — 上一代 Deck 客户端
@@ -251,7 +275,7 @@ git push --force-with-lease origin enhanced
 
 ### Deck 开发环境 (legacy: 针对 `dashboard/`)
 
-> **新主目标 deck-go 的开发环境见文末 "Deck-go 开发环境" 一节。**
+> **新主目标 deck-go 的开发环境见 `deck-go/AGENTS.md`。**
 
 **强制规则：Gateway 必须从本地源码运行，不得使用全局安装的 `openclaw` 命令。**
 
@@ -354,56 +378,9 @@ export const deckAgentsMethodDefs: Record<string, Omit<MethodDefinition, "handle
 
 ## Deck-go 开发环境（新主目标）
 
-`deck-go/` 是当前二次开发主目标，与上一代 `dashboard/` 共存但完全独立——独立的 contracts 链路、独立的运行时模型（.env-driven）、独立的开发/部署工具链。
+`deck-go/` 是当前二次开发主目标，与上一代 `dashboard/` 共存但完全独立。详细规则已经下沉到 `deck-go/AGENTS.md`，包括 runtime-mode、contracts、Go backend、`frontend-new/`、E2E 基础设施和验证命令。
 
-### 设计与状态
+根目录只保留两条约束：
 
-- **设计文档**：`docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
-- **核心理念**：`RUNTIME_MODE` 由 .env 决定，运行时不可切换
-  - `bundled` 模式：deck-go 本机 spawn Gateway，UI 对 runtime 配置只读，所有参数从 .env 读
-  - `remote` 模式：deck-go 连接远程 Gateway，UI 可改 endpoint 并写入 `deck-state.json`（覆盖 .env 默认值）
-- **架构原则**：facade 接口 + 两个 impl 包（`bundled/`、`remote/`）物理隔离，Browser 永远只跟 deck-go 说话不直连 Gateway
-- **现状**：runtime-mode 解耦已进入实施，后续闭环以 `openspec/changes/runtime-mode-decoupling/tasks.md` 为准
-
-### 开发产物
-
-当前主线产物：
-
-- `deck-go/.env.{bundled,remote,real-stack}.example` —— runtime-mode `.env` 样例（复制后请设为私有权限 `chmod 0600`）
-- `deck-go/scripts/dev/run-bundled.sh` / `run-remote.sh` —— 本地后端启动脚本（仅 backend，前端要自起；不复用上一代 `scripts/dev/deck-dev.sh`）
-- `deck-go/scripts/dev/run-stack-real.sh` —— 真 OpenClaw Gateway + backend + Vite preview 一键全栈，**E2E 默认基础设施**；启动前自动清理 18789/19566/4174 端口占用
-- `deck-go/backend/internal/runtime/{facade,envconf,state,bundled,remote,shared}/` —— 后端 runtime-mode 模块切分
-- `deck-go/contracts/` —— deck-go 自有契约链路；修改 API 合约后运行 `cd deck-go && make contracts-sync`
-- `deck-go/frontend/src/design-system/` —— Deck UI 设计系统单一来源；`tokens.css` + 36 个 atoms（container/text/form/nav/overlay）+ 5 个 hooks。所有 chat 面板组件经 P2 重构后通过 atoms 复用 `--ds-*` token，外部组件应优先 import `@/design-system/atoms/*` 而非自行手写样式
-- 独立于上一代 `deploy/` 的 deck-go 部署形态（systemd unit / 容器镜像）后续单独规划
-
-### E2E 测试基础设施
-
-**两层并存**：
-
-- **L1 — Mock Gateway**（保留，CI 友好）：`deck-go/test/e2e/{bundled,remote}.spec.ts` + `test/fixtures/mock-gateway.mjs`，由 `manage-local-stack.sh start` 默认编排。验证 deck-go 自身 ~85%（HTTP API、UI capability gating、WebSocket transport、supervisor 字段）。启动 ~2s，不依赖 OpenClaw build/LLM key。
-- **L2 — Real Gateway**（默认主路径）：`scripts/dev/run-stack-real.sh start`，从仓库根 `pnpm openclaw gateway run` 跑真 OpenClaw 源码版 Gateway。验证 L1 不能覆盖的协议漂移、Gateway 内部行为、真实 LLM chat round-trip。**新写 E2E 默认走 L2**，特殊场景（无网络、无 build cache、CI 烟测）才用 L1。
-
-**L2 启动注意点**：
-
-- 真 Gateway 首次启动需 OpenClaw TS build + runtime-postbuild plugin deps 安装（~5-10 分钟），后续启动 ~10s
-- `RUNTIME_BUNDLED_ARGS` 必须含 `--allow-unconfigured`，否则报 `Missing config`（child supervisor 不复用全局 OpenClaw config 探测路径）
-- OpenClaw state 不隔离（用 `~/.openclaw`），便于真实 LLM key/channel 直接生效
-- 端口固定 `18789`（Gateway）/ `19566`（backend）/ `4174`（Vite），`run-stack-real.sh start` 启动前自动清占用
-
-### 与上一代 Deck 的关系
-
-| 维度         | `dashboard/`（legacy）                            | `deck-go/`（current）                                    |
-| ------------ | ------------------------------------------------- | -------------------------------------------------------- |
-| UI 框架      | Next.js (TS/React)                                | React + Vite + 自研 deck-ui                              |
-| 后端         | 直接走 Gateway typed client                       | Go middleware (controld) + facade abstraction            |
-| 部署         | `deploy/openclaw-deploy-*.tar.gz`                 | 待规划，不复用 `deploy/`                                 |
-| 启动         | `scripts/dev/deck-dev.sh`（启 Gateway+Dashboard） | `deck-go/scripts/dev/run-{bundled,remote,stack-real}.sh` |
-| Gateway 关系 | 1:1 本机绑定                                      | 1:1 本机（bundled）或 1:N 远程（remote，未来）           |
-| 状态         | 冻结（仍可使用，不再迭代新功能）                  | 主线（所有新工作）                                       |
-
-### 开发约定
-
-- 给 `deck-go/` 加新功能时 **不要**回参考 `dashboard/` 的实现细节去做"对齐"——两套架构不同，对齐是错的
-- 上游 rebase 流程仍然走 "Enhanced Fork — 上游同步流程"；其中 Protocol SDK 同步那一节只针对 `dashboard/`，对 `deck-go/` 无影响
-- deck-go 后续可能产生自己的 AGENTS.md 子节或独立 `deck-go/AGENTS.md`，目前由本节统一描述
+- 新功能、新需求、新 bug 修复默认进入 `deck-go/`，不要回到 `dashboard/`、`deck-e2e/` 或 `deploy/` 做新迭代。
+- 上游 rebase 流程仍然走 "Enhanced Fork — 上游同步流程"；其中 legacy Protocol SDK 同步只针对 `dashboard/`，对 `deck-go/` 无影响。

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
@@ -347,15 +348,15 @@ func TestRuntimeErrorTaxonomyUsesConsistentBodyShape(t *testing.T) {
 			if rec.Code != tc.status {
 				t.Fatalf("status = %d, want %d", rec.Code, tc.status)
 			}
-			var payload map[string]any
+			var payload deckapi.DeckGoRuntimeErrorResponse
 			if err := json.NewDecoder(rec.Body).Decode(&payload); err != nil {
 				t.Fatal(err)
 			}
-			if len(payload) != 2 || payload["code"] != tc.code {
+			if payload.Code != tc.code {
 				t.Fatalf("payload = %#v, want consistent {code,message}", payload)
 			}
-			if message, ok := payload["message"].(string); !ok || strings.TrimSpace(message) == "" {
-				t.Fatalf("payload message = %#v, want non-empty string", payload["message"])
+			if strings.TrimSpace(payload.Message) == "" {
+				t.Fatalf("payload message = %#v, want non-empty string", payload.Message)
 			}
 		})
 	}

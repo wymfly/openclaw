@@ -58,6 +58,7 @@ const BASELINE_JSON = resolve(DECK_GO_ROOT, "docs/gateway-coverage-baseline.json
 const COVERAGE_MD = resolve(DECK_GO_ROOT, "docs/gateway-coverage.md");
 const CLASSIFICATION_DOC = resolve(DECK_GO_ROOT, "docs/fe-endpoint-classification.md");
 const FORK_DIVERGENCE_DOC = resolve(DECK_GO_ROOT, "docs/fork-divergent-methods.md");
+const GATEWAY_ADAPTER_CATEGORY = "gateway-protocol-adapter";
 const GO_TYPED_SCAN_DIRS = [
   resolve(DECK_GO_ROOT, "backend/internal/runtime/openclaw"),
   resolve(DECK_GO_ROOT, "backend/internal/handlers"),
@@ -123,7 +124,7 @@ function readFEMigratedTargets(): string[] {
   const targets: string[] = [];
   for (const rawLine of readFileSync(CLASSIFICATION_DOC, "utf8").split("\n")) {
     const line = rawLine.trim();
-    if (!line.startsWith("| `") || !line.includes("`gateway-rpc-proxy`")) {
+    if (!line.startsWith("| `") || !line.includes(`\`${GATEWAY_ADAPTER_CATEGORY}\``)) {
       continue;
     }
     const cells = line

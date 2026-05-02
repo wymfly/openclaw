@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { expect, type Page, type TestInfo } from "@playwright/test";
+import { expect, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
 
 const execFileAsync = promisify(execFile);
 const thisFile = fileURLToPath(import.meta.url);
@@ -377,11 +377,26 @@ export async function waitForGatewayMethod(requestLog: string, method: string) {
     .toBe(true);
 }
 
+export async function createChatSession(
+  request: APIRequestContext,
+  backendBase: string,
+  message: string,
+) {
+  const response = await request.post(`${backendBase}/api/chat/sessions/create`, {
+    data: {
+      agentId: "main",
+      label: "E2E smoke",
+      message,
+    },
+  });
+  expect(response.ok(), `chat session create returned ${response.status()}`).toBe(true);
+}
+
 export async function sendChatMessage(page: Page, text: string) {
   const input = page.getByPlaceholder("Type a message...");
   await expect(input).toBeVisible();
   await input.fill(text);
-  await page.getByRole("button", { name: "Send" }).click();
+  await page.getByRole("button", { name: "Send", exact: true }).click();
   await expect(page.getByText(text).first()).toBeVisible();
 }
 

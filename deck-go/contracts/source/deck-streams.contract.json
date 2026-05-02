@@ -1,0 +1,108 @@
+{
+  "streams": [
+    {
+      "endpoint": "GET /stream",
+      "transport": "sse",
+      "lastEventId": true,
+      "heartbeat": "comment: heartbeat every 15s",
+      "notes": "Main Deck Go server event stream. Event frames use SSE id/event/data fields; data is JSON when an event payload contract exists.",
+      "events": [
+        {
+          "event": "projection.gap",
+          "payload": "DeckGoProjectionGapEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Emitted when Last-Event-ID is older than the retained event buffer."
+        },
+        {
+          "event": "runtime.gateway.status",
+          "payload": "DeckGoRuntimeGatewayStatus",
+          "status": "temporary-frontend-dto",
+          "source": "deck-go/frontend/src/api.ts",
+          "notes": "Runtime status DTO is still frontend-local until the runtime/settings migration batch moves it into deck-api.contract.ts."
+        },
+        {
+          "event": "runtime.gateway.health",
+          "payload": "DeckGoRuntimeGatewayStatus",
+          "status": "temporary-frontend-dto",
+          "source": "deck-go/frontend/src/api.ts",
+          "notes": "Runtime health payload shares the runtime gateway status shape during staged migration."
+        },
+        {
+          "event": "runtime.gateway.exit",
+          "payload": "DeckGoRuntimeGatewayStatus",
+          "status": "temporary-frontend-dto",
+          "source": "deck-go/frontend/src/api.ts",
+          "notes": "Bundled runtime exit payload shares the runtime gateway status shape during staged migration."
+        },
+        {
+          "event": "session.message",
+          "payload": "DeckGoSessionMessageStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Session message projection update consumed by chat panels."
+        },
+        {
+          "event": "session.tool",
+          "payload": "DeckGoSessionToolStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Tool activity projection update consumed by chat panels."
+        },
+        {
+          "event": "sessions.changed",
+          "payload": "DeckGoSessionsChangedStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Session lifecycle update consumed by chat/session projections."
+        },
+        {
+          "event": "activity.event",
+          "payload": "DeckGoActivityStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Agents panel activity metrics stream; payload carries `agentId` + `type` + open envelope. Reverse-engineered from useAgentMetricsSSE.ts; deck-go middleware is a transparent SSE pipe (stream.go), so any upstream drift is caught by the backend narrowing test stream_event_typing_test.go."
+        },
+        {
+          "event": "agent.status.changed",
+          "payload": "DeckGoAgentStatusChangedStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Agent busy/idle status transition. `status` is `\"busy\" | \"idle\"` today with `(string & {})` extension to tolerate new upstream values without a contract change. Backend narrowing test asserts this in stream_event_typing_test.go."
+        }
+      ]
+    },
+    {
+      "endpoint": "GET /logs/stream",
+      "transport": "sse",
+      "lastEventId": true,
+      "heartbeat": "comment: heartbeat every 15s",
+      "notes": "Log tail stream. The outer event envelope is generated; log payload leaves stay dynamic until logs.tail receives a stable schema.",
+      "events": [
+        {
+          "event": "log.batch",
+          "payload": "{ lines?: unknown[]; cursor?: number }",
+          "status": "documented-dynamic",
+          "source": "deck-go/backend/internal/server/stream.go",
+          "notes": "Payload mirrors logs.tail dynamic lines and cursor fields; covered by the logs.tail exception."
+        },
+        {
+          "event": "log.reset",
+          "payload": "Record<string, never>",
+          "status": "documented-dynamic",
+          "source": "deck-go/backend/internal/server/stream.go",
+          "notes": "Emitted when the log cursor resets."
+        }
+      ]
+    }
+  ],
+  "controlEndpoints": [
+    {
+      "endpoint": "POST /chat/session-events",
+      "request": "DeckGoSessionEventsRequest",
+      "response": "DeckGoSessionEventsResponse",
+      "source": "deck-go/contracts/source/deck-api.contract.ts",
+      "notes": "JSON control endpoint used to subscribe or unsubscribe Gateway session event projection."
+    }
+  ]
+}

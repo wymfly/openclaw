@@ -21,20 +21,36 @@ func (s *LegacyInventorySurface) CurrentDeviceID() (string, error) {
 	return s.managed.CurrentDeviceID()
 }
 
-func (s *LegacyInventorySurface) AgentsList(ctx context.Context) (any, error) {
-	return s.managed.GatewayQueries().AgentsList(ctx)
+func (s *LegacyInventorySurface) AgentsList(ctx context.Context) (deckapi.DeckGoAgentsListResponse, error) {
+	payload, err := s.managed.GatewayQueries().AgentsList(ctx)
+	if err != nil {
+		return deckapi.DeckGoAgentsListResponse{}, err
+	}
+	return normalizeAgentsList(payload), nil
 }
 
-func (s *LegacyInventorySurface) AgentsCreate(ctx context.Context, params map[string]any) (any, error) {
-	return s.managed.GatewayQueries().AgentsCreate(ctx, params)
+func (s *LegacyInventorySurface) AgentsCreate(ctx context.Context, params map[string]any) (deckapi.DeckGoAgentMutationResponse, error) {
+	payload, err := s.managed.GatewayQueries().AgentsCreate(ctx, params)
+	if err != nil {
+		return deckapi.DeckGoAgentMutationResponse{}, err
+	}
+	return normalizeAgentCreate(payload), nil
 }
 
-func (s *LegacyInventorySurface) AgentsDelete(ctx context.Context, agentID string) (any, error) {
-	return s.managed.GatewayQueries().AgentsDelete(ctx, agentID)
+func (s *LegacyInventorySurface) AgentsDelete(ctx context.Context, agentID string) (deckapi.DeckGoAgentMutationResponse, error) {
+	payload, err := s.managed.GatewayQueries().AgentsDelete(ctx, agentID)
+	if err != nil {
+		return deckapi.DeckGoAgentMutationResponse{}, err
+	}
+	return normalizeAgentDelete(payload), nil
 }
 
-func (s *LegacyInventorySurface) AgentsUpdate(ctx context.Context, body map[string]any) (any, error) {
-	return s.managed.GatewayQueries().AgentsUpdate(ctx, body)
+func (s *LegacyInventorySurface) AgentsUpdate(ctx context.Context, body map[string]any) (deckapi.DeckGoAgentMutationResponse, error) {
+	payload, err := s.managed.GatewayQueries().AgentsUpdate(ctx, body)
+	if err != nil {
+		return deckapi.DeckGoAgentMutationResponse{}, err
+	}
+	return normalizeAgentUpdate(payload), nil
 }
 
 func (s *LegacyInventorySurface) AgentFilesList(ctx context.Context, agentID string) (any, error) {
@@ -177,20 +193,36 @@ func (s *LegacyInventorySurface) CronStatus(ctx context.Context) (any, error) {
 	return s.managed.GatewayQueries().CronStatus(ctx)
 }
 
-func (s *LegacyInventorySurface) UsageCost(ctx context.Context, params map[string]any) (any, error) {
-	return s.managed.GatewayQueries().UsageCost(ctx, params)
+func (s *LegacyInventorySurface) UsageCost(ctx context.Context, params map[string]any) (deckapi.DeckGoUsageCostResponse, error) {
+	payload, err := s.managed.GatewayQueries().UsageCost(ctx, params)
+	if err != nil {
+		return deckapi.DeckGoUsageCostResponse{}, err
+	}
+	return normalizeUsageCost(payload), nil
 }
 
-func (s *LegacyInventorySurface) UsageStatus(ctx context.Context) (any, error) {
-	return s.managed.GatewayQueries().UsageStatus(ctx)
+func (s *LegacyInventorySurface) UsageStatus(ctx context.Context) (deckapi.DeckGoUsageProvidersResponse, error) {
+	payload, err := s.managed.GatewayQueries().UsageStatus(ctx)
+	if err != nil {
+		return deckapi.DeckGoUsageProvidersResponse{}, err
+	}
+	return normalizeUsageProviders(payload), nil
 }
 
-func (s *LegacyInventorySurface) SessionsUsage(ctx context.Context, params map[string]any) (any, error) {
-	return s.managed.GatewayQueries().SessionsUsage(ctx, params)
+func (s *LegacyInventorySurface) SessionsUsage(ctx context.Context, params map[string]any) (deckapi.DeckGoUsageSessionsResponse, error) {
+	payload, err := s.managed.GatewayQueries().SessionsUsage(ctx, params)
+	if err != nil {
+		return deckapi.DeckGoUsageSessionsResponse{}, err
+	}
+	return normalizeUsageSessions(payload), nil
 }
 
-func (s *LegacyInventorySurface) SessionsUsageLogs(ctx context.Context, params map[string]any) (any, error) {
-	return s.managed.GatewayQueries().SessionsUsageLogs(ctx, params)
+func (s *LegacyInventorySurface) SessionsUsageLogs(ctx context.Context, params map[string]any) (deckapi.DeckGoUsageSessionLogsResponse, error) {
+	payload, err := s.managed.GatewayQueries().SessionsUsageLogs(ctx, params)
+	if err != nil {
+		return deckapi.DeckGoUsageSessionLogsResponse{}, err
+	}
+	return normalizeUsageSessionLogs(payload), nil
 }
 
 func (s *LegacyInventorySurface) SessionsUsageTimeseries(ctx context.Context, params map[string]any) (any, error) {
@@ -281,20 +313,32 @@ func (s *LegacyInventorySurface) ToolsEffective(ctx context.Context, body map[st
 	return s.managed.GatewayQueries().ToolsEffective(ctx, body)
 }
 
-func (s *LegacyInventorySurface) ExecApprovalsGet(ctx context.Context) (any, error) {
-	return s.managed.GatewayQueries().ExecApprovalsGet(ctx)
+func (s *LegacyInventorySurface) ExecApprovalsGet(ctx context.Context) (deckapi.DeckGoApprovalPolicyResponse, error) {
+	payload, err := s.managed.GatewayQueries().ExecApprovalsGet(ctx)
+	if err != nil {
+		return deckapi.DeckGoApprovalPolicyResponse{}, err
+	}
+	return normalizeApprovalPolicyFromGet(payload), nil
 }
 
 func (s *LegacyInventorySurface) ExecApprovalResolve(ctx context.Context, body map[string]any) (any, error) {
 	return s.managed.GatewayQueries().ExecApprovalResolve(ctx, body)
 }
 
-func (s *LegacyInventorySurface) ExecApprovalList(ctx context.Context) (any, error) {
-	return s.managed.GatewayQueries().ExecApprovalList(ctx)
+func (s *LegacyInventorySurface) ExecApprovalList(ctx context.Context) (deckapi.DeckGoPendingApprovalsResponse, error) {
+	payload, err := s.managed.GatewayQueries().ExecApprovalList(ctx)
+	if err != nil {
+		return deckapi.DeckGoPendingApprovalsResponse{}, err
+	}
+	return normalizePendingApprovals(payload), nil
 }
 
-func (s *LegacyInventorySurface) ExecApprovalsSet(ctx context.Context, body map[string]any) (any, error) {
-	return s.managed.GatewayQueries().ExecApprovalsSet(ctx, body)
+func (s *LegacyInventorySurface) ExecApprovalsSet(ctx context.Context, body map[string]any) (deckapi.DeckGoApprovalPolicyResponse, error) {
+	payload, err := s.managed.GatewayQueries().ExecApprovalsSet(ctx, body)
+	if err != nil {
+		return deckapi.DeckGoApprovalPolicyResponse{}, err
+	}
+	return normalizeApprovalPolicyFromSet(payload), nil
 }
 
 func (s *LegacyInventorySurface) PluginApprovalList(ctx context.Context) (any, error) {

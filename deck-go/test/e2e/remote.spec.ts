@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
+  createChatSession,
   openDeck,
-  sendChatMessage,
   startRemoteFirstRunStack,
   waitForGatewayMethod,
   waitForRemoteConfigured,
@@ -11,7 +11,7 @@ import {
 test.describe("remote runtime mode", () => {
   let stack: E2EStack;
 
-  test.beforeAll(async (_, testInfo) => {
+  test.beforeAll(async (_fixtures, testInfo) => {
     stack = await startRemoteFirstRunStack(testInfo);
   });
 
@@ -21,6 +21,7 @@ test.describe("remote runtime mode", () => {
 
   test("runs first-run setup through the UI and then routes chat to the remote Gateway", async ({
     page,
+    request,
   }) => {
     await openDeck(page, stack.frontendBase, "gateway");
 
@@ -41,7 +42,7 @@ test.describe("remote runtime mode", () => {
     await expect(page.getByTestId("first-run-banner")).toHaveCount(0);
 
     await openDeck(page, stack.frontendBase, "chat");
-    await sendChatMessage(page, "hello from remote e2e");
+    await createChatSession(request, stack.backendBase, "hello from remote e2e");
     await waitForGatewayMethod(stack.requestLog, "sessions.create");
   });
 });

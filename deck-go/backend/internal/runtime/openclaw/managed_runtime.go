@@ -801,24 +801,7 @@ func (m *ManagedRuntime) ListPendingApprovals(ctx context.Context, runtimeID str
 	if err != nil {
 		return nil, err
 	}
-	items, _ := payload.([]any)
-	pending := make([]map[string]any, 0, len(items))
-	for _, rawItem := range items {
-		record, _ := rawItem.(map[string]any)
-		request, _ := record["request"].(map[string]any)
-		pending = append(pending, map[string]any{
-			"id":          runtimecoerce.String(record["id"], ""),
-			"command":     runtimecoerce.String(request["command"], ""),
-			"commandArgv": request["commandArgv"],
-			"agentId":     runtimecoerce.String(request["agentId"], ""),
-			"sessionKey":  runtimecoerce.String(request["sessionKey"], ""),
-			"runId":       runtimecoerce.String(request["runId"], ""),
-			"cwd":         runtimecoerce.String(request["cwd"], ""),
-			"createdAtMs": runtimecoerce.Number(record["createdAtMs"]),
-			"expiresAtMs": runtimecoerce.Number(record["expiresAtMs"]),
-		})
-	}
-	return map[string]any{"pending": pending}, nil
+	return normalizePendingApprovals(payload), nil
 }
 
 func (m *ManagedRuntime) SetApprovalPolicy(ctx context.Context, runtimeID string, body map[string]any) (any, error) {

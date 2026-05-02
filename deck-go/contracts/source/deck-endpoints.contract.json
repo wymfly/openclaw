@@ -1,0 +1,379 @@
+{
+  "categories": {
+    "deck-go-bff": "Deck Go control-plane or shaping routes that remain BFF REST endpoints.",
+    "documented-exception": "Temporary or intentionally dynamic routes that stay outside generated DTO adoption and must point to an exception record.",
+    "gateway-protocol-adapter": "Deck Go routes or retired route rows that adapt an OpenClaw Gateway method or event through generated protocol bindings when available.",
+    "stream-binary-upload": "Binary asset, iframe, upload, download, or SSE transport endpoints that stay outside JSON DTO typing."
+  },
+  "sourceAudited": "deck-go/frontend/src/api.ts",
+  "endpoints": [
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.agents.list({})",
+      "notes": "Migrated in `fetchAgentsList`; GET BFF route removed. `POST /agents` and `DELETE /agents?agentId=...` remain BFF control-plane rows below.",
+      "paths": ["GET /agents"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.models.configured({})",
+      "notes": "Migrated in `fetchRuntimeConfiguredModels`; legacy BFF route removed.",
+      "paths": ["GET /v1/runtimes/{runtimeId}/models/configured"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.deck.auth.overview({})",
+      "notes": "Migrated in `fetchRuntimeModelAuthOverview`; legacy BFF route removed.",
+      "paths": ["GET /v1/runtimes/{runtimeId}/models/auth"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.models.catalog.providers({})",
+      "notes": "Migrated in `fetchRuntimeModelCatalogProviders`; legacy BFF route removed.",
+      "paths": ["GET /v1/runtimes/{runtimeId}/models/catalog-providers"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.deck.auth.probe({ provider })",
+      "notes": "Migrated in `probeRuntimeModelAuth`; legacy BFF route removed.",
+      "paths": ["POST /v1/runtimes/{runtimeId}/models/probe"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "createDeckGatewayTransport",
+      "notes": "Typed transport endpoint for migrated Gateway RPC calls. This is the only FE string endpoint allowed for typed Gateway RPC dispatch.",
+      "paths": ["POST /v1/runtimes/{runtimeId}/gateway/rpc"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Deck settings storage, not a direct Gateway RPC proxy.",
+      "paths": ["GET /settings", "PUT /settings"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Deck setup and version diagnostics.",
+      "paths": ["POST /settings/test-connection", "GET /settings/version"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Device pairing state is Deck control-plane UX.",
+      "paths": ["GET /devices", "GET /devices/self"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Device workflow routes keep BFF validation and response shape.",
+      "paths": ["POST /devices/approve", "POST /devices/reject", "POST /devices/remove"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Token lifecycle is Deck control-plane behavior.",
+      "paths": ["POST /devices/token/rotate", "POST /devices/token/revoke"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJsonNoPrompt`",
+      "notes": "Bootstrap status avoids auth prompt and is local runtime state.",
+      "paths": ["GET /bootstrap/status"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Manages the local Gateway process.",
+      "paths": [
+        "GET /runtime/gateway",
+        "POST /runtime/gateway/start",
+        "POST /runtime/gateway/stop",
+        "POST /runtime/gateway/restart"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
+      "notes": "Diagnostic/introspection routes stay BFF-owned; typed RPC transport uses `/v1/runtimes/{runtimeId}/gateway/rpc`.",
+      "paths": ["GET /gateway/health", "GET /gateway/status", "GET /gateway/describe"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
+      "notes": "Channel UX uses Deck shaping, probes, and local error normalization.",
+      "paths": [
+        "GET /channels",
+        "POST /channels/{channelId}/test",
+        "POST /channels/{channelId}/logout",
+        "GET /channels/{channelId}/throughput",
+        "PATCH /channels/{channelId}"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Capability filtering is a Deck view concern.",
+      "paths": ["GET /deck/plugins"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Log tailing response shape stays Deck-owned.",
+      "paths": ["GET /logs"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Approval policy and pending queues remain Deck control-plane routes.",
+      "paths": [
+        "GET /approvals",
+        "GET /approvals/policy",
+        "PUT /approvals/policy",
+        "GET /approvals/pending",
+        "POST /approvals",
+        "GET /approvals/plugins",
+        "POST /approvals/plugins",
+        "POST /exec/approval"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
+      "notes": "Onboarding probes and save flow are Deck-local setup behavior, not direct Gateway RPC exposure.",
+      "paths": [
+        "GET /onboarding/status",
+        "POST /onboarding/test-connection",
+        "POST /onboarding/save-settings"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Runtime mode capabilities and remote endpoint mutation are Deck runtime facade behavior.",
+      "paths": [
+        "GET /runtime/capabilities",
+        "GET /runtime/endpoint",
+        "PUT /runtime/endpoint",
+        "POST /runtime/endpoint:test"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Skill hub action multiplexing, source defaults, and Deck UX shape remain BFF.",
+      "paths": [
+        "GET /skills",
+        "PATCH /skills/{skillKey}",
+        "POST /skills/install",
+        "POST /skills/update-clawhub",
+        "POST /skills/hub"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Cron table filters and mutation envelopes stay Deck-owned.",
+      "paths": [
+        "GET /cron",
+        "POST /cron",
+        "PATCH /cron/{jobId}",
+        "DELETE /cron/{jobId}",
+        "POST /cron/{jobId}/run",
+        "GET /cron/{jobId}/runs",
+        "GET /cron/status"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Local document registry and extraction routes.",
+      "paths": ["GET /docs", "GET /docs/{docId}", "POST /docs/extract", "DELETE /docs/{docId}"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Deck alert configuration is not Gateway RPC proxy traffic.",
+      "paths": ["GET /alerts", "POST /alerts", "PATCH /alerts/{id}", "DELETE /alerts/{id}"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Webhook storage and delivery history remain Deck BFF features.",
+      "paths": [
+        "GET /webhooks",
+        "POST /webhooks",
+        "PATCH /webhooks/{id}",
+        "DELETE /webhooks/{id}",
+        "GET /webhooks/{id}/deliveries",
+        "POST /webhooks/{id}/test"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Node action multiplexing remains BFF-shaped.",
+      "paths": ["GET /nodes", "POST /nodes", "GET /nodes/pair", "POST /nodes/pair"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
+      "notes": "Memory browse/search fallback semantics are Deck UX behavior.",
+      "paths": [
+        "GET /memory/browse",
+        "GET /memory/search",
+        "GET /memory/health",
+        "POST /memory/dreams"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Budget rules are Deck-local policy views.",
+      "paths": [
+        "GET /usage/budget",
+        "POST /usage/budget",
+        "PATCH /usage/budget/{id}",
+        "DELETE /usage/budget/{id}",
+        "GET /usage/budget/evaluate"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Usage aggregation remains Deck BFF-shaped.",
+      "paths": [
+        "GET /models/usage/cost",
+        "GET /models/usage/providers",
+        "GET /usage/sessions",
+        "GET /usage/sessions/logs",
+        "GET /usage/timeseries"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Config editor works against Deck's openclaw.json UX and base-hash semantics.",
+      "paths": [
+        "GET /config",
+        "POST /config/apply",
+        "POST /config/patch",
+        "POST /config/schema-lookup"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Models config editor route, distinct from runtime Gateway model RPC.",
+      "paths": ["GET /models/config", "PATCH /models/config"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Deck identity/routing/subagent views retain BFF action envelopes.",
+      "paths": [
+        "GET /deck/identity",
+        "POST /deck/identity",
+        "GET /deck/threads",
+        "GET /deck/routing",
+        "POST /deck/routing",
+        "GET /deck/subagents",
+        "POST /deck/subagents"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Detail, skills, event streams, subagent config, and preview actions are Deck-shaped aggregate routes.",
+      "paths": ["GET /deck/agents?agentId=...", "POST /deck/agents"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Mutations and detail/file helpers keep validation, defaults, and response shaping in BFF.",
+      "paths": [
+        "POST /agents",
+        "PATCH /agents/{agentId}",
+        "DELETE /agents?agentId=...",
+        "GET /agents/{agentId}",
+        "GET /agents/{agentId}/files",
+        "POST /agents/{agentId}/files",
+        "GET /agents/{agentId}/files/{name}",
+        "GET /agents/{agentId}/identity"
+      ]
+    },
+    {
+      "category": "documented-exception",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "D12 upstream schema gap; tracked as an explicit untyped exception rather than FE typed migration.",
+      "paths": ["GET /commands", "POST /tools/catalog", "POST /deck/tools-effective"]
+    },
+    {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "Keep `fetchDeckJson` through `deck.commands.discover` generated Gateway binding",
+      "notes": "Command discovery is Gateway-backed but remains behind a Deck endpoint while request validation and UI command grouping are staged.",
+      "paths": ["POST /deck/commands/discover"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Session list/detail/snapshot routes include projection and Deck chat state shaping.",
+      "paths": [
+        "GET /sessions",
+        "GET /chat/sessions",
+        "POST /chat/sessions/preview",
+        "GET /sessions/{sessionKey}",
+        "GET /chat/snapshot",
+        "GET /chat/history"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
+      "notes": "Chat commands preserve Deck idempotency, projection, and command envelopes.",
+      "paths": [
+        "POST /chat/sessions/create",
+        "POST /chat/send",
+        "POST /chat/abort",
+        "POST /chat/steer",
+        "POST /chat/sessions/reset",
+        "POST /chat/sessions/clear",
+        "DELETE /chat/sessions",
+        "POST /chat/sessions/patch"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
+      "notes": "Compaction, subscription selection, projection, and canvas bridge are Deck control-plane behavior.",
+      "paths": [
+        "POST /chat/compact",
+        "POST /chat/compaction",
+        "POST /chat/session-events",
+        "POST /chat/projection",
+        "POST /deck/canvas"
+      ]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Monitor projections are Deck backend views.",
+      "paths": [
+        "GET /activity",
+        "GET /monitor/runs",
+        "GET /monitor/runs/{runId}",
+        "GET /monitor/stats"
+      ]
+    },
+    {
+      "category": "stream-binary-upload",
+      "migrationTarget": "Keep `deckStream`",
+      "notes": "SSE transport, not Gateway RPC.",
+      "paths": ["GET /stream", "GET /logs/stream"]
+    },
+    {
+      "category": "stream-binary-upload",
+      "migrationTarget": "Keep direct browser URL",
+      "notes": "Binary/media and iframe asset routes are intentionally outside typed RPC.",
+      "paths": ["GET /media", "GET /canvas/{path}"]
+    }
+  ]
+}

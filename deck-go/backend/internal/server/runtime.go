@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
@@ -194,8 +195,8 @@ func writeRuntimeFacadeError(w http.ResponseWriter, err error) {
 }
 
 func writeRuntimeError(w http.ResponseWriter, status int, code string, message string) {
-	writeJSON(w, status, map[string]any{
-		"code":    code,
-		"message": message,
+	writeJSON(w, status, deckapi.DeckGoRuntimeErrorResponse{
+		Code:    code,
+		Message: message,
 	})
 }

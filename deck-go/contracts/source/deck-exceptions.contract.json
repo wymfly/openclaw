@@ -1,0 +1,68 @@
+{
+  "exceptions": [
+    {
+      "id": "gateway.tools-catalog.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "tools.catalog",
+      "owner": "deck-go-contract-chain",
+      "reason": "Upstream Gateway method lacks a result schema; Deck Go keeps the call explicit and documented until the schema exists.",
+      "exitCriteria": "Add upstream result schema for tools.catalog, regenerate Gateway artifacts, migrate call site to generated typed binding, and remove inline allow-untyped marker."
+    },
+    {
+      "id": "gateway.tools-effective.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "tools.effective",
+      "owner": "deck-go-contract-chain",
+      "reason": "Upstream Gateway method lacks a result schema; current Deck Go endpoint is a Deck-shaped BFF route.",
+      "exitCriteria": "Add upstream result schema for tools.effective or replace with a Deck-facing contract that no longer requires raw Gateway passthrough."
+    },
+    {
+      "id": "gateway.exec-approval-list.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "exec.approval.list",
+      "owner": "deck-go-contract-chain",
+      "reason": "Approval list payload is consumed before upstream typed result coverage is available.",
+      "exitCriteria": "Add upstream result schema for exec.approval.list, regenerate Gateway artifacts, and update approval adapter tests."
+    },
+    {
+      "id": "gateway.plugin-approval-list.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "plugin.approval.list",
+      "owner": "deck-go-contract-chain",
+      "reason": "Plugin approval list payload is consumed before upstream typed result coverage is available.",
+      "exitCriteria": "Add upstream result schema for plugin.approval.list, regenerate Gateway artifacts, and update plugin approval adapter tests."
+    },
+    {
+      "id": "gateway.logs-tail.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "logs.tail",
+      "owner": "deck-go-contract-chain",
+      "reason": "Log tail response remains dynamic while stream/log transport contracts are separated from JSON DTO migration.",
+      "exitCriteria": "Define logs.tail result schema or Deck-facing log tail DTO, regenerate artifacts, and remove raw passthrough."
+    },
+    {
+      "id": "gateway.commands-list.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "commands.list",
+      "owner": "deck-go-contract-chain",
+      "reason": "Command discovery result is still consumed through a dynamic Gateway result shape.",
+      "exitCriteria": "Add upstream result schema for commands.list or a Deck-facing command discovery contract, then migrate the call site."
+    },
+    {
+      "id": "gateway.node-invoke.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "node.invoke",
+      "owner": "deck-go-contract-chain",
+      "reason": "Node invocation is intentionally dynamic until node action payload schemas are defined.",
+      "exitCriteria": "Introduce node action payload/result schemas or a documented dynamic node action envelope with typed outer shape."
+    },
+    {
+      "id": "gateway.node-pending-enqueue.missing-schema",
+      "kind": "untyped-gateway-method",
+      "method": "node.pending.enqueue",
+      "owner": "deck-go-contract-chain",
+      "reason": "Pending node work payload is dynamic until node pending-work schemas are defined.",
+      "exitCriteria": "Introduce node pending-work result schema or Deck-facing pending-work DTO, then migrate the call site."
+    }
+  ]
+}

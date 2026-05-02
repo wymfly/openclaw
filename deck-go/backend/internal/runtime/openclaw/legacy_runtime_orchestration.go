@@ -7,10 +7,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 )
 
-type RuntimeGatewayActionResponse struct {
-	Ok      bool                               `json:"ok"`
-	Runtime deckapi.DeckGoRuntimeGatewayStatus `json:"runtime"`
-}
+type RuntimeGatewayActionResponse = deckapi.DeckGoRuntimeGatewayActionResponse
 
 func (m *ManagedRuntime) RuntimeGatewayStatusResponse() RuntimeGatewayActionResponse {
 	return RuntimeGatewayActionResponse{
