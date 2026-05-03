@@ -131,6 +131,7 @@
   "agentsPanel": {
     "title": "智能体",
     "subtitle": "管理 OpenClaw 智能体的身份、运行状态和配置。",
+    "eyebrow": "智能体 / 契约驱动控制",
     "detailLabel": "{name} 的智能体详情",
     "sectionNavLabel": "智能体配置分区",
     "backToList": "返回列表",
@@ -156,6 +157,18 @@
     "missing": "缺失",
     "dirtyBanner": "未保存变更：{sections}",
     "statusLabel": "状态：{status}",
+    "metrics": {
+      "label": "智能体指标",
+      "total": "总数",
+      "busy": "忙碌",
+      "default": "默认",
+      "sessions": "会话",
+      "bindings": "绑定"
+    },
+    "detailPlaceholder": {
+      "title": "选择一个智能体",
+      "body": "打开一行后可检查身份、技能、委派策略、文件和事件流。"
+    },
     "filters": {
       "all": "全部",
       "busy": "忙碌",

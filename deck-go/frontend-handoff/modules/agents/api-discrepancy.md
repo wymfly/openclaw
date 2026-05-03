@@ -1,69 +1,45 @@
-# agents — API discrepancy notes
+# agents - API discrepancy notes
 
-This file records differences between the forward-flow design package and the
-current code/contract truth. Implementation must follow code truth first and
-only synthesize temporary view shapes through named adapters.
+This file records known differences between desirable product behavior and current contract/backend truth. The high-fidelity pass must follow current truth first.
 
 ## 1. `agents.list` query support
 
-- **Design assumption:** `gw.agents.list(query)` supports `search`, `sortBy`,
-  `filter`, `cursor`, and `limit`.
-- **Current truth:** Gateway `AgentsListParamsSchema` is empty and generated
-  Deck-Go clients expose `agents.list({})`.
-- **Impact:** list search/sort/filter must be client-side in the first
-  implementation. Pagination/cursor UI must not imply server support.
-- **Resolution path:** Add server-side query support in a follow-up Gateway/BFF
-  contract change if scale requires it.
+- **Design desire:** server-side `search`, `sortBy`, `filter`, `cursor`, and `limit`.
+- **Current truth:** Gateway `agents.list` takes `{}`.
+- **Implementation rule:** search/filter/sort are client-side; no pagination UI that implies server cursor support.
 
-## 2. `AgentSummary` v2 fields
+## 2. Optional summary counters
 
-- **Design assumption:** summary rows include closed fields such as `status`,
-  `isDefault`, `sessionCount`, `bindingCount`, and `lastActiveAtMs`.
-- **Current truth:** Deck-facing `DeckGoAgentSummary` currently exposes only
-  identity/model/workspace fields plus an open extension.
-- **Impact:** this change may add stable optional fields, but values must come
-  from Gateway/BFF truth. Missing counters render as unavailable instead of `0`.
-- **Resolution path:** extend `contracts/source/deck-api.contract.ts` and Go BFF
-  normalization for fields that are truthfully available.
+- **Design desire:** every row has session count, binding count, and last active time.
+- **Current truth:** `DeckGoAgentSummary` has optional `sessionCount`, `bindingCount`, and `lastActiveAtMs`.
+- **Implementation rule:** missing values render as unavailable (`-` or neutral copy), not `0`.
 
-## 3. Realtime event discriminator
+## 3. Realtime discriminator
 
-- **Design assumption:** `activity.event` has an `eventType` discriminated union
-  with `agent.status`, `agent.session-count`, `agent.removed`, and
-  `agent.health`.
-- **Current truth:** the declared stream events are `activity.event` with
-  `agentId`/`type` open payload and `agent.status.changed` with
-  `agentId`/`status`.
-- **Impact:** the agents panel must consume the declared stream contracts and
-  ignore unknown payloads. It must not require `eventType`.
-- **Resolution path:** a later stream contract change can introduce
-  discriminated events after backend emission exists.
+- **Design desire:** typed `activity.event.eventType` union.
+- **Current truth:** stream contracts expose `agent.status.changed` and open `activity.event` payloads.
+- **Implementation rule:** consume declared fields only; ignore unknown payloads.
 
 ## 4. Skill mode semantics
 
-- **Design assumption:** skill mode is `"inherit" | "explicit" | "none"`.
-- **Current truth:** current Gateway/BFF sections use `"all" | "whitelist"`.
-- **Impact:** the first UI must present current semantics or map labels without
-  changing request values.
-- **Resolution path:** semantic skill-mode migration belongs in a separate
-  Gateway/config contract change.
+- **Design desire:** `"inherit" | "explicit" | "none"`.
+- **Current truth:** update wrapper accepts `"all" | "whitelist"`.
+- **Implementation rule:** present current semantics or labels mapped to current values; never send unsupported literals.
 
-## 5. `/deck/agents` per-kind endpoints
+## 5. `/deck/agents` per-kind routes
 
-- **Design assumption:** skills/subagents/previews/event-streams can be read via
-  kind-specific GET routes and written via kind-specific actions.
-- **Current truth:** backend exposes `POST /deck/agents` as an action
-  multiplexer and `GET /deck/agents?agentId=...` for detail.
-- **Impact:** panel components must use typed `src/api.ts` wrappers. Raw
-  endpoint/action strings are allowed only inside the API facade.
-- **Resolution path:** split endpoints can be a later BFF cleanup.
+- **Design desire:** separate routes for skills, subagents, streams, and previews.
+- **Current truth:** `POST /deck/agents` is an action multiplexer wrapped by `src/api.ts`.
+- **Implementation rule:** panel code calls wrappers; raw action strings remain in API facade.
 
-## 6. Subagent allow-list shape
+## 6. Subagent permission shape
 
-- **Design assumption:** subagent config returns `allAgents[].allowed`.
-- **Current truth:** response contains `allowAgents`, optional `allowedAgents`,
-  and optional `allAgents`.
-- **Impact:** a named adapter may build `allAgents[].allowed` for view code, but
-  source DTOs must keep Gateway truth.
-- **Resolution path:** remove redundant fields only after backend contract
-  changes and generated DTOs are updated.
+- **Design desire:** `allAgents[].allowed`.
+- **Current truth:** source DTO keeps `allowAgents`, optional `allowedAgents`, and optional `allAgents`.
+- **Implementation rule:** use `normalizeAgentSubagentPermissionOptions()` for view rows.
+
+## 7. Real Gateway E2E
+
+- **Design desire:** visual tests also prove real Gateway behavior.
+- **Current truth:** this change is scoped to mock visual coverage.
+- **Implementation rule:** closeout must explicitly say mock visual E2E is not real Gateway/LLM verification.

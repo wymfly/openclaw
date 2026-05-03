@@ -200,6 +200,27 @@ export function AgentsPanel() {
   }, [filter, list, search, sort]);
 
   const selectedAgent = list.find((agent) => agent.id === selectedAgentId) ?? null;
+  const metrics = useMemo(() => {
+    const busy = list.filter((agent) => agent.status === "busy").length;
+    const defaultAgent = list.find((agent) => agent.isDefault);
+    const sessions = list.reduce(
+      (total, agent) =>
+        total + (Number.isFinite(agent.sessionCount) ? (agent.sessionCount ?? 0) : 0),
+      0,
+    );
+    const bindings = list.reduce(
+      (total, agent) =>
+        total + (Number.isFinite(agent.bindingCount) ? (agent.bindingCount ?? 0) : 0),
+      0,
+    );
+    return {
+      bindings,
+      busy,
+      defaultAgent: defaultAgent?.id ?? "-",
+      sessions,
+      total: list.length,
+    };
+  }, [list]);
 
   const openAgent = useCallback(
     (agentId: string) => {
@@ -270,39 +291,11 @@ export function AgentsPanel() {
     }
   };
 
-  if (selectedAgent) {
-    return (
-      <>
-        <AgentDetailView
-          agent={selectedAgent}
-          onBack={returnToList}
-          onDelete={() => setDeleteTarget(selectedAgent)}
-        />
-        <CreateAgentWizard
-          open={createOpen}
-          onClose={() => setCreateOpen(false)}
-          onCreated={openAgent}
-        />
-        <ConfirmDelete
-          agent={deleteTarget}
-          onCancel={() => setDeleteTarget(null)}
-          onDeleted={(fallbackId) => {
-            setDeleteTarget(null);
-            if (fallbackId) {
-              openAgent(fallbackId);
-            } else {
-              returnToList();
-            }
-          }}
-        />
-      </>
-    );
-  }
-
   return (
-    <section className="agents-panel" aria-label={t("title")}>
+    <section className="agents-panel" aria-label={t("title")} data-agents-workbench="true">
       <div className="agents-panel__toolbar">
         <div>
+          <p className="agents-panel__eyebrow">{t("eyebrow")}</p>
           <h2>{t("title")}</h2>
           <p>{t("subtitle")}</p>
         </div>
@@ -316,109 +309,160 @@ export function AgentsPanel() {
         </div>
       </div>
 
-      <Card className="agents-panel__list-card" padded>
-        <div className="agents-panel__filters">
-          <Input
-            ref={searchRef}
-            value={search}
-            aria-label={t("searchLabel")}
-            placeholder={t("searchPlaceholder")}
-            onChange={(event) => setSearch(event.currentTarget.value)}
-          />
-          <SegmentedControl<AgentsFilter>
-            aria-label={t("filterLabel")}
-            value={filter}
-            onChange={setFilter}
-            items={[
-              { value: "all", label: t("filters.all") },
-              { value: "busy", label: t("filters.busy") },
-              { value: "default", label: t("filters.default") },
-            ]}
-          />
-          <SegmentedControl<AgentsSort>
-            aria-label={t("sortLabel")}
-            value={sort}
-            onChange={setSort}
-            items={[
-              { value: "name", label: t("sort.name") },
-              { value: "recent", label: t("sort.recent") },
-              { value: "sessions", label: t("sort.sessions") },
-            ]}
-          />
-        </div>
+      <div className="agents-panel__metrics" aria-label={t("metrics.label")}>
+        <MetricTile label={t("metrics.total")} value={String(metrics.total)} />
+        <MetricTile label={t("metrics.busy")} value={String(metrics.busy)} />
+        <MetricTile label={t("metrics.default")} value={metrics.defaultAgent} />
+        <MetricTile label={t("metrics.sessions")} value={String(metrics.sessions)} />
+        <MetricTile label={t("metrics.bindings")} value={String(metrics.bindings)} />
+      </div>
 
-        {status === "loading" ? <LoadingRows label={t("loading")} /> : null}
-        {status === "error" ? (
-          <Banner variant="error">
-            <strong>{t("errors.listTitle")}</strong>
-            <span>{error}</span>
-            <Button size="sm" onClick={() => void loadAgents()}>
-              {t("retry")}
-            </Button>
-          </Banner>
-        ) : null}
-        {status === "ready" && visibleAgents.length === 0 ? (
-          <div className="agents-panel__empty" role="status">
-            <h3>{search ? t("empty.noSearchTitle") : t("empty.noAgentsTitle")}</h3>
-            <p>{search ? t("empty.noSearchBody", { query: search }) : t("empty.noAgentsBody")}</p>
-            {search ? (
-              <Button onClick={() => setSearch("")}>{t("empty.clearSearch")}</Button>
-            ) : (
-              <Button variant="primary" onClick={() => setCreateOpen(true)}>
-                {t("create.open")}
+      <div className="agents-workbench">
+        <Card className="agents-panel__list-card agents-list-card" padded={false}>
+          <div className="agents-panel__filters">
+            <Input
+              ref={searchRef}
+              value={search}
+              aria-label={t("searchLabel")}
+              placeholder={t("searchPlaceholder")}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+            />
+            <SegmentedControl<AgentsFilter>
+              aria-label={t("filterLabel")}
+              value={filter}
+              onChange={setFilter}
+              items={[
+                { value: "all", label: t("filters.all") },
+                { value: "busy", label: t("filters.busy") },
+                { value: "default", label: t("filters.default") },
+              ]}
+            />
+            <SegmentedControl<AgentsSort>
+              aria-label={t("sortLabel")}
+              value={sort}
+              onChange={setSort}
+              items={[
+                { value: "name", label: t("sort.name") },
+                { value: "recent", label: t("sort.recent") },
+                { value: "sessions", label: t("sort.sessions") },
+              ]}
+            />
+          </div>
+
+          {status === "loading" ? <LoadingRows label={t("loading")} /> : null}
+          {status === "error" ? (
+            <Banner variant="error">
+              <strong>{t("errors.listTitle")}</strong>
+              <span>{error}</span>
+              <Button size="sm" onClick={() => void loadAgents()}>
+                {t("retry")}
               </Button>
-            )}
-          </div>
-        ) : null}
-
-        {visibleAgents.length > 0 ? (
-          <div className="agents-table" role="table" aria-label={t("tableLabel")}>
-            <div className="agents-table__head" role="row">
-              <span role="columnheader">{t("columns.agent")}</span>
-              <span role="columnheader">{t("columns.status")}</span>
-              <span role="columnheader">{t("columns.sessions")}</span>
-              <span role="columnheader">{t("columns.bindings")}</span>
+            </Banner>
+          ) : null}
+          {status === "ready" && visibleAgents.length === 0 ? (
+            <div className="agents-panel__empty" role="status">
+              <h3>{search ? t("empty.noSearchTitle") : t("empty.noAgentsTitle")}</h3>
+              <p>{search ? t("empty.noSearchBody", { query: search }) : t("empty.noAgentsBody")}</p>
+              {search ? (
+                <Button onClick={() => setSearch("")}>{t("empty.clearSearch")}</Button>
+              ) : (
+                <Button variant="primary" onClick={() => setCreateOpen(true)}>
+                  {t("create.open")}
+                </Button>
+              )}
             </div>
-            {visibleAgents.map((agent, index) => (
-              <div
-                key={agent.id}
-                ref={(node) => {
-                  rowRefs.current[index] = node;
-                }}
-                role="row"
-                tabIndex={0}
-                className="agents-table__row"
-                aria-selected="false"
-                onClick={() => openAgent(agent.id)}
-                onKeyDown={(event) => handleRowKeyDown(event, index)}
-              >
-                <span className="agent-cell" role="cell">
-                  <span className="agent-avatar" aria-hidden="true">
-                    {agentInitial(agent)}
-                  </span>
-                  <span>
-                    <strong>{agent.name}</strong>
-                    <small>{agent.id}</small>
-                  </span>
-                  {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
-                </span>
-                <span role="cell">
-                  <StatusBadge agent={agent} />
-                </span>
-                <span role="cell">{formatMaybeCount(agent.sessionCount)}</span>
-                <span role="cell">{formatMaybeCount(agent.bindingCount)}</span>
+          ) : null}
+
+          {visibleAgents.length > 0 ? (
+            <div className="agents-table" role="table" aria-label={t("tableLabel")}>
+              <div className="agents-table__head" role="row">
+                <span role="columnheader">{t("columns.agent")}</span>
+                <span role="columnheader">{t("columns.status")}</span>
+                <span role="columnheader">{t("columns.sessions")}</span>
+                <span role="columnheader">{t("columns.bindings")}</span>
               </div>
-            ))}
+              {visibleAgents.map((agent, index) => (
+                <div
+                  key={agent.id}
+                  ref={(node) => {
+                    rowRefs.current[index] = node;
+                  }}
+                  role="row"
+                  tabIndex={0}
+                  className={
+                    selectedAgentId === agent.id
+                      ? "agents-table__row agents-table__row--selected"
+                      : "agents-table__row"
+                  }
+                  aria-selected={selectedAgentId === agent.id}
+                  onClick={() => openAgent(agent.id)}
+                  onKeyDown={(event) => handleRowKeyDown(event, index)}
+                >
+                  <span className="agent-cell" role="cell">
+                    <span className="agent-avatar" aria-hidden="true">
+                      {agentInitial(agent)}
+                    </span>
+                    <span>
+                      <strong>{agent.name}</strong>
+                      <small>
+                        {agent.id}
+                        {agent.workspace ? ` / ${agent.workspace}` : ""}
+                      </small>
+                    </span>
+                    {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+                  </span>
+                  <span role="cell">
+                    <StatusBadge agent={agent} />
+                  </span>
+                  <span role="cell">{formatMaybeCount(agent.sessionCount)}</span>
+                  <span role="cell">{formatMaybeCount(agent.bindingCount)}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Card>
+
+        {selectedAgent ? (
+          <AgentDetailView
+            agent={selectedAgent}
+            onBack={returnToList}
+            onDelete={() => setDeleteTarget(selectedAgent)}
+          />
+        ) : (
+          <div className="agents-detail-placeholder" role="status">
+            <h3>{t("detailPlaceholder.title")}</h3>
+            <p>{t("detailPlaceholder.body")}</p>
           </div>
-        ) : null}
-      </Card>
+        )}
+      </div>
 
       <CreateAgentWizard
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={openAgent}
       />
+      <ConfirmDelete
+        agent={deleteTarget}
+        onCancel={() => setDeleteTarget(null)}
+        onDeleted={(fallbackId) => {
+          setDeleteTarget(null);
+          if (fallbackId) {
+            openAgent(fallbackId);
+          } else {
+            returnToList();
+          }
+        }}
+      />
     </section>
+  );
+}
+
+function MetricTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="agent-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 

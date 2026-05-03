@@ -1,1501 +1,778 @@
 <!doctype html>
 <html lang="en" data-theme="dark" data-density="comfortable">
 <head>
-  <meta charset="utf-8"/>
-  <title>deck-go agents — high-fi prototype</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <meta charset="utf-8" />
+  <title>deck-go agents - hifi contract prototype</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
-    /* ============================================================
-       Tokens (mirror of frontend-handoff/design-system/tokens.css)
-       ============================================================ */
     :root {
-      --ds-font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      --ds-font-mono: "JetBrains Mono", "Menlo", monospace;
-
-      --ds-text-xs: 11px; --ds-text-sm: 12px; --ds-text-md: 13px;
-      --ds-text-lg: 14px; --ds-text-xl: 16px; --ds-text-2xl: 20px; --ds-text-3xl: 24px;
-
-      --ds-leading-tight: 1.3; --ds-leading-normal: 1.5; --ds-leading-relaxed: 1.65;
-
-      --ds-space-1: 4px; --ds-space-2: 8px; --ds-space-3: 12px; --ds-space-4: 16px;
-      --ds-space-5: 20px; --ds-space-6: 24px; --ds-space-8: 32px; --ds-space-10: 40px; --ds-space-12: 48px;
-
-      --ds-radius-sm: 4px; --ds-radius-md: 6px; --ds-radius-lg: 8px; --ds-radius-xl: 12px;
+      --ds-font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+      --ds-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      --ds-sp-1: 4px;
+      --ds-sp-2: 6px;
+      --ds-sp-3: 8px;
+      --ds-sp-4: 12px;
+      --ds-sp-5: 16px;
+      --ds-sp-6: 20px;
+      --ds-sp-7: 24px;
+      --ds-sp-8: 32px;
+      --ds-radius-sm: 4px;
+      --ds-radius-md: 6px;
+      --ds-radius-lg: 10px;
+      --ds-radius-pill: 9999px;
+      --ds-row-h: 32px;
+      --ds-line: 1.5;
+      --ds-fs-body: 13.5px;
+      --ds-fs-code: 12.5px;
+      --ds-fs-meta: 11.5px;
     }
-    html[data-theme="dark"] {
-      --ds-bg-0: #08090a;
+
+    :root,
+    [data-theme="dark"] {
+      --ds-bg-0: #0a0b0d;
       --ds-bg-1: #0f1115;
-      --ds-bg-2: #16181d;
-      --ds-bg-3: #1d2027;
-      --ds-bg-4: #252932;
+      --ds-bg-2: #14171c;
+      --ds-bg-3: #1a1e25;
+      --ds-bg-elev: #1c2028;
+      --ds-bg-hover: #20252e;
+      --ds-bg-active: #262d38;
       --ds-text-1: #e6e8ec;
-      --ds-text-2: #a8aeb8;
-      --ds-text-3: #6c7280;
-      --ds-text-4: #4a4f57;
-      --ds-border: #23262d;
-      --ds-border-strong: #2e323a;
-      --ds-accent: #6f8cff;
-      --ds-accent-bg: rgba(111, 140, 255, 0.12);
-      --ds-accent-border: rgba(111, 140, 255, 0.35);
-      --ds-success: #4ade80;
-      --ds-success-bg: rgba(74, 222, 128, 0.12);
-      --ds-warning: #f5b54a;
-      --ds-warning-bg: rgba(245, 181, 74, 0.12);
-      --ds-danger: #ef6660;
-      --ds-danger-bg: rgba(239, 102, 96, 0.12);
-      --ds-shadow-md: 0 4px 12px rgba(0,0,0,0.35);
-      --ds-shadow-lg: 0 12px 32px rgba(0,0,0,0.45);
-      --ds-overlay: rgba(0,0,0,0.55);
+      --ds-text-2: #a8aeba;
+      --ds-text-3: #8992a3;
+      --ds-text-4: #4a5160;
+      --ds-border-subtle: #1f2530;
+      --ds-border: #262d3a;
+      --ds-border-strong: #313947;
+      --ds-accent: #7aa2ff;
+      --ds-accent-dim: #4f72c7;
+      --ds-accent-bg: #1a2342;
+      --ds-success: #6ec48a;
+      --ds-success-bg: #142a1d;
+      --ds-warn: #d4a86a;
+      --ds-warn-bg: #2a1f10;
+      --ds-error: #e26b6b;
+      --ds-error-bg: #2c1518;
+      --ds-code-bg: #0c0e12;
+      --ds-code-border: #1d2330;
+      --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      --ds-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
     }
-    html[data-density="compact"] {
-      --ds-space-3: 8px; --ds-space-4: 12px; --ds-space-5: 16px; --ds-space-6: 20px;
+
+    [data-density="compact"] {
+      --ds-row-h: 26px;
+      --ds-line: 1.4;
+      --ds-fs-body: 12.5px;
+      --ds-fs-code: 12px;
+      --ds-fs-meta: 11px;
     }
 
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; background: var(--ds-bg-0); }
+    html, body { margin: 0; min-height: 100%; background: var(--ds-bg-0); }
     body {
-      font-family: var(--ds-font-sans);
-      font-size: var(--ds-text-md);
       color: var(--ds-text-1);
+      font: 400 var(--ds-fs-body) / var(--ds-line) var(--ds-font-sans);
+      letter-spacing: 0;
       -webkit-font-smoothing: antialiased;
-      line-height: var(--ds-leading-normal);
     }
+    button, input, textarea { font: inherit; letter-spacing: 0; }
+    button { cursor: pointer; }
 
-    /* ============================================================
-       App shell — left rail (panel switcher) + main
-       ============================================================ */
-    .app {
+    .deck-shell {
       display: grid;
-      grid-template-columns: 56px 1fr;
+      grid-template-columns: 64px minmax(0, 1fr);
       height: 100vh;
+      overflow: hidden;
       background: var(--ds-bg-0);
     }
+
     .rail {
-      background: var(--ds-bg-1);
-      border-right: 1px solid var(--ds-border);
       display: flex;
       flex-direction: column;
+      gap: var(--ds-sp-2);
       align-items: center;
-      padding: var(--ds-space-3) 0;
-      gap: var(--ds-space-2);
+      padding: var(--ds-sp-4) var(--ds-sp-2);
+      border-right: 1px solid var(--ds-border-subtle);
+      background: var(--ds-bg-1);
     }
-    .rail__logo {
-      width: 32px; height: 32px;
+    .rail__brand,
+    .rail__item {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid transparent;
       border-radius: var(--ds-radius-md);
-      background: linear-gradient(135deg, #6f8cff 0%, #a065f5 100%);
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 700; font-size: 14px;
-      margin-bottom: var(--ds-space-2);
-    }
-    .rail__btn {
-      width: 36px; height: 36px;
-      border-radius: var(--ds-radius-md);
+      color: var(--ds-text-3);
       background: transparent;
-      border: none;
-      color: var(--ds-text-3);
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.12s ease;
     }
-    .rail__btn:hover { background: var(--ds-bg-2); color: var(--ds-text-1); }
-    .rail__btn--active {
+    .rail__brand {
+      color: var(--ds-text-1);
       background: var(--ds-accent-bg);
-      color: var(--ds-accent);
-      box-shadow: inset 2px 0 0 var(--ds-accent);
+      border-color: var(--ds-accent-dim);
+      font-weight: 700;
     }
-
-    /* ============================================================
-       Workbench
-       ============================================================ */
-    .workbench { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-    .topbar {
-      height: 52px;
-      border-bottom: 1px solid var(--ds-border);
-      background: var(--ds-bg-1);
-      display: flex; align-items: center;
-      padding: 0 var(--ds-space-5);
-      gap: var(--ds-space-4);
-    }
-    .topbar__title {
-      font-size: var(--ds-text-lg); font-weight: 600;
+    .rail__item.is-active,
+    .rail__item:hover {
       color: var(--ds-text-1);
-    }
-    .topbar__crumb {
-      color: var(--ds-text-3); font-size: var(--ds-text-md);
-      display: flex; align-items: center; gap: var(--ds-space-2);
-    }
-    .topbar__crumb-sep { color: var(--ds-text-4); }
-    .topbar__spacer { flex: 1; }
-
-    /* ============================================================
-       List view
-       ============================================================ */
-    .list-toolbar {
-      display: flex;
-      align-items: center;
-      gap: var(--ds-space-3);
-      padding: var(--ds-space-4) var(--ds-space-5);
-      background: var(--ds-bg-1);
-      border-bottom: 1px solid var(--ds-border);
-    }
-    .search {
-      position: relative;
-      flex: 1; max-width: 360px;
-    }
-    .search input {
-      width: 100%;
-      padding: 7px 10px 7px 32px;
-      background: var(--ds-bg-2);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      color: var(--ds-text-1);
-      font-family: inherit; font-size: var(--ds-text-md);
-      outline: none;
-    }
-    .search input:focus { border-color: var(--ds-accent-border); background: var(--ds-bg-3); }
-    .search input::placeholder { color: var(--ds-text-3); }
-    .search__icon {
-      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-      color: var(--ds-text-3);
-    }
-    .search__kbd {
-      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-      font-family: var(--ds-font-mono); font-size: 10px;
-      background: var(--ds-bg-3); color: var(--ds-text-3);
-      border: 1px solid var(--ds-border);
-      padding: 1px 5px; border-radius: 3px;
-    }
-
-    .seg {
-      display: inline-flex;
-      background: var(--ds-bg-2);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      padding: 2px;
-    }
-    .seg__btn {
-      background: transparent; border: none;
-      color: var(--ds-text-3);
-      font-size: var(--ds-text-sm); font-family: inherit;
-      padding: 4px 10px; border-radius: 4px;
-      cursor: pointer;
-    }
-    .seg__btn--active {
-      background: var(--ds-bg-3);
-      color: var(--ds-text-1);
-      box-shadow: inset 0 0 0 1px var(--ds-border-strong);
-    }
-
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px;
-      background: var(--ds-bg-2);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      color: var(--ds-text-1);
-      font-family: inherit; font-size: var(--ds-text-md);
-      cursor: pointer;
-      transition: all 0.12s ease;
-    }
-    .btn:hover { background: var(--ds-bg-3); border-color: var(--ds-border-strong); }
-    .btn--primary {
-      background: var(--ds-accent);
-      border-color: var(--ds-accent);
-      color: white;
-      font-weight: 500;
-    }
-    .btn--primary:hover { background: #5a78f0; border-color: #5a78f0; }
-    .btn--danger {
-      color: var(--ds-danger);
+      background: var(--ds-bg-hover);
       border-color: var(--ds-border);
     }
-    .btn--danger:hover { background: var(--ds-danger-bg); border-color: var(--ds-danger); }
-    .btn--ghost { background: transparent; border-color: transparent; color: var(--ds-text-2); }
-    .btn--ghost:hover { background: var(--ds-bg-2); color: var(--ds-text-1); }
-    .btn--sm { padding: 4px 10px; font-size: var(--ds-text-sm); }
 
-    .list-body { flex: 1; overflow-y: auto; padding: var(--ds-space-4) var(--ds-space-5); }
-    .list-meta {
-      display: flex; align-items: center; gap: var(--ds-space-3);
-      color: var(--ds-text-3); font-size: var(--ds-text-sm);
-      margin-bottom: var(--ds-space-3);
-    }
-    .list-meta__chip {
-      padding: 2px 8px; border-radius: 999px;
-      background: var(--ds-bg-2); border: 1px solid var(--ds-border);
-    }
-
-    /* Agent rows (table-style, dense) */
-    .agent-table {
-      background: var(--ds-bg-1);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-lg);
-      overflow: hidden;
-    }
-    .agent-table__head {
+    .deck-main {
       display: grid;
-      grid-template-columns: 40px 1.5fr 0.7fr 0.5fr 0.5fr 0.7fr 90px;
-      padding: 10px var(--ds-space-4);
-      gap: var(--ds-space-3);
-      background: var(--ds-bg-2);
-      border-bottom: 1px solid var(--ds-border);
-      font-size: var(--ds-text-xs); font-weight: 600;
-      color: var(--ds-text-3);
-      text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .agent-row {
-      display: grid;
-      grid-template-columns: 40px 1.5fr 0.7fr 0.5fr 0.5fr 0.7fr 90px;
-      align-items: center;
-      padding: var(--ds-space-3) var(--ds-space-4);
-      gap: var(--ds-space-3);
-      border-bottom: 1px solid var(--ds-border);
-      cursor: pointer;
-      transition: background 0.08s ease;
-      position: relative;
-    }
-    .agent-row:last-child { border-bottom: none; }
-    .agent-row:hover { background: var(--ds-bg-2); }
-    .agent-row--active {
-      background: var(--ds-accent-bg);
-      box-shadow: inset 2px 0 0 var(--ds-accent);
-    }
-    .agent-row__avatar {
-      width: 32px; height: 32px; border-radius: var(--ds-radius-md);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
-      background: var(--ds-bg-3);
-      border: 1px solid var(--ds-border);
-    }
-    .agent-row__name {
-      display: flex; flex-direction: column; gap: 2px;
+      grid-template-rows: 48px minmax(0, 1fr);
       min-width: 0;
-    }
-    .agent-row__name-line {
-      display: flex; align-items: center; gap: 6px;
-      font-size: var(--ds-text-md); font-weight: 600;
-      color: var(--ds-text-1);
-    }
-    .agent-row__id {
-      font-family: var(--ds-font-mono);
-      font-size: var(--ds-text-xs);
-      color: var(--ds-text-3);
-    }
-    .agent-row__model {
-      font-family: var(--ds-font-mono); font-size: var(--ds-text-xs);
-      color: var(--ds-text-2);
-      padding: 2px 6px;
-      background: var(--ds-bg-2); border: 1px solid var(--ds-border);
-      border-radius: 3px;
-      width: fit-content;
-    }
-    .agent-row__status {
-      display: flex; align-items: center; gap: 6px;
-      font-size: var(--ds-text-sm); color: var(--ds-text-2);
-    }
-    .dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--ds-text-4);
-      flex-shrink: 0;
-    }
-    .dot--idle { background: var(--ds-text-3); }
-    .dot--busy {
-      background: var(--ds-success);
-      box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.6);
-      animation: pulse 1.6s ease-in-out infinite;
-    }
-    .dot--error { background: var(--ds-danger); }
-    @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
-      50% { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
-    }
-    .agent-row__count {
-      font-variant-numeric: tabular-nums;
-      font-size: var(--ds-text-md);
-      color: var(--ds-text-1);
-    }
-    .agent-row__count-label {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-      margin-left: 4px;
-    }
-    .agent-row__time {
-      font-size: var(--ds-text-sm);
-      color: var(--ds-text-3);
-      font-variant-numeric: tabular-nums;
-    }
-    .agent-row__actions {
-      display: flex; justify-content: flex-end; gap: 4px;
-      opacity: 0;
-      transition: opacity 0.1s ease;
-    }
-    .agent-row:hover .agent-row__actions { opacity: 1; }
-
-    .badge {
-      display: inline-flex; align-items: center;
-      font-size: 10px; font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 3px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .badge--default { background: var(--ds-accent-bg); color: var(--ds-accent); }
-    .badge--success { background: var(--ds-success-bg); color: var(--ds-success); }
-    .badge--warning { background: var(--ds-warning-bg); color: var(--ds-warning); }
-
-    /* ============================================================
-       Detail view
-       ============================================================ */
-    .detail {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 220px 1fr;
       min-height: 0;
     }
-    .detail__nav {
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 var(--ds-sp-5);
+      border-bottom: 1px solid var(--ds-border-subtle);
       background: var(--ds-bg-1);
-      border-right: 1px solid var(--ds-border);
-      padding: var(--ds-space-4) var(--ds-space-3);
-      display: flex; flex-direction: column;
-      gap: 2px;
     }
-    .detail__nav-header {
-      padding: 0 var(--ds-space-3) var(--ds-space-3);
-      border-bottom: 1px solid var(--ds-border);
-      margin-bottom: var(--ds-space-3);
-      display: flex; flex-direction: column; gap: var(--ds-space-2);
-    }
-    .detail__nav-name {
-      display: flex; align-items: center; gap: var(--ds-space-2);
-    }
-    .detail__nav-emoji {
-      width: 36px; height: 36px; border-radius: var(--ds-radius-md);
-      background: var(--ds-bg-3); border: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-    }
-    .detail__nav-text { display: flex; flex-direction: column; }
-    .detail__nav-title { font-size: var(--ds-text-md); font-weight: 600; color: var(--ds-text-1); }
-    .detail__nav-id { font-family: var(--ds-font-mono); font-size: var(--ds-text-xs); color: var(--ds-text-3); }
+    .topbar strong { font-weight: 600; }
+    .topbar__right { display: flex; align-items: center; gap: var(--ds-sp-2); }
 
-    .nav-item {
-      display: flex; align-items: center; gap: var(--ds-space-2);
-      padding: 6px 10px;
-      border-radius: var(--ds-radius-md);
-      font-size: var(--ds-text-md);
-      color: var(--ds-text-2);
-      cursor: pointer;
-      transition: all 0.1s ease;
-    }
-    .nav-item:hover { background: var(--ds-bg-2); color: var(--ds-text-1); }
-    .nav-item--active {
-      background: var(--ds-accent-bg);
-      color: var(--ds-accent);
-      font-weight: 500;
-    }
-    .nav-item__count {
-      margin-left: auto;
-      font-size: var(--ds-text-xs);
-      color: var(--ds-text-3);
-      font-variant-numeric: tabular-nums;
-    }
-    .nav-item--active .nav-item__count { color: var(--ds-accent); }
-
-    .detail__main { overflow-y: auto; padding: var(--ds-space-6); }
-    .detail__main-inner { max-width: 760px; }
-
-    .section-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      gap: var(--ds-space-4);
-      margin-bottom: var(--ds-space-5);
-    }
-    .section-header__text { flex: 1; }
-    .section-header__title {
-      font-size: var(--ds-text-2xl); font-weight: 600;
+    .agents-panel {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-width: 0;
+      min-height: 0;
+      padding: var(--ds-sp-5);
       color: var(--ds-text-1);
-      margin: 0 0 var(--ds-space-1);
-    }
-    .section-header__sub {
-      font-size: var(--ds-text-md); color: var(--ds-text-2);
-      margin: 0;
+      font-family: var(--ds-font-sans);
+      font-size: var(--ds-fs-body);
+      line-height: var(--ds-line);
     }
 
-    .field-card {
-      background: var(--ds-bg-1);
+    .agents-panel__toolbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--ds-sp-5);
+      margin-bottom: var(--ds-sp-4);
+    }
+    .agents-panel__eyebrow {
+      margin: 0 0 var(--ds-sp-1);
+      color: var(--ds-text-3);
+      font: 500 var(--ds-fs-meta) / 1.2 var(--ds-font-mono);
+      text-transform: uppercase;
+    }
+    .agents-panel__toolbar h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      line-height: 1.25;
+    }
+    .agents-panel__toolbar p {
+      max-width: 640px;
+      margin: var(--ds-sp-1) 0 0;
+      color: var(--ds-text-3);
+    }
+    .agents-panel__toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-sp-2);
+    }
+
+    .btn,
+    .chip,
+    .metric {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-sp-2);
+      min-height: 30px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-2);
+      color: var(--ds-text-2);
+    }
+    .btn {
+      padding: 0 var(--ds-sp-3);
+      color: var(--ds-text-1);
+    }
+    .btn.is-primary {
+      border-color: var(--ds-accent-dim);
+      background: var(--ds-accent-bg);
+      color: var(--ds-text-1);
+    }
+    .btn.is-danger {
+      border-color: color-mix(in srgb, var(--ds-error) 45%, var(--ds-border));
+      background: var(--ds-error-bg);
+      color: var(--ds-text-1);
+    }
+    .chip {
+      min-height: 24px;
+      padding: 0 var(--ds-sp-2);
+      border-radius: var(--ds-radius-pill);
+      font-size: var(--ds-fs-meta);
+      color: var(--ds-text-3);
+    }
+    .chip.is-ok { color: var(--ds-success); background: var(--ds-success-bg); border-color: color-mix(in srgb, var(--ds-success) 35%, var(--ds-border)); }
+    .chip.is-warn { color: var(--ds-warn); background: var(--ds-warn-bg); border-color: color-mix(in srgb, var(--ds-warn) 35%, var(--ds-border)); }
+    .chip.is-accent { color: var(--ds-accent); background: var(--ds-accent-bg); border-color: var(--ds-accent-dim); }
+
+    .agents-panel__metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: var(--ds-sp-3);
+      margin-bottom: var(--ds-sp-4);
+    }
+    .metric {
+      display: grid;
+      align-items: start;
+      min-height: 58px;
+      padding: var(--ds-sp-3);
+      background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+    }
+    .metric span {
+      color: var(--ds-text-3);
+      font: 500 var(--ds-fs-meta) / 1.25 var(--ds-font-mono);
+      text-transform: uppercase;
+    }
+    .metric strong {
+      font-size: 18px;
+      font-weight: 650;
+      line-height: 1.1;
+    }
+
+    .agents-workbench {
+      display: grid;
+      grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.35fr);
+      gap: var(--ds-sp-4);
+      min-width: 0;
+      min-height: 0;
+    }
+    .agents-list-card,
+    .agents-detail-card,
+    .agent-section {
+      min-width: 0;
+      min-height: 0;
       border: 1px solid var(--ds-border);
       border-radius: var(--ds-radius-lg);
-      padding: var(--ds-space-5);
-      margin-bottom: var(--ds-space-4);
+      background: var(--ds-bg-elev);
+      box-shadow: var(--ds-shadow-md);
     }
-    .field-card__title {
-      font-size: var(--ds-text-lg); font-weight: 600;
-      color: var(--ds-text-1);
-      margin: 0 0 var(--ds-space-1);
-    }
-    .field-card__sub {
-      font-size: var(--ds-text-sm); color: var(--ds-text-2);
-      margin: 0 0 var(--ds-space-4);
-      line-height: var(--ds-leading-relaxed);
-    }
-    .field-card--danger { border-color: var(--ds-danger); background: rgba(239, 102, 96, 0.04); }
-    .field-card--danger .field-card__title { color: var(--ds-danger); }
-
-    .field-grid {
+    .agents-list-card {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--ds-space-4);
-    }
-    .field {
-      display: flex; flex-direction: column; gap: 6px;
-    }
-    .field__label {
-      font-size: var(--ds-text-sm); font-weight: 500;
-      color: var(--ds-text-2);
-    }
-    .field__hint {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-    }
-    .field input, .field select, .field textarea {
-      background: var(--ds-bg-2);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      padding: 7px 10px;
-      color: var(--ds-text-1);
-      font-family: inherit; font-size: var(--ds-text-md);
-      outline: none;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color: var(--ds-accent-border);
-      background: var(--ds-bg-3);
-    }
-    .field textarea { font-family: var(--ds-font-mono); resize: vertical; min-height: 80px; }
-
-    .switch-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: var(--ds-space-3) 0;
-      border-bottom: 1px solid var(--ds-border);
-    }
-    .switch-row:last-child { border-bottom: none; }
-    .switch-row__text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-    .switch-row__label { font-size: var(--ds-text-md); font-weight: 500; color: var(--ds-text-1); }
-    .switch-row__hint { font-size: var(--ds-text-xs); color: var(--ds-text-3); }
-
-    .switch {
-      width: 36px; height: 20px;
-      border-radius: 999px;
-      background: var(--ds-bg-3);
-      border: 1px solid var(--ds-border);
-      position: relative;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: background 0.15s ease;
-    }
-    .switch::after {
-      content: "";
-      position: absolute;
-      top: 2px; left: 2px;
-      width: 14px; height: 14px;
-      background: var(--ds-text-2);
-      border-radius: 50%;
-      transition: all 0.18s ease;
-    }
-    .switch--on { background: var(--ds-accent); border-color: var(--ds-accent); }
-    .switch--on::after { left: 18px; background: white; }
-
-    /* Skill row */
-    .skill-row {
-      display: grid;
-      grid-template-columns: 32px 1fr auto auto;
-      gap: var(--ds-space-3);
-      padding: var(--ds-space-3) 0;
-      align-items: center;
-      border-bottom: 1px solid var(--ds-border);
-    }
-    .skill-row:last-child { border-bottom: none; }
-    .skill-row__icon {
-      width: 28px; height: 28px;
-      border-radius: var(--ds-radius-sm);
-      background: var(--ds-bg-3); border: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
-    }
-    .skill-row__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .skill-row__name {
-      display: flex; align-items: center; gap: 6px;
-      font-size: var(--ds-text-md); font-weight: 500; color: var(--ds-text-1);
-    }
-    .skill-row__desc {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-    .skill-row__args {
-      font-family: var(--ds-font-mono); font-size: var(--ds-text-xs);
-      color: var(--ds-text-3);
-      padding: 2px 6px;
-      background: var(--ds-bg-2); border: 1px solid var(--ds-border);
-      border-radius: 3px;
-    }
-
-    /* Tool policy preview */
-    .policy-rule {
-      display: grid;
-      grid-template-columns: 70px 1fr 100px 80px;
-      gap: var(--ds-space-3);
-      padding: 8px 0;
-      align-items: center;
-      border-bottom: 1px dashed var(--ds-border);
-      font-size: var(--ds-text-sm);
-    }
-    .policy-rule:last-child { border-bottom: none; }
-    .policy-rule__verb {
-      font-family: var(--ds-font-mono); font-weight: 600;
-      font-size: var(--ds-text-xs);
-      padding: 2px 6px; border-radius: 3px;
-      width: fit-content;
-    }
-    .policy-rule__verb--allow { background: var(--ds-success-bg); color: var(--ds-success); }
-    .policy-rule__verb--deny { background: var(--ds-danger-bg); color: var(--ds-danger); }
-    .policy-rule__pattern {
-      font-family: var(--ds-font-mono); color: var(--ds-text-1);
-    }
-    .policy-rule__source {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-    }
-    .policy-rule__layer {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-      font-family: var(--ds-font-mono);
-    }
-
-    /* Codeblock for system prompt preview */
-    .codeblock {
-      background: var(--ds-bg-0);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      padding: var(--ds-space-3) var(--ds-space-4);
-      font-family: var(--ds-font-mono); font-size: var(--ds-text-sm);
-      color: var(--ds-text-2);
-      line-height: var(--ds-leading-relaxed);
-      white-space: pre-wrap;
-      max-height: 320px;
-      overflow-y: auto;
-    }
-    .codeblock__section {
-      color: var(--ds-accent); font-weight: 600;
-      margin-top: var(--ds-space-3);
-    }
-    .codeblock__section:first-child { margin-top: 0; }
-
-    /* Files table */
-    .files-table {
-      font-size: var(--ds-text-md);
-    }
-    .file-row {
-      display: grid;
-      grid-template-columns: 24px 1fr 100px 100px;
-      gap: var(--ds-space-3);
-      padding: var(--ds-space-2) 0;
-      align-items: center;
-      border-bottom: 1px dashed var(--ds-border);
-    }
-    .file-row__icon { color: var(--ds-text-3); }
-    .file-row__name {
-      font-family: var(--ds-font-mono); color: var(--ds-text-1);
-      font-size: var(--ds-text-sm);
-    }
-    .file-row__size, .file-row__time {
-      font-size: var(--ds-text-xs); color: var(--ds-text-3);
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Wizard */
-    .wizard-overlay {
-      position: fixed; inset: 0;
-      background: var(--ds-overlay);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-      display: flex; align-items: center; justify-content: center;
-      padding: 40px;
-    }
-    .wizard {
-      background: var(--ds-bg-1);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-xl);
-      box-shadow: var(--ds-shadow-lg);
-      width: 720px; max-width: 100%;
-      max-height: 88vh;
-      display: flex; flex-direction: column;
+      grid-template-rows: auto minmax(0, 1fr);
       overflow: hidden;
     }
-    .wizard__head {
-      padding: var(--ds-space-5);
-      border-bottom: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .wizard__title { font-size: var(--ds-text-xl); font-weight: 600; }
-    .wizard__steps {
-      display: flex; align-items: center; gap: var(--ds-space-2);
-      padding: var(--ds-space-4) var(--ds-space-5);
-      border-bottom: 1px solid var(--ds-border);
+    .agents-panel__filters {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      gap: var(--ds-sp-2);
+      padding: var(--ds-sp-3);
+      border-bottom: 1px solid var(--ds-border-subtle);
       background: var(--ds-bg-2);
     }
-    .wizard__step {
-      display: flex; align-items: center; gap: var(--ds-space-2);
-      font-size: var(--ds-text-sm); color: var(--ds-text-3);
+    .input {
+      width: 100%;
+      min-height: 32px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-1);
+      color: var(--ds-text-1);
+      padding: 0 var(--ds-sp-3);
     }
-    .wizard__step-num {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: var(--ds-bg-3); border: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: center;
-      font-size: var(--ds-text-xs); font-weight: 600;
+    .segmented {
+      display: inline-flex;
+      overflow: hidden;
+      min-height: 32px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-1);
     }
-    .wizard__step--active { color: var(--ds-text-1); }
-    .wizard__step--active .wizard__step-num { background: var(--ds-accent); border-color: var(--ds-accent); color: white; }
-    .wizard__step--done .wizard__step-num { background: var(--ds-success-bg); border-color: var(--ds-success); color: var(--ds-success); }
-    .wizard__sep { flex: 1; height: 1px; background: var(--ds-border); }
-    .wizard__body { padding: var(--ds-space-6); overflow-y: auto; flex: 1; }
-    .wizard__foot {
-      padding: var(--ds-space-4) var(--ds-space-5);
-      border-top: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: space-between;
+    .segmented button {
+      border: 0;
+      border-right: 1px solid var(--ds-border-subtle);
+      background: transparent;
+      color: var(--ds-text-3);
+      padding: 0 var(--ds-sp-3);
+    }
+    .segmented button:last-child { border-right: 0; }
+    .segmented button.is-active {
+      background: var(--ds-bg-active);
+      color: var(--ds-text-1);
     }
 
-    /* Modal — confirm */
-    .modal-overlay {
-      position: fixed; inset: 0;
-      background: var(--ds-overlay);
-      z-index: 110;
-      display: flex; align-items: center; justify-content: center;
+    .agents-table {
+      display: grid;
+      grid-auto-rows: minmax(64px, auto);
+      overflow: auto;
     }
-    .modal {
+    .agents-table__head,
+    .agents-table__row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 104px 80px 80px;
+      gap: var(--ds-sp-3);
+      align-items: center;
+      padding: 0 var(--ds-sp-3);
+    }
+    .agents-table__head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      min-height: 34px;
+      color: var(--ds-text-3);
       background: var(--ds-bg-1);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-xl);
-      width: 420px;
-      box-shadow: var(--ds-shadow-lg);
-      padding: var(--ds-space-5);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      font: 600 var(--ds-fs-meta) / 1.2 var(--ds-font-mono);
+      text-transform: uppercase;
     }
-    .modal__title { font-size: var(--ds-text-lg); font-weight: 600; margin: 0 0 var(--ds-space-2); }
-    .modal__body { color: var(--ds-text-2); font-size: var(--ds-text-md); margin-bottom: var(--ds-space-4); }
-    .modal__actions { display: flex; justify-content: flex-end; gap: var(--ds-space-2); }
+    .agents-table__row {
+      border: 0;
+      border-bottom: 1px solid var(--ds-border-subtle);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+    }
+    .agents-table__row:hover,
+    .agents-table__row.is-selected {
+      background: var(--ds-bg-hover);
+    }
+    .agent-cell {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: var(--ds-sp-3);
+    }
+    .agent-avatar {
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-3);
+      font-weight: 700;
+    }
+    .agent-cell strong,
+    .agent-cell small,
+    .agents-detail__identity p {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .agent-cell small,
+    .agents-detail__identity p {
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
+    }
+    .agent-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--ds-text-4);
+    }
+    .agent-status-dot.is-busy { background: var(--ds-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ds-accent) 18%, transparent); }
+    .agent-status-dot.is-idle { background: var(--ds-success); }
+    .agent-status-dot.is-error { background: var(--ds-error); }
+    .mono { font-family: var(--ds-font-mono); font-size: var(--ds-fs-meta); color: var(--ds-text-3); }
 
-    /* Tweaks panel */
-    .tweaks {
-      position: fixed;
-      right: 16px; bottom: 16px;
-      width: 240px;
-      background: var(--ds-bg-1);
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-lg);
-      box-shadow: var(--ds-shadow-md);
-      z-index: 50;
-      font-size: var(--ds-text-sm);
+    .agents-detail-card {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      overflow: hidden;
     }
-    .tweaks__head {
-      padding: var(--ds-space-3) var(--ds-space-4);
-      border-bottom: 1px solid var(--ds-border);
-      display: flex; align-items: center; justify-content: space-between;
+    .agents-detail__hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--ds-sp-4);
+      padding: var(--ds-sp-4);
+      border-bottom: 1px solid var(--ds-border-subtle);
+      background: linear-gradient(180deg, var(--ds-bg-2), var(--ds-bg-elev));
+    }
+    .agents-detail__identity {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: var(--ds-sp-3);
+    }
+    .agent-avatar--large { width: 44px; height: 44px; }
+    .agents-detail__identity h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.25;
+    }
+    .agents-detail__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--ds-sp-2);
+      margin-top: var(--ds-sp-2);
+    }
+    .agents-detail__body {
+      display: grid;
+      grid-template-columns: 196px minmax(0, 1fr);
+      min-width: 0;
+      min-height: 0;
+    }
+    .agents-detail__sections {
+      display: grid;
+      align-content: start;
+      gap: var(--ds-sp-1);
+      padding: var(--ds-sp-3);
+      border-right: 1px solid var(--ds-border-subtle);
+      background: var(--ds-bg-1);
+    }
+    .agents-detail__section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 34px;
+      border: 1px solid transparent;
+      border-radius: var(--ds-radius-md);
+      background: transparent;
+      color: var(--ds-text-2);
+      padding: 0 var(--ds-sp-3);
+      text-align: left;
+    }
+    .agents-detail__section.is-active,
+    .agents-detail__section:hover {
+      color: var(--ds-text-1);
+      background: var(--ds-bg-hover);
+      border-color: var(--ds-border);
+    }
+    .agents-detail__main {
+      display: grid;
+      align-content: start;
+      gap: var(--ds-sp-3);
+      min-width: 0;
+      overflow: auto;
+      padding: var(--ds-sp-4);
+    }
+    .agent-section {
+      display: grid;
+      gap: var(--ds-sp-4);
+      padding: var(--ds-sp-4);
+      box-shadow: none;
+    }
+    .agent-section__header {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--ds-sp-4);
+    }
+    .agent-section__header h3 { margin: 0; font-size: 14px; }
+    .agent-section__header p { margin: var(--ds-sp-1) 0 0; color: var(--ds-text-3); }
+    .agent-form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ds-sp-3);
+    }
+    label {
+      display: grid;
+      gap: var(--ds-sp-1);
+      color: var(--ds-text-3);
+      font-size: var(--ds-fs-meta);
       font-weight: 600;
     }
-    .tweaks__body {
-      padding: var(--ds-space-3) var(--ds-space-4);
-      display: flex; flex-direction: column; gap: var(--ds-space-3);
+    .agent-option-row,
+    .agent-preview-row,
+    .agent-file-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: var(--ds-sp-3);
+      min-height: 42px;
+      padding: var(--ds-sp-2) var(--ds-sp-3);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      background: var(--ds-bg-1);
     }
-    .tweak-group { display: flex; flex-direction: column; gap: 6px; }
-    .tweak-label { font-size: var(--ds-text-xs); color: var(--ds-text-3); text-transform: uppercase; letter-spacing: 0.04em; }
-
-    /* Empty state */
-    .empty {
-      text-align: center;
-      padding: 64px var(--ds-space-5);
+    .state-panel {
+      display: none;
+      place-items: center;
+      min-height: 360px;
+      border: 1px dashed var(--ds-border);
+      border-radius: var(--ds-radius-lg);
+      background: var(--ds-bg-1);
       color: var(--ds-text-3);
+      text-align: center;
+      padding: var(--ds-sp-8);
     }
-    .empty__icon { font-size: 32px; opacity: 0.4; margin-bottom: var(--ds-space-3); }
-    .empty__title { font-size: var(--ds-text-lg); color: var(--ds-text-1); margin-bottom: 6px; }
-    .empty__sub { font-size: var(--ds-text-md); margin-bottom: var(--ds-space-4); }
+    .state-panel h2 { margin: 0 0 var(--ds-sp-2); color: var(--ds-text-1); }
+    body[data-state="empty"] .agents-workbench,
+    body[data-state="error"] .agents-workbench { display: none; }
+    body[data-state="empty"] .state-panel.is-empty,
+    body[data-state="error"] .state-panel.is-error { display: grid; }
+    body[data-state="create"] .create-modal { display: grid; }
+    .create-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(0,0,0,0.55);
+      padding: var(--ds-sp-6);
+    }
+    .create-card {
+      display: grid;
+      gap: var(--ds-sp-4);
+      width: min(620px, 100%);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-lg);
+      background: var(--ds-bg-elev);
+      box-shadow: var(--ds-shadow-lg);
+      padding: var(--ds-sp-5);
+    }
 
-    /* Light theme overrides */
-    html[data-theme="light"] {
-      --ds-bg-0: #ffffff;
-      --ds-bg-1: #faf9f7;
-      --ds-bg-2: #f3f1ed;
-      --ds-bg-3: #ebe8e2;
-      --ds-bg-4: #e2ddd5;
-      --ds-text-1: #1a1816;
-      --ds-text-2: #4a4640;
-      --ds-text-3: #807a72;
-      --ds-text-4: #a8a298;
-      --ds-border: #ebe8e2;
-      --ds-border-strong: #d5d0c7;
-      --ds-shadow-md: 0 2px 8px rgba(0,0,0,0.06);
-      --ds-shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
-      --ds-overlay: rgba(0,0,0,0.25);
+    @media (max-width: 1120px) {
+      .agents-workbench,
+      .agents-detail__body { grid-template-columns: 1fr; }
+      .agents-panel__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .agents-detail__sections { border-right: 0; border-bottom: 1px solid var(--ds-border-subtle); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .deck-shell { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      .agents-panel__toolbar,
+      .agents-detail__hero,
+      .agents-panel__filters,
+      .agent-form-grid { grid-template-columns: 1fr; flex-direction: column; }
+      .agents-panel__metrics { grid-template-columns: 1fr; }
+      .agents-table__head { display: none; }
+      .agents-table__row { grid-template-columns: 1fr 1fr; padding: var(--ds-sp-3); }
     }
   </style>
 </head>
-<body>
-  <div id="root"></div>
-
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-
-  <script type="text/babel" data-presets="env,react">
-    const { useState, useMemo, useEffect } = React;
-
-    /* ====== Mock data ====== */
-    const AGENTS = [
-      { id: "agt_main",      name: "main",      emoji: "🤖", model: "claude-opus-4",        workspace: "/projects/deck-go", status: "busy", isDefault: true,  sessionCount: 3, bindingCount: 8, lastActiveAtMs: Date.now() - 1000*40 },
-      { id: "agt_ops",       name: "ops",       emoji: "🛠️", model: "claude-sonnet-4",      workspace: "/projects/deck-go", status: "busy", isDefault: false, sessionCount: 1, bindingCount: 4, lastActiveAtMs: Date.now() - 1000*120 },
-      { id: "agt_research",  name: "research",  emoji: "🔍", model: "claude-opus-4",        workspace: "/projects/deck-go", status: "idle", isDefault: false, sessionCount: 0, bindingCount: 5, lastActiveAtMs: Date.now() - 1000*60*45 },
-      { id: "agt_writer",    name: "writer",    emoji: "✍️", model: "claude-sonnet-4",      workspace: "/projects/blog",   status: "idle", isDefault: false, sessionCount: 2, bindingCount: 2, lastActiveAtMs: Date.now() - 1000*60*60*3 },
-      { id: "agt_pm",        name: "pm",        emoji: "📋", model: "claude-haiku-4-5",     workspace: "/projects/pm",     status: "idle", isDefault: false, sessionCount: 0, bindingCount: 6, lastActiveAtMs: Date.now() - 1000*60*60*24 },
-      { id: "agt_codereview",name: "codereview",emoji: "🧪", model: "claude-sonnet-4",      workspace: "/projects/deck-go", status: "idle", isDefault: false, sessionCount: 0, bindingCount: 3, lastActiveAtMs: Date.now() - 1000*60*60*24*2 },
-    ];
-
-    const SKILLS = [
-      { id: "shell_exec",     name: "shell_exec",     emoji: "💻", desc: "Run shell commands in agent workspace", enabled: true,  args: { timeout: 60 } },
-      { id: "file_read",      name: "file_read",      emoji: "📄", desc: "Read files from agent workspace",       enabled: true,  args: null },
-      { id: "file_write",     name: "file_write",     emoji: "✏️", desc: "Write/edit files in agent workspace",   enabled: true,  args: null },
-      { id: "web_search",     name: "web_search",     emoji: "🔎", desc: "Search the web via configured engine",   enabled: false, args: null },
-      { id: "web_fetch",      name: "web_fetch",      emoji: "🌐", desc: "Fetch URL contents",                     enabled: false, args: null },
-      { id: "task_dispatch",  name: "task_dispatch",  emoji: "📤", desc: "Delegate to a subagent",                 enabled: true,  args: { maxDepth: 2 } },
-      { id: "github_read",    name: "github_read",    emoji: "🐙", desc: "Read GitHub repos (read-only)",          enabled: true,  args: null },
-    ];
-
-    const TOOL_POLICY = [
-      { verb: "allow", pattern: "shell.*",         source: "agent:main",       layer: "agent" },
-      { verb: "deny",  pattern: "shell.rm",        source: "global:safe-mode", layer: "global" },
-      { verb: "deny",  pattern: "shell.sudo*",     source: "global:safe-mode", layer: "global" },
-      { verb: "allow", pattern: "file_read.*",     source: "default",          layer: "default" },
-      { verb: "allow", pattern: "file_write.src/*",source: "agent:main",       layer: "agent" },
-      { verb: "deny",  pattern: "file_write./",    source: "global:safe-mode", layer: "global" },
-      { verb: "allow", pattern: "github_read.*",   source: "agent:main",       layer: "agent" },
-      { verb: "deny",  pattern: "web_search.*",    source: "agent:main",       layer: "agent" },
-    ];
-
-    const SYSTEM_PROMPT_PREVIEW = [
-      { section: "## Identity", body: "You are `main`, the principal agent in the deck-go runtime. You coordinate work across other agents." },
-      { section: "## Workspace", body: "Your working directory is /projects/deck-go. All file operations are scoped here." },
-      { section: "## Tool policy", body: "Resolved policy attached above. Never attempt operations the policy denies." },
-      { section: "## Subagents", body: "You may delegate to: ops, research, writer, codereview. See subagent policy for permissions." },
-      { section: "## Style", body: "Be concise. Prefer typed contracts over inline assumptions." },
-    ];
-
-    const FILES = [
-      { name: "agent-config.json",    size: "2.1 KB", time: "2m ago" },
-      { name: "system-prompt.md",     size: "8.4 KB", time: "1h ago" },
-      { name: "session-cache.json",   size: "47 KB",  time: "1h ago" },
-      { name: "tool-overrides.yaml",  size: "1.2 KB", time: "2d ago" },
-    ];
-
-    const NAV_ITEMS = [
-      { id: "overview",      label: "Overview",       icon: "👤", count: null },
-      { id: "skills",        label: "Skills",          icon: "🧰", count: 4 },
-      { id: "subagents",     label: "Subagents",       icon: "🌳", count: 4 },
-      { id: "tool-policy",   label: "Tool policy",     icon: "🛡️", count: 8 },
-      { id: "system-prompt", label: "System prompt",   icon: "📜", count: 5 },
-      { id: "files",         label: "Files",           icon: "📁", count: 4 },
-      { id: "event-streams", label: "Event streams",   icon: "📡", count: 2 },
-    ];
-
-    /* ====== Helpers ====== */
-    function formatRelTime(ms) {
-      const diff = Date.now() - ms;
-      if (diff < 60_000) return `${Math.floor(diff/1000)}s ago`;
-      if (diff < 3_600_000) return `${Math.floor(diff/60_000)}m ago`;
-      if (diff < 86_400_000) return `${Math.floor(diff/3_600_000)}h ago`;
-      return `${Math.floor(diff/86_400_000)}d ago`;
-    }
-
-    /* ====== Components ====== */
-    function Rail({ panel, setPanel }) {
-      const items = [
-        { id: "chat",      icon: "💬", label: "Chat" },
-        { id: "agents",    icon: "🤖", label: "Agents" },
-        { id: "routing",   icon: "🔀", label: "Routing" },
-        { id: "subagents", icon: "🌳", label: "Subagents" },
-        { id: "activity",  icon: "📡", label: "Activity" },
-      ];
-      return (
-        <div className="rail">
-          <div className="rail__logo">D</div>
-          {items.map(it => (
-            <button
-              key={it.id}
-              title={it.label}
-              className={`rail__btn ${it.id === panel ? "rail__btn--active" : ""}`}
-              onClick={() => setPanel(it.id)}
-            >
-              <span style={{ fontSize: 16 }}>{it.icon}</span>
-            </button>
-          ))}
+<body data-state="ready">
+  <div class="deck-shell">
+    <nav class="rail" aria-label="Deck navigation">
+      <div class="rail__brand">D</div>
+      <button class="rail__item">C</button>
+      <button class="rail__item is-active">A</button>
+      <button class="rail__item">G</button>
+      <button class="rail__item">R</button>
+      <button class="rail__item">S</button>
+    </nav>
+    <main class="deck-main">
+      <header class="topbar">
+        <strong>OpenClaw Deck</strong>
+        <div class="topbar__right">
+          <span class="chip is-ok">bundled runtime</span>
+          <span class="chip">cpa / gpt-5.4</span>
         </div>
-      );
-    }
+      </header>
 
-    function Topbar({ view, setView, selected, setSelected }) {
-      return (
-        <div className="topbar">
-          {view === "list" && <div className="topbar__title">Agents</div>}
-          {view === "detail" && (
-            <div className="topbar__crumb">
-              <span style={{ cursor: "pointer", color: "var(--ds-text-2)" }} onClick={() => setView("list")}>Agents</span>
-              <span className="topbar__crumb-sep">/</span>
-              <span style={{ color: "var(--ds-text-1)", fontWeight: 600 }}>{selected?.name}</span>
-            </div>
-          )}
-          <div className="topbar__spacer" />
-          <div className="seg" role="tablist">
-            <button className={`seg__btn ${view === "list" ? "seg__btn--active" : ""}`} onClick={() => setView("list")}>List</button>
-            <button className={`seg__btn ${view === "detail" ? "seg__btn--active" : ""}`} onClick={() => setView("detail")} disabled={!selected}>Detail</button>
-          </div>
-        </div>
-      );
-    }
-
-    function ListView({ agents, search, setSearch, sortBy, setSortBy, filter, setFilter, openDetail, openCreate }) {
-      const filtered = useMemo(() => {
-        let rows = agents;
-        if (search) rows = rows.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.id.includes(search.toLowerCase()));
-        if (filter === "busy") rows = rows.filter(a => a.status === "busy");
-        if (filter === "default") rows = rows.filter(a => a.isDefault);
-        rows = [...rows].sort((a,b) => {
-          if (sortBy === "name") return a.name.localeCompare(b.name);
-          if (sortBy === "lastActive") return b.lastActiveAtMs - a.lastActiveAtMs;
-          if (sortBy === "sessions") return b.sessionCount - a.sessionCount;
-          return 0;
-        });
-        return rows;
-      }, [agents, search, sortBy, filter]);
-
-      return (
-        <>
-          <div className="list-toolbar">
-            <div className="search">
-              <span className="search__icon">🔍</span>
-              <input placeholder="Search agents…" value={search} onChange={e => setSearch(e.target.value)} />
-              <span className="search__kbd">⌘K</span>
-            </div>
-            <div className="seg">
-              {["all", "busy", "default"].map(k => (
-                <button key={k} className={`seg__btn ${filter === k ? "seg__btn--active" : ""}`} onClick={() => setFilter(k)}>
-                  {k === "all" ? "All" : k === "busy" ? "Busy" : "Default"}
-                </button>
-              ))}
-            </div>
-            <div className="seg">
-              {[["lastActive","Recent"], ["name","Name"], ["sessions","Sessions"]].map(([k, label]) => (
-                <button key={k} className={`seg__btn ${sortBy === k ? "seg__btn--active" : ""}`} onClick={() => setSortBy(k)}>{label}</button>
-              ))}
-            </div>
-            <div style={{ flex: 1 }} />
-            <button className="btn btn--primary" onClick={openCreate}>＋ New agent</button>
-          </div>
-          <div className="list-body">
-            <div className="list-meta">
-              <span className="list-meta__chip">{filtered.length} of {agents.length} agents</span>
-              <span>·</span>
-              <span>Live status via SSE</span>
-            </div>
-            {filtered.length === 0 ? (
-              <div className="empty">
-                <div className="empty__icon">🤖</div>
-                <div className="empty__title">No agents match</div>
-                <div className="empty__sub">Try a different search or filter.</div>
-              </div>
-            ) : (
-              <div className="agent-table">
-                <div className="agent-table__head">
-                  <div></div>
-                  <div>Agent</div>
-                  <div>Model</div>
-                  <div>Status</div>
-                  <div>Sessions</div>
-                  <div>Last active</div>
-                  <div></div>
-                </div>
-                {filtered.map(a => (
-                  <div key={a.id} className="agent-row" onClick={() => openDetail(a)}>
-                    <div className="agent-row__avatar">{a.emoji}</div>
-                    <div className="agent-row__name">
-                      <div className="agent-row__name-line">
-                        {a.name}
-                        {a.isDefault && <span className="badge badge--default">Default</span>}
-                      </div>
-                      <div className="agent-row__id">{a.id}</div>
-                    </div>
-                    <div><span className="agent-row__model">{a.model}</span></div>
-                    <div className="agent-row__status">
-                      <span className={`dot dot--${a.status}`}></span>
-                      <span>{a.status === "busy" ? "Busy" : "Idle"}</span>
-                    </div>
-                    <div>
-                      <span className="agent-row__count">{a.sessionCount}</span>
-                      <span className="agent-row__count-label">/ {a.bindingCount} bind</span>
-                    </div>
-                    <div className="agent-row__time">{formatRelTime(a.lastActiveAtMs)}</div>
-                    <div className="agent-row__actions">
-                      <button className="btn btn--ghost btn--sm" onClick={e => { e.stopPropagation(); openDetail(a); }}>Open</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      );
-    }
-
-    function Switch({ on, onChange }) {
-      return <div className={`switch ${on ? "switch--on" : ""}`} onClick={() => onChange(!on)} role="switch" aria-checked={on} />;
-    }
-
-    function OverviewSection({ agent, onDelete }) {
-      const [name, setName] = useState(agent.name);
-      const [emoji, setEmoji] = useState(agent.emoji);
-      const [model, setModel] = useState(agent.model);
-      const [workspace, setWorkspace] = useState(agent.workspace);
-      const [isDefault, setIsDefault] = useState(agent.isDefault);
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Overview</h2>
-              <p className="section-header__sub">Identity and runtime placement for <code>{agent.id}</code>.</p>
-            </div>
-            <button className="btn btn--primary">Save changes</button>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Identity</div>
-            <div className="field-card__sub">Display name, emoji, and the agent ID (immutable).</div>
-            <div className="field-grid">
-              <div className="field">
-                <label className="field__label">Name</label>
-                <input value={name} onChange={e => setName(e.target.value)} />
-              </div>
-              <div className="field">
-                <label className="field__label">Emoji</label>
-                <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={2} />
-              </div>
-              <div className="field">
-                <label className="field__label">Agent ID</label>
-                <input value={agent.id} disabled style={{ fontFamily: "var(--ds-font-mono)" }} />
-                <span className="field__hint">Immutable — set on creation.</span>
-              </div>
-              <div className="field">
-                <label className="field__label">Model</label>
-                <select value={model} onChange={e => setModel(e.target.value)}>
-                  <option>claude-opus-4</option>
-                  <option>claude-sonnet-4</option>
-                  <option>claude-haiku-4-5</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Workspace</div>
-            <div className="field-card__sub">Filesystem root the agent operates within. Skills inherit this scope.</div>
-            <div className="field">
-              <input value={workspace} onChange={e => setWorkspace(e.target.value)} style={{ fontFamily: "var(--ds-font-mono)" }} />
-              <span className="field__hint">Must be an absolute path on the runtime host.</span>
-            </div>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Default agent</div>
-            <div className="switch-row">
-              <div className="switch-row__text">
-                <div className="switch-row__label">Mark as default</div>
-                <div className="switch-row__hint">New chat sessions without an explicit agent route here.</div>
-              </div>
-              <Switch on={isDefault} onChange={setIsDefault} />
-            </div>
-          </div>
-
-          <div className="field-card field-card--danger">
-            <div className="field-card__title">Danger zone</div>
-            <div className="field-card__sub">Deleting an agent ends all of its sessions and removes its workspace bindings. This action cannot be undone.</div>
-            <button className="btn btn--danger" onClick={onDelete}>Delete agent</button>
-          </div>
-        </>
-      );
-    }
-
-    function SkillsSection({ agent }) {
-      const [mode, setMode] = useState("explicit");
-      const [skills, setSkills] = useState(SKILLS);
-      const toggle = id => setSkills(skills.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Skills</h2>
-              <p className="section-header__sub">Which capabilities are available to <code>{agent.name}</code> at runtime.</p>
-            </div>
-            <button className="btn btn--primary">Save changes</button>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Skill resolution mode</div>
-            <div className="field-card__sub">How this agent's skill set is computed.</div>
-            <div className="seg" style={{ width: "fit-content" }}>
-              {[["inherit","Inherit"], ["explicit","Explicit"], ["none","None"]].map(([k,v]) => (
-                <button key={k} className={`seg__btn ${mode === k ? "seg__btn--active" : ""}`} onClick={() => setMode(k)}>{v}</button>
-              ))}
-            </div>
-            <div className="field__hint" style={{ marginTop: 12 }}>
-              {mode === "inherit" && "Use the workspace's default skill set. Per-agent toggles below are ignored."}
-              {mode === "explicit" && "Use only the skills enabled below."}
-              {mode === "none" && "This agent has no skills. It can still chat but cannot use tools."}
-            </div>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Skills</div>
-            <div className="field-card__sub">{skills.filter(s => s.enabled).length} of {skills.length} enabled.</div>
-            <div>
-              {skills.map(s => (
-                <div className="skill-row" key={s.id}>
-                  <div className="skill-row__icon">{s.emoji}</div>
-                  <div className="skill-row__text">
-                    <div className="skill-row__name">{s.name}</div>
-                    <div className="skill-row__desc">{s.desc}</div>
-                  </div>
-                  <div>
-                    {s.args && <span className="skill-row__args">{Object.entries(s.args).map(([k,v]) => `${k}=${v}`).join(" · ")}</span>}
-                  </div>
-                  <Switch on={s.enabled} onChange={() => toggle(s.id)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function SubagentsSection({ agent }) {
-      const others = AGENTS.filter(a => a.id !== agent.id);
-      const [allowed, setAllowed] = useState(new Set(others.slice(0,4).map(a => a.id)));
-      const toggle = id => {
-        const next = new Set(allowed);
-        next.has(id) ? next.delete(id) : next.add(id);
-        setAllowed(next);
-      };
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Subagents</h2>
-              <p className="section-header__sub">Which agents <code>{agent.name}</code> may delegate to via <code>task_dispatch</code>.</p>
-            </div>
-            <button className="btn btn--primary">Save changes</button>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Permitted delegates</div>
-            <div className="field-card__sub">{allowed.size} of {others.length} agents permitted.</div>
-            <div>
-              {others.map(o => (
-                <div className="skill-row" key={o.id}>
-                  <div className="skill-row__icon">{o.emoji}</div>
-                  <div className="skill-row__text">
-                    <div className="skill-row__name">{o.name}</div>
-                    <div className="skill-row__desc">{o.model} · {o.workspace}</div>
-                  </div>
-                  <div>{allowed.has(o.id) && <span className="badge badge--success">Allowed</span>}</div>
-                  <Switch on={allowed.has(o.id)} onChange={() => toggle(o.id)} />
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function ToolPolicySection({ agent }) {
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Tool policy preview</h2>
-              <p className="section-header__sub">Effective allow/deny rules after layering global · workspace · agent.</p>
-            </div>
-            <span className="badge badge--default" style={{ alignSelf: "flex-start" }}>Read-only</span>
-          </div>
-
-          <div className="field-card">
-            <div className="field-card__title">Resolved rules ({TOOL_POLICY.length})</div>
-            <div className="field-card__sub">Higher-priority sources override lower. <code>deny</code> always wins ties.</div>
-            <div>
-              <div className="policy-rule" style={{ borderBottom: "1px solid var(--ds-border)", color: "var(--ds-text-3)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                <div>Verb</div><div>Pattern</div><div>Source</div><div>Layer</div>
-              </div>
-              {TOOL_POLICY.map((r, i) => (
-                <div className="policy-rule" key={i}>
-                  <div><span className={`policy-rule__verb policy-rule__verb--${r.verb}`}>{r.verb}</span></div>
-                  <div className="policy-rule__pattern">{r.pattern}</div>
-                  <div className="policy-rule__source">{r.source}</div>
-                  <div className="policy-rule__layer">{r.layer}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function SystemPromptSection({ agent }) {
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">System prompt preview</h2>
-              <p className="section-header__sub">Resolved prompt sent at session start. Sections are merged from <code>defaults · workspace · agent</code>.</p>
-            </div>
-            <span className="badge badge--default">Read-only</span>
-          </div>
-          <div className="field-card">
-            <div className="field-card__title">Effective prompt ({SYSTEM_PROMPT_PREVIEW.length} sections)</div>
-            <div className="codeblock">
-              {SYSTEM_PROMPT_PREVIEW.map((s, i) => (
-                <div key={i}>
-                  <div className="codeblock__section">{s.section}</div>
-                  <div>{s.body}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function FilesSection({ agent }) {
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Files</h2>
-              <p className="section-header__sub">Workspace-scoped files for <code>{agent.id}</code>.</p>
-            </div>
-            <button className="btn">＋ Upload</button>
-          </div>
-          <div className="field-card">
-            <div className="field-card__title">{FILES.length} files</div>
-            <div className="files-table">
-              <div className="file-row" style={{ color: "var(--ds-text-3)", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                <div></div><div>Name</div><div>Size</div><div>Modified</div>
-              </div>
-              {FILES.map(f => (
-                <div className="file-row" key={f.name}>
-                  <div className="file-row__icon">📄</div>
-                  <div className="file-row__name">{f.name}</div>
-                  <div className="file-row__size">{f.size}</div>
-                  <div className="file-row__time">{f.time}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function StreamsSection({ agent }) {
-      const [s1, setS1] = useState(true);
-      const [s2, setS2] = useState(false);
-      return (
-        <>
-          <div className="section-header">
-            <div className="section-header__text">
-              <h2 className="section-header__title">Event streams</h2>
-              <p className="section-header__sub">SSE channels this agent emits to.</p>
-            </div>
-            <button className="btn btn--primary">Save changes</button>
-          </div>
-          <div className="field-card">
-            <div className="field-card__title">Subscriptions</div>
-            <div>
-              <div className="switch-row">
-                <div className="switch-row__text">
-                  <div className="switch-row__label">activity.event</div>
-                  <div className="switch-row__hint">Live status (idle/busy) for List view dots and rows.</div>
-                </div>
-                <Switch on={s1} onChange={setS1} />
-              </div>
-              <div className="switch-row">
-                <div className="switch-row__text">
-                  <div className="switch-row__label">subagent.lineage</div>
-                  <div className="switch-row__hint">Subagent delegation tree updates while running.</div>
-                </div>
-                <Switch on={s2} onChange={setS2} />
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function DetailView({ agent, sectionId, setSectionId, onDelete }) {
-      let content = null;
-      if (sectionId === "overview")      content = <OverviewSection agent={agent} onDelete={onDelete} />;
-      else if (sectionId === "skills")        content = <SkillsSection agent={agent} />;
-      else if (sectionId === "subagents")     content = <SubagentsSection agent={agent} />;
-      else if (sectionId === "tool-policy")   content = <ToolPolicySection agent={agent} />;
-      else if (sectionId === "system-prompt") content = <SystemPromptSection agent={agent} />;
-      else if (sectionId === "files")         content = <FilesSection agent={agent} />;
-      else if (sectionId === "event-streams") content = <StreamsSection agent={agent} />;
-
-      return (
-        <div className="detail">
-          <div className="detail__nav">
-            <div className="detail__nav-header">
-              <div className="detail__nav-name">
-                <div className="detail__nav-emoji">{agent.emoji}</div>
-                <div className="detail__nav-text">
-                  <div className="detail__nav-title">{agent.name}</div>
-                  <div className="detail__nav-id">{agent.id}</div>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--ds-text-2)" }}>
-                <span className={`dot dot--${agent.status}`}></span>
-                <span>{agent.status === "busy" ? "Busy" : "Idle"}</span>
-                <span style={{ color: "var(--ds-text-3)", marginLeft: "auto" }}>{formatRelTime(agent.lastActiveAtMs)}</span>
-              </div>
-            </div>
-            {NAV_ITEMS.map(it => (
-              <div
-                key={it.id}
-                className={`nav-item ${sectionId === it.id ? "nav-item--active" : ""}`}
-                onClick={() => setSectionId(it.id)}
-              >
-                <span style={{ fontSize: 14 }}>{it.icon}</span>
-                <span>{it.label}</span>
-                {it.count != null && <span className="nav-item__count">{it.count}</span>}
-              </div>
-            ))}
-          </div>
-          <div className="detail__main">
-            <div className="detail__main-inner">{content}</div>
-          </div>
-        </div>
-      );
-    }
-
-    function CreateWizard({ onClose }) {
-      const [step, setStep] = useState(0);
-      const [draft, setDraft] = useState({ name: "", emoji: "🤖", model: "claude-sonnet-4", workspace: "/projects/", skillMode: "explicit", skills: new Set(["shell_exec","file_read","file_write"]), allowedAgents: new Set() });
-      const steps = ["Identity", "Model", "Skills", "Subagents", "Review"];
-      const next = () => setStep(Math.min(steps.length - 1, step + 1));
-      const back = () => setStep(Math.max(0, step - 1));
-
-      const StepBody = () => {
-        if (step === 0) return (
-          <div className="field-grid">
-            <div className="field"><label className="field__label">Name</label><input value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })} placeholder="e.g. research"/></div>
-            <div className="field"><label className="field__label">Emoji</label><input value={draft.emoji} onChange={e => setDraft({ ...draft, emoji: e.target.value })} maxLength={2}/></div>
-            <div className="field" style={{ gridColumn: "1 / -1" }}><label className="field__label">Workspace</label><input value={draft.workspace} onChange={e => setDraft({ ...draft, workspace: e.target.value })} style={{ fontFamily: "var(--ds-font-mono)" }}/></div>
-          </div>
-        );
-        if (step === 1) return (
-          <div className="field"><label className="field__label">Model</label>
-            <select value={draft.model} onChange={e => setDraft({ ...draft, model: e.target.value })}>
-              <option>claude-opus-4</option><option>claude-sonnet-4</option><option>claude-haiku-4-5</option>
-            </select>
-            <span className="field__hint">Opus: deep reasoning. Sonnet: balanced. Haiku: fast & cheap.</span>
-          </div>
-        );
-        if (step === 2) return (
-          <>
-            <div className="seg" style={{ marginBottom: 16 }}>
-              {[["inherit","Inherit"], ["explicit","Explicit"], ["none","None"]].map(([k,v]) => (
-                <button key={k} className={`seg__btn ${draft.skillMode === k ? "seg__btn--active" : ""}`} onClick={() => setDraft({ ...draft, skillMode: k })}>{v}</button>
-              ))}
-            </div>
-            {draft.skillMode === "explicit" && SKILLS.map(s => (
-              <div className="skill-row" key={s.id}>
-                <div className="skill-row__icon">{s.emoji}</div>
-                <div className="skill-row__text">
-                  <div className="skill-row__name">{s.name}</div>
-                  <div className="skill-row__desc">{s.desc}</div>
-                </div>
-                <div></div>
-                <Switch on={draft.skills.has(s.id)} onChange={() => {
-                  const n = new Set(draft.skills); n.has(s.id) ? n.delete(s.id) : n.add(s.id); setDraft({ ...draft, skills: n });
-                }} />
-              </div>
-            ))}
-          </>
-        );
-        if (step === 3) return (
-          <>
-            <div className="field-card__sub">Pick which existing agents this one may delegate to.</div>
-            {AGENTS.map(a => (
-              <div className="skill-row" key={a.id}>
-                <div className="skill-row__icon">{a.emoji}</div>
-                <div className="skill-row__text">
-                  <div className="skill-row__name">{a.name}</div>
-                  <div className="skill-row__desc">{a.model}</div>
-                </div>
-                <div></div>
-                <Switch on={draft.allowedAgents.has(a.id)} onChange={() => {
-                  const n = new Set(draft.allowedAgents); n.has(a.id) ? n.delete(a.id) : n.add(a.id); setDraft({ ...draft, allowedAgents: n });
-                }} />
-              </div>
-            ))}
-          </>
-        );
-        return (
+      <section class="agents-panel" aria-label="Agents">
+        <header class="agents-panel__toolbar">
           <div>
-            <div className="field-card" style={{ margin: 0 }}>
-              <div className="field-card__title">{draft.emoji} {draft.name || "(unnamed)"}</div>
-              <div className="field-card__sub">{draft.model} · <code>{draft.workspace}</code></div>
-              <div style={{ fontSize: 13, color: "var(--ds-text-2)", lineHeight: 1.7 }}>
-                <div><strong>Skill mode:</strong> {draft.skillMode}</div>
-                {draft.skillMode === "explicit" && <div><strong>Skills:</strong> {[...draft.skills].join(", ") || "(none)"}</div>}
-                <div><strong>Subagent permits:</strong> {draft.allowedAgents.size > 0 ? [...draft.allowedAgents].map(id => AGENTS.find(a => a.id === id)?.name).join(", ") : "(none)"}</div>
+            <p class="agents-panel__eyebrow">agents / contract-led control</p>
+            <h1>Agent operations cockpit</h1>
+            <p>Configure identity, skills, delegation policy, files, and stream subscriptions from current Deck-facing DTOs. Unsupported Gateway assumptions remain visible as follow-ups.</p>
+          </div>
+          <div class="agents-panel__toolbar-actions">
+            <span class="chip is-ok"><span class="agent-status-dot is-idle"></span>Live</span>
+            <button class="btn" type="button" data-state-target="error">Error</button>
+            <button class="btn" type="button" data-state-target="empty">Empty</button>
+            <button class="btn is-primary" type="button" data-state-target="create">New agent</button>
+          </div>
+        </header>
+
+        <div class="agents-panel__metrics" aria-label="Agents metrics">
+          <div class="metric"><span>total</span><strong>4</strong></div>
+          <div class="metric"><span>busy</span><strong>1</strong></div>
+          <div class="metric"><span>default</span><strong>main</strong></div>
+          <div class="metric"><span>sessions</span><strong>28</strong></div>
+          <div class="metric"><span>contracts</span><strong>7 surfaces</strong></div>
+        </div>
+
+        <div class="state-panel is-empty" role="status">
+          <div>
+            <h2>No agents yet</h2>
+            <p>Create the first agent to configure identity, skills, subagents, files, and event streams.</p>
+            <button class="btn is-primary" type="button" data-state-target="create">New agent</button>
+          </div>
+        </div>
+        <div class="state-panel is-error" role="alert">
+          <div>
+            <h2>Could not load agents</h2>
+            <p class="mono">gateway unavailable / agents.list timed out</p>
+            <button class="btn" type="button" data-state-target="ready">Retry</button>
+          </div>
+        </div>
+
+        <div class="agents-workbench">
+          <section class="agents-list-card" aria-label="Agents list">
+            <div class="agents-panel__filters">
+              <input class="input" value="ops" aria-label="Search agents" />
+              <div class="segmented" aria-label="Filter agents">
+                <button class="is-active">All</button>
+                <button>Busy</button>
+                <button>Default</button>
+              </div>
+              <div class="segmented" aria-label="Sort agents">
+                <button>Name</button>
+                <button class="is-active">Recent</button>
+                <button>Sessions</button>
               </div>
             </div>
-            <div style={{ marginTop: 16, padding: 12, background: "var(--ds-accent-bg)", border: "1px solid var(--ds-accent-border)", borderRadius: 6, fontSize: 13, color: "var(--ds-text-2)" }}>
-              On <strong>Create</strong>, this agent is initialized and a workspace folder is created at <code>{draft.workspace}</code>.
+            <div class="agents-table" role="table" aria-label="Agents table">
+              <div class="agents-table__head" role="row">
+                <span>agent</span><span>status</span><span>sessions</span><span>bindings</span>
+              </div>
+              <button class="agents-table__row is-selected" role="row" type="button">
+                <span class="agent-cell" role="cell">
+                  <span class="agent-avatar">M</span>
+                  <span><strong>Main</strong><small>main / /workspace</small></span>
+                  <span class="chip is-accent">Default</span>
+                </span>
+                <span class="chip is-ok"><span class="agent-status-dot is-idle"></span>Idle</span>
+                <span class="mono">18</span>
+                <span class="mono">4</span>
+              </button>
+              <button class="agents-table__row" role="row" type="button">
+                <span class="agent-cell" role="cell">
+                  <span class="agent-avatar">O</span>
+                  <span><strong>Ops Runner</strong><small>ops / /workspace/ops</small></span>
+                </span>
+                <span class="chip is-accent"><span class="agent-status-dot is-busy"></span>Busy</span>
+                <span class="mono">7</span>
+                <span class="mono">2</span>
+              </button>
+              <button class="agents-table__row" role="row" type="button">
+                <span class="agent-cell" role="cell">
+                  <span class="agent-avatar">R</span>
+                  <span><strong>Research</strong><small>research / /workspace/research</small></span>
+                </span>
+                <span class="chip"><span class="agent-status-dot"></span>Offline</span>
+                <span class="mono">-</span>
+                <span class="mono">1</span>
+              </button>
             </div>
-          </div>
-        );
-      };
+          </section>
 
-      return (
-        <div className="wizard-overlay" onClick={onClose}>
-          <div className="wizard" onClick={e => e.stopPropagation()}>
-            <div className="wizard__head">
-              <div className="wizard__title">Create agent</div>
-              <button className="btn btn--ghost btn--sm" onClick={onClose}>✕</button>
-            </div>
-            <div className="wizard__steps">
-              {steps.map((s, i) => (
-                <React.Fragment key={s}>
-                  <div className={`wizard__step ${i === step ? "wizard__step--active" : ""} ${i < step ? "wizard__step--done" : ""}`}>
-                    <span className="wizard__step-num">{i < step ? "✓" : i + 1}</span>
-                    <span>{s}</span>
+          <section class="agents-detail-card" aria-label="Agent detail for Main">
+            <header class="agents-detail__hero">
+              <div class="agents-detail__identity">
+                <span class="agent-avatar agent-avatar--large">M</span>
+                <div>
+                  <h2>Main</h2>
+                  <p>main / gpt-5.4 / /workspace</p>
+                  <div class="agents-detail__meta">
+                    <span class="chip is-accent">default</span>
+                    <span class="chip">sessions 18</span>
+                    <span class="chip">bindings 4</span>
+                    <span class="chip">active subagents 1</span>
                   </div>
-                  {i < steps.length - 1 && <div className="wizard__sep" />}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="wizard__body"><StepBody /></div>
-            <div className="wizard__foot">
-              <button className="btn btn--ghost" onClick={onClose}>Cancel</button>
-              <div style={{ display: "flex", gap: 8 }}>
-                {step > 0 && <button className="btn" onClick={back}>Back</button>}
-                {step < steps.length - 1 ? (
-                  <button className="btn btn--primary" onClick={next} disabled={step === 0 && !draft.name}>Next →</button>
-                ) : (
-                  <button className="btn btn--primary" onClick={onClose}>Create agent</button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function ConfirmDelete({ agent, onClose, onConfirm }) {
-      return (
-        <div className="modal-overlay" onClick={onClose}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <h3 className="modal__title">Delete {agent.name}?</h3>
-            <div className="modal__body">
-              This permanently removes <code>{agent.id}</code>, ends its <strong>{agent.sessionCount}</strong> active session(s), and clears <strong>{agent.bindingCount}</strong> binding(s). This cannot be undone.
-            </div>
-            <div className="modal__actions">
-              <button className="btn" onClick={onClose}>Cancel</button>
-              <button className="btn btn--danger" onClick={onConfirm}>Delete</button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    function Tweaks({ density, setDensity, theme, setTheme, simulateBusy, setSimulateBusy }) {
-      return (
-        <div className="tweaks">
-          <div className="tweaks__head">Tweaks</div>
-          <div className="tweaks__body">
-            <div className="tweak-group">
-              <div className="tweak-label">Theme</div>
-              <div className="seg">
-                {["dark","light"].map(k => (
-                  <button key={k} className={`seg__btn ${theme === k ? "seg__btn--active" : ""}`} onClick={() => setTheme(k)}>{k}</button>
-                ))}
-              </div>
-            </div>
-            <div className="tweak-group">
-              <div className="tweak-label">Density</div>
-              <div className="seg">
-                {["comfortable","compact"].map(k => (
-                  <button key={k} className={`seg__btn ${density === k ? "seg__btn--active" : ""}`} onClick={() => setDensity(k)}>{k}</button>
-                ))}
-              </div>
-            </div>
-            <div className="tweak-group">
-              <div className="tweak-label">Simulate</div>
-              <div className="switch-row" style={{ padding: "4px 0", borderBottom: "none" }}>
-                <div className="switch-row__text">
-                  <div className="switch-row__label" style={{ fontSize: 12 }}>All agents busy</div>
                 </div>
-                <Switch on={simulateBusy} onChange={setSimulateBusy} />
+              </div>
+              <div class="agents-panel__toolbar-actions">
+                <button class="btn">Back</button>
+                <button class="btn is-danger">Delete</button>
+              </div>
+            </header>
+            <div class="agents-detail__body">
+              <nav class="agents-detail__sections" aria-label="Agent configuration sections">
+                <button class="agents-detail__section is-active"><span>Overview</span><span class="mono">1</span></button>
+                <button class="agents-detail__section"><span>Skills</span><span class="mono">2</span></button>
+                <button class="agents-detail__section"><span>Subagents</span><span class="mono">3</span></button>
+                <button class="agents-detail__section"><span>Tool policy</span><span class="mono">4</span></button>
+                <button class="agents-detail__section"><span>System prompt</span><span class="mono">5</span></button>
+                <button class="agents-detail__section"><span>Files</span><span class="mono">6</span></button>
+                <button class="agents-detail__section"><span>Event streams</span><span class="mono">7</span></button>
+              </nav>
+              <div class="agents-detail__main">
+                <article class="agent-section">
+                  <header class="agent-section__header">
+                    <div>
+                      <h3>Overview</h3>
+                      <p>Edit only backend-supported identity, model, workspace, emoji, and avatar fields.</p>
+                    </div>
+                    <button class="btn is-primary">Save changes</button>
+                  </header>
+                  <div class="agent-form-grid">
+                    <label>Name<input class="input" value="Main" /></label>
+                    <label>Model<input class="input" value="gpt-5.4" /></label>
+                    <label>Workspace<input class="input" value="/workspace" /></label>
+                    <label>Emoji<input class="input" value="M" /></label>
+                  </div>
+                </article>
+                <article class="agent-section">
+                  <header class="agent-section__header">
+                    <div>
+                      <h3>Runtime configuration</h3>
+                      <p>Current Gateway semantics: skills are all or whitelist, subagents use allow-list truth, streams use declared event names.</p>
+                    </div>
+                    <span class="chip is-warn">3 hashes</span>
+                  </header>
+                  <div class="agent-option-row">
+                    <span><strong>skills</strong><small class="mono">mode whitelist / read, write</small></span>
+                    <span class="chip">configHash skills-hash</span>
+                    <button class="btn">Open</button>
+                  </div>
+                  <div class="agent-option-row">
+                    <span><strong>subagents</strong><small class="mono">allow ops, research</small></span>
+                    <span class="chip">model inherit</span>
+                    <button class="btn">Open</button>
+                  </div>
+                  <div class="agent-option-row">
+                    <span><strong>event streams</strong><small class="mono">agent.status.changed, activity.event</small></span>
+                    <span class="chip is-ok">subscribed</span>
+                    <button class="btn">Open</button>
+                  </div>
+                </article>
+                <article class="agent-section">
+                  <header class="agent-section__header">
+                    <div>
+                      <h3>Preview surfaces</h3>
+                      <p>Read-only provenance views stay explicit about what backend currently returns.</p>
+                    </div>
+                  </header>
+                  <div class="agent-preview-row">
+                    <span><strong>Tool policy</strong><small class="mono">4 layers, 19 effective rules</small></span>
+                    <span class="chip">computed</span>
+                    <button class="btn">Recompute</button>
+                  </div>
+                  <div class="agent-file-row">
+                    <span><strong>AGENTS.md</strong><small class="mono">4.2 KB / workspace file</small></span>
+                    <span class="chip">exists</span>
+                    <button class="btn">Open</button>
+                  </div>
+                </article>
               </div>
             </div>
-          </div>
+          </section>
         </div>
-      );
-    }
+      </section>
+    </main>
+  </div>
 
-    /* ====== App ====== */
-    function App() {
-      const [panel, setPanel] = useState("agents");
-      const [view, setView] = useState("list");
-      const [selected, setSelected] = useState(null);
-      const [sectionId, setSectionId] = useState("overview");
-      const [search, setSearch] = useState("");
-      const [sortBy, setSortBy] = useState("lastActive");
-      const [filter, setFilter] = useState("all");
-      const [showWizard, setShowWizard] = useState(false);
-      const [confirmDelete, setConfirmDelete] = useState(null);
-      const [density, setDensity] = useState("comfortable");
-      const [theme, setTheme] = useState("dark");
-      const [simulateBusy, setSimulateBusy] = useState(false);
-
-      useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-      useEffect(() => { document.documentElement.dataset.density = density; }, [density]);
-
-      const agents = useMemo(() => {
-        return simulateBusy ? AGENTS.map(a => ({ ...a, status: "busy" })) : AGENTS;
-      }, [simulateBusy]);
-
-      const openDetail = a => { setSelected(a); setSectionId("overview"); setView("detail"); };
-      const handleDeleteConfirm = () => { setConfirmDelete(null); setView("list"); };
-
-      return (
-        <div className="app">
-          <Rail panel={panel} setPanel={setPanel} />
-          <div className="workbench">
-            <Topbar view={view} setView={setView} selected={selected} setSelected={setSelected} />
-            {view === "list"
-              ? <ListView agents={agents} search={search} setSearch={setSearch} sortBy={sortBy} setSortBy={setSortBy} filter={filter} setFilter={setFilter} openDetail={openDetail} openCreate={() => setShowWizard(true)} />
-              : selected && <DetailView agent={selected} sectionId={sectionId} setSectionId={setSectionId} onDelete={() => setConfirmDelete(selected)} />
-            }
-          </div>
-          {showWizard && <CreateWizard onClose={() => setShowWizard(false)} />}
-          {confirmDelete && <ConfirmDelete agent={confirmDelete} onClose={() => setConfirmDelete(null)} onConfirm={handleDeleteConfirm} />}
-          <Tweaks density={density} setDensity={setDensity} theme={theme} setTheme={setTheme} simulateBusy={simulateBusy} setSimulateBusy={setSimulateBusy} />
+  <div class="create-modal" role="dialog" aria-modal="true" aria-label="Create agent">
+    <section class="create-card">
+      <header class="agent-section__header">
+        <div>
+          <h3>Create agent</h3>
+          <p>Create identity first. Model, skills, subagents, and streams can be saved after the backend returns an id and section hashes.</p>
         </div>
-      );
-    }
+        <button class="btn" data-state-target="ready">Close</button>
+      </header>
+      <div class="agent-form-grid">
+        <label>Name<input class="input" value="Research" /></label>
+        <label>Workspace<input class="input" value="/workspace/research" /></label>
+        <label>Emoji<input class="input" value="R" /></label>
+        <label>Avatar URL<input class="input" placeholder="optional" /></label>
+      </div>
+      <div class="agent-option-row">
+        <span><strong>Review</strong><small class="mono">POST /api/agents supports name, workspace, emoji, avatar</small></span>
+        <span class="chip is-warn">no model submit</span>
+        <button class="btn is-primary">Create agent</button>
+      </div>
+    </section>
+  </div>
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  <script>
+    document.querySelectorAll("[data-state-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.body.dataset.state = button.dataset.stateTarget;
+      });
+    });
   </script>
 </body>
 </html>

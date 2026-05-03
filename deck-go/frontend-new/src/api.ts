@@ -834,11 +834,15 @@ type TypedGatewayAgentSummary = {
     emoji?: string;
     name?: string;
   };
+  bindingCount?: number;
+  lastActiveAtMs?: number;
   model?: {
     fallbacks?: string[];
     primary?: string;
   };
   name?: string;
+  sessionCount?: number;
+  status?: DeckGoAgentStatus;
   workspace?: string;
 };
 
@@ -853,7 +857,16 @@ function normalizeGatewayAgentSummary(
     isDefault: agent.id === defaultId,
     model: agent.model?.primary,
     name: agent.name ?? agent.identity?.name ?? agent.id,
-    status: "idle",
+    status: agent.status ?? "idle",
+    ...(typeof agent.sessionCount === "number" && Number.isFinite(agent.sessionCount)
+      ? { sessionCount: agent.sessionCount }
+      : {}),
+    ...(typeof agent.bindingCount === "number" && Number.isFinite(agent.bindingCount)
+      ? { bindingCount: agent.bindingCount }
+      : {}),
+    ...(typeof agent.lastActiveAtMs === "number" && Number.isFinite(agent.lastActiveAtMs)
+      ? { lastActiveAtMs: agent.lastActiveAtMs }
+      : {}),
   };
 }
 

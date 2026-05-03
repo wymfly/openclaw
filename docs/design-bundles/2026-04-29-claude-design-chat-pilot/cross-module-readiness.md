@@ -203,7 +203,17 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ## Completed Migrations (appendix)
 
-_Empty — no panel migrations have completed yet. As panels migrate, their rows move here with a link to the archived OpenSpec change._
+### Agents panel
+
+**Status:** in progress under OpenSpec change `frontend-agents-hifi-contract-redesign`.
+
+**Readiness verdict:** High. The agents high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge, modal, segmented-control, and card atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** metric tile, agent avatar/initial block, selected-detail card/nav, section header with helper/action, preview/file/permission row rhythm, and status-dot vocabulary.
+
+**Watch items for routing/subagents:** promote metric tile, section header, preview row, or status-dot vocabulary only if a second module repeats the pattern. Until then these remain module-local.
+
+As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
 
@@ -221,3 +231,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 
 - **2026-04-30 — chat-parity §10 (Block atom role markers)**: 5 semantic-only role classes added (`ds-block--tool-use`, `--tool-result`, `--file`, `--canvas`, `--unknown`) to the existing `Block` atom CSS. No visual/API change; consumers keep their per-component chrome. Block atom remains `n/a` for panels (chat-only). No Worklist update required.
 - **2026-04-30 — chat-parity §11 (axe automation)**: Added `vitest-axe` matcher across all 36 atom test files. Every atom passes with zero violations — no atom required a `disableRules` override. This is a regression gate (no atom API/surface change) and does not affect panel readiness.
+- **2026-05-03 — agents hifi redesign (`frontend-agents-hifi-contract-redesign`)**: Agents was evaluated against the current contract-led design-system rollout. The pass introduced no canonical atom/token/pattern changes. Local molecules are documented in `deck-go/frontend-handoff/modules/agents/implementation-notes.md`; mock visual E2E captures the workbench and create dialog with contract-shaped data.

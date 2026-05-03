@@ -131,6 +131,7 @@
   "agentsPanel": {
     "title": "Agents",
     "subtitle": "Identity, runtime status, and configuration for OpenClaw agents.",
+    "eyebrow": "agents / contract-led control",
     "detailLabel": "Agent detail for {name}",
     "sectionNavLabel": "Agent configuration sections",
     "backToList": "Back to list",
@@ -156,6 +157,18 @@
     "missing": "Missing",
     "dirtyBanner": "Unsaved changes in: {sections}",
     "statusLabel": "Status: {status}",
+    "metrics": {
+      "label": "Agent metrics",
+      "total": "Total",
+      "busy": "Busy",
+      "default": "Default",
+      "sessions": "Sessions",
+      "bindings": "Bindings"
+    },
+    "detailPlaceholder": {
+      "title": "Select an agent",
+      "body": "Open a row to inspect identity, skills, delegation policy, files, and event streams."
+    },
     "filters": {
       "all": "All",
       "busy": "Busy",

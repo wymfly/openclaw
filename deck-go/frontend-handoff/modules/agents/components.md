@@ -1,189 +1,94 @@
-# agents — components
-
-> Component tree, props contracts, and where each piece lives. Atoms come from `@/design-system/atoms/*`; **module-private** composites live in `frontend/src/components/panels/agents/`.
+# agents - components
 
 ## Tree
 
-```
-<AgentsPanel>                          ← top-level, route /agents/*
-├── <AgentsTopbar>                     ← breadcrumb + List/Detail seg switch
-├── <AgentsListView>                   ← when route is /agents
-│   ├── <AgentsListToolbar>            ← search · filter · sort · "+ New"
-│   │   ├── Input (Search)
-│   │   ├── SegmentedControl (Filter: all/busy/default)
-│   │   ├── SegmentedControl (Sort: recent/name/sessions)
-│   │   └── Button (primary, "+ New agent")
-│   ├── <AgentsTable>
-│   │   ├── <AgentsTableHead>
-│   │   └── <AgentRow>                 ← composite, module-private
-│   │       ├── Avatar (emoji)
-│   │       ├── Badge ("Default")      ← when isDefault
-│   │       ├── StatusDot              ← idle/busy/error
-│   │       ├── IconButton (Open / overflow)
-│   │       └── Tooltip
-│   └── <EmptyState>                   ← when no agents match
-└── <AgentDetailView>                  ← when route is /agents/:id
-    ├── <DetailNav>                    ← left rail, sticky
-    │   ├── <DetailNavHeader>          ← avatar · name · id · live status
-    │   └── <NavItem> ×7               ← Overview/Skills/Subagents/...
-    └── <DetailMain>                   ← scrollable, route-driven
-        ├── <OverviewSection>
-        ├── <SkillsSection>
-        ├── <SubagentsSection>
-        ├── <ToolPolicySection>
-        ├── <SystemPromptSection>
-        ├── <FilesSection>
-        └── <StreamsSection>
-
-<CreateWizard>                         ← portal-mounted overlay
-├── <WizardHead>
-├── <WizardSteps>                      ← step indicator
-├── <WizardBody>                       ← step-keyed content
-│   ├── Step 0: Identity (name/emoji/workspace)
-│   ├── Step 1: Model
-│   ├── Step 2: Skills (mode + per-skill toggles)
-│   ├── Step 3: Subagents
-│   └── Step 4: Review
-└── <WizardFoot>                       ← Cancel · Back · Next/Create
-
-<ConfirmDelete>                        ← Modal portal
+```txt
+AgentsPanel
+├─ AgentsHeader
+│  ├─ title / contract-led subtitle
+│  ├─ stream status Badge
+│  └─ NewAgent Button
+├─ AgentsMetrics
+│  └─ MetricTile x5
+├─ AgentsWorkbench
+│  ├─ AgentsListCard
+│  │  ├─ search Input
+│  │  ├─ filter SegmentedControl
+│  │  ├─ sort SegmentedControl
+│  │  └─ AgentsTable
+│  │     └─ AgentRow x N
+│  └─ AgentDetailCard
+│     ├─ DetailHero
+│     ├─ DetailSectionNav
+│     └─ DetailMain
+│        ├─ OverviewSection
+│        ├─ SkillsSection
+│        ├─ SubagentsSection
+│        ├─ ToolPolicySection
+│        ├─ SystemPromptSection
+│        ├─ FilesSection
+│        └─ StreamsSection
+├─ CreateAgentWizard
+└─ ConfirmDeleteModal
 ```
 
-## Composite props (module-private)
+## Production ownership
 
-### `<AgentRow>`
+The component may remain a single bounded panel file during this pass if tests stay focused, but the visual structure above must be represented in DOM/CSS class boundaries. Split into local files only when it reduces real complexity.
 
-```ts
-type AgentRowProps = {
-  agent: AgentSummary; // from agents store (v2 shape — see api-usage.md)
-  active?: boolean; // visual highlight when this is the open detail
-  onOpen: (id: string) => void; // navigate to detail
-  onOverflow?: (e: MouseEvent) => void; // optional row-overflow menu
-};
-```
+## Local molecules
 
-Renders as a row in `<AgentsTable>`. Click anywhere → `onOpen(agent.id)`. Status dot pulses when `agent.status === "busy"`.
+### AgentRow
 
-### `<DetailNav>`
+Renders identity, default marker, status, session count, and binding count from `DeckGoAgentSummary`.
 
-```ts
-type DetailNavProps = {
-  agent: AgentSummary;
-  sectionId: SectionId;
-  onSectionChange: (next: SectionId) => void;
-  counts: Partial<Record<SectionId, number>>; // e.g. { skills: 4, files: 12 }
-};
-type SectionId =
-  | "overview"
-  | "skills"
-  | "subagents"
-  | "tool-policy"
-  | "system-prompt"
-  | "files"
-  | "event-streams";
-```
+Rules:
 
-Hash-routed via `use-config-section-router`. Counts come from `agents-detail` store keyed by agent id.
+- `id`, `name`, `status`, and `isDefault` are contract-backed.
+- `sessionCount`, `bindingCount`, and `lastActiveAtMs` are optional; missing values render as `-`.
+- Row click/Enter/Space opens detail.
+- Busy status uses an animated local status dot.
 
-### `<OverviewSection>`
+### DetailHero
 
-```ts
-type OverviewSectionProps = {
-  agent: AgentDetail; // hydrated detail (full shape)
-  dirty: boolean; // any unsaved edits
-  onPatch: (patch: AgentPatch) => void; // optimistic local edit
-  onSave: () => Promise<void>; // -> PATCH /agents/{id}
-  onDelete: () => void; // -> opens ConfirmDelete
-};
-```
+Renders selected `Agent` summary plus detail-backed metadata when available.
 
-Edits are local until `onSave`. `Save changes` button disabled when `!dirty`.
+Rules:
 
-### `<SkillsSection>`, `<SubagentsSection>`, `<StreamsSection>`
+- Does not invent model/workspace/default state.
+- Keeps delete as a destructive action with confirmation.
+- Uses compact chips for sessions, bindings, active subagents, and default state.
 
-All three follow the same shape:
+### ConfigSectionHeader
 
-```ts
-type EditableSectionProps<T> = {
-  agentId: string;
-  data: T;
-  hash: string; // optimistic-lock fingerprint (composite hash family)
-  dirty: boolean;
-  onPatch: (next: T) => void;
-  onSave: () => Promise<void>;
-};
-```
+Renders section title, helper copy, and optional action. This remains module-local until routing/subagents repeat it.
 
-Three writes share one composite hash (`AgentConfigHashes.composite`) so the UI surfaces a single "Unsaved changes" indicator at the top of detail rather than three competing ones.
+### PreviewRow / FileRow / PermissionRow
 
-### `<ToolPolicySection>` & `<SystemPromptSection>` (read-only)
+Compact rows for read-only provenance, file entries, skills, streams, and subagent permissions. All use the same row rhythm but stay module-local.
 
-```ts
-type ToolPolicyProps = {
-  agentId: string;
-  preview: ToolPolicyPreview; // resolved rules with provenance
-  loading?: boolean;
-  error?: string;
-};
+## Atom mapping
 
-type SystemPromptProps = {
-  agentId: string;
-  preview: SystemPromptPreview; // sectioned markdown
-  loading?: boolean;
-  error?: string;
-};
-```
+- `Switch` from old handoff maps to `Toggle`.
+- `Avatar`, `EmptyState`, `KeyHint`, `MetricTile`, and `ConfigSectionHeader` are local molecules.
+- No canonical atom changes are planned.
 
-No save action. A "Recompute" button refetches when something upstream changed (e.g. user just toggled a skill).
+## Class-name intent
 
-### `<FilesSection>`
+Production CSS should preserve these semantic regions:
 
-```ts
-type FilesSectionProps = {
-  agentId: string;
-  files: AgentFile[];
-  onUpload: (file: File) => Promise<void>;
-  onOpen: (name: string) => void; // GET /agents/{id}/files/{name}
-};
-```
-
-### `<CreateWizard>`
-
-```ts
-type CreateWizardProps = {
-  open: boolean;
-  onClose: () => void;
-  onCreate: (draft: AgentDraft) => Promise<{ id: string }>; // -> POST /agents, returns new id; caller routes to detail
-};
-type AgentDraft = {
-  name: string;
-  emoji: string;
-  model: string;
-  workspace: string;
-  skillMode: "inherit" | "explicit" | "none";
-  skills: string[]; // skill ids when skillMode === "explicit"
-  allowedAgents: string[]; // subagent permits
-};
-```
-
-Wizard maintains its own `agents-create` store. On step transition, validates current step before advancing. On final "Create agent" success → `onClose()` and parent routes to `/agents/:newId`.
-
-### `<ConfirmDelete>`
-
-```ts
-type ConfirmDeleteProps = {
-  agent: AgentSummary; // shows name + sessionCount + bindingCount in body
-  onCancel: () => void;
-  onConfirm: () => Promise<void>;
-};
-```
-
-## Atoms used (count: 22 of 36)
-
-`Avatar · Badge · Banner · Button · Card · Chip · Drawer · DropdownMenu · EmptyState · IconButton · Input · KeyHint · Markdown · Modal · SegmentedControl · SidebarRow · Spinner · Switch · Tab · Textarea · Toast · Tooltip`
-
-## What's NOT a component
-
-- **Status dot** is intentionally not an atom — it's a single-rule CSS class (`.dot.dot--busy`) reused across rows + detail header. Keeping it as CSS avoids a 6-line component file.
-- **Skill row / file row / policy rule** are CSS layout patterns, not components — they appear once per section and don't need extraction.
-- **Section header** (title + subtitle + action) is repeated 7×; if a third module needs it, promote `<ConfigSectionHeader>` to atoms per the promotion rule.
+- `.agents-panel`
+- `.agents-panel__toolbar`
+- `.agents-panel__metrics`
+- `.agents-workbench`
+- `.agents-list-card`
+- `.agents-table`
+- `.agents-table__row`
+- `.agents-detail-card`
+- `.agents-detail__hero`
+- `.agents-detail__sections`
+- `.agents-detail__main`
+- `.agent-section`
+- `.agent-option-row`
+- `.agent-preview-row`
+- `.agent-file-row`

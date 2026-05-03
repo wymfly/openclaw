@@ -1,53 +1,33 @@
-# agents — tokens-proposal
+# agents - tokens proposal
 
-> Tokens this module needs that are **not** yet in `frontend-handoff/design-system/tokens.css`. Designed to be additive — none of these conflict with existing tokens.
+Status: **none required for this pass**.
 
-Status: **proposal** — promote to canonical only after second module (routing/subagents/activity) needs them.
+The revised agents prototype uses only existing canonical `frontend-new` design-system tokens:
 
-## New semantic tokens
+- typography: `--ds-font-sans`, `--ds-font-mono`, `--ds-fs-body`, `--ds-fs-code`, `--ds-fs-meta`, `--ds-line`
+- spacing: `--ds-sp-*`
+- radius: `--ds-radius-*`
+- surfaces: `--ds-bg-*`, `--ds-bg-elev`, `--ds-bg-hover`, `--ds-bg-active`
+- borders: `--ds-border-subtle`, `--ds-border`, `--ds-border-strong`
+- statuses: `--ds-success`, `--ds-warn`, `--ds-error`, `--ds-accent`
+- shadows: `--ds-shadow-md`, `--ds-shadow-lg`
 
-```css
-/* Status dot — used in agent rows + detail header.
-   Routing module will reuse for route enabled/disabled state.
-   Activity module will reuse for stream connected/disconnected.
-   Promote when 2nd consumer arrives. */
---ds-status-idle: var(--ds-text-3);
---ds-status-busy: var(--ds-success);
---ds-status-error: var(--ds-danger);
+## Local treatments
 
-/* Danger surface — used in Overview > Danger zone card.
-   Subagents module's "remove permitted delegate" UI may reuse. */
---ds-danger-surface: rgba(239, 102, 96, 0.04);
---ds-danger-surface-border: var(--ds-danger);
+The following remain module CSS, not canonical tokens:
 
-/* Code block — used in System prompt preview.
-   Future preview UIs in routing (path patterns) may reuse. */
---ds-code-bg: var(--ds-bg-0);
---ds-code-text: var(--ds-text-2);
---ds-code-accent: var(--ds-accent); /* for section headings inside codeblock */
+- status dot size and pulse
+- metric tile layout
+- detail hero gradient
+- local row rhythm for preview/file/permission rows
 
-/* Pulse animation timing — used by busy dot.
-   Activity module uses for stream-active indicator. */
---ds-anim-pulse: 1.6s;
---ds-anim-pulse-fn: cubic-bezier(0.4, 0, 0.6, 1);
-```
+## Promotion watch list
 
-## Light-theme overrides
+Revisit after routing/subagents are redesigned:
 
-```css
-html[data-theme="light"] {
-  --ds-danger-surface: rgba(220, 70, 70, 0.06);
-  --ds-code-bg: #f7f5f0;
-}
-```
+- compact metric tile
+- section header with helper/action
+- provenance preview row
+- status-dot vocabulary
 
-## Why not promote now?
-
-Per `frontend-handoff/CLAUDE.md` §promotion, an atom/token is promoted **after a second consumer** validates it. These tokens are baked into the agents prototype as inline CSS variables — when routing or subagents lands, we lift them to canonical and update both modules.
-
-## What this module deliberately does NOT propose
-
-- **No new color hue** — status dots use existing `--ds-success` / `--ds-danger`. Adding a new "busy purple" or similar would expand the palette without justification.
-- **No new font scale** — all sizes use existing `--ds-text-*`.
-- **No new radii** — existing `--ds-radius-*` covers all cards / pills / dots.
-- **No new spacing token** — all spacing uses existing `--ds-space-*`.
+No token drift check is required unless production implementation changes canonical token files.
