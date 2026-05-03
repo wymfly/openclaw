@@ -14,6 +14,81 @@ function responseError(id, code, message) {
 }
 
 function defaultMethods() {
+  const now = Date.now();
+  const subagentRuns = [
+    {
+      runId: "run-root",
+      childSessionKey: "agent:builder:web-root",
+      childAgentId: "builder",
+      childAgentName: "Builder Agent",
+      requesterSessionKey: "agent:main:web-main",
+      requesterAgentId: "main",
+      requesterAgentName: "Main",
+      task: "Implement the contract chain smoke test and report drift.",
+      model: "openai/gpt-5.4",
+      spawnMode: "delegate",
+      depth: 1,
+      createdAt: now - 260_000,
+      startedAt: now - 250_000,
+      durationMs: 250_000,
+      status: "active",
+    },
+    {
+      runId: "run-review",
+      childSessionKey: "agent:reviewer:web-review",
+      childAgentId: "reviewer",
+      childAgentName: "Reviewer Agent",
+      requesterSessionKey: "agent:builder:web-root",
+      requesterAgentId: "builder",
+      requesterAgentName: "Builder Agent",
+      task: "Review gateway adapter notes for unsupported schema gaps.",
+      model: "openai/gpt-5.4-mini",
+      spawnMode: "delegate",
+      depth: 2,
+      createdAt: now - 190_000,
+      startedAt: now - 180_000,
+      durationMs: 120_000,
+      endedAt: now - 60_000,
+      status: "completed",
+      outcome: { ok: true },
+    },
+    {
+      runId: "run-qa",
+      childSessionKey: "agent:qa:web-visual",
+      childAgentId: "qa",
+      childAgentName: "QA Agent",
+      requesterSessionKey: "agent:main:web-main",
+      requesterAgentId: "main",
+      requesterAgentName: "Main",
+      task: "Run focused Playwright mock visual verification.",
+      model: "openai/gpt-5.4-mini",
+      spawnMode: "delegate",
+      depth: 1,
+      createdAt: now - 420_000,
+      startedAt: now - 410_000,
+      durationMs: 124_000,
+      endedAt: now - 286_000,
+      status: "completed",
+    },
+    {
+      runId: "run-security",
+      childSessionKey: "agent:security:web-risk",
+      childAgentId: "security",
+      childAgentName: "Security Agent",
+      requesterSessionKey: "agent:ops:web-incident",
+      requesterAgentId: "ops",
+      requesterAgentName: "Ops Runner",
+      task: "Check capability boundary risk and handoff unresolved items.",
+      model: "openai/gpt-5.4",
+      spawnMode: "delegate",
+      depth: 1,
+      createdAt: now - 980_000,
+      startedAt: now - 970_000,
+      durationMs: 900_000,
+      endedAt: now - 70_000,
+      status: "timeout",
+    },
+  ];
   return {
     "gateway.describe": () => ({
       version: "mock-gateway",
@@ -102,6 +177,38 @@ function defaultMethods() {
           status: "offline",
           bindingCount: 1,
         },
+        {
+          id: "builder",
+          name: "Builder Agent",
+          identity: { emoji: "B", name: "Builder Agent" },
+          workspace: "/tmp/openclaw-builder",
+          model: { primary: "gpt-5.4" },
+          status: "busy",
+          sessionCount: 5,
+          bindingCount: 1,
+          lastActiveAtMs: Date.now() - 20_000,
+        },
+        {
+          id: "reviewer",
+          name: "Reviewer Agent",
+          identity: { emoji: "R", name: "Reviewer Agent" },
+          workspace: "/tmp/openclaw-reviewer",
+          model: { primary: "gpt-5.4-mini" },
+          status: "idle",
+          sessionCount: 3,
+          bindingCount: 1,
+          lastActiveAtMs: Date.now() - 120_000,
+        },
+        {
+          id: "qa",
+          name: "QA Agent",
+          identity: { emoji: "Q", name: "QA Agent" },
+          workspace: "/tmp/openclaw-qa",
+          model: { primary: "gpt-5.4-mini" },
+          status: "idle",
+          sessionCount: 2,
+          bindingCount: 0,
+        },
       ],
       defaultId: "main",
       mainKey: "main",
@@ -111,6 +218,20 @@ function defaultMethods() {
       hash: "routing-hash-1",
       config: {
         session: { dmScope: "per-channel-peer" },
+        agents: {
+          defaults: {
+            subagents: {
+              archiveAfterMinutes: 45,
+              maxChildrenPerAgent: 8,
+              maxConcurrent: 4,
+              maxSpawnDepth: 2,
+              model: "openai/gpt-5.4",
+              requireAgentId: true,
+              runTimeoutSeconds: 120,
+              thinking: "medium",
+            },
+          },
+        },
         bindings: [
           {
             agentId: "ops",
@@ -179,6 +300,96 @@ function defaultMethods() {
       defaultAgentId: "main",
       dmScope: "per-channel-peer",
       configHash: "routing-hash-1",
+    }),
+    "deck.agents.subagents.get": (params) => ({
+      agentId: params?.agentId ?? "main",
+      allowAgents:
+        params?.agentId === "main"
+          ? ["builder", "reviewer", "qa"]
+          : params?.agentId === "builder"
+            ? ["reviewer", "qa"]
+            : [],
+      allowAny: params?.agentId === "ops",
+      configHash: `${params?.agentId ?? "main"}-subagents-hash`,
+      effectiveMaxChildrenPerAgent: params?.agentId === "main" ? 8 : 5,
+      effectiveMaxSpawnDepth: params?.agentId === "main" ? 2 : 1,
+      model: params?.agentId === "reviewer" ? "openai/gpt-5.4-mini" : undefined,
+    }),
+    "deck.subagents.list": (params) => {
+      let runs = subagentRuns;
+      if (params?.status && params.status !== "all") {
+        runs = runs.filter((run) => run.status === params.status);
+      }
+      if (params?.agentId) {
+        runs = runs.filter((run) => run.childAgentId === params.agentId);
+      }
+      if (params?.requesterAgentId) {
+        runs = runs.filter((run) => run.requesterAgentId === params.requesterAgentId);
+      }
+      const offset = Number.isFinite(params?.offset) ? Math.max(0, Number(params.offset)) : 0;
+      const limit = Number.isFinite(params?.limit)
+        ? Math.max(0, Number(params.limit))
+        : runs.length;
+      const total = runs.length;
+      return {
+        runs: runs.slice(offset, offset + limit),
+        total,
+      };
+    },
+    "deck.subagents.lineage": (params) => {
+      const rootRunId = params?.runId ?? "run-root";
+      return {
+        root: {
+          sessionKey: "agent:main:web-main",
+          agentId: "main",
+          agentName: "Main",
+        },
+        nodes: [
+          {
+            runId: rootRunId,
+            sessionKey: "agent:builder:web-root",
+            agentId: "builder",
+            agentName: "Builder Agent",
+            task: "Implement the contract chain smoke test and report drift.",
+            depth: 1,
+            parentRunId: "",
+            status: "active",
+            durationMs: 250_000,
+          },
+          {
+            runId: "run-review",
+            sessionKey: "agent:reviewer:web-review",
+            agentId: "reviewer",
+            agentName: "Reviewer Agent",
+            task: "Review gateway adapter notes for unsupported schema gaps.",
+            depth: 2,
+            parentRunId: rootRunId,
+            status: "completed",
+            durationMs: 120_000,
+          },
+          {
+            runId: "run-qa",
+            sessionKey: "agent:qa:web-visual",
+            agentId: "qa",
+            agentName: "QA Agent",
+            task: "Run focused Playwright mock visual verification.",
+            depth: 2,
+            parentRunId: rootRunId,
+            status: "completed",
+            durationMs: 124_000,
+          },
+        ],
+      };
+    },
+    "deck.subagents.kill": (params) => ({
+      ok: true,
+      runId: params?.runId ?? "run-root",
+      childSessionKey: "agent:builder:web-root",
+    }),
+    "deck.subagents.steer": (params) => ({
+      success: true,
+      dedupKey: `mock-steer-${params?.runId ?? "run-root"}`,
+      newRunId: "run-steer-followup",
     }),
     "deck.routing.validate": () => ({
       ok: true,

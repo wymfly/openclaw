@@ -1588,8 +1588,21 @@ func registerInventoryRoutes(mux interface {
 		if status := query.Get("status"); status != "" {
 			params["status"] = status
 		}
+		if agentID := query.Get("agentId"); agentID != "" {
+			params["agentId"] = agentID
+		}
 		if requesterAgentID := query.Get("requesterAgentId"); requesterAgentID != "" {
 			params["requesterAgentId"] = requesterAgentID
+		}
+		if limitRaw := query.Get("limit"); limitRaw != "" {
+			if limit, err := strconv.Atoi(limitRaw); err == nil {
+				params["limit"] = limit
+			}
+		}
+		if offsetRaw := query.Get("offset"); offsetRaw != "" {
+			if offset, err := strconv.Atoi(offsetRaw); err == nil {
+				params["offset"] = offset
+			}
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()

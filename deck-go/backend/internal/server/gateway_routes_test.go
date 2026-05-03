@@ -1911,8 +1911,14 @@ func TestGatewayFacade_DeckSubagentsAndThreads(t *testing.T) {
 		}
 		switch method {
 		case "deck.subagents.list":
-			if params["status"] != "active" {
+			if params["status"] != "active" || params["agentId"] != "reviewer" || params["requesterAgentId"] != "main" {
 				t.Fatalf("unexpected params: %#v", params)
+			}
+			if params["limit"] != 50 && params["limit"] != float64(50) {
+				t.Fatalf("unexpected subagents limit: %#v", params)
+			}
+			if params["offset"] != 10 && params["offset"] != float64(10) {
+				t.Fatalf("unexpected subagents offset: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
 				"type":    "res",
@@ -1951,7 +1957,7 @@ func TestGatewayFacade_DeckSubagentsAndThreads(t *testing.T) {
 	})
 	defer srv.Close()
 
-	subReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/deck/subagents?status=active", nil)
+	subReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/deck/subagents?status=active&agentId=reviewer&requesterAgentId=main&limit=50&offset=10", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

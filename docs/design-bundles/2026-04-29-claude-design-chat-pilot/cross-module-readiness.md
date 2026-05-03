@@ -215,7 +215,7 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ### Routing panel
 
-**Status:** in progress under OpenSpec change `frontend-routing-hifi-contract-redesign`.
+**Status:** archived under OpenSpec change `frontend-routing-hifi-contract-redesign`.
 
 **Readiness verdict:** High. The routing high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge/chip, button, select, textarea, spinner, and card atoms/tokens. No canonical atom or token was introduced.
 
@@ -224,6 +224,18 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 **Repeated from agents:** metric tile, two-column workbench rhythm, compact section header, selected-detail hero, and dense row summaries. These are now repeated twice, but remain local until subagents confirms the same shape and the API for a shared pattern is clear.
 
 **Watch items for subagents/later modules:** candidate shared patterns are `MetricTile`, `WorkbenchHeader`, `SelectableQueueRow`, `DetailHero`, and `StatusTimeline`. Promotion should happen in a dedicated design-system change, not silently inside a panel rewrite.
+
+### Subagents panel
+
+**Status:** in progress under OpenSpec change `frontend-subagents-hifi-contract-redesign`.
+
+**Readiness verdict:** High. The subagents high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge, button, select, segmented-control, textarea, toggle, spinner, and card atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** subagent metric tile, run queue row, selected-run hero, lineage node/timeline, config defaults grid, per-agent permission row, and action result strip.
+
+**Repeated from agents/routing:** metric tile, compact workbench header, selectable queue row, selected-detail hero, section heading, and status/timeline rhythm. These are now repeated across three modules and are candidates for a separate promotion proposal, but this change keeps them local to avoid silently changing design-system behavior.
+
+**Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, `SelectableQueueRow`, `DetailHero`, and `StatusTimeline`. A future design-system proposal should define their API from the three observed modules before moving them into canonical atoms or shared molecules.
 
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
@@ -244,3 +256,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-04-30 — chat-parity §10 (Block atom role markers)**: 5 semantic-only role classes added (`ds-block--tool-use`, `--tool-result`, `--file`, `--canvas`, `--unknown`) to the existing `Block` atom CSS. No visual/API change; consumers keep their per-component chrome. Block atom remains `n/a` for panels (chat-only). No Worklist update required.
 - **2026-04-30 — chat-parity §11 (axe automation)**: Added `vitest-axe` matcher across all 36 atom test files. Every atom passes with zero violations — no atom required a `disableRules` override. This is a regression gate (no atom API/surface change) and does not affect panel readiness.
 - **2026-05-03 — agents hifi redesign (`frontend-agents-hifi-contract-redesign`)**: Agents was evaluated against the current contract-led design-system rollout. The pass introduced no canonical atom/token/pattern changes. Local molecules are documented in `deck-go/frontend-handoff/modules/agents/implementation-notes.md`; mock visual E2E captures the workbench and create dialog with contract-shaped data.
+- **2026-05-03 — subagents hifi redesign (`frontend-subagents-hifi-contract-redesign`)**: Subagents provides the third data point for the workbench/metric/queue/detail/timeline pattern first seen in agents and routing. This pass introduces no canonical atom/token changes and keeps repeated molecules local; promotion should happen in a separate design-system change after the subagents implementation is archived.

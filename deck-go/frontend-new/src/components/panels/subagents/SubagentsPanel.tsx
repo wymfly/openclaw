@@ -18,12 +18,23 @@ import {
 } from "../../../api";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import {
+  Badge,
+  Button,
+  Card,
+  Input,
+  Select,
+  SegmentedControl,
+  Spinner,
+  Textarea,
+  Toggle,
+} from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 import { formatDuration } from "../../../lib/format-utils";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
+import "./subagents-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
-
 type SubagentsTab = "active" | "history" | "config";
 type SubagentStatusFilter = "active" | "completed" | "failed" | "timeout" | "all";
 type TimeRangeFilter = "1h" | "6h" | "24h" | "all";
@@ -224,15 +235,6 @@ function formatRunDuration(run: DeckGoSubagentRun, labels: { elapsed: string; em
   return labels.empty;
 }
 
-function RunDetailField(props: { emptyLabel: string; label: string; value?: string | number }) {
-  return (
-    <div className="deck-ui-subagents-field">
-      <p className="deckgo-surface-label">{props.label}</p>
-      <p className="deckgo-meta">{props.value || props.emptyLabel}</p>
-    </div>
-  );
-}
-
 function describeAllowedSubagents(
   config: DeckGoAgentSubagentConfigResponse | undefined,
   labels: { any: string; loading: string; none: string },
@@ -287,6 +289,51 @@ function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
   }));
 }
 
+function badgeVariant(status?: string) {
+  if (status === "active") {
+    return "running";
+  }
+  if (status === "completed") {
+    return "ok";
+  }
+  if (status === "failed") {
+    return "err";
+  }
+  if (status === "timeout") {
+    return "warn";
+  }
+  return "neutral";
+}
+
+function loadVariant(loadState: PanelState) {
+  if (loadState === "ready") {
+    return "ok";
+  }
+  if (loadState === "loading") {
+    return "running";
+  }
+  return "neutral";
+}
+
+function Field(props: { emptyLabel: string; label: string; value?: string | number }) {
+  return (
+    <div className="subagents-field">
+      <span>{props.label}</span>
+      <strong>{props.value || props.emptyLabel}</strong>
+    </div>
+  );
+}
+
+function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+  return (
+    <article className="subagents-metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+      {props.hint ? <small>{props.hint}</small> : null}
+    </article>
+  );
+}
+
 function LineageTreeView(props: {
   labels: {
     depth: string;
@@ -298,23 +345,28 @@ function LineageTreeView(props: {
   nodes: LineageTreeNode[];
 }) {
   if (props.nodes.length === 0) {
-    return <p className="deckgo-note deck-ui-subagents-empty">{props.labels.empty}</p>;
+    return <p className="subagents-panel__empty">{props.labels.empty}</p>;
   }
 
   return (
-    <ul className="deckgo-shell-list deck-ui-subagents-list deck-ui-subagents-lineage-list">
+    <ul className="subagents-lineage-list">
       {props.nodes.map((entry) => (
         <li key={entry.node.runId}>
-          <div className="deckgo-selectable-card deck-ui-subagents-row">
-            <strong>{entry.node.agentName || entry.node.agentId}</strong>
-            <div className="deckgo-meta">
+          <article className="subagents-lineage-node">
+            <div className="subagents-row__top">
+              <strong>{entry.node.agentName || entry.node.agentId}</strong>
+              <Badge variant={badgeVariant(entry.node.status)}>
+                {props.labels.statusValue(entry.node.status)}
+              </Badge>
+            </div>
+            <p className="subagents-row__meta">
               {props.labels.run}: {entry.node.runId} | {props.labels.depth}: {entry.node.depth} |{" "}
               {props.labels.status}: {props.labels.statusValue(entry.node.status)}
-            </div>
-            {entry.node.task ? <div className="deckgo-meta">{entry.node.task}</div> : null}
-          </div>
+            </p>
+            {entry.node.task ? <p className="subagents-row__note">{entry.node.task}</p> : null}
+          </article>
           {entry.children.length > 0 ? (
-            <div className="deck-ui-subagents-lineage-children">
+            <div className="subagents-lineage-children">
               <LineageTreeView labels={props.labels} nodes={entry.children} />
             </div>
           ) : null}
@@ -617,159 +669,91 @@ export function SubagentsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-subagents">
-      <div className="deckgo-column deck-ui-subagents-column">
-        <article className="deckgo-card is-float deck-ui-subagents-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
+    <section className="subagents-panel" data-testid="subagents-panel">
+      <div className="subagents-panel__header">
+        <div>
+          <p className="subagents-panel__eyebrow">operations / subagents</p>
+          <h2>{t("title")}</h2>
+          <p>{t("description")}</p>
+        </div>
+        <div className="subagents-panel__header-actions">
+          <Badge variant={loadVariant(loadState)}>
+            {loadState === "loading" ? tc("loading") : t(loadState)}
+          </Badge>
+          {loadState === "loading" ? <Spinner aria-label={tc("loading")} size="sm" /> : null}
+          <div className="subagents-toggle">
+            <Toggle
+              aria-label={t("autoRefresh")}
+              checked={autoRefresh}
+              onCheckedChange={setAutoRefresh}
+            />
+            <span>{t("autoRefresh")}</span>
           </div>
-          <p className="deckgo-card-subtitle">{t("description")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-subagents-body">
-            <div className="deck-ui-control-tabs" role="tablist" aria-label={t("title")}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "active"}
-                className={activeTab === "active" ? "is-selected" : ""}
-                onClick={() => selectTab("active")}
-              >
-                {t("activeRuns")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "history"}
-                className={activeTab === "history" ? "is-selected" : ""}
-                onClick={() => selectTab("history")}
-              >
-                {t("history")}
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === "config"}
-                className={activeTab === "config" ? "is-selected" : ""}
-                onClick={() => selectTab("config")}
-              >
-                {t("config")}
-              </button>
+          <Button size="sm" onClick={() => void refresh()}>
+            {t("refreshRuns")}
+          </Button>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="subagents-panel__banner" role="status">
+          <Badge variant="err">{t("failed")}</Badge>
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <div className="subagents-panel__metrics">
+        <MetricTile
+          hint={t("mode", { mode: statusLabel(t, filters.status) })}
+          label={t("visibleCount", { count: runs.length })}
+          value={runs.length}
+        />
+        <MetricTile label={t("serverTotal", { count: total })} value={total} />
+        <MetricTile label={t("activeStat")} value={activeCount} />
+        <MetricTile label={t("historyStat")} value={historyCount} />
+        <MetricTile
+          hint={selectedRun?.model || defaultLabel}
+          label={t("selectedRun")}
+          value={selectedRun ? `${t("depth")} ${selectedRun.depth}` : emptyLabel}
+        />
+      </div>
+
+      <div className="subagents-workbench">
+        <Card className="subagents-card subagents-queue-card" padded={false}>
+          <div className="subagents-card__header">
+            <div>
+              <h3>{activeTab === "config" ? t("config") : t("runs")}</h3>
+              <p>{activeTab === "config" ? t("globalDefaultsDescription") : t("runFilters")}</p>
             </div>
-            <div className="deckgo-pill-row deck-ui-subagents-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </span>
-              <span className="deckgo-pill">{t("visibleCount", { count: runs.length })}</span>
-              <span className="deckgo-pill">{t("serverTotal", { count: total })}</span>
-              <span className="deckgo-pill">
-                {t("mode", { mode: statusLabel(t, filters.status) })}
-              </span>
-            </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-subagents-stats">
-              <ShellStat label={t("runsStat")} value={runs.length} />
-              <ShellStat label={t("activeStat")} value={activeCount} />
-              <ShellStat label={t("historyStat")} value={historyCount} />
-            </div>
-            {activeTab !== "config" ? (
-              <div className="deckgo-surface-tile deck-ui-subagents-surface">
-                <p className="deckgo-surface-label">{t("runFilters")}</p>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-subagents-form-grid">
-                  <select
-                    aria-label={t("childAgentFilter")}
-                    className="deckgo-input deck-ui-subagents-input"
-                    value={filters.childAgentId}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        childAgentId: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">{t("allChildAgents")}</option>
-                    {agentOptions.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
-                        {agent.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    aria-label={t("requesterAgentFilter")}
-                    className="deckgo-input deck-ui-subagents-input"
-                    value={filters.requesterAgentId}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        requesterAgentId: event.target.value,
-                      }))
-                    }
-                    placeholder={t("requesterAgentPlaceholder")}
-                  />
-                  <select
-                    aria-label={t("runStatusFilter")}
-                    className="deckgo-input deck-ui-subagents-input"
-                    value={filters.status}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        status: event.target.value as SubagentStatusFilter,
-                      }))
-                    }
-                  >
-                    {(["all", "active", "completed", "failed", "timeout"] as const).map(
-                      (status) => (
-                        <option key={status} value={status}>
-                          {statusLabel(t, status)}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                  <select
-                    aria-label={t("runTimeRangeFilter")}
-                    className="deckgo-input deck-ui-subagents-input"
-                    value={filters.timeRange}
-                    onChange={(event) =>
-                      setFilters((current) => ({
-                        ...current,
-                        timeRange: event.target.value as TimeRangeFilter,
-                      }))
-                    }
-                  >
-                    {(["1h", "6h", "24h", "all"] as const).map((range) => (
-                      <option key={range} value={range}>
-                        {timeRangeLabel(t, range)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                  <button
-                    className="deckgo-button deck-ui-subagents-button"
-                    type="button"
-                    onClick={() => void refresh()}
-                  >
-                    {t("refreshRuns")}
-                  </button>
-                  <label className="deckgo-checkbox-label deck-ui-subagents-check">
-                    <input
-                      checked={autoRefresh}
-                      onChange={(event) => setAutoRefresh(event.target.checked)}
-                      type="checkbox"
-                    />
-                    <span>{t("autoRefresh")}</span>
-                  </label>
-                </div>
-              </div>
-            ) : null}
+            <SegmentedControl
+              aria-label={t("title")}
+              controlSize="xs"
+              items={[
+                { value: "active", label: t("activeRuns") },
+                { value: "history", label: t("history") },
+                { value: "config", label: t("config") },
+              ]}
+              value={activeTab}
+              onChange={selectTab}
+            />
+          </div>
+          <div className="subagents-card__body">
             {activeTab === "config" ? (
               <>
-                <div className="deckgo-surface-tile deck-ui-subagents-surface">
-                  <p className="deckgo-surface-label">{t("globalDefaults")}</p>
-                  <p className="deckgo-note">{t("globalDefaultsDescription")}</p>
-                  <div className="deckgo-grid deckgo-grid-3 deck-ui-subagents-form-grid deck-ui-subagents-defaults-grid">
-                    <label className="deckgo-label deck-ui-subagents-label">
+                <section className="subagents-surface">
+                  <div className="subagents-section-heading">
+                    <div>
+                      <h3>{t("globalDefaults")}</h3>
+                      <p>{t("globalDefaultsDescription")}</p>
+                    </div>
+                    <Badge>{t("hashLabel", { hash: configBaseHash || emptyLabel })}</Badge>
+                  </div>
+                  <div className="subagents-defaults-grid">
+                    <label className="subagents-label">
                       <span>{t("maxSpawnDepth")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalMaxSpawnDepth")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         min={1}
                         max={5}
                         type="number"
@@ -779,11 +763,11 @@ export function SubagentsPanel() {
                         }
                       />
                     </label>
-                    <label className="deckgo-label deck-ui-subagents-label">
+                    <label className="subagents-label">
                       <span>{t("maxChildrenPerAgent")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalMaxChildrenPerAgent")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         min={1}
                         max={20}
                         type="number"
@@ -793,11 +777,11 @@ export function SubagentsPanel() {
                         }
                       />
                     </label>
-                    <label className="deckgo-label deck-ui-subagents-label">
+                    <label className="subagents-label">
                       <span>{t("maxConcurrent")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalMaxConcurrent")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         min={1}
                         type="number"
                         value={globalDefaults.maxConcurrent}
@@ -806,11 +790,11 @@ export function SubagentsPanel() {
                         }
                       />
                     </label>
-                    <label className="deckgo-label deck-ui-subagents-label">
+                    <label className="subagents-label">
                       <span>{t("archiveAfterMinutes")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalArchiveAfterMinutes")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         min={0}
                         type="number"
                         value={globalDefaults.archiveAfterMinutes}
@@ -819,11 +803,11 @@ export function SubagentsPanel() {
                         }
                       />
                     </label>
-                    <label className="deckgo-label deck-ui-subagents-label">
+                    <label className="subagents-label">
                       <span>{t("runTimeoutSeconds")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalRunTimeoutSeconds")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         min={0}
                         type="number"
                         value={globalDefaults.runTimeoutSeconds}
@@ -832,340 +816,437 @@ export function SubagentsPanel() {
                         }
                       />
                     </label>
-                    <label className="deckgo-label deck-ui-subagents-label">
+                    <label className="subagents-label">
                       <span>{t("thinkingDefault")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalThinkingDefault")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         value={globalDefaults.thinking}
                         onChange={(event) => updateGlobalDefault("thinking", event.target.value)}
                         placeholder={t("thinkingPlaceholder")}
                       />
                     </label>
                   </div>
-                  <div className="deckgo-grid deckgo-grid-2 deck-ui-subagents-form-grid deck-ui-subagents-actions-offset">
-                    <label className="deckgo-label deck-ui-subagents-label">
+                  <div className="subagents-config-row">
+                    <label className="subagents-label">
                       <span>{t("defaultModel")}</span>
-                      <input
+                      <Input
                         aria-label={t("globalDefaultModel")}
-                        className="deckgo-input deck-ui-subagents-input"
+                        inputSize="sm"
                         value={globalDefaults.model}
                         onChange={(event) => updateGlobalDefault("model", event.target.value)}
                         placeholder={t("modelPlaceholder")}
                       />
                     </label>
-                    <label className="deckgo-checkbox-label deck-ui-subagents-check">
-                      <input
+                    <div className="subagents-toggle subagents-toggle--field">
+                      <Toggle
                         aria-label={t("globalRequireExplicitAgentId")}
                         checked={globalDefaults.requireAgentId}
-                        onChange={(event) =>
-                          updateGlobalDefault("requireAgentId", event.target.checked)
-                        }
-                        type="checkbox"
+                        onCheckedChange={(next) => updateGlobalDefault("requireAgentId", next)}
                       />
                       <span>{t("requireExplicitAgentId")}</span>
-                    </label>
+                    </div>
                   </div>
-                  <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                    <button
-                      className="deckgo-button deck-ui-subagents-button"
+                  <div className="subagents-inline-actions">
+                    <Button
                       disabled={configActionState !== "idle"}
+                      size="sm"
                       onClick={() => void loadGlobalDefaults()}
-                      type="button"
                     >
                       {t("reloadDefaults")}
-                    </button>
-                    <button
-                      className="deckgo-button deck-ui-subagents-button is-primary"
+                    </Button>
+                    <Button
                       disabled={configActionState !== "idle"}
+                      size="sm"
+                      variant="primary"
                       onClick={() => void saveGlobalDefaults()}
-                      type="button"
                     >
                       {configActionState === "saving" ? t("savingDefaults") : t("saveDefaults")}
-                    </button>
-                    <span className="deckgo-pill">
-                      {t("hashLabel", { hash: configBaseHash || emptyLabel })}
-                    </span>
+                    </Button>
                   </div>
                   {configActionResult ? (
                     <JsonDetails title={t("defaultsSaveResult")} payload={configActionResult} />
                   ) : null}
-                </div>
-                <div className="deckgo-surface-tile deck-ui-subagents-surface">
-                  <p className="deckgo-surface-label">{t("perAgentPermissions")}</p>
+                </section>
+                <section className="subagents-surface">
+                  <div className="subagents-section-heading">
+                    <div>
+                      <h3>{t("perAgentPermissions")}</h3>
+                      <p>{t("globalDefaultsDescription")}</p>
+                    </div>
+                  </div>
                   {agents.length === 0 ? (
-                    <p className="deckgo-note deck-ui-subagents-empty">{t("noAgentsConfigured")}</p>
+                    <p className="subagents-panel__empty">{t("noAgentsConfigured")}</p>
                   ) : (
-                    <ul className="deckgo-shell-list deck-ui-subagents-list">
+                    <ul className="subagents-list">
                       {agents.map((agent) => {
                         const config = agentConfigs[agent.id];
                         return (
                           <li key={agent.id}>
-                            <div className="deckgo-selectable-card deck-ui-subagents-row">
-                              <strong>{agent.name || agent.id}</strong>
-                              <div className="deckgo-meta">
-                                {t("allowed")}: {describeAllowedSubagents(config, allowedLabels)}
+                            <article className="subagents-permission-row">
+                              <div className="subagents-row__top">
+                                <strong>{agent.name || agent.id}</strong>
+                                <Badge>
+                                  {t("allowed")}: {describeAllowedSubagents(config, allowedLabels)}
+                                </Badge>
                               </div>
-                              <div className="deckgo-meta">
+                              <p className="subagents-row__meta">
                                 {t("depth")}: {config?.effectiveMaxSpawnDepth ?? emptyLabel} |{" "}
                                 {t("children")}:{" "}
                                 {config?.effectiveMaxChildrenPerAgent ?? emptyLabel} | {t("model")}:{" "}
                                 {config?.model || defaultLabel}
-                              </div>
-                              <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                                <button
-                                  className="deckgo-button deck-ui-subagents-button"
-                                  type="button"
-                                  onClick={() => navigateToAgent(ui, agent.id, "subagents")}
-                                >
-                                  {t("openAgentSubagents")}
-                                </button>
-                              </div>
-                            </div>
+                              </p>
+                              <Button
+                                size="sm"
+                                onClick={() => navigateToAgent(ui, agent.id, "subagents")}
+                              >
+                                {t("openAgentSubagents")}
+                              </Button>
+                            </article>
                           </li>
                         );
                       })}
                     </ul>
                   )}
-                </div>
+                </section>
               </>
-            ) : null}
-            {error ? <p className="deckgo-note deck-ui-subagents-error">{error}</p> : null}
-            {activeTab !== "config" ? (
-              runs.length === 0 ? (
-                <p className="deckgo-note deck-ui-subagents-empty">{t("noRunsFound")}</p>
-              ) : (
-                <ul className="deckgo-shell-list deck-ui-subagents-list">
-                  {visibleRuns.map((run) => (
-                    <li key={run.runId}>
-                      <button
-                        type="button"
-                        className={`deckgo-selectable-card deck-ui-subagents-row ${selectedRun?.runId === run.runId ? "is-selected" : ""}`}
-                        onClick={() => void selectRun(run)}
-                      >
-                        <strong>{run.childAgentName || run.childAgentId}</strong>
-                        <div className="deckgo-meta">
-                          {t("status")}: {statusLabel(t, run.status)} | {t("depth")}: {run.depth} |{" "}
-                          {t("modeLabel")}: {run.spawnMode}
-                        </div>
-                        <div className="deckgo-meta">
-                          {t("requester")}: {run.requesterAgentName || run.requesterAgentId}
-                        </div>
-                        {run.task ? <div className="deckgo-meta">{run.task}</div> : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )
-            ) : null}
-            {activeTab !== "config" && visibleLimit < runs.length ? (
-              <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-subagents-button"
-                  type="button"
-                  onClick={() => setVisibleLimit((current) => current + VISIBLE_RUN_INCREMENT)}
-                >
-                  {t("remaining", { count: runs.length - visibleLimit })}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </article>
-      </div>
-
-      <div className="deckgo-column deckgo-panel-main deck-ui-subagents-column">
-        <article className="deckgo-card is-float deck-ui-subagents-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("runDetail")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("runDetailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-subagents-body">
-            {selectedRun ? (
+            ) : (
               <>
-                <div className="deckgo-panel-hero-strip deck-ui-subagents-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("selectedRun")}</p>
-                    <strong>{selectedRun.childAgentName || selectedRun.childAgentId}</strong>
-                    <p className="deckgo-note">{selectedRun.runId}</p>
+                <section className="subagents-surface">
+                  <div className="subagents-filters">
+                    <label className="subagents-label">
+                      <span>{t("childAgentFilter")}</span>
+                      <Select
+                        aria-label={t("childAgentFilter")}
+                        selectSize="sm"
+                        value={filters.childAgentId}
+                        onChange={(event) =>
+                          setFilters((current) => ({
+                            ...current,
+                            childAgentId: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">{t("allChildAgents")}</option>
+                        {agentOptions.map((agent) => (
+                          <option key={agent.id} value={agent.id}>
+                            {agent.label}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label className="subagents-label">
+                      <span>{t("requesterAgentFilter")}</span>
+                      <Input
+                        aria-label={t("requesterAgentFilter")}
+                        inputSize="sm"
+                        value={filters.requesterAgentId}
+                        onChange={(event) =>
+                          setFilters((current) => ({
+                            ...current,
+                            requesterAgentId: event.target.value,
+                          }))
+                        }
+                        placeholder={t("requesterAgentPlaceholder")}
+                      />
+                    </label>
+                    <label className="subagents-label">
+                      <span>{t("runStatusFilter")}</span>
+                      <Select
+                        aria-label={t("runStatusFilter")}
+                        selectSize="sm"
+                        value={filters.status}
+                        onChange={(event) =>
+                          setFilters((current) => ({
+                            ...current,
+                            status: event.target.value as SubagentStatusFilter,
+                          }))
+                        }
+                      >
+                        {(["all", "active", "completed", "failed", "timeout"] as const).map(
+                          (status) => (
+                            <option key={status} value={status}>
+                              {statusLabel(t, status)}
+                            </option>
+                          ),
+                        )}
+                      </Select>
+                    </label>
+                    <label className="subagents-label">
+                      <span>{t("runTimeRangeFilter")}</span>
+                      <Select
+                        aria-label={t("runTimeRangeFilter")}
+                        selectSize="sm"
+                        value={filters.timeRange}
+                        onChange={(event) =>
+                          setFilters((current) => ({
+                            ...current,
+                            timeRange: event.target.value as TimeRangeFilter,
+                          }))
+                        }
+                      >
+                        {(["1h", "6h", "24h", "all"] as const).map((range) => (
+                          <option key={range} value={range}>
+                            {timeRangeLabel(t, range)}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
                   </div>
-                  <div className="deckgo-pill-row deck-ui-subagents-status-row">
-                    <span className="deckgo-pill">{statusLabel(t, selectedRun.status)}</span>
-                    <span className="deckgo-pill">
-                      {t("depth")} {selectedRun.depth}
-                    </span>
+                </section>
+
+                {runs.length === 0 ? (
+                  <p className="subagents-panel__empty">{t("noRunsFound")}</p>
+                ) : (
+                  <ul className="subagents-run-list">
+                    {visibleRuns.map((run) => (
+                      <li key={run.runId}>
+                        <button
+                          type="button"
+                          aria-pressed={selectedRun?.runId === run.runId}
+                          className={
+                            selectedRun?.runId === run.runId
+                              ? "subagents-run-row is-selected"
+                              : "subagents-run-row"
+                          }
+                          onClick={() => void selectRun(run)}
+                        >
+                          <div className="subagents-row__top">
+                            <strong>{run.childAgentName || run.childAgentId}</strong>
+                            <Badge variant={badgeVariant(run.status)}>
+                              {statusLabel(t, run.status)}
+                            </Badge>
+                          </div>
+                          <p className="subagents-row__meta">
+                            {t("status")}: {statusLabel(t, run.status)} | {t("depth")}: {run.depth}{" "}
+                            | {t("modeLabel")}: {run.spawnMode}
+                          </p>
+                          <p className="subagents-row__meta">
+                            {t("requester")}: {run.requesterAgentName || run.requesterAgentId} |{" "}
+                            {t("duration")}: {formatRunDuration(run, durationLabels)}
+                          </p>
+                          {run.task ? <p className="subagents-row__note">{run.task}</p> : null}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {visibleLimit < runs.length ? (
+                  <div className="subagents-inline-actions">
+                    <Button
+                      size="sm"
+                      onClick={() => setVisibleLimit((current) => current + VISIBLE_RUN_INCREMENT)}
+                    >
+                      {t("remaining", { count: runs.length - visibleLimit })}
+                    </Button>
                   </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-subagents-detail-stats">
-                  <ShellStat
-                    label={t("created")}
-                    value={formatTimestamp(selectedRun.createdAt, emptyLabel)}
-                  />
-                  <ShellStat
-                    label={t("duration")}
-                    value={formatRunDuration(selectedRun, durationLabels)}
-                  />
-                </div>
-                <div className="deckgo-surface-tile deck-ui-subagents-surface">
-                  <p className="deckgo-surface-label">{t("historicalRunDetail")}</p>
-                  {selectedRun.task ? (
-                    <div className="deck-ui-subagents-task-block">
-                      <p className="deckgo-surface-label">{t("task")}</p>
-                      <p className="deckgo-note">{selectedRun.task}</p>
+                ) : null}
+              </>
+            )}
+          </div>
+        </Card>
+
+        <div className="subagents-detail">
+          <Card className="subagents-card subagents-detail-card" padded={false}>
+            <div className="subagents-card__header">
+              <div>
+                <h3>{t("runDetail")}</h3>
+                <p>{t("runDetailDescription")}</p>
+              </div>
+              {actionState === "lineage" ? <Spinner aria-label={tc("loading")} size="sm" /> : null}
+            </div>
+            <div className="subagents-card__body">
+              {selectedRun ? (
+                <>
+                  <section className="subagents-hero">
+                    <div>
+                      <p className="subagents-panel__eyebrow">{t("selectedRun")}</p>
+                      <h3>{selectedRun.childAgentName || selectedRun.childAgentId}</h3>
+                      <p>{selectedRun.runId}</p>
                     </div>
-                  ) : null}
-                  <div className="deckgo-grid deckgo-grid-3 deck-ui-subagents-detail-stats">
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("childAgent")}
-                      value={selectedRun.childAgentName || selectedRun.childAgentId}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("requester")}
-                      value={selectedRun.requesterAgentName || selectedRun.requesterAgentId}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("status")}
-                      value={statusLabel(t, selectedRun.status)}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("model")}
-                      value={selectedRun.model || defaultLabel}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("spawnMode")}
-                      value={selectedRun.spawnMode}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("depth")}
-                      value={selectedRun.depth}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("childSession")}
-                      value={selectedRun.childSessionKey}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("requesterSession")}
-                      value={selectedRun.requesterSessionKey}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("started")}
-                      value={formatTimestamp(selectedRun.startedAt, emptyLabel)}
-                    />
-                    <RunDetailField
-                      emptyLabel={emptyLabel}
-                      label={t("ended")}
-                      value={formatTimestamp(selectedRun.endedAt, emptyLabel)}
-                    />
-                  </div>
-                  <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                    <button
-                      className="deckgo-button deck-ui-subagents-button"
-                      type="button"
-                      disabled={!selectedRun.childAgentId}
-                      onClick={() => navigateToAgent(ui, selectedRun.childAgentId, "subagents")}
-                    >
-                      {t("openChildAgent")}
-                    </button>
-                    <button
-                      className="deckgo-button deck-ui-subagents-button"
-                      type="button"
-                      disabled={!selectedRun.requesterAgentId}
-                      onClick={() => navigateToAgent(ui, selectedRun.requesterAgentId, "subagents")}
-                    >
-                      {t("openRequesterAgent")}
-                    </button>
-                    <button
-                      className="deckgo-button deck-ui-subagents-button"
-                      type="button"
-                      disabled={!selectedRun.childSessionKey}
-                      onClick={() => navigateToSession(ui, selectedRun.childSessionKey ?? "")}
-                    >
-                      {t("openChildSession")}
-                    </button>
-                    <button
-                      className="deckgo-button deck-ui-subagents-button"
-                      type="button"
-                      disabled={!selectedRun.requesterSessionKey}
-                      onClick={() => navigateToSession(ui, selectedRun.requesterSessionKey ?? "")}
-                    >
-                      {t("openRequesterSession")}
-                    </button>
-                  </div>
-                  {selectedRun.status === "failed" || selectedRun.status === "timeout" ? (
-                    <p className="deckgo-note deck-ui-subagents-actions-offset">
-                      {t("runEndedStatus", { status: statusLabel(t, selectedRun.status) })}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="deckgo-surface-tile deck-ui-subagents-surface">
-                  <p className="deckgo-surface-label">{t("steerTitle")}</p>
-                  <div className="deckgo-grid deck-ui-subagents-form-grid">
-                    <input
+                    <div className="subagents-status-row">
+                      <Badge variant={badgeVariant(selectedRun.status)}>
+                        {statusLabel(t, selectedRun.status)}
+                      </Badge>
+                      <Badge>
+                        {t("depth")} {selectedRun.depth}
+                      </Badge>
+                      <Badge>{selectedRun.spawnMode}</Badge>
+                    </div>
+                  </section>
+
+                  <section className="subagents-surface">
+                    <div className="subagents-section-heading">
+                      <div>
+                        <h3>{t("historicalRunDetail")}</h3>
+                        {selectedRun.task ? <p>{selectedRun.task}</p> : null}
+                      </div>
+                      <Badge>{formatRunDuration(selectedRun, durationLabels)}</Badge>
+                    </div>
+                    <div className="subagents-detail-grid">
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("childAgent")}
+                        value={selectedRun.childAgentName || selectedRun.childAgentId}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("requester")}
+                        value={selectedRun.requesterAgentName || selectedRun.requesterAgentId}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("status")}
+                        value={statusLabel(t, selectedRun.status)}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("model")}
+                        value={selectedRun.model || defaultLabel}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("spawnMode")}
+                        value={selectedRun.spawnMode}
+                      />
+                      <Field emptyLabel={emptyLabel} label={t("depth")} value={selectedRun.depth} />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("childSession")}
+                        value={selectedRun.childSessionKey}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("requesterSession")}
+                        value={selectedRun.requesterSessionKey}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("created")}
+                        value={formatTimestamp(selectedRun.createdAt, emptyLabel)}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("started")}
+                        value={formatTimestamp(selectedRun.startedAt, emptyLabel)}
+                      />
+                      <Field
+                        emptyLabel={emptyLabel}
+                        label={t("ended")}
+                        value={formatTimestamp(selectedRun.endedAt, emptyLabel)}
+                      />
+                    </div>
+                    <div className="subagents-inline-actions">
+                      <Button
+                        disabled={!selectedRun.childAgentId}
+                        size="sm"
+                        onClick={() => navigateToAgent(ui, selectedRun.childAgentId, "subagents")}
+                      >
+                        {t("openChildAgent")}
+                      </Button>
+                      <Button
+                        disabled={!selectedRun.requesterAgentId}
+                        size="sm"
+                        onClick={() =>
+                          navigateToAgent(ui, selectedRun.requesterAgentId, "subagents")
+                        }
+                      >
+                        {t("openRequesterAgent")}
+                      </Button>
+                      <Button
+                        disabled={!selectedRun.childSessionKey}
+                        size="sm"
+                        onClick={() => navigateToSession(ui, selectedRun.childSessionKey ?? "")}
+                      >
+                        {t("openChildSession")}
+                      </Button>
+                      <Button
+                        disabled={!selectedRun.requesterSessionKey}
+                        size="sm"
+                        onClick={() => navigateToSession(ui, selectedRun.requesterSessionKey ?? "")}
+                      >
+                        {t("openRequesterSession")}
+                      </Button>
+                    </div>
+                    {selectedRun.status === "failed" || selectedRun.status === "timeout" ? (
+                      <p className="subagents-panel__note">
+                        {t("runEndedStatus", { status: statusLabel(t, selectedRun.status) })}
+                      </p>
+                    ) : null}
+                  </section>
+
+                  <section className="subagents-surface">
+                    <div className="subagents-section-heading">
+                      <div>
+                        <h3>{t("steerTitle")}</h3>
+                        <p>{t("steerWarning")}</p>
+                      </div>
+                    </div>
+                    <Textarea
                       aria-label={t("steerInstruction")}
-                      className="deckgo-input deck-ui-subagents-input"
+                      noResize
                       value={steerInstruction}
                       onChange={(event) => setSteerInstruction(event.target.value)}
                       placeholder={t("steerPlaceholder")}
                     />
-                  </div>
-                  <div className="deckgo-actions deck-ui-subagents-actions deck-ui-subagents-actions-offset">
-                    <button
-                      className="deckgo-button deck-ui-subagents-button is-primary"
-                      type="button"
-                      onClick={() => void steerAction()}
-                      disabled={actionState !== "idle" || !steerInstruction.trim()}
-                    >
-                      {actionState === "steering" ? t("steering") : t("steerConfirm")}
-                    </button>
-                    <button
-                      className="deckgo-button deck-ui-subagents-button is-danger"
-                      type="button"
-                      onClick={() => void killAction()}
-                      disabled={actionState !== "idle" || selectedRun.status !== "active"}
-                    >
-                      {actionState === "killing" ? t("killing") : t("killRun")}
-                    </button>
-                  </div>
-                </div>
-                <JsonDetails title={t("runPayload")} payload={selectedRun} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-subagents-empty">{t("chooseRun")}</p>
-            )}
+                    <div className="subagents-inline-actions">
+                      <Button
+                        disabled={actionState !== "idle" || !steerInstruction.trim()}
+                        size="sm"
+                        variant="primary"
+                        onClick={() => void steerAction()}
+                      >
+                        {actionState === "steering" ? t("steering") : t("steerConfirm")}
+                      </Button>
+                      <Button
+                        disabled={actionState !== "idle" || selectedRun.status !== "active"}
+                        size="sm"
+                        variant="danger"
+                        onClick={() => void killAction()}
+                      >
+                        {actionState === "killing" ? t("killing") : t("killRun")}
+                      </Button>
+                    </div>
+                  </section>
 
-            {lineage ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-subagents-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("lineageRoot")}</p>
-                    <strong>{lineage.root.agentName || lineage.root.agentId}</strong>
-                    <p className="deckgo-note">{lineage.root.sessionKey}</p>
-                  </div>
-                  <div className="deckgo-pill-row deck-ui-subagents-status-row">
-                    <span className="deckgo-pill">
-                      {t("nodesCount", { count: lineage.nodes.length })}
-                    </span>
-                    <span className="deckgo-pill">{t("lineage")}</span>
-                  </div>
-                </div>
-                <LineageTreeView labels={lineageLabels} nodes={lineageTree} />
-                <JsonDetails title={t("lineagePayload")} payload={lineage} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-subagents-empty">{t("selectRunForLineage")}</p>
-            )}
+                  <JsonDetails title={t("runPayload")} payload={selectedRun} />
+                </>
+              ) : (
+                <p className="subagents-panel__empty">{t("chooseRun")}</p>
+              )}
+            </div>
+          </Card>
 
-            {actionResult ? <JsonDetails title={t("lastAction")} payload={actionResult} /> : null}
-          </div>
-        </article>
+          <Card className="subagents-card subagents-lineage-card" padded={false}>
+            <div className="subagents-card__header">
+              <div>
+                <h3>{t("lineageRoot")}</h3>
+                <p>{lineage?.root.sessionKey || t("selectRunForLineage")}</p>
+              </div>
+              {lineage ? <Badge>{t("nodesCount", { count: lineage.nodes.length })}</Badge> : null}
+            </div>
+            <div className="subagents-card__body">
+              {lineage ? (
+                <>
+                  <section className="subagents-hero subagents-hero--compact">
+                    <div>
+                      <p className="subagents-panel__eyebrow">{t("lineageRoot")}</p>
+                      <h3>{lineage.root.agentName || lineage.root.agentId}</h3>
+                      <p>{lineage.root.sessionKey}</p>
+                    </div>
+                    <Badge>{t("lineage")}</Badge>
+                  </section>
+                  <LineageTreeView labels={lineageLabels} nodes={lineageTree} />
+                  <JsonDetails title={t("lineagePayload")} payload={lineage} />
+                </>
+              ) : (
+                <p className="subagents-panel__empty">{t("selectRunForLineage")}</p>
+              )}
+
+              {actionResult ? <JsonDetails title={t("lastAction")} payload={actionResult} /> : null}
+            </div>
+          </Card>
+        </div>
       </div>
     </section>
   );

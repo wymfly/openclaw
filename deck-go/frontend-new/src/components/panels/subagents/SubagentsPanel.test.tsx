@@ -261,31 +261,26 @@ describe("SubagentsPanel", () => {
     expect(container.textContent).toContain("agent:main:web-main");
     expect(container.textContent).toContain("Build feature");
     expect(container.textContent).toContain("Review feature");
-    expect(container.querySelector(".deck-ui-subagents")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-subagents-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-subagents-body")).toHaveLength(2);
-    expect(
-      container.querySelectorAll(".deck-ui-subagents-status-row").length,
-    ).toBeGreaterThanOrEqual(3);
-    expect(container.querySelector(".deck-ui-subagents-stats")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-subagents-surface").length).toBeGreaterThanOrEqual(
-      4,
+    expect(container.querySelector('[data-testid="subagents-panel"]')).toBeTruthy();
+    expect(container.querySelectorAll(".subagents-card")).toHaveLength(3);
+    expect(container.querySelectorAll(".subagents-card__body")).toHaveLength(3);
+    expect(container.querySelectorAll(".subagents-status-row").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelector(".subagents-panel__metrics")).toBeTruthy();
+    expect(container.querySelectorAll(".subagents-surface").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelector(".subagents-defaults-grid")).toBeTruthy();
+    expect(container.querySelector(".subagents-config-row")).toBeTruthy();
+    expect(container.querySelectorAll(".ds-input").length).toBeGreaterThanOrEqual(7);
+    expect(container.querySelectorAll(".subagents-inline-actions").length).toBeGreaterThanOrEqual(
+      3,
     );
-    expect(
-      container.querySelectorAll(".deck-ui-subagents-form-grid").length,
-    ).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".deck-ui-subagents-input").length).toBeGreaterThanOrEqual(8);
-    expect(container.querySelectorAll(".deck-ui-subagents-actions").length).toBeGreaterThanOrEqual(
-      5,
+    expect(container.querySelectorAll(".ds-button").length).toBeGreaterThanOrEqual(10);
+    expect(container.querySelector(".subagents-list")).toBeTruthy();
+    expect(container.querySelectorAll(".subagents-permission-row").length).toBeGreaterThanOrEqual(
+      3,
     );
-    expect(container.querySelectorAll(".deck-ui-subagents-button").length).toBeGreaterThanOrEqual(
-      10,
-    );
-    expect(container.querySelector(".deck-ui-subagents-list")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-subagents-row").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelector(".deck-ui-subagents-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-subagents-detail-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-subagents-lineage-list")).toBeTruthy();
+    expect(container.querySelector(".subagents-hero")).toBeTruthy();
+    expect(container.querySelector(".subagents-detail-grid")).toBeTruthy();
+    expect(container.querySelector(".subagents-lineage-list")).toBeTruthy();
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -357,8 +352,8 @@ describe("SubagentsPanel", () => {
     const modelInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="Global default model"]',
     );
-    const requireAgentInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="Global require explicit agent id"]',
+    const requireAgentInput = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Global require explicit agent id"]',
     );
     expect(maxDepthInput).toBeTruthy();
     expect(modelInput).toBeTruthy();
@@ -369,7 +364,7 @@ describe("SubagentsPanel", () => {
       fireEvent.change(modelInput as HTMLInputElement, {
         target: { value: "anthropic/claude-sonnet-4.6" },
       });
-      fireEvent.click(requireAgentInput as HTMLInputElement);
+      fireEvent.click(requireAgentInput as HTMLButtonElement);
     });
 
     await act(async () => {
@@ -432,13 +427,13 @@ describe("SubagentsPanel", () => {
       }),
     );
 
-    const instructionInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="instruction"]',
+    const instructionInput = container.querySelector<HTMLTextAreaElement>(
+      'textarea[placeholder="instruction"]',
     );
     expect(instructionInput).toBeTruthy();
 
     await act(async () => {
-      fireEvent.change(instructionInput as HTMLInputElement, {
+      fireEvent.change(instructionInput as HTMLTextAreaElement, {
         target: { value: " keep going " },
       });
     });
