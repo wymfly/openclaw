@@ -388,6 +388,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/api-explorer-visual.spec.ts` covers the ready Gateway describe catalog, untyped raw evidence expansion, method-filtered state, and event-tab schema inspection against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence and not full upstream schema-completeness proof.
 
+### Cron panel
+
+**Status:** in progress under OpenSpec change `frontend-cron-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Cron high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, card, code/json, and status tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** scheduler metric tile, job catalog row, selected-job hero, scheduler form section, run-history row, heartbeat detail, and last-action raw evidence seam.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, tab strip, and action/result seam. Cron validates that these patterns also work for Automate scheduler operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Cron-specific molecules:** scheduler status, job rows, run-history rows, heartbeat detail, and schedule payload disclosure are promotion candidates only after another Automate module validates the same API shape.
+
+**Mock visual evidence:** `deck-go/test/e2e/cron-visual.spec.ts` covers the ready scheduler workbench, run-history tab, heartbeat tab, template selection, and manual run result against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM or full upstream scheduler-completeness evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -416,3 +430,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — threads hifi redesign (`frontend-threads-hifi-contract-redesign`)**: Threads moves thread bindings, selected relationship evidence, and session/agent handoff actions into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed by adding `deck.threads.list` fixture support, while uncertain real non-Discord/status semantics remain handoff follow-up.
 - **2026-05-03 — activity hifi redesign (`frontend-activity-hifi-contract-redesign`)**: Activity moves runtime activity projection, monitor run history, selected event evidence, and selected run diagnostics into a module-local operations timeline. No canonical atom/token changes were introduced; existing mock visual event seeding was sufficient for coverage, while uncertain real Gateway/LLM projection completeness remains handoff follow-up.
 - **2026-05-03 — API Explorer hifi redesign (`frontend-api-explorer-hifi-contract-redesign`)**: API Explorer moves live `gateway.describe` inspection into a module-local contract catalog with schema tree and untyped/raw evidence. No canonical atom/token changes were introduced; deterministic mock Gateway describe drift was fixed for mock visual coverage, while real upstream schema completeness remains handoff follow-up.
+- **2026-05-03 — Cron hifi redesign (`frontend-cron-hifi-contract-redesign`)**: Cron moves scheduler status, job inventory, job editing, run history, heartbeat, and manual run evidence into a module-local scheduler workbench. No canonical atom/token changes were introduced; deterministic `cron.list`/`cron.status` mock and wrapper drift was fixed for mock visual coverage, while richer real Gateway scheduler state remains handoff follow-up.

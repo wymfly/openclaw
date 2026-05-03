@@ -34,14 +34,14 @@ export function NextExecutionCountdown(props: { nextRunAtMs?: number; disabled?:
   }, [props.disabled, props.nextRunAtMs, now]);
 
   if (props.disabled) {
-    return <span className="deckgo-pill is-muted">{t("disabled")}</span>;
+    return <span className="cron-panel__pill">{t("disabled")}</span>;
   }
   if (props.nextRunAtMs == null) {
-    return <span className="deckgo-pill is-muted">--</span>;
+    return <span className="cron-panel__pill">--</span>;
   }
   const remaining = props.nextRunAtMs - now;
   if (remaining <= 0) {
-    return <span className="deckgo-pill is-positive">{t("imminent")}</span>;
+    return <span className="cron-panel__pill is-positive">{t("imminent")}</span>;
   }
-  return <span className="deckgo-pill">{formatRemaining(remaining)}</span>;
+  return <span className="cron-panel__pill">{formatRemaining(remaining)}</span>;
 }

@@ -200,6 +200,104 @@ function defaultMethods() {
     },
     `${new Date(now - 12_000).toISOString()} [INFO] [gateway] logs.tail served cursor=${logCursor} sessionKey=sess-main`,
   ];
+  const clone = (value) => JSON.parse(JSON.stringify(value));
+  const cronJobs = [
+    {
+      id: "cron-nightly",
+      name: "Nightly workspace sync",
+      schedule: { kind: "cron", expr: "0 0 * * *" },
+      sessionTarget: "main",
+      wakeMode: "now",
+      payload: { kind: "systemEvent", text: "nightly.workspace.sync" },
+      agentId: "main",
+      description: "Refresh workspace summaries after hours.",
+      enabled: true,
+      state: {
+        nextRunAtMs: now + 3_600_000,
+        lastRunAtMs: now - 90_000,
+        lastRunStatus: "ok",
+      },
+      updatedAtMs: now - 120_000,
+      createdAtMs: now - 86_400_000,
+    },
+    {
+      id: "cron-heartbeat",
+      name: "Frequent agent heartbeat",
+      schedule: { kind: "every", everyMs: 60000 },
+      sessionTarget: "isolated",
+      wakeMode: "now",
+      payload: { kind: "agentTurn", message: "ping" },
+      agentId: "ops",
+      description: "Disabled fixture for edit and selection coverage.",
+      enabled: false,
+      state: {
+        nextRunAtMs: now + 120_000,
+        lastRunAtMs: now - 3_600_000,
+        lastRunStatus: "skipped",
+      },
+      updatedAtMs: now - 240_000,
+      createdAtMs: now - 172_800_000,
+    },
+    {
+      id: "cron-weekly",
+      name: "Weekly usage digest",
+      schedule: { kind: "cron", expr: "0 9 * * 1" },
+      sessionTarget: "main",
+      wakeMode: "next-heartbeat",
+      payload: { kind: "systemEvent", text: "weekly.usage.digest" },
+      agentId: "main",
+      description: "Produce a weekly usage digest.",
+      enabled: true,
+      state: {
+        nextRunAtMs: now + 250_000_000,
+        lastRunAtMs: now - 7_200_000,
+        lastRunStatus: "ok",
+      },
+      updatedAtMs: now - 360_000,
+      createdAtMs: now - 259_200_000,
+    },
+  ];
+  const cronRunsByJob = {
+    "cron-nightly": [
+      {
+        id: "run-nightly-ok",
+        jobId: "cron-nightly",
+        status: "ok",
+        ts: now - 90_000,
+        runAtMs: now - 90_000,
+        durationMs: 1842,
+        delivery: { channel: "system", delivered: true },
+      },
+      {
+        id: "run-nightly-skipped",
+        jobId: "cron-nightly",
+        status: "skipped",
+        ts: now - 3_690_000,
+        runAtMs: now - 3_690_000,
+      },
+    ],
+    "cron-heartbeat": [
+      {
+        id: "run-heartbeat-error",
+        jobId: "cron-heartbeat",
+        status: "error",
+        ts: now - 180_000,
+        runAtMs: now - 180_000,
+        durationMs: 512,
+        error: "mock heartbeat disabled",
+      },
+    ],
+    "cron-weekly": [
+      {
+        id: "run-weekly-ok",
+        jobId: "cron-weekly",
+        status: "ok",
+        ts: now - 7_200_000,
+        runAtMs: now - 7_200_000,
+        durationMs: 2210,
+      },
+    ],
+  };
   const subagentRuns = [
     {
       runId: "run-root",
@@ -940,6 +1038,135 @@ function defaultMethods() {
       status: "ready",
       latencyMs: 42,
     }),
+    "cron.list": (params) => {
+      const query = String(params?.query ?? "")
+        .trim()
+        .toLowerCase();
+      const enabled = params?.enabled ?? "all";
+      const includeDisabled = params?.includeDisabled !== false;
+      const filtered = cronJobs.filter((job) => {
+        if (!includeDisabled && !job.enabled) {
+          return false;
+        }
+        if (enabled === "enabled" && !job.enabled) {
+          return false;
+        }
+        if (enabled === "disabled" && job.enabled) {
+          return false;
+        }
+        if (!query) {
+          return true;
+        }
+        return (
+          job.name.toLowerCase().includes(query) ||
+          job.id.toLowerCase().includes(query) ||
+          (job.agentId ?? "").toLowerCase().includes(query)
+        );
+      });
+      return {
+        jobs: clone(filtered),
+        hasMore: false,
+        limit: params?.limit ?? filtered.length,
+        nextOffset: filtered.length,
+        offset: params?.offset ?? 0,
+        total: filtered.length,
+      };
+    },
+    "cron.status": () => {
+      const nextWakeAtMs = cronJobs
+        .filter((job) => job.enabled)
+        .map((job) => job.state?.nextRunAtMs)
+        .filter((value) => typeof value === "number")
+        .toSorted((left, right) => left - right)[0];
+      return {
+        enabled: false,
+        jobs: cronJobs.length,
+        nextWakeAtMs: nextWakeAtMs ?? null,
+        storePath: "/tmp/mock-cron.json",
+      };
+    },
+    "cron.runs": (params) => {
+      const jobId = params?.jobId ?? params?.id ?? "cron-nightly";
+      let entries = clone(cronRunsByJob[jobId] ?? []);
+      if (Array.isArray(params?.statuses) && params.statuses.length > 0) {
+        entries = entries.filter((entry) => params.statuses.includes(entry.status));
+      }
+      if (params?.sortDir === "asc") {
+        entries.sort((left, right) => left.ts - right.ts);
+      } else {
+        entries.sort((left, right) => right.ts - left.ts);
+      }
+      return {
+        entries,
+        hasMore: false,
+        limit: params?.limit ?? entries.length,
+        nextOffset: entries.length,
+        offset: params?.offset ?? 0,
+        total: entries.length,
+      };
+    },
+    "cron.add": (params) => {
+      const id = `cron-${
+        String(params?.name ?? "job")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-") || "job"
+      }`;
+      const job = {
+        id,
+        name: params?.name ?? "Mock cron job",
+        schedule: params?.schedule ?? { kind: "cron", expr: "0 9 * * *" },
+        sessionTarget: params?.sessionTarget ?? "main",
+        wakeMode: params?.wakeMode ?? "now",
+        payload: params?.payload ?? { kind: "systemEvent", text: "mock.created" },
+        agentId: params?.agentId ?? "main",
+        description: params?.description ?? "",
+        enabled: params?.enabled !== false,
+        state: {
+          nextRunAtMs: now + 86_400_000,
+        },
+        updatedAtMs: Date.now(),
+        createdAtMs: Date.now(),
+      };
+      cronJobs.unshift(job);
+      cronRunsByJob[id] = [];
+      return clone(job);
+    },
+    "cron.update": (params) => {
+      const id = params?.id ?? params?.jobId ?? "cron-nightly";
+      const patch = params?.patch && typeof params.patch === "object" ? params.patch : params;
+      const index = cronJobs.findIndex((job) => job.id === id);
+      if (index < 0) {
+        return { ok: false, id, error: "not_found" };
+      }
+      cronJobs[index] = {
+        ...cronJobs[index],
+        ...patch,
+        id,
+        updatedAtMs: Date.now(),
+      };
+      return clone(cronJobs[index]);
+    },
+    "cron.run": (params) => {
+      const jobId = params?.id ?? params?.jobId ?? "cron-nightly";
+      const run = {
+        id: `run-${jobId}-${Date.now()}`,
+        jobId,
+        status: "ok",
+        ts: Date.now(),
+        runAtMs: Date.now(),
+        durationMs: 333,
+      };
+      (cronRunsByJob[jobId] ??= []).unshift(run);
+      return { ok: true, ran: true, runId: run.id, mode: params?.mode ?? "due" };
+    },
+    "cron.remove": (params) => {
+      const id = params?.id ?? params?.jobId ?? "";
+      const index = cronJobs.findIndex((job) => job.id === id);
+      if (index >= 0) {
+        cronJobs.splice(index, 1);
+      }
+      return { ok: true, removed: index >= 0 };
+    },
     "sessions.subscribe": () => ({ ok: true }),
     "sessions.unsubscribe": () => ({ ok: true }),
     "sessions.messages.subscribe": (params) => ({

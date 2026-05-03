@@ -1066,6 +1066,23 @@ export async function updateSkillHub(slug?: string) {
   );
 }
 
+type CronJobWithGatewayState = DeckGoCronJob & {
+  state?: {
+    nextRunAtMs?: number | null;
+  };
+};
+
+type CronJobsResponseWithGatewayState = Omit<DeckGoCronJobsResponse, "jobs"> & {
+  jobs?: CronJobWithGatewayState[];
+};
+
+function normalizeCronJob(job: CronJobWithGatewayState): DeckGoCronJob {
+  return {
+    ...job,
+    nextRunAtMs: job.nextRunAtMs ?? job.state?.nextRunAtMs ?? undefined,
+  };
+}
+
 export async function fetchCronJobs(params?: DeckGoCronJobsParams) {
   const search = new URLSearchParams();
   if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
@@ -1090,15 +1107,31 @@ export async function fetchCronJobs(params?: DeckGoCronJobsParams) {
     search.set("includeDisabled", String(params.includeDisabled));
   }
   const suffix = search.toString() ? `?${search.toString()}` : "";
-  return fetchDeckJson<DeckGoCronJobsResponse>(
+  const response = await fetchDeckJson<CronJobsResponseWithGatewayState>(
     `/cron${suffix}`,
     undefined,
     "cron jobs fetch failed",
   );
+  return {
+    ...response,
+    jobs: response.jobs?.map(normalizeCronJob),
+  };
 }
 
 export async function fetchCronStatus() {
-  return fetchDeckJson<DeckGoCronStatus>("/cron/status", undefined, "cron status fetch failed");
+  const raw = await fetchDeckJson<
+    DeckGoCronStatus & {
+      enabled?: boolean;
+      jobs?: number;
+      nextWakeAtMs?: number | null;
+    }
+  >("/cron/status", undefined, "cron status fetch failed");
+  return {
+    ...raw,
+    running: raw.running ?? raw.enabled ?? false,
+    jobCount: raw.jobCount ?? raw.jobs,
+    nextRunAtMs: raw.nextRunAtMs ?? raw.nextWakeAtMs ?? undefined,
+  };
 }
 
 export async function fetchCronRuns(jobId: string, params?: DeckGoCronRunsParams) {
@@ -1124,7 +1157,7 @@ export async function fetchCronRuns(jobId: string, params?: DeckGoCronRunsParams
 }
 
 export async function createCronJob(input: DeckGoCronJobInput) {
-  return fetchDeckJson<DeckGoCronJob>(
+  const job = await fetchDeckJson<CronJobWithGatewayState>(
     "/cron",
     {
       method: "POST",
@@ -1133,10 +1166,11 @@ export async function createCronJob(input: DeckGoCronJobInput) {
     },
     "cron create failed",
   );
+  return normalizeCronJob(job);
 }
 
 export async function updateCronJob(jobId: string, input: Partial<DeckGoCronJobInput>) {
-  return fetchDeckJson<DeckGoCronJob>(
+  const job = await fetchDeckJson<CronJobWithGatewayState>(
     `/cron/${encodeURIComponent(jobId)}`,
     {
       method: "PATCH",
@@ -1145,6 +1179,7 @@ export async function updateCronJob(jobId: string, input: Partial<DeckGoCronJobI
     },
     "cron update failed",
   );
+  return normalizeCronJob(job);
 }
 
 export async function runCronJob(jobId: string, params?: DeckGoCronRunParams) {

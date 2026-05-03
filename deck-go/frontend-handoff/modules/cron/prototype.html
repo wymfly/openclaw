@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cron Jobs Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ds-bg-0: #0b0d12;
+        --ds-bg-1: #10141b;
+        --ds-bg-2: #151a22;
+        --ds-surface-1: #11161e;
+        --ds-surface-2: #171d27;
+        --ds-border-1: #252d3a;
+        --ds-border-2: #344057;
+        --ds-text-1: #f4f7fb;
+        --ds-text-2: #b7c0cf;
+        --ds-text-3: #8994a6;
+        --ds-accent: #7aa2ff;
+        --ds-accent-soft: rgba(122, 162, 255, 0.16);
+        --ds-good: #69d59b;
+        --ds-warn: #f0bd64;
+        --ds-danger: #ff7d7d;
+        --ds-radius-sm: 6px;
+        --ds-radius-md: 8px;
+        --ds-font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --ds-font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font-family: var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      .cron-panel {
+        display: grid;
+        gap: 14px;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .cron-panel__header,
+      .cron-panel__card-head,
+      .cron-panel__hero,
+      .cron-panel__row,
+      .cron-panel__run-row,
+      .cron-panel__actions,
+      .cron-panel__pill-row {
+        display: flex;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .cron-panel__header,
+      .cron-panel__card-head,
+      .cron-panel__hero,
+      .cron-panel__row,
+      .cron-panel__run-row {
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .cron-panel__title-stack,
+      .cron-panel__card,
+      .cron-panel__body,
+      .cron-panel__form,
+      .cron-panel__surface,
+      .cron-panel__catalog,
+      .cron-panel__detail-stack {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .cron-panel__title {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.1;
+      }
+
+      .cron-panel__eyebrow,
+      .cron-panel__label,
+      .cron-panel__metric span {
+        margin: 0;
+        color: var(--ds-text-3);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .cron-panel__description,
+      .cron-panel__meta,
+      .cron-panel__note {
+        margin: 0;
+        color: var(--ds-text-2);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .cron-panel__workspace {
+        display: grid;
+        grid-template-columns: minmax(380px, 0.86fr) minmax(500px, 1.14fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      .cron-panel__card,
+      .cron-panel__surface,
+      .cron-panel__metric,
+      .cron-panel__row,
+      .cron-panel__run-row,
+      .cron-panel__hero {
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-surface-1);
+      }
+
+      .cron-panel__card {
+        overflow: hidden;
+      }
+
+      .cron-panel__card-head {
+        padding: 14px 16px 0;
+      }
+
+      .cron-panel__body {
+        padding: 14px 16px 16px;
+      }
+
+      .cron-panel__metrics {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .cron-panel__metrics.is-two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .cron-panel__metric {
+        min-width: 0;
+        padding: 10px 11px;
+      }
+
+      .cron-panel__metric strong {
+        display: block;
+        margin-top: 5px;
+        overflow: hidden;
+        font-size: 17px;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .cron-panel__pill,
+      .cron-panel__button,
+      .cron-panel__input,
+      .cron-panel__textarea,
+      .cron-panel__select {
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        background: var(--ds-bg-1);
+        color: var(--ds-text-1);
+        font: inherit;
+      }
+
+      .cron-panel__pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 4px 8px;
+        color: var(--ds-text-2);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .cron-panel__pill.is-good {
+        border-color: rgba(105, 213, 155, 0.35);
+        background: rgba(105, 213, 155, 0.12);
+        color: var(--ds-good);
+      }
+
+      .cron-panel__pill.is-danger {
+        border-color: rgba(255, 125, 125, 0.35);
+        background: rgba(255, 125, 125, 0.12);
+        color: var(--ds-danger);
+      }
+
+      .cron-panel__button {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .cron-panel__button.is-primary {
+        border-color: rgba(122, 162, 255, 0.48);
+        background: var(--ds-accent-soft);
+        color: var(--ds-accent);
+      }
+
+      .cron-panel__button.is-danger {
+        color: var(--ds-danger);
+      }
+
+      .cron-panel__field-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+      }
+
+      .cron-panel__field {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+
+      .cron-panel__input,
+      .cron-panel__select,
+      .cron-panel__textarea {
+        width: 100%;
+        min-height: 34px;
+        padding: 7px 9px;
+        color: var(--ds-text-1);
+      }
+
+      .cron-panel__textarea {
+        min-height: 58px;
+        resize: vertical;
+      }
+
+      .cron-panel__row,
+      .cron-panel__run-row,
+      .cron-panel__hero,
+      .cron-panel__surface {
+        padding: 11px;
+      }
+
+      .cron-panel__row.is-selected {
+        border-color: rgba(122, 162, 255, 0.62);
+        background: var(--ds-accent-soft);
+        box-shadow: inset 2px 0 0 var(--ds-accent);
+      }
+
+      .cron-panel__row strong,
+      .cron-panel__run-row strong,
+      .cron-panel__hero strong {
+        overflow-wrap: anywhere;
+      }
+
+      .cron-panel__raw {
+        max-height: 170px;
+        overflow: auto;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        padding: 10px;
+        background: #090c11;
+        color: var(--ds-text-2);
+        font-family: var(--ds-font-mono);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 1100px) {
+        .cron-panel__workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .cron-panel {
+          padding: 12px;
+        }
+
+        .cron-panel__header,
+        .cron-panel__card-head,
+        .cron-panel__hero,
+        .cron-panel__row,
+        .cron-panel__run-row {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .cron-panel__metrics,
+        .cron-panel__metrics.is-two,
+        .cron-panel__field-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="cron-panel">
+      <header class="cron-panel__header">
+        <div class="cron-panel__title-stack">
+          <p class="cron-panel__eyebrow">Automate</p>
+          <h1 class="cron-panel__title">Cron Jobs</h1>
+          <p class="cron-panel__description">
+            Scheduler inventory, run history, heartbeat availability, and guarded job operations through the Deck BFF cron routes.
+          </p>
+        </div>
+        <div class="cron-panel__pill-row">
+          <span class="cron-panel__pill is-good">Cron ready</span>
+          <span class="cron-panel__pill">running: no</span>
+          <span class="cron-panel__pill">jobs: 3</span>
+        </div>
+      </header>
+
+      <section class="cron-panel__workspace">
+        <article class="cron-panel__card">
+          <div class="cron-panel__card-head">
+            <div>
+              <p class="cron-panel__eyebrow">Scheduler</p>
+              <h2 class="cron-panel__title" style="font-size: 17px">Job inventory</h2>
+            </div>
+            <button class="cron-panel__button is-primary">New Job</button>
+          </div>
+          <div class="cron-panel__body">
+            <div class="cron-panel__metrics">
+              <div class="cron-panel__metric"><span>jobs</span><strong>3</strong></div>
+              <div class="cron-panel__metric"><span>enabled</span><strong>2</strong></div>
+              <div class="cron-panel__metric"><span>next run</span><strong>10:32 PM</strong></div>
+            </div>
+
+            <div class="cron-panel__catalog">
+              <div class="cron-panel__row is-selected">
+                <div>
+                  <strong>Nightly workspace sync</strong>
+                  <p class="cron-panel__meta">Schedule: 0 0 * * * | Status: Enabled</p>
+                  <p class="cron-panel__meta">Next Execution: 10:32 PM</p>
+                </div>
+                <span class="cron-panel__pill is-good">Enabled</span>
+              </div>
+              <div class="cron-panel__row">
+                <div>
+                  <strong>Frequent agent heartbeat</strong>
+                  <p class="cron-panel__meta">Schedule: every 60000ms | Status: Disabled</p>
+                  <p class="cron-panel__meta">Next Execution: n/a</p>
+                </div>
+                <span class="cron-panel__pill">Disabled</span>
+              </div>
+              <div class="cron-panel__row">
+                <div>
+                  <strong>Weekly usage digest</strong>
+                  <p class="cron-panel__meta">Schedule: 0 9 * * 1 | Status: Enabled</p>
+                  <p class="cron-panel__meta">Next Execution: Monday 9:00 AM</p>
+                </div>
+                <span class="cron-panel__pill is-good">Enabled</span>
+              </div>
+            </div>
+
+            <section class="cron-panel__surface">
+              <p class="cron-panel__label">Configuration</p>
+              <div class="cron-panel__pill-row">
+                <button class="cron-panel__button">Every 5 min</button>
+                <button class="cron-panel__button">Hourly</button>
+                <button class="cron-panel__button is-primary">Daily</button>
+                <button class="cron-panel__button">Weekly</button>
+              </div>
+              <div class="cron-panel__field-grid">
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">Job Name</span>
+                  <input class="cron-panel__input" value="Daily review" />
+                </label>
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">Schedule</span>
+                  <select class="cron-panel__select"><option>Cron expression</option></select>
+                </label>
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">cron schedule value</span>
+                  <input class="cron-panel__input" value="0 9 * * *" />
+                </label>
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">Session Target</span>
+                  <select class="cron-panel__select"><option>Main Session</option></select>
+                </label>
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">Wake Mode</span>
+                  <select class="cron-panel__select"><option>Now</option></select>
+                </label>
+                <label class="cron-panel__field">
+                  <span class="cron-panel__label">Payload Type</span>
+                  <select class="cron-panel__select"><option>System Event</option></select>
+                </label>
+              </div>
+              <textarea class="cron-panel__textarea">nightly.workspace.sync</textarea>
+              <textarea class="cron-panel__textarea">Refresh workspace summaries after hours.</textarea>
+              <div class="cron-panel__actions">
+                <button class="cron-panel__button is-primary">Create Job</button>
+                <button class="cron-panel__button">Load selected</button>
+                <button class="cron-panel__button">Save selected</button>
+              </div>
+            </section>
+
+            <div class="cron-panel__actions">
+              <button class="cron-panel__button">Refresh cron</button>
+              <button class="cron-panel__button is-primary">Run Now</button>
+              <button class="cron-panel__button is-danger">Delete Job</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="cron-panel__card">
+          <div class="cron-panel__card-head">
+            <div>
+              <p class="cron-panel__eyebrow">Selected</p>
+              <h2 class="cron-panel__title" style="font-size: 17px">Selected Job</h2>
+            </div>
+            <div class="cron-panel__pill-row">
+              <button class="cron-panel__button is-primary">Configuration</button>
+              <button class="cron-panel__button">Run History</button>
+              <button class="cron-panel__button">Heartbeat</button>
+            </div>
+          </div>
+          <div class="cron-panel__body">
+            <div class="cron-panel__hero">
+              <div>
+                <p class="cron-panel__eyebrow">Job</p>
+                <strong>Nightly workspace sync</strong>
+                <p class="cron-panel__note">Refresh workspace summaries after hours.</p>
+              </div>
+              <div class="cron-panel__pill-row">
+                <span class="cron-panel__pill is-good">Enabled</span>
+                <span class="cron-panel__pill">0 0 * * *</span>
+              </div>
+            </div>
+
+            <div class="cron-panel__metrics is-two">
+              <div class="cron-panel__metric"><span>Agent ID</span><strong>main</strong></div>
+              <div class="cron-panel__metric"><span>Next Run</span><strong>10:32 PM</strong></div>
+            </div>
+
+            <section class="cron-panel__surface">
+              <p class="cron-panel__label">Run History</p>
+              <div class="cron-panel__run-row">
+                <div>
+                  <strong>OK</strong>
+                  <p class="cron-panel__meta">Start Time: 10:00 PM | Duration: 1842ms</p>
+                </div>
+                <span class="cron-panel__pill is-good">OK</span>
+              </div>
+              <div class="cron-panel__run-row">
+                <div>
+                  <strong>Skipped</strong>
+                  <p class="cron-panel__meta">Start Time: 9:00 PM | Duration: n/a</p>
+                </div>
+                <span class="cron-panel__pill">Skipped</span>
+              </div>
+            </section>
+
+            <section class="cron-panel__surface">
+              <p class="cron-panel__label">Heartbeat</p>
+              <div class="cron-panel__metrics is-two">
+                <div class="cron-panel__metric"><span>Next Execution</span><strong>10:32 PM</strong></div>
+                <div class="cron-panel__metric"><span>Global Configuration</span><strong>Read only</strong></div>
+              </div>
+              <p class="cron-panel__note">Heartbeat scheduling is currently read-only through this panel.</p>
+            </section>
+
+            <section class="cron-panel__surface">
+              <p class="cron-panel__label">Last cron action</p>
+              <pre class="cron-panel__raw">{
+  "ok": true,
+  "ran": true,
+  "runId": "run-nightly-1"
+}</pre>
+            </section>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

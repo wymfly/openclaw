@@ -27,6 +27,7 @@ import {
   fetchCompactionCheckpoints,
   fetchCronJobs,
   fetchCronRuns,
+  fetchCronStatus,
   fetchAgentDetail,
   fetchAgentFile,
   fetchAgentFiles,
@@ -1129,6 +1130,57 @@ describe("chat helper seam requests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "force" }),
     });
+  });
+
+  it("normalizes generated cron status fields through the current cron route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          enabled: true,
+          jobs: 3,
+          nextWakeAtMs: 12345,
+          storePath: "/tmp/mock-cron.json",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(fetchCronStatus()).resolves.toMatchObject({
+      running: true,
+      jobCount: 3,
+      nextRunAtMs: 12345,
+      storePath: "/tmp/mock-cron.json",
+    });
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/cron/status", undefined);
+  });
+
+  it("normalizes generated cron job state fields through the current cron route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          jobs: [
+            {
+              id: "job-1",
+              name: "Daily review",
+              schedule: { kind: "cron", expr: "0 8 * * *" },
+              sessionTarget: "main",
+              wakeMode: "now",
+              payload: { kind: "systemEvent", text: "daily.review" },
+              enabled: true,
+              state: { nextRunAtMs: 12345 },
+              updatedAtMs: 1,
+              createdAtMs: 1,
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(fetchCronJobs({ includeDisabled: true })).resolves.toMatchObject({
+      jobs: [{ id: "job-1", nextRunAtMs: 12345 }],
+    });
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/cron?includeDisabled=true", undefined);
   });
 
   it("passes memory search filters and preserves degraded 501 responses", async () => {

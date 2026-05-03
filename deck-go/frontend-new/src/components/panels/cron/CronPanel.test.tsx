@@ -123,14 +123,17 @@ describe("CronPanel", () => {
     expect(container.textContent).toContain("Frequent");
     expect(container.textContent).toContain("Schedule: 0 0 * * * | Status: Enabled");
     expect(container.textContent).toContain("Schedule: every 60000ms | Status: Disabled");
-    expect(container.querySelector(".deck-ui-cron")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-cron-card").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-cron-surface").length).toBe(1);
-    expect(container.querySelectorAll(".deck-ui-cron-input").length).toBe(9);
-    expect(container.querySelectorAll(".deck-ui-cron-button").length).toBeGreaterThanOrEqual(14);
-    expect(container.querySelectorAll(".deck-ui-cron-row").length).toBe(2);
-    expect(container.querySelector(".deck-ui-cron-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-cron-details")).toBeTruthy();
+    expect(container.querySelector(".cron-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".cron-panel__card").length).toBe(2);
+    expect(container.querySelectorAll(".cron-panel__surface").length).toBe(1);
+    expect(
+      container.querySelectorAll(".cron-panel__input, .cron-panel__select, .cron-panel__textarea")
+        .length,
+    ).toBe(9);
+    expect(container.querySelectorAll(".cron-panel__button").length).toBeGreaterThanOrEqual(13);
+    expect(container.querySelectorAll(".cron-panel__row").length).toBe(2);
+    expect(container.querySelector(".cron-panel__hero")).toBeTruthy();
+    expect(container.querySelector(".cron-panel__details")).toBeTruthy();
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),

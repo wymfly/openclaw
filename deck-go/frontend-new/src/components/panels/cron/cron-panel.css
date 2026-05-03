@@ -1,0 +1,373 @@
+.cron-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  color: var(--ds-text-1);
+}
+
+.cron-panel,
+.cron-panel * {
+  box-sizing: border-box;
+}
+
+.cron-panel__header,
+.cron-panel__card-head,
+.cron-panel__header-actions,
+.cron-panel__pill-row,
+.cron-panel__actions,
+.cron-panel__hero,
+.cron-panel__row,
+.cron-panel__run-row {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cron-panel__header,
+.cron-panel__card-head,
+.cron-panel__hero,
+.cron-panel__row,
+.cron-panel__run-row {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cron-panel__header-actions,
+.cron-panel__pill-row,
+.cron-panel__actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cron-panel__title-stack,
+.cron-panel__card,
+.cron-panel__body,
+.cron-panel__surface,
+.cron-panel__catalog,
+.cron-panel__details,
+.cron-panel__field,
+.cron-panel__form {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cron-panel__workspace {
+  display: grid;
+  grid-template-columns: minmax(380px, 0.86fr) minmax(500px, 1.14fr);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.cron-panel__card,
+.cron-panel__surface,
+.cron-panel__metric,
+.cron-panel__row,
+.cron-panel__run-row,
+.cron-panel__hero {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-1);
+  box-shadow: none;
+}
+
+.cron-panel__card {
+  overflow: hidden;
+}
+
+.cron-panel__card-head {
+  padding: 14px 16px 0;
+}
+
+.cron-panel__surface > .cron-panel__card-head {
+  padding: 0;
+}
+
+.cron-panel__body {
+  padding: 14px 16px 16px;
+}
+
+.cron-panel__title,
+.cron-panel__card-title {
+  margin: 0;
+  color: var(--ds-text-1);
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.cron-panel__title {
+  font-size: 1.28rem;
+  line-height: 1.15;
+}
+
+.cron-panel__card-title {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.cron-panel__eyebrow,
+.cron-panel__label,
+.cron-panel__metric span,
+.cron-panel__field > span {
+  margin: 0;
+  color: var(--ds-text-3);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.cron-panel__description,
+.cron-panel__meta,
+.cron-panel__note {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.cron-panel__pill,
+.cron-panel__button,
+.cron-panel__input,
+.cron-panel__select,
+.cron-panel__textarea {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+  font: inherit;
+}
+
+.cron-panel__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  min-width: 0;
+  padding: 4px 8px;
+  color: var(--ds-text-2);
+  font-size: 0.74rem;
+  font-weight: 750;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.cron-panel__pill.is-positive,
+.cron-panel__metric.is-positive {
+  border-color: color-mix(in srgb, var(--ds-success) 36%, var(--ds-border));
+}
+
+.cron-panel__pill.is-positive {
+  background: color-mix(in srgb, var(--ds-success) 13%, transparent);
+  color: var(--ds-success);
+}
+
+.cron-panel__pill.is-danger,
+.cron-panel__metric.is-danger {
+  border-color: color-mix(in srgb, var(--ds-error) 36%, var(--ds-border));
+}
+
+.cron-panel__pill.is-danger {
+  color: var(--ds-error);
+}
+
+.cron-panel__button {
+  min-height: 32px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.cron-panel__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.cron-panel__button:hover:not(:disabled),
+.cron-panel__row:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--ds-accent) 34%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-accent) 9%, var(--ds-bg-1));
+  box-shadow: none;
+}
+
+.cron-panel__button:focus-visible,
+.cron-panel__input:focus-visible,
+.cron-panel__select:focus-visible,
+.cron-panel__textarea:focus-visible,
+.cron-panel__row:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ds-accent) 42%, transparent);
+  outline-offset: 1px;
+}
+
+.cron-panel__button.is-primary {
+  border-color: color-mix(in srgb, var(--ds-accent) 46%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-accent) 15%, transparent);
+  color: var(--ds-accent);
+}
+
+.cron-panel__button.is-danger {
+  color: var(--ds-error);
+}
+
+.cron-panel__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.cron-panel__metrics.is-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cron-panel__metric {
+  min-width: 0;
+  padding: 10px 11px;
+}
+
+.cron-panel__metric strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--ds-text-1);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cron-panel__surface,
+.cron-panel__hero,
+.cron-panel__row,
+.cron-panel__run-row {
+  padding: 11px;
+}
+
+.cron-panel__list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cron-panel__list > li {
+  min-width: 0;
+}
+
+.cron-panel__row {
+  width: 100%;
+  border: 1px solid var(--ds-border);
+  color: inherit;
+  text-align: left;
+}
+
+button.cron-panel__row {
+  cursor: pointer;
+}
+
+.cron-panel__row.is-selected {
+  border-color: color-mix(in srgb, var(--ds-accent) 50%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-accent) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+.cron-panel__row strong,
+.cron-panel__run-row strong,
+.cron-panel__hero strong,
+.cron-panel__meta,
+.cron-panel__note,
+.cron-panel__description {
+  overflow-wrap: anywhere;
+}
+
+.cron-panel__field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  min-width: 0;
+}
+
+.cron-panel__input,
+.cron-panel__select,
+.cron-panel__textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+  box-shadow: none;
+}
+
+.cron-panel__textarea {
+  resize: vertical;
+}
+
+.cron-panel__checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-2);
+  font-size: 0.82rem;
+}
+
+.cron-panel__error {
+  color: var(--ds-error);
+}
+
+.cron-panel__run-history {
+  min-width: 0;
+}
+
+.cron-panel details {
+  min-width: 0;
+}
+
+.cron-panel summary {
+  cursor: pointer;
+  color: var(--ds-text-2);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.cron-panel .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  padding: 9px 10px;
+  background: var(--ds-bg-0);
+  color: var(--ds-text-2);
+  font-family: var(--ds-font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1080px) {
+  .cron-panel__workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cron-panel__header,
+  .cron-panel__card-head,
+  .cron-panel__hero,
+  .cron-panel__row,
+  .cron-panel__run-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cron-panel__metrics,
+  .cron-panel__metrics.is-two,
+  .cron-panel__field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cron-panel__actions {
+    align-items: stretch;
+  }
+}

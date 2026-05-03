@@ -1027,7 +1027,6 @@ details summary:focus-visible {
 
 :where(
   .deck-ui-approvals-detail-column,
-  .deck-ui-cron-detail-column,
   .deck-ui-webhooks-detail-column
 ) {
   min-width: 0;
@@ -1159,223 +1158,6 @@ details summary:focus-visible {
 .deckgo-usage-chart-detail {
   grid-column: 2 / -1;
   margin-top: -4px;
-}
-
-.deck-ui-cron {
-  grid-template-columns: minmax(360px, 0.9fr) minmax(460px, 1.1fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-cron-column {
-  gap: 12px;
-}
-
-.deck-ui-cron-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-cron-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-cron-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-cron-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-cron-body > *,
-.deck-ui-cron-status-row,
-.deck-ui-cron-actions,
-.deck-ui-cron-template-row,
-.deck-ui-cron-stats,
-.deck-ui-cron-form-grid,
-.deck-ui-cron-detail-stats,
-.deck-ui-cron-input,
-.deck-ui-cron-list,
-.deck-ui-cron-row,
-.deck-ui-cron-surface,
-.deck-ui-cron-hero,
-.deck-ui-cron-details {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-cron-status-row,
-.deck-ui-cron-actions,
-.deck-ui-cron-template-row {
-  gap: 6px;
-}
-
-.deck-ui-cron-status-row .deckgo-pill,
-.deck-ui-cron-hero .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-cron-input {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-cron-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-cron-textarea,
-.deck-ui-cron-actions-offset {
-  margin-top: 12px;
-}
-
-.deck-ui-cron-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-cron-stats,
-.deck-ui-cron-form-grid,
-.deck-ui-cron-detail-stats {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-cron-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.deck-ui-cron-form-grid,
-.deck-ui-cron-detail-stats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-cron .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-cron .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-cron .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-cron-surface,
-.deck-ui-cron-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-cron-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-cron-list {
-  gap: 8px;
-}
-
-.deck-ui-cron-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-cron-row,
-.deck-ui-cron .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-cron-row:hover,
-.deck-ui-cron .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-cron-row.is-selected,
-.deck-ui-cron .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-cron-details {
-  display: grid;
-  gap: 10px;
-}
-
-.deck-ui-cron-error {
-  color: var(--danger);
-}
-
-.deck-ui-cron strong,
-.deck-ui-cron .deckgo-meta,
-.deck-ui-cron .deckgo-note,
-.deck-ui-cron-empty,
-.deck-ui-cron-error {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-cron details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-cron {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .deck-ui-cron-stats,
-  .deck-ui-cron-form-grid,
-  .deck-ui-cron-detail-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .deck-ui-webhooks {
@@ -2084,7 +1866,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-cron > .deck-ui-cron-column:first-child,
 .deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child {
   position: sticky;
@@ -2093,7 +1874,6 @@ details summary:focus-visible {
   max-height: calc(100vh - 116px);
 }
 
-.deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-card,
 .deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
   display: grid;
@@ -2101,20 +1881,17 @@ details summary:focus-visible {
   max-height: calc(100vh - 116px);
 }
 
-.deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-body,
 .deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-body,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-body {
   overflow: auto;
 }
 
-.deck-ui-cron .deckgo-stat,
 .deck-ui-webhooks .deckgo-stat,
 .deck-ui-approvals .deckgo-stat,
 .deck-ui-skills .deckgo-stat {
   padding: 9px 10px;
 }
 
-.deck-ui-cron .deckgo-stat-value,
 .deck-ui-webhooks .deckgo-stat-value,
 .deck-ui-approvals .deckgo-stat-value,
 .deck-ui-skills .deckgo-stat-value {
@@ -2122,7 +1899,6 @@ details summary:focus-visible {
   font-size: 0.98rem;
 }
 
-.deck-ui-cron .deckgo-selectable-card,
 .deck-ui-webhooks .deckgo-selectable-card,
 .deck-ui-approvals .deckgo-selectable-card,
 .deck-ui-skills .deckgo-selectable-card {
@@ -2130,10 +1906,8 @@ details summary:focus-visible {
 }
 
 @media (max-width: 1080px) {
-  .deck-ui-cron > .deck-ui-cron-column:first-child,
   .deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
   .deck-ui-approvals > .deck-ui-approvals-column:first-child,
-  .deck-ui-cron > .deck-ui-cron-column:first-child .deck-ui-cron-card,
   .deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
   .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
     position: static;

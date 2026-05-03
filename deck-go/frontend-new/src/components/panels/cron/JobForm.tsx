@@ -21,13 +21,13 @@ export function JobForm(props: {
   const t = useTranslations("cron");
 
   return (
-    <div className="deckgo-surface-tile deck-ui-cron-surface">
-      <p className="deckgo-surface-label">{t("configuration")}</p>
-      <div className="deckgo-pill-row deck-ui-cron-template-row">
+    <div className="cron-panel__surface cron-panel__form">
+      <p className="cron-panel__label">{t("configuration")}</p>
+      <div className="cron-panel__pill-row">
         {CRON_TEMPLATES.map((template) => (
           <button
             key={template.key}
-            className="deckgo-button deck-ui-cron-button"
+            className="cron-panel__button"
             type="button"
             onClick={() =>
               props.setDraft((current) => ({
@@ -41,90 +41,111 @@ export function JobForm(props: {
           </button>
         ))}
       </div>
-      <div className="deckgo-grid deckgo-grid-2 deck-ui-cron-form-grid">
-        <input
-          aria-label={t("name")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.name}
-          onChange={(event) =>
-            props.setDraft((current) => ({ ...current, name: event.target.value }))
-          }
-          placeholder={t("name")}
-        />
-        <select
-          aria-label={t("schedule")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.scheduleKind}
-          onChange={(event) =>
-            props.setDraft((current) => ({
-              ...current,
-              scheduleKind: event.target.value as CronScheduleKind,
-            }))
-          }
-        >
-          <option value="cron">{t("scheduleKinds.cron")}</option>
-          <option value="every">{t("scheduleKinds.every")}</option>
-          <option value="at">{t("scheduleKinds.at")}</option>
-        </select>
-        <input
-          aria-label={t("scheduleValue")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.scheduleValue}
-          onChange={(event) =>
-            props.setDraft((current) => ({ ...current, scheduleValue: event.target.value }))
-          }
-          placeholder={t("schedulePlaceholder")}
-        />
-        <select
-          aria-label={t("sessionTarget")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.sessionTarget}
-          onChange={(event) =>
-            props.setDraft((current) => ({ ...current, sessionTarget: event.target.value }))
-          }
-        >
-          <option value="main">{t("main")}</option>
-          <option value="isolated">{t("isolated")}</option>
-          <option value="current">{t("current")}</option>
-        </select>
-        <select
-          aria-label={t("wakeMode")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.wakeMode}
-          onChange={(event) =>
-            props.setDraft((current) => ({ ...current, wakeMode: event.target.value }))
-          }
-        >
-          <option value="now">{t("now")}</option>
-          <option value="next-heartbeat">{t("nextHeartbeat")}</option>
-        </select>
-        <select
-          aria-label={t("payloadType")}
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.payloadKind}
-          onChange={(event) => {
-            const payloadKind = event.target.value as CronPayloadKind;
-            props.setDraft((current) => ({
-              ...current,
-              payloadKind,
-              sessionTarget: payloadKind === "agentTurn" ? "isolated" : "main",
-            }));
-          }}
-        >
-          <option value="systemEvent">{t("payloadKinds.systemEvent")}</option>
-          <option value="agentTurn">{t("payloadKinds.agentTurn")}</option>
-        </select>
-        <input
-          className="deckgo-input deck-ui-cron-input"
-          value={props.draft.agentId}
-          onChange={(event) =>
-            props.setDraft((current) => ({ ...current, agentId: event.target.value }))
-          }
-          placeholder={t("agentId")}
-        />
+      <div className="cron-panel__field-grid">
+        <label className="cron-panel__field">
+          <span>{t("name")}</span>
+          <input
+            aria-label={t("name")}
+            className="cron-panel__input"
+            value={props.draft.name}
+            onChange={(event) =>
+              props.setDraft((current) => ({ ...current, name: event.target.value }))
+            }
+            placeholder={t("name")}
+          />
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("schedule")}</span>
+          <select
+            aria-label={t("schedule")}
+            className="cron-panel__select"
+            value={props.draft.scheduleKind}
+            onChange={(event) =>
+              props.setDraft((current) => ({
+                ...current,
+                scheduleKind: event.target.value as CronScheduleKind,
+              }))
+            }
+          >
+            <option value="cron">{t("scheduleKinds.cron")}</option>
+            <option value="every">{t("scheduleKinds.every")}</option>
+            <option value="at">{t("scheduleKinds.at")}</option>
+          </select>
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("scheduleValue")}</span>
+          <input
+            aria-label={t("scheduleValue")}
+            className="cron-panel__input"
+            value={props.draft.scheduleValue}
+            onChange={(event) =>
+              props.setDraft((current) => ({ ...current, scheduleValue: event.target.value }))
+            }
+            placeholder={t("schedulePlaceholder")}
+          />
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("sessionTarget")}</span>
+          <select
+            aria-label={t("sessionTarget")}
+            className="cron-panel__select"
+            value={props.draft.sessionTarget}
+            onChange={(event) =>
+              props.setDraft((current) => ({ ...current, sessionTarget: event.target.value }))
+            }
+          >
+            <option value="main">{t("main")}</option>
+            <option value="isolated">{t("isolated")}</option>
+            <option value="current">{t("current")}</option>
+          </select>
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("wakeMode")}</span>
+          <select
+            aria-label={t("wakeMode")}
+            className="cron-panel__select"
+            value={props.draft.wakeMode}
+            onChange={(event) =>
+              props.setDraft((current) => ({ ...current, wakeMode: event.target.value }))
+            }
+          >
+            <option value="now">{t("now")}</option>
+            <option value="next-heartbeat">{t("nextHeartbeat")}</option>
+          </select>
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("payloadType")}</span>
+          <select
+            aria-label={t("payloadType")}
+            className="cron-panel__select"
+            value={props.draft.payloadKind}
+            onChange={(event) => {
+              const payloadKind = event.target.value as CronPayloadKind;
+              props.setDraft((current) => ({
+                ...current,
+                payloadKind,
+                sessionTarget: payloadKind === "agentTurn" ? "isolated" : "main",
+              }));
+            }}
+          >
+            <option value="systemEvent">{t("payloadKinds.systemEvent")}</option>
+            <option value="agentTurn">{t("payloadKinds.agentTurn")}</option>
+          </select>
+        </label>
+        <label className="cron-panel__field">
+          <span>{t("agentId")}</span>
+          <input
+            className="cron-panel__input"
+            value={props.draft.agentId}
+            onChange={(event) =>
+              props.setDraft((current) => ({ ...current, agentId: event.target.value }))
+            }
+            placeholder={t("agentId")}
+          />
+        </label>
       </div>
       <textarea
-        className="deckgo-input deck-ui-cron-input deck-ui-cron-textarea"
+        className="cron-panel__textarea"
         value={props.draft.payloadValue}
         onChange={(event) =>
           props.setDraft((current) => ({ ...current, payloadValue: event.target.value }))
@@ -137,7 +158,7 @@ export function JobForm(props: {
         rows={3}
       />
       <textarea
-        className="deckgo-input deck-ui-cron-input deck-ui-cron-textarea"
+        className="cron-panel__textarea"
         value={props.draft.description}
         onChange={(event) =>
           props.setDraft((current) => ({ ...current, description: event.target.value }))
@@ -145,7 +166,7 @@ export function JobForm(props: {
         placeholder={t("description")}
         rows={2}
       />
-      <label className="deckgo-label">
+      <label className="cron-panel__checkbox-row">
         <span>{t("enabled")}</span>
         <input
           type="checkbox"
@@ -155,9 +176,9 @@ export function JobForm(props: {
           }
         />
       </label>
-      <div className="deckgo-actions deck-ui-cron-actions deck-ui-cron-actions-offset">
+      <div className="cron-panel__actions">
         <button
-          className="deckgo-button deck-ui-cron-button is-primary"
+          className="cron-panel__button is-primary"
           type="button"
           onClick={props.onCreate}
           disabled={props.actionState !== "idle"}
@@ -165,7 +186,7 @@ export function JobForm(props: {
           {props.actionState === "creating" ? t("creating") : t("createJob")}
         </button>
         <button
-          className="deckgo-button deck-ui-cron-button"
+          className="cron-panel__button"
           type="button"
           onClick={props.onLoadSelected}
           disabled={!props.selectedJob || props.actionState !== "idle"}
@@ -173,7 +194,7 @@ export function JobForm(props: {
           {t("loadSelected")}
         </button>
         <button
-          className="deckgo-button deck-ui-cron-button"
+          className="cron-panel__button"
           type="button"
           onClick={props.onUpdateSelected}
           disabled={!props.selectedJob || props.actionState !== "idle"}

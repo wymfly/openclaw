@@ -10,7 +10,7 @@ import {
   updateCronJob,
 } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import {
   cronInputFromDraft,
   DEFAULT_DRAFT,
@@ -20,11 +20,13 @@ import {
   type CronActionState,
   type PanelState,
 } from "./cron-model";
+import { CronMetric } from "./CronMetric";
 import { HeartbeatConfig } from "./HeartbeatConfig";
 import { JobForm } from "./JobForm";
 import { JobList } from "./JobList";
 import { RunHistory } from "./RunHistory";
 import { RunNowButton } from "./RunNowButton";
+import "./cron-panel.css";
 
 const CRON_JOBS_QUERY = { includeDisabled: true } as const;
 const CRON_RUNS_QUERY = { limit: 20, sortDir: "desc" } as const;
@@ -169,24 +171,51 @@ export function CronPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-cron">
-      <div className="deckgo-column deck-ui-cron-column">
-        <article className="deckgo-card is-float deck-ui-cron-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
+    <section className="cron-panel" data-testid="cron-panel">
+      <header className="cron-panel__header">
+        <div className="cron-panel__title-stack">
+          <p className="cron-panel__eyebrow">Automate</p>
+          <h2 className="cron-panel__title">{t("title")}</h2>
+          <p className="cron-panel__description">{t("panelDescription")}</p>
+        </div>
+        <div className="cron-panel__header-actions">
+          <span className={`cron-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
+            Cron {loadState}
+          </span>
+          <span className="cron-panel__pill">
+            {t("running")}: {status?.running ? t("yes") : t("no")}
+          </span>
+          <span className="cron-panel__pill">
+            {t("jobs")}: {status?.jobCount ?? jobs.length}
+          </span>
+        </div>
+      </header>
+
+      <div className="cron-panel__workspace">
+        <article className="cron-panel__card">
+          <div className="cron-panel__card-head">
+            <div>
+              <p className="cron-panel__eyebrow">Scheduler</p>
+              <h3 className="cron-panel__card-title">{t("title")}</h3>
+            </div>
+            <button
+              className="cron-panel__button is-primary"
+              type="button"
+              onClick={() => {
+                setDraft(DEFAULT_DRAFT);
+                setDetailTab("configuration");
+              }}
+            >
+              {t("addJob")}
+            </button>
           </div>
-          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-cron-body">
+          <div className="cron-panel__body">
             <JobList
               jobs={jobs}
               status={status}
               selectedJobId={selectedJobId}
               enabledCount={enabledCount}
               loadState={loadState}
-              onCreateNew={() => {
-                setDraft(DEFAULT_DRAFT);
-                setDetailTab("configuration");
-              }}
               onSelect={setSelectedJobId}
             />
             <JobForm
@@ -198,9 +227,9 @@ export function CronPanel() {
               onLoadSelected={() => selectedJob && setDraft(draftFromJob(selectedJob))}
               onUpdateSelected={() => void updateSelectedAction()}
             />
-            <div className="deckgo-actions deck-ui-cron-actions">
+            <div className="cron-panel__actions">
               <button
-                className="deckgo-button deck-ui-cron-button"
+                className="cron-panel__button"
                 type="button"
                 onClick={() => void refresh(selectedJobId)}
               >
@@ -212,7 +241,7 @@ export function CronPanel() {
                 onRun={() => void runAction()}
               />
               <button
-                className="deckgo-button deck-ui-cron-button is-danger"
+                className="cron-panel__button is-danger"
                 type="button"
                 onClick={() => void deleteAction()}
                 disabled={!selectedJob || actionState !== "idle"}
@@ -220,23 +249,21 @@ export function CronPanel() {
                 {actionState === "deleting" ? t("deleting") : t("deleteJob")}
               </button>
             </div>
-            {error ? <p className="deckgo-note deck-ui-cron-error">{error}</p> : null}
+            {error ? <p className="cron-panel__note cron-panel__error">{error}</p> : null}
           </div>
         </article>
-      </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-cron-column deck-ui-cron-detail-column">
-        <article className="deckgo-card is-float deck-ui-cron-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedJob")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("selectedDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-cron-body">
-            <div className="deckgo-pill-row deck-ui-cron-template-row" role="tablist">
+        <article className="cron-panel__card">
+          <div className="cron-panel__card-head">
+            <div>
+              <p className="cron-panel__eyebrow">{t("job")}</p>
+              <h3 className="cron-panel__card-title">{t("selectedJob")}</h3>
+            </div>
+            <div className="cron-panel__pill-row" role="tablist">
               {(["configuration", "history", "heartbeat"] as const).map((tab) => (
                 <button
                   key={tab}
-                  className={`deckgo-button deck-ui-cron-button ${detailTab === tab ? "is-primary" : ""}`}
+                  className={`cron-panel__button ${detailTab === tab ? "is-primary" : ""}`}
                   type="button"
                   onClick={() => setDetailTab(tab)}
                 >
@@ -248,32 +275,42 @@ export function CronPanel() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="cron-panel__body">
+            <p className="cron-panel__description">{t("selectedDescription")}</p>
             {selectedJob && detailTab !== "heartbeat" ? (
               <>
-                <div className="deckgo-panel-hero-strip deck-ui-cron-hero">
+                <div className="cron-panel__hero">
                   <div>
-                    <p className="deckgo-kicker">{t("job")}</p>
+                    <p className="cron-panel__eyebrow">{t("job")}</p>
                     <strong>{selectedJob.name}</strong>
-                    <p className="deckgo-note">{selectedJob.description || t("noDescription")}</p>
+                    <p className="cron-panel__note">
+                      {selectedJob.description || t("noDescription")}
+                    </p>
                   </div>
-                  <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">
+                  <div className="cron-panel__pill-row">
+                    <span
+                      className={`cron-panel__pill ${selectedJob.enabled ? "is-positive" : ""}`}
+                    >
                       {selectedJob.enabled ? t("enabled") : t("disabled")}
                     </span>
-                    <span className="deckgo-pill">{summarizeSchedule(selectedJob)}</span>
+                    <span className="cron-panel__pill">{summarizeSchedule(selectedJob)}</span>
                   </div>
                 </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-cron-detail-stats">
-                  <ShellStat
+                <div className="cron-panel__metrics is-two">
+                  <CronMetric
                     label={t("agentId")}
                     value={selectedJob.agentId || t("notAvailable")}
                   />
-                  <ShellStat label={t("nextRun")} value={formatCronDate(selectedJob.nextRunAtMs)} />
+                  <CronMetric
+                    label={t("nextRun")}
+                    value={formatCronDate(selectedJob.nextRunAtMs)}
+                  />
                 </div>
                 {detailTab === "history" ? (
                   <RunHistory runs={runs} />
                 ) : (
-                  <div className="deck-ui-cron-details">
+                  <div className="cron-panel__details">
                     <JsonDetails title={t("jobPayload")} payload={selectedJob} />
                   </div>
                 )}
@@ -281,10 +318,10 @@ export function CronPanel() {
             ) : detailTab === "heartbeat" ? (
               <HeartbeatConfig status={status} />
             ) : (
-              <p className="deckgo-note">{t("selectJobHint")}</p>
+              <p className="cron-panel__note">{t("selectJobHint")}</p>
             )}
             {actionResult ? (
-              <div className="deck-ui-cron-details">
+              <div className="cron-panel__details">
                 <JsonDetails title={t("lastAction")} payload={actionResult} />
               </div>
             ) : null}

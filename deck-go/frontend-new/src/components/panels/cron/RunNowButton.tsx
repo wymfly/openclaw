@@ -9,7 +9,7 @@ export function RunNowButton(props: {
   const t = useTranslations("cron");
   return (
     <button
-      className="deckgo-button deck-ui-cron-button is-primary"
+      className="cron-panel__button is-primary"
       type="button"
       onClick={props.onRun}
       disabled={props.disabled || props.actionState !== "idle"}

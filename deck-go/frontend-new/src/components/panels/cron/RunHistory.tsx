@@ -7,35 +7,32 @@ export function RunHistory(props: { runs: DeckGoCronRunEntry[] }) {
     value ? new Date(value).toLocaleString() : t("notAvailable");
 
   if (props.runs.length === 0) {
-    return <p className="deckgo-note deck-ui-cron-empty">{t("noRuns")}</p>;
+    return <p className="cron-panel__note">{t("noRuns")}</p>;
   }
 
   return (
-    <div className="deck-ui-cron-run-history">
-      <table className="deck-ui-cron-table">
-        <thead>
-          <tr>
-            <th>{t("startTime")}</th>
-            <th>{t("duration")}</th>
-            <th>{t("status")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.runs.map((run) => (
-            <tr key={run.id}>
-              <td>{formatRunDate(run.ts)}</td>
-              <td>{run.durationMs != null ? `${run.durationMs}ms` : t("notAvailable")}</td>
-              <td>
-                <span
-                  className={`deckgo-pill ${run.status === "ok" ? "is-positive" : run.status === "error" ? "is-danger" : "is-muted"}`}
-                >
-                  {t(run.status)}
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="cron-panel__surface cron-panel__run-history">
+      <p className="cron-panel__label">{t("runHistory")}</p>
+      <ul className="cron-panel__list">
+        {props.runs.map((run, index) => (
+          <li key={run.id || `${run.jobId}-${run.ts}-${index}`}>
+            <div className="cron-panel__run-row">
+              <div>
+                <strong>{t(run.status)}</strong>
+                <p className="cron-panel__meta">
+                  {t("startTime")}: {formatRunDate(run.ts)} | {t("duration")}:{" "}
+                  {run.durationMs != null ? `${run.durationMs}ms` : t("notAvailable")}
+                </p>
+              </div>
+              <span
+                className={`cron-panel__pill ${run.status === "ok" ? "is-positive" : run.status === "error" ? "is-danger" : ""}`}
+              >
+                {t(run.status)}
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
