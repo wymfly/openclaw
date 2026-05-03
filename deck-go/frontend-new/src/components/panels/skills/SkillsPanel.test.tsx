@@ -57,7 +57,7 @@ function skillsPayload() {
         skillKey: "github",
         name: "GitHub",
         source: "plugin",
-        missing: ["GITHUB_TOKEN"],
+        missing: { env: ["GITHUB_TOKEN"], bins: ["gh"] },
         primaryEnv: "GITHUB_TOKEN",
         config: { apiKey: "old-token", env: { GITHUB_TOKEN: "old-token" } },
         install: [{ id: "brew-gh", label: "Install gh", bins: ["gh"] }],
@@ -165,22 +165,22 @@ describe("SkillsPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
     await waitFor(() =>
-      expect(container.querySelector(".deck-ui-skills-table-shell")).toBeTruthy(),
+      expect(container.querySelector(".skills-panel__matrix-shell")).toBeTruthy(),
     );
 
-    expect(container.querySelector(".deck-ui-skills")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-card")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-body")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-actions")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-input")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-button")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-list")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-skills-textarea")).toBeTruthy();
+    expect(container.querySelector(".skills-panel")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__card")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__body")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__pill-row")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__actions")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__input")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__button")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__list")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__row")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__hero")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__surface")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__textarea")).toBeTruthy();
     expect(container.textContent).toContain("Skills ready");
     expect(container.textContent).toContain("3 installed");
     expect(container.textContent).toContain("1 need setup");

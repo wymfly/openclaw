@@ -430,6 +430,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/approvals-visual.spec.ts` covers the ready approval workbench, plugin approval surface, exec decision result, and policy save state against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM or full approval security assurance.
 
+### Skills panel
+
+**Status:** in progress under OpenSpec change `frontend-skills-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Skills high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, card, code/json, status, and table-like local layout tokens. No canonical atom/token was introduced.
+
+**Local molecules retained:** skill metric tile, skill inventory row, selected-skill hero, missing requirement evidence strip, config editor surface, install option row, ClawHub catalog row, ClawHub detail surface, agent skill matrix cell, and raw action evidence disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, action/result seam, and raw payload detail. Skills validates these patterns for skill/catalog/config/matrix operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Skills-specific molecules:** missing requirement evidence, config editor, install option rows, ClawHub package rows, and matrix cells are candidates for later Control/Integrations patterns only after budget/alerts/plugins/config validate the same API shape. Real ClawHub network access, binary dependency verification, credential persistence, marketplace trust, and production install safety remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/skills-visual.spec.ts` covers the ready skill operations workbench, config save result, ClawHub detail/install state, and agent matrix toggle against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM, real ClawHub marketplace, or production install safety evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -461,3 +475,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — Cron hifi redesign (`frontend-cron-hifi-contract-redesign`)**: Cron moves scheduler status, job inventory, job editing, run history, heartbeat, and manual run evidence into a module-local scheduler workbench. No canonical atom/token changes were introduced; deterministic `cron.list`/`cron.status` mock and wrapper drift was fixed for mock visual coverage, while richer real Gateway scheduler state remains handoff follow-up.
 - **2026-05-03 — Webhooks hifi redesign (`frontend-webhooks-hifi-contract-redesign`)**: Webhooks moves receiver inventory, selected receiver evidence, event subscriptions, delivery history, and manual test delivery into a module-local receiver operations workbench. No canonical atom/token changes were introduced; existing BFF/localstore routes were sufficient for deterministic mock/local visual seeding, while real external receiver delivery assurance remains handoff follow-up.
 - **2026-05-03 — Approvals hifi redesign (`frontend-approvals-hifi-contract-redesign`)**: Approvals moves exec decisions, plugin approval requests, policy defaults, per-agent overrides, allowlist paths, stream updates, and raw policy/action evidence into a module-local security operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for approval resolve, policy set, and plugin approval coverage, while real upstream approval-list schemas remain handoff follow-up.
+- **2026-05-03 — Skills hifi redesign (`frontend-skills-hifi-contract-redesign`)**: Skills moves installed inventory, missing requirement evidence, selected skill config, install options, ClawHub search/detail/install/update, and agent skill matrix assignment into a module-local skill operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for `skills.*` and `deck.agents.skills.*` visual coverage, while real ClawHub marketplace/trust/install safety remains handoff follow-up.

@@ -21,12 +21,30 @@ export function formatHubDate(value?: number, fallback = "n/a") {
   return Number.isNaN(date.getTime()) ? fallback : date.toLocaleDateString();
 }
 
+function normalizeMissingRequirements(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+  }
+  if (typeof value !== "object" || value === null) {
+    return [];
+  }
+  return Object.entries(value as Record<string, unknown>).flatMap(([group, entries]) => {
+    if (!Array.isArray(entries)) {
+      return [];
+    }
+    return entries
+      .filter((entry): entry is string => typeof entry === "string" && entry.length > 0)
+      .map((entry) => `${group}: ${entry}`);
+  });
+}
+
 export function normalizeSkill(raw: Record<string, unknown>): DeckGoSkillEntry {
   const skillKey =
     typeof raw.skillKey === "string" ? raw.skillKey : typeof raw.name === "string" ? raw.name : "";
   const disabled = raw.disabled === true;
   const eligible = raw.eligible !== false;
-  const hasMissing = Array.isArray(raw.missing) && raw.missing.length > 0;
+  const missingRequirements = normalizeMissingRequirements(raw.missing);
+  const hasMissing = missingRequirements.length > 0;
 
   let status: SkillStatus = "ready";
   if (disabled) {
@@ -44,7 +62,7 @@ export function normalizeSkill(raw: Record<string, unknown>): DeckGoSkillEntry {
       ? (source as DeckGoSkillEntry["source"])
       : "bundled",
     enabled: !disabled,
-    missingRequirements: Array.isArray(raw.missing) ? (raw.missing as string[]) : undefined,
+    missingRequirements: missingRequirements.length ? missingRequirements : undefined,
     config:
       typeof raw.config === "object" && raw.config !== null
         ? (raw.config as Record<string, unknown>)

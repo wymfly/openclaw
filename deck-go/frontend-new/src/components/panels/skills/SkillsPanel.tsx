@@ -23,7 +23,7 @@ import {
 import { navigateToAgent } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import { InstallSkillDialog } from "./InstallSkillDialog";
 import {
   formatHubDate,
@@ -38,6 +38,8 @@ import { SkillHubTab } from "./SkillHubTab";
 import { SkillInfoTab } from "./SkillInfoTab";
 import { SkillList } from "./SkillList";
 import { SkillMatrixTab } from "./SkillMatrixTab";
+import { SkillMetric } from "./SkillMetric";
+import "./skills-panel.css";
 
 export function SkillsPanel() {
   const t = useTranslations("skills");
@@ -358,152 +360,190 @@ export function SkillsPanel() {
     }
   };
 
+  const disabledCount = skills.filter((skill) => skill.status === "disabled").length;
+  const payloadWithMeta = payload as (DeckGoSkillsResponse & { managedSkillsDir?: unknown }) | null;
+  const managedDir =
+    typeof payloadWithMeta?.managedSkillsDir === "string"
+      ? payloadWithMeta.managedSkillsDir
+      : t("notAvailable");
+
   return (
-    <section className="deckgo-panel-workspace deck-ui-skills">
-      <div className="deckgo-column deck-ui-skills-column">
-        <SkillList
-          actionState={actionState}
-          error={error}
-          filteredSkills={filteredSkills}
-          loadState={loadState}
-          readyCount={readyCount}
-          selectedSkill={selectedSkill}
-          setupCount={setupCount}
-          skillSearchQuery={skillSearchQuery}
-          skillStatusFilter={skillStatusFilter}
-          skills={skills}
-          onRefresh={() => void refresh(selectedSkillKey)}
-          onSearchChange={setSkillSearchQuery}
-          onSelect={setSelectedSkillKey}
-          onStatusFilterChange={setSkillStatusFilter}
-          onToggle={(enabled) => void runToggle(enabled)}
-        />
-        <SkillHubTab
-          bins={hubBins}
-          error={hubError}
-          hubActionState={hubActionState}
-          hubQuery={hubQuery}
-          hubState={hubState}
-          results={hubResults}
-          selectedBin={selectedHubBin}
-          onHubQueryChange={setHubQuery}
-          onLoadDetail={(slug) => void loadHubDetail(slug)}
-          onSearch={() => void runHubSearch()}
-          onSelectBin={selectHubBin}
-          onUpdateAll={() => void runHubUpdateAll()}
-        />
+    <section className="skills-panel" data-testid="skills-panel">
+      <header className="skills-panel__header">
+        <div className="skills-panel__title-stack">
+          <p className="skills-panel__eyebrow">{t("title")}</p>
+          <h1 className="skills-panel__title">{t("title")}</h1>
+          <p className="skills-panel__description">{t("workspaceDescription")}</p>
+        </div>
+        <div className="skills-panel__pill-row">
+          <span className={`skills-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
+            {t("title")} {t(`loadStates.${loadState}`)}
+          </span>
+          <span className="skills-panel__pill">
+            {t("managedDir")}: {managedDir}
+          </span>
+        </div>
+      </header>
+
+      <div className="skills-panel__metrics">
+        <SkillMetric label={t("installed")} value={skills.length} />
+        <SkillMetric label={t("ready")} value={readyCount} />
+        <SkillMetric label={t("needsSetup")} value={setupCount} />
+        <SkillMetric label={t("disabled")} value={disabledCount} />
       </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-skills-column">
-        <article className="deckgo-card is-float deck-ui-skills-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedSkill")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("selectedSkillDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-skills-body">
-            {selectedSkill ? (
-              <>
-                <SkillInfoTab selectedSkill={selectedSkill} />
-                <SkillConfig
-                  actionState={actionState}
-                  apiKeyDraft={apiKeyDraft}
-                  envDraft={envDraft}
-                  selectedSkill={selectedSkill}
-                  onApiKeyChange={setApiKeyDraft}
-                  onEnvChange={setEnvDraft}
-                  onSave={() => void runConfigSave()}
-                />
-                <InstallSkillDialog
-                  actionState={actionState}
-                  selectedSkill={selectedSkill}
-                  onInstall={(installId) => void runInstall(installId)}
-                />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-skills-empty">{t("selectSkillHint")}</p>
-            )}
-            {actionResult ? (
-              <JsonDetails title={t("lastSkillAction")} payload={actionResult} />
-            ) : null}
-            <SkillMatrixTab
-              agents={agents}
-              agentSkillsByAgent={agentSkillsByAgent}
-              matrixActionKey={matrixActionKey}
-              matrixActionResult={matrixActionResult}
-              matrixError={matrixError}
-              matrixState={matrixState}
-              skills={skills}
-              onNavigateAgent={(agentId) => navigateToAgent(ui, agentId, "skills")}
-              onRefresh={() => void refreshAgentSkillMatrix()}
-              onToggle={(agent, skill) => void toggleMatrixSkill(agent, skill)}
-            />
-            <div className="deckgo-surface-tile deck-ui-skills-surface">
-              <p className="deckgo-surface-label">{t("clawHubDetail")}</p>
-              {hubDetailState === "loading" ? (
-                <p className="deckgo-note">{t("loadingDetail")}</p>
-              ) : null}
-              {hubDetail?.skill ? (
+      <div className="skills-panel__workspace">
+        <div className="skills-panel__column">
+          <SkillList
+            actionState={actionState}
+            error={error}
+            filteredSkills={filteredSkills}
+            loadState={loadState}
+            readyCount={readyCount}
+            selectedSkill={selectedSkill}
+            setupCount={setupCount}
+            skillSearchQuery={skillSearchQuery}
+            skillStatusFilter={skillStatusFilter}
+            skills={skills}
+            onRefresh={() => void refresh(selectedSkillKey)}
+            onSearchChange={setSkillSearchQuery}
+            onSelect={setSelectedSkillKey}
+            onStatusFilterChange={setSkillStatusFilter}
+            onToggle={(enabled) => void runToggle(enabled)}
+          />
+          <SkillHubTab
+            bins={hubBins}
+            error={hubError}
+            hubActionState={hubActionState}
+            hubQuery={hubQuery}
+            hubState={hubState}
+            results={hubResults}
+            selectedBin={selectedHubBin}
+            onHubQueryChange={setHubQuery}
+            onLoadDetail={(slug) => void loadHubDetail(slug)}
+            onSearch={() => void runHubSearch()}
+            onSelectBin={selectHubBin}
+            onUpdateAll={() => void runHubUpdateAll()}
+          />
+        </div>
+
+        <div className="skills-panel__column">
+          <article className="skills-panel__card">
+            <div className="skills-panel__card-head">
+              <div className="skills-panel__title-stack">
+                <h2 className="skills-panel__title is-compact">{t("selectedSkill")}</h2>
+                <p className="skills-panel__description">{t("selectedSkillDescription")}</p>
+              </div>
+            </div>
+            <div className="skills-panel__body">
+              {selectedSkill ? (
                 <>
-                  <div className="deckgo-panel-hero-strip deck-ui-skills-hero">
-                    <div>
-                      <p className="deckgo-kicker">{t("hubSkill")}</p>
-                      <strong>{hubDetail.skill.displayName}</strong>
-                      <p className="deckgo-note">
-                        {hubDetail.skill.summary || hubDetail.skill.slug}
-                      </p>
-                    </div>
-                    <div className="deckgo-pill-row">
-                      <span className="deckgo-pill">
-                        {t("slug")}: {hubDetail.skill.slug}
-                      </span>
-                      <span className="deckgo-pill">
-                        {t("version")}: {hubDetail.latestVersion?.version ?? t("notAvailable")}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="deckgo-grid deckgo-grid-2 deck-ui-skills-detail-stats">
-                    <ShellStat
-                      label={t("owner")}
-                      value={
-                        hubDetail.owner?.displayName || hubDetail.owner?.handle || t("notAvailable")
-                      }
-                    />
-                    <ShellStat
-                      label={t("updated")}
-                      value={formatHubDate(hubDetail.skill.updatedAt, t("notAvailable"))}
-                    />
-                  </div>
-                  {hubDetail.metadata?.os?.length ? (
-                    <p className="deckgo-note">
-                      {t("platforms")}: {hubDetail.metadata.os.join(", ")}
-                    </p>
-                  ) : null}
-                  {hubDetail.latestVersion?.changelog ? (
-                    <JsonDetails
-                      title={t("hubChangelog")}
-                      payload={hubDetail.latestVersion.changelog}
-                    />
-                  ) : null}
-                  <div className="deckgo-actions deck-ui-skills-actions">
-                    <button
-                      className="deckgo-button is-primary deck-ui-skills-button"
-                      type="button"
-                      onClick={() => void runHubInstall()}
-                      disabled={hubActionState !== "idle"}
-                    >
-                      {hubActionState === "installing" ? t("installing") : t("installFromClawHub")}
-                    </button>
-                  </div>
+                  <SkillInfoTab selectedSkill={selectedSkill} />
+                  <SkillConfig
+                    actionState={actionState}
+                    apiKeyDraft={apiKeyDraft}
+                    envDraft={envDraft}
+                    selectedSkill={selectedSkill}
+                    onApiKeyChange={setApiKeyDraft}
+                    onEnvChange={setEnvDraft}
+                    onSave={() => void runConfigSave()}
+                  />
+                  <InstallSkillDialog
+                    actionState={actionState}
+                    selectedSkill={selectedSkill}
+                    onInstall={(installId) => void runInstall(installId)}
+                  />
                 </>
               ) : (
-                <p className="deckgo-note deck-ui-skills-empty">{t("searchHubHint")}</p>
+                <p className="skills-panel__note">{t("selectSkillHint")}</p>
               )}
+              {actionResult ? (
+                <JsonDetails title={t("lastSkillAction")} payload={actionResult} />
+              ) : null}
+              <SkillMatrixTab
+                agents={agents}
+                agentSkillsByAgent={agentSkillsByAgent}
+                matrixActionKey={matrixActionKey}
+                matrixActionResult={matrixActionResult}
+                matrixError={matrixError}
+                matrixState={matrixState}
+                skills={skills}
+                onNavigateAgent={(agentId) => navigateToAgent(ui, agentId, "skills")}
+                onRefresh={() => void refreshAgentSkillMatrix()}
+                onToggle={(agent, skill) => void toggleMatrixSkill(agent, skill)}
+              />
+              <div className="skills-panel__surface">
+                <p className="skills-panel__eyebrow">{t("clawHubDetail")}</p>
+                {hubDetailState === "loading" ? (
+                  <p className="skills-panel__note">{t("loadingDetail")}</p>
+                ) : null}
+                {hubDetail?.skill ? (
+                  <>
+                    <div className="skills-panel__hero">
+                      <div>
+                        <p className="skills-panel__eyebrow">{t("hubSkill")}</p>
+                        <strong>{hubDetail.skill.displayName}</strong>
+                        <p className="skills-panel__note">
+                          {hubDetail.skill.summary || hubDetail.skill.slug}
+                        </p>
+                      </div>
+                      <div className="skills-panel__pill-row">
+                        <span className="skills-panel__pill">
+                          {t("slug")}: {hubDetail.skill.slug}
+                        </span>
+                        <span className="skills-panel__pill">
+                          {t("version")}: {hubDetail.latestVersion?.version ?? t("notAvailable")}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="skills-panel__detail-metrics">
+                      <SkillMetric
+                        label={t("owner")}
+                        value={
+                          hubDetail.owner?.displayName ||
+                          hubDetail.owner?.handle ||
+                          t("notAvailable")
+                        }
+                      />
+                      <SkillMetric
+                        label={t("updated")}
+                        value={formatHubDate(hubDetail.skill.updatedAt, t("notAvailable"))}
+                      />
+                    </div>
+                    {hubDetail.metadata?.os?.length ? (
+                      <p className="skills-panel__note">
+                        {t("platforms")}: {hubDetail.metadata.os.join(", ")}
+                      </p>
+                    ) : null}
+                    {hubDetail.latestVersion?.changelog ? (
+                      <JsonDetails
+                        title={t("hubChangelog")}
+                        payload={hubDetail.latestVersion.changelog}
+                      />
+                    ) : null}
+                    <div className="skills-panel__actions">
+                      <button
+                        className="skills-panel__button is-primary"
+                        type="button"
+                        onClick={() => void runHubInstall()}
+                        disabled={hubActionState !== "idle"}
+                      >
+                        {hubActionState === "installing"
+                          ? t("installing")
+                          : t("installFromClawHub")}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="skills-panel__note">{t("searchHubHint")}</p>
+                )}
+              </div>
+              {hubActionResult ? (
+                <JsonDetails title={t("lastHubAction")} payload={hubActionResult} />
+              ) : null}
             </div>
-            {hubActionResult ? (
-              <JsonDetails title={t("lastHubAction")} payload={hubActionResult} />
-            ) : null}
-          </div>
-        </article>
+          </article>
+        </div>
       </div>
     </section>
   );

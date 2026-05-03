@@ -18,12 +18,14 @@ export function SkillMatrixTab(props: {
   const t = useTranslations("skills");
 
   return (
-    <div className="deckgo-surface-tile deck-ui-skills-surface">
-      <p className="deckgo-surface-label">{t("agentSkillMatrix")}</p>
-      <p className="deckgo-note">{t("agentSkillMatrixDescription")}</p>
-      <div className="deckgo-actions deck-ui-skills-actions deck-ui-skills-actions-offset">
+    <div className="skills-panel__surface">
+      <div className="skills-panel__row-head">
+        <div>
+          <p className="skills-panel__eyebrow">{t("agentSkillMatrix")}</p>
+          <p className="skills-panel__note">{t("agentSkillMatrixDescription")}</p>
+        </div>
         <button
-          className="deckgo-button deck-ui-skills-button"
+          className="skills-panel__button"
           type="button"
           onClick={props.onRefresh}
           disabled={props.matrixState === "loading"}
@@ -31,17 +33,19 @@ export function SkillMatrixTab(props: {
           {props.matrixState === "loading" ? t("loadingMatrix") : t("refreshMatrix")}
         </button>
       </div>
-      {props.matrixError ? <p className="deckgo-note">{props.matrixError}</p> : null}
+      {props.matrixError ? (
+        <p className="skills-panel__note is-danger">{props.matrixError}</p>
+      ) : null}
       {props.agents.length && props.skills.length ? (
-        <div className="deck-ui-skills-table-shell">
-          <table className="deckgo-table">
+        <div className="skills-panel__matrix-shell">
+          <table className="skills-panel__matrix">
             <thead>
               <tr>
                 <th>{t("skill").toLowerCase()}</th>
                 {props.agents.map((agent) => (
                   <th key={agent.id}>
                     <button
-                      className="deckgo-button deck-ui-skills-button"
+                      className="skills-panel__button"
                       type="button"
                       title={agent.id}
                       onClick={() => props.onNavigateAgent(agent.id)}
@@ -64,12 +68,12 @@ export function SkillMatrixTab(props: {
                     return (
                       <td key={agent.id}>
                         {!config ? (
-                          <span className="deckgo-pill is-muted">{t("notAvailable")}</span>
+                          <span className="skills-panel__pill">{t("notAvailable")}</span>
                         ) : mode === "all" ? (
-                          <span className="deckgo-pill is-positive">{t("allSkills")}</span>
+                          <span className="skills-panel__pill is-good">{t("allSkills")}</span>
                         ) : (
                           <button
-                            className={`deckgo-pill ${assigned ? "is-positive" : "is-muted"}`}
+                            className={`skills-panel__pill ${assigned ? "is-good" : ""}`}
                             type="button"
                             aria-label={t(assigned ? "removeSkillForAgent" : "addSkillForAgent", {
                               agent: agent.id,
@@ -94,7 +98,7 @@ export function SkillMatrixTab(props: {
           </table>
         </div>
       ) : (
-        <p className="deckgo-note deck-ui-skills-empty">{t("noAgentSkillMatrix")}</p>
+        <p className="skills-panel__note">{t("noAgentSkillMatrix")}</p>
       )}
       {props.matrixActionResult ? (
         <JsonDetails title={t("lastMatrixAction")} payload={props.matrixActionResult} />

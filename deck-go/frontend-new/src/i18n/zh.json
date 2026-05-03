@@ -3613,6 +3613,8 @@
   },
   "skills": {
     "title": "技能管理",
+    "workspaceDescription": "基于当前契约链管理技能库存、配置证据、ClawHub 发现和智能体技能分配。",
+    "managedDir": "托管目录",
     "all": "全部",
     "ready": "就绪",
     "needsSetup": "需配置",

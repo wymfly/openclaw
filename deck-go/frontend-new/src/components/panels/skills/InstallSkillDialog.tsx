@@ -13,26 +13,26 @@ export function InstallSkillDialog(props: {
   }
 
   return (
-    <div className="deckgo-surface-tile deck-ui-skills-surface">
-      <p className="deckgo-surface-label">{t("installOptions")}</p>
-      <ul className="deckgo-shell-list deck-ui-skills-list">
+    <div className="skills-panel__surface">
+      <p className="skills-panel__eyebrow">{t("installOptions")}</p>
+      <ul className="skills-panel__list">
         {props.selectedSkill.installOptions.map((option) => (
           <li key={option.id}>
-            <div className="deckgo-selectable-card deck-ui-skills-row">
-              <strong>{option.label}</strong>
-              <div className="deckgo-meta">
-                {t("id")}: {option.id} | {t("bins")}:{" "}
-                {option.bins.length > 0 ? option.bins.join(", ") : t("notAvailable")}
-              </div>
-              <div className="deckgo-actions deck-ui-skills-actions deck-ui-skills-actions-offset">
+            <div className="skills-panel__row">
+              <div className="skills-panel__row-head">
+                <strong>{option.label}</strong>
                 <button
-                  className="deckgo-button deck-ui-skills-button"
+                  className="skills-panel__button"
                   type="button"
                   onClick={() => props.onInstall(option.id)}
                   disabled={props.actionState !== "idle"}
                 >
                   {props.actionState === "installing" ? t("installing") : t("install")}
                 </button>
+              </div>
+              <div className="skills-panel__meta">
+                {t("id")}: {option.id} | {t("bins")}:{" "}
+                {option.bins.length > 0 ? option.bins.join(", ") : t("notAvailable")}
               </div>
             </div>
           </li>

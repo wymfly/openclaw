@@ -13,31 +13,31 @@ export function SkillConfig(props: {
   const t = useTranslations("skills");
 
   return (
-    <div className="deckgo-surface-tile deck-ui-skills-surface">
-      <p className="deckgo-surface-label">{t("skillConfiguration")}</p>
-      <label className="deckgo-label">
+    <div className="skills-panel__surface">
+      <p className="skills-panel__eyebrow">{t("skillConfiguration")}</p>
+      <label className="skills-panel__field">
         <span>{t("apiKey")}</span>
         <input
-          className="deckgo-input deck-ui-skills-input"
+          className="skills-panel__input"
           type="password"
           value={props.apiKeyDraft}
           onChange={(event) => props.onApiKeyChange(event.target.value)}
           placeholder={props.selectedSkill.primaryEnv || "api key"}
         />
       </label>
-      <label className="deckgo-label">
+      <label className="skills-panel__field">
         <span>{t("environmentJson")}</span>
         <textarea
           aria-label="skill env json"
-          className="deckgo-textarea deck-ui-skills-textarea"
+          className="skills-panel__textarea"
           rows={8}
           value={props.envDraft}
           onChange={(event) => props.onEnvChange(event.target.value)}
         />
       </label>
-      <div className="deckgo-actions deck-ui-skills-actions">
+      <div className="skills-panel__actions">
         <button
-          className="deckgo-button is-primary deck-ui-skills-button"
+          className="skills-panel__button is-primary"
           type="button"
           onClick={props.onSave}
           disabled={props.actionState !== "idle"}

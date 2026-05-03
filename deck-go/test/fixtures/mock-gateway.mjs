@@ -1755,6 +1755,200 @@ function defaultMethods() {
       identityExists: true,
       fallbackModels: ["sonnet-4.6"],
     }),
+    "skills.status": () => ({
+      managedSkillsDir: "/tmp/openclaw-skills",
+      workspaceDir: "/tmp/openclaw-main",
+      skills: [
+        {
+          skillKey: "github",
+          name: "GitHub",
+          source: "plugin",
+          description: "Manage pull requests, issues, and repository automation through gh.",
+          emoji: "$",
+          primaryEnv: "GITHUB_TOKEN",
+          disabled: false,
+          eligible: false,
+          config: {
+            apiKey: "visual-token",
+            env: {
+              GITHUB_TOKEN: "visual-token",
+              GH_HOST: "github.com",
+            },
+          },
+          install: [{ id: "brew-gh", kind: "brew", label: "Install GitHub CLI", bins: ["gh"] }],
+          missing: {
+            env: ["GITHUB_TOKEN"],
+            bins: ["gh"],
+            config: [],
+            anyBins: [],
+            os: [],
+          },
+          requirements: {
+            env: ["GITHUB_TOKEN"],
+            bins: ["gh"],
+            config: [],
+            anyBins: [],
+            os: [],
+          },
+        },
+        {
+          skillKey: "shell",
+          name: "Shell",
+          source: "bundled",
+          description: "Run local shell commands with approval-aware execution.",
+          primaryEnv: "PATH",
+          disabled: false,
+          eligible: true,
+          install: [],
+          missing: {
+            env: [],
+            bins: [],
+            config: [],
+            anyBins: [],
+            os: [],
+          },
+        },
+        {
+          skillKey: "frontend-design",
+          name: "Frontend Design",
+          source: "managed",
+          description:
+            "Generate high-fidelity frontend prototypes from contracts and design tokens.",
+          disabled: false,
+          eligible: true,
+          install: [],
+          missing: {
+            env: [],
+            bins: [],
+            config: [],
+            anyBins: [],
+            os: [],
+          },
+        },
+        {
+          skillKey: "legacy-browser",
+          name: "Legacy Browser",
+          source: "plugin",
+          description:
+            "Legacy browser automation surface kept disabled for visual fixture coverage.",
+          disabled: true,
+          eligible: true,
+          install: [],
+          missing: {
+            env: [],
+            bins: [],
+            config: [],
+            anyBins: [],
+            os: [],
+          },
+        },
+      ],
+    }),
+    "skills.update": (params) => ({
+      ok: true,
+      skillKey: params?.skillKey ?? params?.slug ?? "github",
+      config: {
+        enabled: params?.enabled,
+        apiKey: params?.apiKey,
+        env: params?.env,
+        source: params?.source,
+        all: params?.all,
+      },
+    }),
+    "skills.install": (params) => ({
+      ok: true,
+      code: 0,
+      message: params?.source === "clawhub" ? "Installed from ClawHub" : "Installed skill option",
+      slug: params?.slug,
+      stdout: params?.slug ? `installed ${params.slug}` : `installed ${params?.name ?? "skill"}`,
+      stderr: "",
+      targetDir: "/tmp/openclaw-skills",
+      version: params?.version ?? "1.0.0",
+      warnings: [],
+    }),
+    "skills.bins": () => ({
+      bins: ["dev", "ops", "research"],
+    }),
+    "skills.search": (params) => ({
+      results: [
+        {
+          slug: "git-helper",
+          displayName: "Git Helper",
+          summary: `Manage git workflows for ${params?.query ?? "git"}`,
+          version: "1.0.0",
+          score: 0.98,
+          updatedAt: now - 48 * 60 * 60 * 1_000,
+        },
+        {
+          slug: "frontend-lint",
+          displayName: "Frontend Lint",
+          summary: "Run design-system-aware frontend checks.",
+          version: "0.4.1",
+          score: 0.78,
+          updatedAt: now - 96 * 60 * 60 * 1_000,
+        },
+      ],
+    }),
+    "skills.detail": (params) => ({
+      skill: {
+        slug: params?.slug ?? "git-helper",
+        displayName: "Git Helper",
+        summary: "Manage git workflows and repository hygiene.",
+        tags: { category: "dev", trust: "mock" },
+        createdAt: now - 30 * 24 * 60 * 60 * 1_000,
+        updatedAt: now - 48 * 60 * 60 * 1_000,
+      },
+      latestVersion: {
+        version: "1.0.0",
+        createdAt: now - 48 * 60 * 60 * 1_000,
+        changelog: "Initial visual fixture release.",
+      },
+      metadata: {
+        os: ["darwin", "linux"],
+        systems: ["git"],
+      },
+      owner: {
+        handle: "clawhub",
+        displayName: "ClawHub",
+      },
+    }),
+    "deck.agents.skills.get": (params) => {
+      const agentId = params?.agentId ?? "main";
+      const available = [
+        { key: "github", name: "GitHub", eligible: true, assigned: agentId !== "qa" },
+        { key: "shell", name: "Shell", eligible: true, assigned: true },
+        {
+          key: "frontend-design",
+          name: "Frontend Design",
+          eligible: true,
+          assigned: agentId === "builder",
+        },
+      ];
+      if (agentId === "main") {
+        return {
+          agentId,
+          mode: "all",
+          skills: ["github", "shell", "frontend-design"],
+          available,
+          configHash: "skills-main-1",
+        };
+      }
+      const skills = available.filter((entry) => entry.assigned).map((entry) => entry.key);
+      return {
+        agentId,
+        mode: "whitelist",
+        skills,
+        available,
+        configHash: `skills-${agentId}-1`,
+      };
+    },
+    "deck.agents.skills.set": (params) => ({
+      ok: true,
+      agentId: params?.agentId ?? "builder",
+      mode: params?.mode ?? "whitelist",
+      skills: params?.skills ?? ["github", "shell"],
+      configHash: `${params?.baseHash ?? "skills-builder-1"}-saved`,
+    }),
     "usage.cost": () => ({
       updatedAt: Date.now(),
       days: 7,

@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Skills Operations Workbench</title>
+    <style>
+      :root {
+        --ds-bg-1: #080b10;
+        --ds-bg-2: #10151d;
+        --ds-bg-3: #151b25;
+        --ds-surface-1: #111721;
+        --ds-surface-2: #17202c;
+        --ds-border-subtle: #273244;
+        --ds-border-strong: #3a4659;
+        --ds-text-1: #eef3f8;
+        --ds-text-2: #b7c2d0;
+        --ds-text-3: #7f8b9b;
+        --ds-accent-1: #7cc7ff;
+        --ds-accent-2: #a6e3b8;
+        --ds-warn: #ffd166;
+        --ds-danger: #ff8a9a;
+        --ds-radius-sm: 6px;
+        --ds-radius-md: 8px;
+        --ds-shadow-soft: 0 18px 44px rgb(0 0 0 / 0.32);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-1);
+        color: var(--ds-text-1);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      .skills-workbench {
+        min-height: 100vh;
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgb(124 199 255 / 0.06), transparent 280px), var(--ds-bg-1);
+      }
+
+      .skills-shell {
+        display: grid;
+        grid-template-columns: minmax(280px, 0.9fr) minmax(420px, 1.25fr) minmax(310px, 0.85fr);
+        gap: 12px;
+        max-width: 1480px;
+        margin: 0 auto;
+      }
+
+      .panel,
+      .metric,
+      .surface {
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: var(--ds-radius-md);
+        background: color-mix(in srgb, var(--ds-surface-1) 92%, black);
+        box-shadow: none;
+      }
+
+      .panel {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 14px 8px;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .panel-note,
+      .meta,
+      .hint {
+        margin: 4px 0 0;
+        color: var(--ds-text-3);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .panel-body {
+        display: grid;
+        gap: 10px;
+        padding: 12px 14px 14px;
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric {
+        padding: 10px;
+        background: var(--ds-bg-2);
+      }
+
+      .metric span {
+        display: block;
+        color: var(--ds-text-3);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 18px;
+      }
+
+      .toolbar,
+      .pill-row,
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        align-items: center;
+      }
+
+      .input,
+      .select,
+      .textarea {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: var(--ds-radius-sm);
+        background: var(--ds-bg-2);
+        color: var(--ds-text-1);
+        padding: 8px 9px;
+      }
+
+      .toolbar .input {
+        flex: 1 1 160px;
+      }
+
+      .toolbar .select {
+        flex: 0 0 138px;
+      }
+
+      .textarea {
+        min-height: 150px;
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .button,
+      .pill {
+        min-height: 30px;
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: var(--ds-radius-sm);
+        background: var(--ds-surface-2);
+        color: var(--ds-text-1);
+        padding: 6px 9px;
+        cursor: pointer;
+      }
+
+      .button.primary,
+      .pill.good {
+        border-color: color-mix(in srgb, var(--ds-accent-1) 58%, var(--ds-border-subtle));
+        background: color-mix(in srgb, var(--ds-accent-1) 18%, var(--ds-surface-2));
+      }
+
+      .button.danger,
+      .pill.warn {
+        border-color: color-mix(in srgb, var(--ds-danger) 54%, var(--ds-border-subtle));
+        background: color-mix(in srgb, var(--ds-danger) 14%, var(--ds-surface-2));
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        color: var(--ds-text-2);
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .row {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-2);
+        color: inherit;
+        padding: 10px;
+        text-align: left;
+      }
+
+      .row.selected {
+        border-color: color-mix(in srgb, var(--ds-accent-1) 54%, var(--ds-border-subtle));
+        background: color-mix(in srgb, var(--ds-accent-1) 13%, var(--ds-bg-2));
+        box-shadow: inset 2px 0 0 var(--ds-accent-1);
+      }
+
+      .row-head,
+      .kv {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .row strong,
+      .kv strong,
+      code {
+        overflow-wrap: anywhere;
+      }
+
+      .surface {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        background: var(--ds-bg-2);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        border-color: color-mix(in srgb, var(--ds-accent-1) 28%, var(--ds-border-subtle));
+      }
+
+      .kicker {
+        margin: 0 0 4px;
+        color: var(--ds-text-3);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .matrix {
+        overflow: auto;
+      }
+
+      table {
+        width: 100%;
+        min-width: 520px;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--ds-border-subtle);
+        padding: 7px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      pre {
+        max-height: 130px;
+        margin: 0;
+        overflow: auto;
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: var(--ds-radius-sm);
+        background: #070a0f;
+        padding: 10px;
+        color: var(--ds-text-2);
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+      }
+
+      @media (max-width: 1180px) {
+        .skills-shell {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .skills-workbench {
+          padding: 10px;
+        }
+
+        .metrics,
+        .grid-2,
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="skills-workbench">
+      <section class="skills-shell">
+        <aside class="panel">
+          <div class="panel-header">
+            <div>
+              <h1 class="panel-title">Skills</h1>
+              <p class="panel-note">Installed readiness, setup gaps, and selected skill actions.</p>
+            </div>
+            <span class="pill good">Skills ready</span>
+          </div>
+          <div class="panel-body">
+            <div class="metrics">
+              <div class="metric"><span>installed</span><strong>4</strong></div>
+              <div class="metric"><span>ready</span><strong>2</strong></div>
+              <div class="metric"><span>setup</span><strong>1</strong></div>
+              <div class="metric"><span>disabled</span><strong>1</strong></div>
+            </div>
+            <div class="toolbar">
+              <input class="input" value="git" aria-label="installed skill search" />
+              <select class="select" aria-label="installed skill status">
+                <option>All statuses</option>
+              </select>
+            </div>
+            <ul class="list">
+              <li>
+                <button class="row selected" type="button">
+                  <div class="row-head">
+                    <strong>GitHub</strong>
+                    <span class="pill warn">needs setup</span>
+                  </div>
+                  <p class="meta">github | plugin | primary env GITHUB_TOKEN</p>
+                  <p class="meta">Missing GITHUB_TOKEN; install option uses gh</p>
+                </button>
+              </li>
+              <li>
+                <button class="row" type="button">
+                  <div class="row-head">
+                    <strong>Shell</strong>
+                    <span class="pill good">ready</span>
+                  </div>
+                  <p class="meta">shell | bundled | enabled</p>
+                </button>
+              </li>
+              <li>
+                <button class="row" type="button">
+                  <div class="row-head">
+                    <strong>Frontend Design</strong>
+                    <span class="pill good">ready</span>
+                  </div>
+                  <p class="meta">frontend-design | managed | generates UI prototypes</p>
+                </button>
+              </li>
+              <li>
+                <button class="row" type="button">
+                  <div class="row-head">
+                    <strong>Legacy Browser</strong>
+                    <span class="pill">disabled</span>
+                  </div>
+                  <p class="meta">legacy-browser | plugin | disabled</p>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">Selected skill</h2>
+              <p class="panel-note">
+                Configuration and install actions keep raw Gateway evidence visible.
+              </p>
+            </div>
+            <div class="actions">
+              <button class="button primary" type="button">Enable</button>
+              <button class="button danger" type="button">Disable</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="surface hero">
+              <div>
+                <p class="kicker">plugin skill</p>
+                <h3 class="panel-title">GitHub</h3>
+                <p class="panel-note">
+                  Manage pull requests, issue lookup, and repository automation through gh.
+                </p>
+              </div>
+              <div class="pill-row">
+                <span class="pill warn">needs setup</span>
+                <span class="pill">enabled yes</span>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="surface">
+                <p class="kicker">requirements</p>
+                <div class="kv">
+                  <span class="meta">primary env</span><strong>GITHUB_TOKEN</strong>
+                </div>
+                <div class="kv"><span class="meta">missing</span><strong>GITHUB_TOKEN</strong></div>
+                <div class="kv"><span class="meta">required bins</span><strong>gh</strong></div>
+              </div>
+              <div class="surface">
+                <p class="kicker">install options</p>
+                <div class="row">
+                  <div class="row-head">
+                    <strong>Install GitHub CLI</strong>
+                    <button class="button" type="button">Install</button>
+                  </div>
+                  <p class="meta">brew-gh | bins gh</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="surface">
+              <p class="kicker">skill configuration</p>
+              <label>
+                <span class="meta">API key</span>
+                <input class="input" type="password" value="visual-token" />
+              </label>
+              <label>
+                <span class="meta">Environment JSON</span>
+                <textarea class="textarea">
+{
+  "GITHUB_TOKEN": "visual-token",
+  "GH_HOST": "github.com"
+}</textarea
+                >
+              </label>
+              <div class="actions">
+                <button class="button primary" type="button">Save config</button>
+                <span class="pill good">Last skill action</span>
+              </div>
+            </div>
+
+            <pre>
+{
+  "skillKey": "github",
+  "source": "plugin",
+  "missing": ["GITHUB_TOKEN"],
+  "install": [{ "id": "brew-gh", "bins": ["gh"] }]
+}</pre
+            >
+          </div>
+        </section>
+
+        <aside class="panel">
+          <div class="panel-header">
+            <div>
+              <h2 class="panel-title">ClawHub</h2>
+              <p class="panel-note">
+                Gateway-backed bins, search, detail, install, and update actions.
+              </p>
+            </div>
+            <button class="button" type="button">Update all</button>
+          </div>
+          <div class="panel-body">
+            <div class="toolbar">
+              <input class="input" value="git" aria-label="skill hub search" />
+              <button class="button primary" type="button">Search</button>
+            </div>
+            <div class="pill-row">
+              <span class="pill good">dev</span>
+              <span class="pill">ops</span>
+              <span class="pill">research</span>
+            </div>
+            <button class="row selected" type="button">
+              <div class="row-head">
+                <strong>Git Helper</strong>
+                <span class="pill">1.0.0</span>
+              </div>
+              <p class="meta">git-helper | manage git workflows</p>
+            </button>
+            <div class="surface">
+              <p class="kicker">hub detail</p>
+              <strong>Git Helper</strong>
+              <p class="hint">Owner ClawHub | Platforms darwin, linux | Updated 2026-05-01</p>
+              <div class="actions">
+                <button class="button primary" type="button">Install from ClawHub</button>
+                <span class="pill good">Last hub action</span>
+              </div>
+            </div>
+
+            <div class="surface matrix">
+              <p class="kicker">agent skill matrix</p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Skill</th>
+                    <th>Main Agent</th>
+                    <th>Builder Agent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>GitHub</td>
+                    <td><span class="pill good">all skills</span></td>
+                    <td><button class="pill good" type="button">included</button></td>
+                  </tr>
+                  <tr>
+                    <td>Shell</td>
+                    <td><span class="pill good">all skills</span></td>
+                    <td><button class="pill good" type="button">included</button></td>
+                  </tr>
+                  <tr>
+                    <td>Frontend Design</td>
+                    <td><span class="pill good">all skills</span></td>
+                    <td><button class="pill" type="button">excluded</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
