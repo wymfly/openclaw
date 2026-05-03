@@ -1,101 +1,119 @@
-# threads - high-fidelity handoff
+# threads — high-fidelity handoff (v2)
 
-**Status:** `implemented (sha pending-final-commit)`
+**Status:** `revised v2 — pending implementation`
 **Protocol version:** `protocol-v1`
-**Active visual target:** [`./prototype.html`](./prototype.html)
-**OpenSpec change:** `frontend-threads-hifi-contract-redesign`
+**Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
+**V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
 
-This package defines the visual and interaction target for the `threads/`
-module rewrite in `frontend-new`. The current panel already reaches the thread
-contract chain, but its layout is still an old dense table/detail shell. Code
-and contracts remain the final authority when this handoff drifts.
+`threads/` is the **channel ↔ agent binding registry**. Each entry maps a
+channel account (Discord / Telegram / WeCom / Slack / QQ) to a deck-go agent
+running against a specific session key. Threads is **not** a transcript or
+chat surface — the conversation lives in the `Chat` panel; threads exposes
+binding metadata, projected recent activity, and audit history.
 
-## What this module does
+## File inventory
 
-`threads/` is the relationship workspace for platform thread bindings. Operators
-use it to answer: which Discord or channel thread is bound, which OpenClaw
-session key it targets, which agent receives the messages, who/what created the
-binding, and when the relationship last moved.
-
-The design keeps filter state, inventory health, selected thread identity, the
-thread -> session -> agent relationship, metadata, and handoff actions in the
-first viewport. It is intentionally more compact than a generic table because
-the contract is a relationship list, not a full data-grid surface.
+| File                      | Purpose                                                                   |
+| ------------------------- | ------------------------------------------------------------------------- |
+| `prototype.html`          | ~30-line shell loading React + Babel + 7 jsx + 2 css.                     |
+| `data.js`                 | Mock fixture: 10 thread bindings × 5 channel kinds × 3 target kinds.      |
+| `icons.jsx`               | 25 SVG icons + `ChannelTile` + `TargetKindPill` + `ActivityKindBadge`.    |
+| `list-view.jsx`           | KPI strip + 4-axis filter toolbar + 6-col binding rows.                   |
+| `detail-view.jsx`         | Hero + 4 tabs (Overview / Recent activity / Audit / Raw).                 |
+| `dialogs.jsx`             | UnbindDialog + RebindDialog + RenameDialog + RawEntryDialog + ModalShell. |
+| `app.jsx`                 | `ThreadsApp` orchestrator + Tweaks host + state.                          |
+| `styles.css`              | Linear-inspired list↔detail page transition + channel/target chips.       |
+| `tokens.css`              | Mirror of canonical `--ds-*` tokens.                                      |
+| `tweaks-panel.jsx`        | Design-time state knobs (theme/density/listState/detailState).            |
+| `prototype-v1-codex.html` | Original Codex single-file prototype.                                     |
 
 ## Contract truth
 
-Production and mocks must use the current generated Gateway and Deck-facing
-DTOs:
+```ts
+// from deck-go/contracts/source/deck-api.contract.ts
+export type DeckGoThreadEntry = {
+  threadId: string;
+  channelId: string;
+  agentId: string;
+  targetSessionKey: string;
+  targetKind: string; // "claude-code-session" | "agent-loop" | "external-bot"
+  boundAt: number; // ms timestamp
+  lastActivityAt: number;
+  accountId: string;
+  boundBy: string; // "operator:..." | "auto-binding" | "manual:..."
+  label?: string;
+};
 
-- `DeckThreadsListParams`
-- `DeckThreadsListResult`
-- `DeckGoThreadEntry`
-- `DeckGoThreadsResponse`
+export type DeckGoThreadsResponse = {
+  threads?: DeckGoThreadEntry[];
+};
+```
 
-Endpoint/RPC truth:
+Endpoint:
 
-- Gateway: `deck.threads.list`
-- Go BFF: `GET /api/deck/threads?agentId=&channel=&status=`
-- Frontend wrapper: `fetchThreads(params)`
+- `GET /api/deck/threads?channelKind=&agentId=&status=` → `DeckGoThreadsResponse`
 
-Browser code must continue through `frontend-new/src/api.ts` and the Deck
-backend. It must not call Gateway RPC directly.
+## Contract-reality scope correction
 
-## Workflow constraints
+The **PRD originally asked** for "full transcript view with chronological
+message bubbles, branch indicators". That contract does not exist:
+`DeckGoThreadEntry` is a binding record, not a conversation transcript. The
+v2 scope reflects the contract:
 
-- Visual convergence is the goal of this module pass: mock + frontend should
-  become stable against the contract and design system.
-- Code truth wins over this handoff when the two disagree.
-- Deterministic fixture/API drift may be fixed in this change. Uncertain real
-  Gateway thread-source behavior must be recorded as follow-up instead of
-  invented in the UI.
-- Filters are contract-shaped only: `agentId`, `channel`, and `status` where
-  status is `active` or `all`.
-- Selection should remain stable after refresh if the selected thread still
-  exists; otherwise select the most recently active thread.
-- Clipboard failure must still give the operator a visible session-key fallback.
-- No new Gateway endpoints, new dependencies, table libraries, or canonical atom
-  promotion are part of this handoff.
+- **Detail view shows binding metadata + BFF-projected recent activity +
+  audit + raw entry**, not message bubbles.
+- An **Open chat** cross-link CTA jumps the operator to the `Chat` panel
+  scoped to `targetSessionKey`. Transcripts are owned there.
 
-## Depends on canonical atoms
+The "branch indicators" concept also has no contract source. Each binding is
+a flat record; there is no parent/child linkage in `DeckGoThreadEntry`. If
+upstream introduces thread reparenting, the panel can grow that surface
+later.
 
-`Badge`, `Button`, `Card`, `Chip`, `Code`, `Input`, `SegmentedControl`,
-`Select`, `Spinner`, `Tag`, and `JsonTree` can be used where production fit is
-straightforward.
+## Depends on canonical patterns / icons
 
-No canonical atom or token is required by this handoff. Local molecules:
+`@/design-system/patterns`:
 
-- thread metric tile
-- filter rail
-- thread inventory row
-- selected relationship map
-- selected thread hero
-- handoff action strip
-- payload disclosure
-- mock visual evidence banner
+- `PageShell`, `EmptyState`, `SectionHeader` (used implicitly by hero + cards).
+
+`@/design-system/icons`:
+
+- Generic: `IconSearch`, `IconRefresh`, `IconClose`, `IconChevronLeft`,
+  `IconLink`, `IconUnlink`, `IconArrowOut`, `IconUser`, `IconClock`,
+  `IconTag`, `IconTerminal`, `IconLoop`, `IconBot`, `IconChat`,
+  `IconActivity`, `IconAudit`, `IconCheck`, `IconAlert`.
+- Channel glyphs: `IconChannelDiscord`, `IconChannelTelegram`,
+  `IconChannelWecom`, `IconChannelSlack`, `IconChannelQq` — 5 channel-specific
+  marks.
+
+The `ChannelTile`, `TargetKindPill`, and `ActivityKindBadge` molecules stay
+local to `threads/`. `ChannelTile` is a strong promotion candidate — channels
+panel uses a similar tile shape.
 
 ## How to implement
 
-1. Open `prototype.html` and inspect ready, selected, filtered, clipboard
-   fallback, empty, loading, and error states.
-2. Read `api-usage.md` before touching mocks, API wrappers, or backend
-   behavior.
-3. Translate the prototype into `frontend-new/src/components/panels/threads/`,
-   preserving API wrapper use, filter normalization, selection stability,
-   copy/open handoffs, and payload detail.
-4. Move Threads styling out of global `theme.css` into module-local CSS.
-5. Add mock visual E2E with contract-shaped data and label evidence as mock
-   visual coverage.
+1. Open `prototype.html` in a static server. Walk every state via the Tweaks
+   panel (list ready/loading/error, detail tabs, dialogs).
+2. Translate to `frontend-new/src/components/panels/threads/` keeping the
+   class-name shape (`thread-row__*`, `detail-view__*`, `channel-tile--*`).
+3. Wire real fetcher in `frontend-new/src/api/threads.ts`. Mutations
+   (unbind / rebind / rename label) go to BFF mutation endpoints — see
+   `api-usage.md` for the assumed shapes (these are BFF-side, not raw
+   contract).
+4. Hardcoded literal strings get extracted to `frontend-new/src/i18n/{en,zh}.json`
+   in one pass.
+5. The "Open chat" cross-link must reach the `Chat` panel scoped to
+   `targetSessionKey`. Use the existing in-app routing helper.
+6. Stale threshold (`> 24h since lastActivityAt`) is a UI choice — not a
+   contract field. Keep it configurable.
 
 ## Open questions for follow-up
 
-- Real Gateway projection currently reads persisted Discord thread bindings; it
-  is unclear whether non-Discord thread sources will become supported by the
-  same `deck.threads.list` shape or a broader route.
-- The `status` filter accepts `active` or `all`, but the current projection does
-  not expose inactive/archived rows with a separate status field. The UI should
-  not invent one.
-- It is unclear whether `label` is stable enough for primary identity, so the UI
-  must keep `threadId` visible even when a label exists.
-- Thread inventory rows, relationship maps, and handoff action strips may become
-  shared patterns after more observe/control modules validate the same API.
+- Are mutation endpoints (unbind / rebind / rename) part of the typed
+  contract or BFF-only? `api-usage.md` documents the assumed shape.
+- Should `boundBy` get a typed enum instead of `string` so the UI can group
+  "auto" vs "operator" without parsing the prefix?
+- Should the contract carry a `deletedAt` field for unbound-but-archived
+  bindings, or is hard delete the right model?
+- Should `label` be an indexed field for full-text search, or stay
+  client-filtered?
