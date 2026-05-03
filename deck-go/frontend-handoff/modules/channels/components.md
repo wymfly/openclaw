@@ -1,93 +1,214 @@
-# channels - components
+# channels — components
 
-## Production ownership
+> Note: this is the v2 multi-file React handoff. Engineering target is
+> `frontend-new/src/components/panels/channels/`. Production component
+> names will lose the `.jsx`/CSS-class kebab style and adopt PascalCase
+>
+> - flat tsx + same-name `.css` per module.
 
-- `frontend-new/src/components/panels/channels/ChannelsPanel.tsx`
-- `frontend-new/src/components/panels/channels/ChannelSettingsEditor.tsx`
-- `frontend-new/src/components/panels/channels/AccountDmPolicyEditor.tsx`
-- `frontend-new/src/components/panels/channels/WecomAccessControls.tsx`
-- `frontend-new/src/components/panels/channels/WecomRoutingSummary.tsx`
+## Production component skeleton (target shape)
 
-## Layout tree
-
-```txt
+```
 ChannelsPanel
-  ChannelsHeader
-  ChannelsMetrics
-  ChannelsWorkbench
-    ChannelInventoryColumn
-      ChannelInventoryCard
-      ChannelRow[]
-    ChannelDetailColumn
-      SelectedChannelHero
-      ThroughputSurface
-      ProbeResultSurface
-      ChannelSettingsSurface
-      AccountDiagnosticsSurface
-      WeComAccessSurface?
-      RoutingSummarySurface?
-      EvidenceSurface
+  └── (route) → ChannelsListView
+                 ├── ChannelsToolbar (search + filter + new-button)
+                 ├── ChannelsKpiStrip
+                 └── ChannelInventoryList
+                      └── ChannelRow[]
+  └── (route) → ChannelsDetailView
+                 ├── DetailHero
+                 ├── ChannelTabsBar
+                 └── (tab body)
+                      ├── TabOverview
+                      ├── TabThroughput
+                      ├── TabProbe
+                      ├── TabSettings
+                      ├── TabRouting
+                      └── TabWeComAccess  // wecom-only
+  └── ChannelDialogs
+       ├── TestResultDialog
+       ├── LogoutDialog
+       └── CreateChannelDialog
 ```
 
-## Local molecules
+## Prototype file → production target
 
-### Channel metric tile
+| Prototype file     | Production target                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `app.jsx`          | `ChannelsPanel.tsx` (orchestration, route, dialog state)                                                    |
+| `list-view.jsx`    | `ChannelsListView.tsx` + `ChannelInventoryRow.tsx` + `ChannelsKpiStrip.tsx`                                 |
+| `detail-view.jsx`  | `ChannelsDetailView.tsx` + 6 tab modules                                                                    |
+| `dialogs.jsx`      | `dialogs/TestResultDialog.tsx` + `LogoutDialog.tsx` + `CreateChannelDialog.tsx`                             |
+| `data.js`          | `__fixtures__/channels.fixture.ts` (test/mocks only — production hits BFF)                                  |
+| `icons.jsx`        | re-export `@/design-system/icons` and add lucide aliases for any new symbols                                |
+| `styles.css`       | `channels-panel.css`, `channel-row.css`, `channels-detail.css`, etc. (split per component, same kebab name) |
+| `tweaks-panel.jsx` | dropped — Tweaks panel is design tooling only                                                               |
 
-Compact KPI tile for channels, accounts, alerts, throughput, and selected
-channel. Same rhythm as agents/routing/subagents/logs/settings/sessions metric
-tiles, but kept local until promoted separately.
+## Props (shape contracts)
 
-### Channel inventory row
+### ChannelsListView
 
-Selectable row containing label, channel id, plugin/account detail, account
-count, alert count, and health badge.
+```ts
+interface ChannelsListViewProps {
+  channels: ChannelInventoryItem[]; // shaped from DeckGoChannelsStatusResponse
+  listState: "ready" | "loading" | "error" | "empty";
+  searchQuery: string;
+  filter: "all" | "enabled" | "alerts" | "wecom";
+  onSearch: (q: string) => void;
+  onFilter: (f: "all" | "enabled" | "alerts" | "wecom") => void;
+  onSelect: (channelId: string) => void;
+  onCreateClick: () => void;
+}
 
-### Selected-channel hero
+interface ChannelInventoryItem {
+  id: string;
+  label: string;
+  detailLabel: string;
+  meta: DeckGoChannelUiMeta;
+  core: { enabled: boolean; healthy: boolean; accounts: string[] };
+  defaultAccountId: string | null;
+  // derived in selector:
+  throughputSummary?: { messagesIn: number; messagesOut: number };
+  probeSummary?: { ok: boolean; latencyMs?: number };
+  alertCount?: number;
+}
+```
 
-Dense identity/status surface with channel label, detail label, default account,
-enabled state, alert count, and channel id.
+### ChannelInventoryRow
 
-### Account diagnostic card
+```ts
+interface ChannelInventoryRowProps {
+  channel: ChannelInventoryItem;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}
+```
 
-Account health row/card with display name, account id, diagnostic title,
-description, next step, and optional DM policy controls.
+Renders 6 columns: glyph, id+meta, throughput sparkline + count, probe pill,
+account count, status pill. Selectable via click or keyboard (Enter / Space).
 
-### Throughput strip
+### ChannelsDetailView
 
-Compact chart-like row list for in/out buckets. It may use native progress bars
-or CSS-only bars locally; do not promote to `SparklineChart` inside this change.
+```ts
+interface ChannelsDetailViewProps {
+  channel: ChannelInventoryItem;
+  detailState: "ready" | "loading" | "error";
+  activeTab: ChannelTabId;
+  onTabChange: (tab: ChannelTabId) => void;
+  throughputWindow: "1h" | "6h" | "24h";
+  onThroughputWindow: (w: "1h" | "6h" | "24h") => void;
+  configDirty: boolean;
+  onConfigDirty: (v: boolean) => void;
+  onBack: () => void;
+  onTest: () => void;
+  onLogout: () => void;
+}
 
-### Config patch form
+type ChannelTabId = "overview" | "throughput" | "probe" | "settings" | "routing" | "wecom"; // only when channel.id === "wecom"
+```
 
-Generic channel settings form and JSON patch seam. Production must preserve the
-existing payload semantics.
+### TabOverview
 
-### WeCom access card
+KPI tiles (in/out/probe-latency/accounts) + alerts list (when alerts exist) +
+quick links action row.
 
-Provider-specific policy card for bot/agent/dynamic/routing settings. Keep
-styling consistent with generic surfaces but keep behavior scoped to WeCom.
+### TabThroughput
 
-### Routing handoff strip
+```ts
+interface TabThroughputProps {
+  channelId: string;
+  buckets: DeckGoChannelThroughputBucket[];
+  messagesIn: number;
+  messagesOut: number;
+  window: "1h" | "6h" | "24h";
+  onWindow: (w: "1h" | "6h" | "24h") => void;
+}
+```
 
-Small surface summarizing WeCom routing bindings and exposing "open routing"
-with channel/account context.
+CSS-only stacked-bar chart (`.chart` / `.chart__bar` / `.chart__seg--in/out`).
+For prototype, no chart library — engineering may swap to a chart lib if
+ops demands more interactivity (see future stack-decisions trigger).
+
+### TabProbe
+
+Probe result card (success/fail) + manual "Run probe" trigger + account
+diagnostic list (full account list, not just alerting).
+
+### TabSettings
+
+Form: enable toggle, retry attempts (number), jitter (number), webhook
+toggle + URL, free-form JSON patch textarea. Keeps `dirty` state at the
+section level. Save → `PATCH /channels/{id}` with current `baseHash`.
+
+### TabRouting
+
+```ts
+interface TabRoutingProps {
+  channelId: string;
+  routing: DeckGoRoutingListResponse | null;
+}
+```
+
+Binding rows showing tier · match (channel/acct/peer/guild/team) · agent.
+"Add binding" opens a side flow (out-of-scope for v2 prototype; flagged
+in api-usage.md).
+
+### TabWeComAccess
+
+```ts
+interface TabWeComAccessProps {
+  accounts: string[];
+  accessByAccountId: Record<string, WeComAccessState>;
+}
+
+interface WeComAccessState {
+  allowBots: boolean;
+  allowFromAgents: string[];
+  dynamicAgentsEnabled: boolean;
+  failClosedRouting: boolean;
+  lastSavedMs: number;
+}
+```
+
+Each account renders as a card with allow-from-agents list, three toggles,
+last-saved timestamp.
+
+### Dialogs
+
+| Dialog              | Props                                                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| TestResultDialog    | `{ open, channel, onClose }` — shows last probe result for the channel (or "channel disabled, no probe" banner). |
+| LogoutDialog        | `{ open, channel, onCancel, onConfirm }` — confirms before `POST /channels/{id}/logout`.                         |
+| CreateChannelDialog | `{ open, onClose, onCreated(id) }` — 3 steps: provider pick → account id + enable toggle → review.               |
 
 ## Class naming
 
-Production should replace `deck-ui-channels*` with module-local classes:
+Production should keep the prototype's kebab-case classes for diff
+clarity, prefixed with `channels-` per component scope:
 
-- `.channels-panel`
-- `.channels-metrics`
-- `.channels-workbench`
-- `.channels-column`
-- `.channels-card`
-- `.channels-surface`
-- `.channels-inventory-row`
-- `.channels-account-row`
-- `.channels-throughput-row`
-- `.channels-field`
-- `.channels-actions`
-- `.channels-code`
+- `.list-view`, `.list-view__head`, `.list-view__title`
+- `.kpi-strip`, `.kpi`, `.kpi__label`, `.kpi__value`
+- `.row`, `.row__id`, `.row__throughput`, `.row__bar`
+- `.detail__head`, `.hero`, `.hero__title`, `.hero__meta`
+- `.tabs`, `.tab`, `.tab__count`
+- `.section`, `.section__head`, `.section__title`
+- `.tile-row`, `.tile`, `.tile__label`, `.tile__value`
+- `.chart`, `.chart__bar`, `.chart__seg--in`, `.chart__seg--out`
+- `.acct-list`, `.acct-row`, `.acct-row__indicator`
+- `.binding-list`, `.binding`, `.binding__tier`, `.binding__agent`
+- `.wecom-grid`, `.wecom-card`, `.wecom-card__row`
+- `.modal-backdrop`, `.modal`, `.modal__head`, `.modal__body`, `.modal__foot`
+- `.wizard-steps`
+- `.toolbar`, `.toolbar__search`, `.toolbar__filter`
+- `.pill`, `.pill--ok`, `.pill--warn`, `.pill--err`, `.pill--info`, `.pill--muted`
+- `.toggle`, `.toggle__switch`
 
-Legacy shared `deckgo-*` classes may remain only where still owned by global
-shell infrastructure outside this module.
+## Accessibility
+
+- Inventory rows: `role="button"` `tabIndex={0}` `onKeyDown` for Enter/Space.
+- Tabs: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Modals: `role="dialog"` `aria-modal="true"` `aria-label`.
+- Throughput chart: `role="img"` with `aria-label` carrying the numeric
+  in/out totals (color is not the only signal).
+- Status pills always render text (`healthy` / `degraded` / `disabled` /
+  `${latency}ms`); color is decorative.

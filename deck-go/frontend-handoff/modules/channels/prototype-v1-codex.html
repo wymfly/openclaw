@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="compact">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>deck-go channels prototype</title>
+    <style>
+      :root {
+        --ds-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --ds-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+        --ds-sp-1: 4px;
+        --ds-sp-2: 6px;
+        --ds-sp-3: 8px;
+        --ds-sp-4: 12px;
+        --ds-sp-5: 16px;
+        --ds-radius-md: 6px;
+        --ds-bg-0: #0a0b0d;
+        --ds-bg-1: #0f1115;
+        --ds-bg-2: #14171c;
+        --ds-bg-elev: #1c2028;
+        --ds-bg-hover: #20252e;
+        --ds-text-1: #e6e8ec;
+        --ds-text-2: #a8aeba;
+        --ds-text-3: #8992a3;
+        --ds-border-subtle: #1f2530;
+        --ds-border: #262d3a;
+        --ds-accent: #7aa2ff;
+        --ds-accent-bg: #1a2342;
+        --ds-success: #6ec48a;
+        --ds-success-bg: #142a1d;
+        --ds-warn: #d4a86a;
+        --ds-warn-bg: #2a1f10;
+        --ds-error: #e26b6b;
+        --ds-error-bg: #2c1518;
+        --ds-code-bg: #0c0e12;
+        --ds-code-border: #1d2330;
+        --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font: 13px/1.45 var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .channels-page {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: var(--ds-sp-4);
+        min-height: 100vh;
+        padding: var(--ds-sp-5);
+      }
+
+      .channels-header,
+      .channels-header__actions,
+      .channels-actions,
+      .channels-row__top,
+      .channels-section-heading,
+      .channels-status-row {
+        display: flex;
+        align-items: center;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+      }
+
+      .channels-header {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .channels-eyebrow {
+        margin-bottom: var(--ds-sp-1);
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .channels-note,
+      .channels-meta {
+        color: var(--ds-text-3);
+      }
+
+      .channels-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid var(--ds-border);
+        border-radius: 999px;
+        background: var(--ds-bg-2);
+        color: var(--ds-text-2);
+        font: 600 11px/1 var(--ds-font-mono);
+        white-space: nowrap;
+      }
+
+      .channels-status--ok {
+        border-color: color-mix(in srgb, var(--ds-success) 48%, var(--ds-border));
+        background: var(--ds-success-bg);
+        color: var(--ds-success);
+      }
+
+      .channels-status--warn {
+        border-color: color-mix(in srgb, var(--ds-warn) 50%, var(--ds-border));
+        background: var(--ds-warn-bg);
+        color: var(--ds-warn);
+      }
+
+      .channels-status--err {
+        border-color: color-mix(in srgb, var(--ds-error) 50%, var(--ds-border));
+        background: var(--ds-error-bg);
+        color: var(--ds-error);
+      }
+
+      .channels-button,
+      .channels-input,
+      .channels-select,
+      .channels-textarea {
+        min-height: 30px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-2);
+        color: var(--ds-text-1);
+      }
+
+      .channels-button {
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .channels-button--primary {
+        border-color: color-mix(in srgb, var(--ds-accent) 55%, var(--ds-border));
+        background: var(--ds-accent-bg);
+      }
+
+      .channels-button--danger {
+        border-color: color-mix(in srgb, var(--ds-error) 55%, var(--ds-border));
+        background: var(--ds-error-bg);
+      }
+
+      .channels-input,
+      .channels-select,
+      .channels-textarea {
+        width: 100%;
+        padding: 5px 8px;
+      }
+
+      .channels-textarea {
+        min-height: 82px;
+        font-family: var(--ds-font-mono);
+      }
+
+      .channels-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .channels-metric,
+      .channels-card,
+      .channels-surface,
+      .channels-inventory-row,
+      .channels-account-row,
+      .channels-throughput-row {
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+      }
+
+      .channels-metric {
+        display: grid;
+        gap: var(--ds-sp-1);
+        min-height: 58px;
+        padding: var(--ds-sp-3);
+        background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+      }
+
+      .channels-metric span,
+      .channels-metric strong,
+      .channels-metric small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .channels-metric span {
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .channels-workbench {
+        display: grid;
+        grid-template-columns: minmax(330px, 0.82fr) minmax(680px, 1.18fr);
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .channels-column {
+        display: grid;
+        align-content: start;
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .channels-card {
+        min-width: 0;
+        overflow: hidden;
+        box-shadow: var(--ds-shadow-md);
+      }
+
+      .channels-card__header,
+      .channels-card__body {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-4);
+      }
+
+      .channels-card__header {
+        border-bottom: 1px solid var(--ds-border-subtle);
+      }
+
+      .channels-surface,
+      .channels-inventory-row,
+      .channels-account-row,
+      .channels-throughput-row {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-3);
+        background: var(--ds-bg-2);
+      }
+
+      .channels-inventory-row {
+        width: 100%;
+        text-align: left;
+      }
+
+      .channels-inventory-row.is-selected {
+        border-color: color-mix(in srgb, var(--ds-accent) 46%, var(--ds-border));
+        background: var(--ds-accent-bg);
+        box-shadow: inset 2px 0 0 var(--ds-accent);
+      }
+
+      .channels-list {
+        display: grid;
+        gap: var(--ds-sp-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .channels-section-heading {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .channels-stat-grid,
+      .channels-form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .channels-field {
+        display: grid;
+        gap: var(--ds-sp-2);
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .channels-code {
+        max-height: 180px;
+        overflow: auto;
+        border: 1px solid var(--ds-code-border);
+        border-radius: var(--ds-radius-md);
+        padding: var(--ds-sp-3);
+        background: var(--ds-code-bg);
+        color: var(--ds-text-2);
+        font: 12px/1.45 var(--ds-font-mono);
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 1180px) {
+        .channels-workbench {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 820px) {
+        .channels-metrics,
+        .channels-stat-grid,
+        .channels-form-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .channels-header {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="channels-page">
+      <header class="channels-header">
+        <div>
+          <p class="channels-eyebrow">operations / channels</p>
+          <h1>Channels</h1>
+          <p class="channels-note">Inspect provider health, account diagnostics, throughput, config, and routing handoff through the Deck BFF chain.</p>
+        </div>
+        <div class="channels-header__actions">
+          <span class="channels-status channels-status--ok">Inventory ready</span>
+          <span class="channels-status channels-status--ok">Throughput ready</span>
+          <span class="channels-status">3 channels</span>
+          <button class="channels-button" type="button">Refresh channels</button>
+        </div>
+      </header>
+
+      <section class="channels-metrics">
+        <article class="channels-metric"><span>Channels</span><strong>3</strong><small>telegram / discord / wecom</small></article>
+        <article class="channels-metric"><span>Accounts</span><strong>5</strong><small>2 alerting</small></article>
+        <article class="channels-metric"><span>Selected</span><strong>Discord</strong><small>acct_disc_ops</small></article>
+        <article class="channels-metric"><span>Throughput</span><strong>12 / 9</strong><small>1h window</small></article>
+        <article class="channels-metric"><span>Probe</span><strong>42ms</strong><small>success</small></article>
+      </section>
+
+      <section class="channels-workbench">
+        <aside class="channels-column">
+          <article class="channels-card">
+            <div class="channels-card__header">
+              <h2>Channel inventory</h2>
+              <p class="channels-note">Status and account diagnostics from `GET /channels`.</p>
+            </div>
+            <div class="channels-card__body">
+              <ul class="channels-list">
+                <li>
+                  <button class="channels-inventory-row" type="button">
+                    <div class="channels-row__top">
+                      <strong>Telegram</strong>
+                      <span class="channels-status channels-status--ok">healthy</span>
+                    </div>
+                    <p class="channels-meta">telegram · plugin telegram-provider · default acct_tg_main</p>
+                    <p class="channels-note">1 account · alerts 0 · Telegram Bot</p>
+                  </button>
+                </li>
+                <li>
+                  <button class="channels-inventory-row is-selected" type="button">
+                    <div class="channels-row__top">
+                      <strong>Discord</strong>
+                      <span class="channels-status channels-status--warn">2 alerts</span>
+                    </div>
+                    <p class="channels-meta">discord · plugin discord-provider · default acct_disc_bot</p>
+                    <p class="channels-note">linked disconnected · config incomplete</p>
+                  </button>
+                </li>
+                <li>
+                  <button class="channels-inventory-row" type="button">
+                    <div class="channels-row__top">
+                      <strong>WeCom</strong>
+                      <span class="channels-status channels-status--ok">access ready</span>
+                    </div>
+                    <p class="channels-meta">wecom · bundled plugin · default tenant-a</p>
+                    <p class="channels-note">2 accounts · routing bindings available</p>
+                  </button>
+                </li>
+              </ul>
+              <div class="channels-actions">
+                <button class="channels-button" type="button">Logout channel</button>
+                <button class="channels-button channels-button--primary" type="button">Test channel</button>
+                <button class="channels-button" type="button">Disable channel</button>
+              </div>
+            </div>
+          </article>
+        </aside>
+
+        <section class="channels-column">
+          <article class="channels-card">
+            <div class="channels-card__header">
+              <h2>Selected channel</h2>
+              <p class="channels-note">Selected-channel evidence, throughput, account diagnostics, config patching, and provider-specific controls.</p>
+            </div>
+            <div class="channels-card__body">
+              <section class="channels-surface">
+                <div class="channels-section-heading">
+                  <div>
+                    <p class="channels-eyebrow">channel</p>
+                    <h2>Discord Workspace</h2>
+                    <p class="channels-note">default account acct_disc_bot · plugin discord-provider · local</p>
+                  </div>
+                  <div class="channels-status-row">
+                    <span class="channels-status channels-status--warn">2 alerts</span>
+                    <span class="channels-status">channel id discord</span>
+                    <span class="channels-status channels-status--ok">enabled</span>
+                  </div>
+                </div>
+                <div class="channels-stat-grid">
+                  <article class="channels-surface"><span class="channels-meta">messages in</span><strong>12</strong></article>
+                  <article class="channels-surface"><span class="channels-meta">messages out</span><strong>9</strong></article>
+                  <article class="channels-surface"><span class="channels-meta">latency</span><strong>42ms</strong></article>
+                </div>
+                <div class="channels-actions">
+                  <button class="channels-button" type="button">Open channel plugin</button>
+                  <button class="channels-button" type="button">Open routing for WeCom</button>
+                </div>
+              </section>
+
+              <section class="channels-surface">
+                <div class="channels-section-heading">
+                  <div>
+                    <h3>Throughput</h3>
+                    <p class="channels-note">Windowed channel in/out buckets.</p>
+                  </div>
+                  <div class="channels-actions">
+                    <button class="channels-button channels-button--primary" type="button">1h</button>
+                    <button class="channels-button" type="button">6h</button>
+                    <button class="channels-button" type="button">24h</button>
+                  </div>
+                </div>
+                <ul class="channels-list">
+                  <li class="channels-throughput-row">
+                    <div class="channels-row__top"><strong>13:00</strong><span class="channels-status">in 3 / out 4</span></div>
+                  </li>
+                  <li class="channels-throughput-row">
+                    <div class="channels-row__top"><strong>13:10</strong><span class="channels-status">in 9 / out 5</span></div>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="channels-surface">
+                <div class="channels-section-heading">
+                  <h3>Probe result</h3>
+                  <span class="channels-status channels-status--ok">probe success</span>
+                </div>
+                <p class="channels-note">42ms · checked just now</p>
+              </section>
+
+              <section class="channels-surface">
+                <h3>Account diagnostics</h3>
+                <ul class="channels-list">
+                  <li class="channels-account-row">
+                    <div class="channels-row__top"><strong>Discord Ops</strong><span class="channels-status channels-status--warn">linked disconnected</span></div>
+                    <p class="channels-meta">acct_disc_ops</p>
+                    <p class="channels-note">Reconnect the provider account before production routing.</p>
+                  </li>
+                  <li class="channels-account-row">
+                    <div class="channels-row__top"><strong>Discord Bot</strong><span class="channels-status channels-status--warn">config incomplete</span></div>
+                    <p class="channels-meta">acct_disc_bot</p>
+                    <p class="channels-note">Complete required plugin config values.</p>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="channels-surface">
+                <h3>Channel settings</h3>
+                <div class="channels-form-grid">
+                  <label class="channels-field">DM policy<select class="channels-select"><option>pairing</option><option>open</option></select></label>
+                  <label class="channels-field">Retry attempts<input class="channels-input" value="3" /></label>
+                  <label class="channels-field">Jitter<input class="channels-input" value="0.2" /></label>
+                </div>
+                <div class="channels-actions">
+                  <button class="channels-button channels-button--primary" type="button">Save channel settings</button>
+                  <button class="channels-button" type="button">Apply JSON patch</button>
+                </div>
+                <textarea class="channels-textarea">{"webhook":{"enabled":true}}</textarea>
+              </section>
+
+              <section class="channels-surface">
+                <div class="channels-section-heading">
+                  <h3>WeCom access controls</h3>
+                  <span class="channels-status channels-status--ok">tenant-a focused</span>
+                </div>
+                <p class="channels-note">Bot allowlist, dynamic agents, fail-closed routing, and account-specific routing summary stay scoped to WeCom.</p>
+                <div class="channels-actions">
+                  <button class="channels-button channels-button--primary" type="button">Save dynamic agents</button>
+                  <button class="channels-button" type="button">Save routing behavior</button>
+                </div>
+              </section>
+
+              <section class="channels-surface">
+                <h3>Action result</h3>
+                <pre class="channels-code">{
+  "ok": true,
+  "channelId": "discord",
+  "changed": true
+}</pre>
+              </section>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
