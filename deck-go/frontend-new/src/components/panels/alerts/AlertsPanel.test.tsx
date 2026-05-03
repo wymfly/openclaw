@@ -58,9 +58,13 @@ function buttonWithText(text: string) {
 }
 
 function rowWithText(text: string) {
-  return Array.from(container.querySelectorAll(".deck-ui-alerts-row")).find((row) =>
+  return Array.from(container.querySelectorAll(".alerts-panel__row")).find((row) =>
     row.textContent?.includes(text),
   ) as HTMLElement | undefined;
+}
+
+function submitButton() {
+  return container.querySelector<HTMLButtonElement>('.alerts-panel__form button[type="submit"]');
 }
 
 describe("AlertsPanel", () => {
@@ -70,10 +74,15 @@ describe("AlertsPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchAlertRules.mockResolvedValue(rulesPayload());
     apiMocks.createAlertRule.mockResolvedValue({ rule: rule("rule-c", "Created rule") });
-    apiMocks.updateAlertRule.mockResolvedValue({ rule: rule("rule-b", "Usage critical") });
+    apiMocks.updateAlertRule.mockImplementation((id: string, patch: { enabled?: boolean }) => ({
+      rule: rule(
+        id,
+        id === "rule-a" ? "Usage warning" : "Usage critical",
+        patch.enabled ?? id !== "rule-b",
+      ),
+    }));
     apiMocks.deleteAlertRule.mockResolvedValue({ ok: true, action: "delete" });
   });
 
@@ -89,26 +98,32 @@ describe("AlertsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads alert rules into the old tabbed management layout", async () => {
+  it("loads alert rules into the alert policy workbench", async () => {
     renderAlerts();
 
     await waitFor(() => expect(apiMocks.fetchAlertRules).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Alerts ready"));
 
-    expect(container.querySelector(".deck-ui-control-single.deck-ui-alerts")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-tabs")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-panel-body")).toBeTruthy();
+    expect(container.querySelector(".alerts-panel")).toBeTruthy();
+    expect(container.querySelector(".alerts-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".alerts-panel__metrics")).toBeTruthy();
     expect(container.textContent).toContain("Alert Management");
+    expect(container.textContent).toContain("Local alert policies");
+    expect(container.textContent).toContain("Rule inventory");
+    expect(container.textContent).toContain("Selected rule");
     expect(container.textContent).toContain("Fired Alerts");
     expect(container.textContent).toContain("2 rules");
-    expect(container.textContent).toContain("1 enabled");
+    expect(container.textContent).toContain("Rules");
+    expect(container.textContent).toContain("Enabled");
     expect(container.textContent).toContain("Usage warning");
     expect(container.textContent).toContain("Usage critical");
     expect(container.textContent).toContain("Toast Notification");
     expect(container.textContent).toContain("Webhook");
+    expect(container.textContent).toContain("Trigger expression");
+    expect(container.textContent).toContain("Action and delivery");
   });
 
-  it("creates, toggles, and deletes alert rules through rule-list actions", async () => {
+  it("creates, toggles, and deletes alert rules through inline workbench actions", async () => {
     apiMocks.fetchAlertRules
       .mockResolvedValueOnce(rulesPayload())
       .mockResolvedValue(rulesPayload(true));
@@ -140,7 +155,7 @@ describe("AlertsPanel", () => {
       fireEvent.change(container.querySelector('input[aria-label="alert cooldown minutes"]')!, {
         target: { value: "2" },
       });
-      buttonWithText("Add Rule")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      submitButton()?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -157,9 +172,11 @@ describe("AlertsPanel", () => {
 
     const warningRow = rowWithText("Usage warning");
     await act(async () => {
-      Array.from(warningRow?.querySelectorAll("button") ?? [])
-        .find((button) => button.textContent?.includes("Disabled"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      warningRow?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await act(async () => {
+      buttonWithText("Disable rule")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -167,13 +184,18 @@ describe("AlertsPanel", () => {
     );
 
     await act(async () => {
-      Array.from(warningRow?.querySelectorAll("button") ?? [])
-        .find((button) => button.textContent?.includes("Delete Rule"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonWithText("Delete Rule")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(apiMocks.deleteAlertRule).not.toHaveBeenCalled();
+
+    await act(async () => {
+      buttonWithText("Delete this rule?")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.deleteAlertRule).toHaveBeenCalledWith("rule-a"));
-    expect(window.confirm).toHaveBeenCalledWith("Are you sure you want to delete this rule?");
   });
 
   it("edits an alert rule through the restored form", async () => {
@@ -183,9 +205,11 @@ describe("AlertsPanel", () => {
 
     const criticalRow = rowWithText("Usage critical");
     await act(async () => {
-      Array.from(criticalRow?.querySelectorAll("button") ?? [])
-        .find((button) => button.textContent?.includes("Edit Rule"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      criticalRow?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await act(async () => {
+      buttonWithText("Edit Rule")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await act(async () => {
@@ -207,7 +231,7 @@ describe("AlertsPanel", () => {
       fireEvent.change(container.querySelector('input[aria-label="alert cooldown minutes"]')!, {
         target: { value: "5" },
       });
-      buttonWithText("Edit Rule")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      submitButton()?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -244,5 +268,6 @@ describe("AlertsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("告警已就绪"));
     expect(container.textContent).toContain("告警管理");
     expect(container.textContent).toContain("触发记录");
+    expect(container.textContent).toContain("规则清单");
   });
 });

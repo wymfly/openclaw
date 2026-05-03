@@ -6,37 +6,40 @@ export function FiredAlertsList(props: { rules: DeckGoAlertRule[] }) {
   const firedSnapshots = props.rules.filter((rule) => rule.lastFiredAt);
 
   return (
-    <div className="deck-ui-control-stack deck-ui-alerts-fired">
-      <div className="deck-ui-control-unavailable">
-        <span className="deckgo-pill is-warning">{t("unavailable")}</span>
+    <section className="alerts-panel__card">
+      <div className="alerts-panel__card-head">
         <div>
-          <strong>{t("firedHistoryUnavailableTitle")}</strong>
-          <p>{t("firedHistoryUnavailableDescription")}</p>
+          <h3 className="alerts-panel__card-title">{t("firedAlerts")}</h3>
+          <p className="alerts-panel__meta">{t("firedHistoryUnavailableDescription")}</p>
         </div>
+        <span className="alerts-panel__pill is-warning">{t("unavailable")}</span>
       </div>
 
-      {firedSnapshots.length === 0 ? (
-        <p className="deck-ui-control-empty">{t("noFiredAlerts")}</p>
-      ) : (
-        <div className="deck-ui-control-list deck-ui-alerts-list">
-          {firedSnapshots.map((rule) => (
-            <article className="deck-ui-control-row deck-ui-alerts-row" key={rule.id}>
-              <div className="deck-ui-control-row-main">
-                <span className="deck-ui-control-row-header">
-                  <strong>{rule.name}</strong>
-                  <span className="deckgo-pill">{rule.action}</span>
-                </span>
-                <span className="deckgo-meta">
-                  {t("triggerDetails")}: {rule.entityType} · {rule.condition} {rule.threshold}
-                </span>
-                <span className="deckgo-meta">
-                  {t("lastFired")}: {rule.lastFiredAt}
-                </span>
-              </div>
-            </article>
-          ))}
+      <div className="alerts-panel__body alerts-panel__fired-list">
+        <div className="alerts-panel__surface">
+          <strong>{t("firedHistoryUnavailableTitle")}</strong>
+          <p className="alerts-panel__note">{t("firedFallbackNote")}</p>
         </div>
-      )}
-    </div>
+
+        {firedSnapshots.length === 0 ? (
+          <p className="alerts-panel__empty">{t("noFiredAlerts")}</p>
+        ) : (
+          firedSnapshots.map((rule) => (
+            <article className="alerts-panel__fired-row" key={rule.id}>
+              <div className="alerts-panel__row-head">
+                <strong>{rule.name}</strong>
+                <span className="alerts-panel__pill">{t(rule.action)}</span>
+              </div>
+              <p className="alerts-panel__meta">
+                {t("triggerDetails")}: {rule.entityType} · {rule.condition} {rule.threshold}
+              </p>
+              <p className="alerts-panel__meta">
+                {t("lastFired")}: {rule.lastFiredAt}
+              </p>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
   );
 }

@@ -1,64 +1,48 @@
 import type { DeckGoAlertRule } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
 
+function formatCooldown(cooldownMs: number) {
+  return Math.round(cooldownMs / 60_000);
+}
+
 export function RuleList(props: {
   rules: DeckGoAlertRule[];
-  onEdit: (rule: DeckGoAlertRule) => void;
-  onDelete: (rule: DeckGoAlertRule) => void;
-  onToggle: (rule: DeckGoAlertRule, enabled: boolean) => void;
+  selectedRuleId: string | null;
+  onSelect: (rule: DeckGoAlertRule) => void;
 }) {
   const t = useTranslations("alerts");
 
   if (props.rules.length === 0) {
-    return <p className="deck-ui-control-empty">{t("noRules")}</p>;
+    return <p className="alerts-panel__empty">{t("noRules")}</p>;
   }
 
   return (
-    <div className="deck-ui-control-list deck-ui-alerts-list">
+    <div className="alerts-panel__catalog">
       {props.rules.map((rule) => (
-        <article className="deck-ui-control-row deck-ui-alerts-row" key={rule.id}>
-          <div className="deck-ui-control-row-main">
-            <span className="deck-ui-control-row-header">
-              <strong>{rule.name}</strong>
-              <span className="deck-ui-control-row-pills">
-                <span className={`deckgo-pill ${rule.enabled ? "is-positive" : "is-muted"}`}>
-                  {rule.enabled ? t("enabled") : t("disabled")}
-                </span>
+        <button
+          className={`alerts-panel__row ${props.selectedRuleId === rule.id ? "is-selected" : ""}`}
+          key={rule.id}
+          type="button"
+          aria-pressed={props.selectedRuleId === rule.id}
+          onClick={() => props.onSelect(rule)}
+        >
+          <span className="alerts-panel__row-head">
+            <strong>{rule.name}</strong>
+            <span className="alerts-panel__pill-row">
+              <span className={`alerts-panel__pill ${rule.enabled ? "is-positive" : "is-muted"}`}>
+                {rule.enabled ? t("enabled") : t("disabled")}
               </span>
+              <span className="alerts-panel__pill">{t(rule.action)}</span>
             </span>
-            <span className="deckgo-meta">
-              {rule.entityType} · {rule.condition} {rule.threshold}
-            </span>
-            <span className="deckgo-meta">
-              {t("action")}: {t(rule.action)} · {t("cooldown")}:{" "}
-              {Math.round(rule.cooldownMs / 60_000)}
-              {t("cooldownMinutes")} · {t("lastFired")}: {rule.lastFiredAt ?? t("never")}
-            </span>
-          </div>
-          <div className="deck-ui-control-row-actions">
-            <button
-              className="deckgo-button deck-ui-alerts-button"
-              type="button"
-              onClick={() => props.onToggle(rule, !rule.enabled)}
-            >
-              {rule.enabled ? t("disabled") : t("enabled")}
-            </button>
-            <button
-              className="deckgo-button deck-ui-alerts-button"
-              type="button"
-              onClick={() => props.onEdit(rule)}
-            >
-              {t("editRule")}
-            </button>
-            <button
-              className="deckgo-button is-danger deck-ui-alerts-button"
-              type="button"
-              onClick={() => props.onDelete(rule)}
-            >
-              {t("deleteRule")}
-            </button>
-          </div>
-        </article>
+          </span>
+          <span className="alerts-panel__meta">
+            {rule.entityType} · {rule.condition} {rule.threshold}
+          </span>
+          <span className="alerts-panel__meta">
+            {t("cooldown")}: {formatCooldown(rule.cooldownMs)} {t("cooldownMinutes")} ·{" "}
+            {t("lastFired")}: {rule.lastFiredAt ?? t("never")}
+          </span>
+        </button>
       ))}
     </div>
   );

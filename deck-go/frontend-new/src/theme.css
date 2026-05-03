@@ -1477,231 +1477,6 @@ details summary:focus-visible {
   border-top: 1px solid var(--border);
 }
 
-.deck-ui-control-single.deck-ui-alerts {
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-alerts {
-  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-alerts-column {
-  gap: 12px;
-}
-
-.deck-ui-alerts-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-alerts-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-alerts-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-alerts-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-alerts-body > *,
-.deck-ui-alerts-status-row,
-.deck-ui-alerts-actions,
-.deck-ui-alerts-stats,
-.deck-ui-alerts-detail-stats,
-.deck-ui-alerts-form-grid,
-.deck-ui-alerts-input,
-.deck-ui-alerts-list,
-.deck-ui-alerts-row,
-.deck-ui-alerts-surface,
-.deck-ui-alerts-hero {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-alerts-status-row,
-.deck-ui-alerts-actions {
-  gap: 6px;
-}
-
-.deck-ui-alerts-status-row .deckgo-pill,
-.deck-ui-alerts-hero .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-alerts-input {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-alerts-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-alerts-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-alerts-stats,
-.deck-ui-alerts-detail-stats,
-.deck-ui-alerts-form-grid {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-alerts-stats,
-.deck-ui-alerts-detail-stats,
-.deck-ui-alerts-form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-alerts-actions-offset {
-  margin-top: 12px;
-}
-
-.deck-ui-alerts-check {
-  gap: 6px;
-}
-
-.deck-ui-alerts-check input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-}
-
-.deck-ui-alerts .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-alerts .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-alerts .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-alerts-surface,
-.deck-ui-alerts-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-alerts-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-alerts-list {
-  gap: 8px;
-}
-
-.deck-ui-alerts-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-alerts-row,
-.deck-ui-alerts .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-alerts-row:hover,
-.deck-ui-alerts .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-alerts-row.is-selected,
-.deck-ui-alerts .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-alerts-error {
-  color: var(--danger);
-}
-
-.deck-ui-alerts strong,
-.deck-ui-alerts code,
-.deck-ui-alerts .deckgo-meta,
-.deck-ui-alerts .deckgo-note,
-.deck-ui-alerts-empty,
-.deck-ui-alerts-error {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-alerts details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-alerts {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .deck-ui-alerts-stats,
-  .deck-ui-alerts-detail-stats,
-  .deck-ui-alerts-form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .deck-ui-alerts-actions {
-    align-items: stretch;
-  }
-}
-
 .deck-ui-plugins {
   grid-template-columns: minmax(380px, 0.82fr) minmax(560px, 1.18fr);
   gap: 12px;
@@ -2975,7 +2750,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-alerts .deckgo-stat,
 .deck-ui-plugins .deckgo-stat,
 .deck-ui-identity .deckgo-stat,
 .deck-ui-config .deckgo-stat,
@@ -2984,7 +2758,6 @@ details summary:focus-visible {
   padding: 9px 10px;
 }
 
-.deck-ui-alerts .deckgo-stat-value,
 .deck-ui-plugins .deckgo-stat-value,
 .deck-ui-identity .deckgo-stat-value,
 .deck-ui-config .deckgo-stat-value,
@@ -2994,7 +2767,6 @@ details summary:focus-visible {
   font-size: 0.98rem;
 }
 
-.deck-ui-alerts .deckgo-selectable-card,
 .deck-ui-plugins .deckgo-selectable-card,
 .deck-ui-identity .deckgo-selectable-card,
 .deck-ui-config .deckgo-selectable-card,

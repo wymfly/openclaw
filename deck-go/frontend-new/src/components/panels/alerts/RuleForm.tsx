@@ -51,6 +51,7 @@ export function RuleForm(props: {
   onCancel: () => void;
 }) {
   const t = useTranslations("alerts");
+  const tc = useTranslations("common");
   const [draft, setDraft] = useState<RuleDraft>(() => draftFromRule(props.rule));
   const [validationMessage, setValidationMessage] = useState("");
 
@@ -82,25 +83,23 @@ export function RuleForm(props: {
   };
 
   return (
-    <form className="deck-ui-control-form deck-ui-alerts-form" onSubmit={handleSubmit}>
-      <h3 className="deck-ui-control-section-title">{props.rule ? t("editRule") : t("addRule")}</h3>
-
-      <label className="deck-ui-control-field">
+    <form className="alerts-panel__form" onSubmit={handleSubmit}>
+      <label className="alerts-panel__field">
         <span>{t("name")}</span>
         <input
           aria-label="alert rule name"
-          className="deckgo-input deck-ui-alerts-input"
+          className="alerts-panel__input"
           value={draft.name}
           onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
         />
       </label>
 
-      <div className="deck-ui-control-form-grid">
-        <label className="deck-ui-control-field">
+      <div className="alerts-panel__field-grid">
+        <label className="alerts-panel__field">
           <span>{t("entityType")}</span>
           <select
             aria-label="alert entity type"
-            className="deckgo-input deck-ui-alerts-input"
+            className="alerts-panel__select"
             value={draft.entityType}
             onChange={(event) =>
               setDraft((current) => ({ ...current, entityType: event.target.value }))
@@ -113,11 +112,11 @@ export function RuleForm(props: {
             ))}
           </select>
         </label>
-        <label className="deck-ui-control-field">
+        <label className="alerts-panel__field">
           <span>{t("action")}</span>
           <select
             aria-label="alert action"
-            className="deckgo-input deck-ui-alerts-input"
+            className="alerts-panel__select"
             value={draft.action}
             onChange={(event) =>
               setDraft((current) => ({
@@ -135,11 +134,11 @@ export function RuleForm(props: {
         </label>
       </div>
 
-      <label className="deck-ui-control-field">
+      <label className="alerts-panel__field">
         <span>{t("condition")}</span>
         <input
           aria-label="alert condition"
-          className="deckgo-input deck-ui-alerts-input"
+          className="alerts-panel__input"
           value={draft.condition}
           onChange={(event) =>
             setDraft((current) => ({ ...current, condition: event.target.value }))
@@ -147,12 +146,12 @@ export function RuleForm(props: {
         />
       </label>
 
-      <div className="deck-ui-control-form-grid">
-        <label className="deck-ui-control-field">
+      <div className="alerts-panel__field-grid">
+        <label className="alerts-panel__field">
           <span>{t("threshold")}</span>
           <input
             aria-label="alert threshold"
-            className="deckgo-input deck-ui-alerts-input"
+            className="alerts-panel__input"
             step="any"
             type="number"
             value={draft.threshold}
@@ -161,13 +160,13 @@ export function RuleForm(props: {
             }
           />
         </label>
-        <label className="deck-ui-control-field">
+        <label className="alerts-panel__field">
           <span>
             {t("cooldown")} ({t("cooldownMinutes")})
           </span>
           <input
             aria-label="alert cooldown minutes"
-            className="deckgo-input deck-ui-alerts-input"
+            className="alerts-panel__input"
             min="0"
             type="number"
             value={draft.cooldownMinutes}
@@ -180,33 +179,25 @@ export function RuleForm(props: {
 
       <button
         type="button"
-        className={`deck-ui-control-switch ${draft.enabled ? "is-on" : ""}`}
+        className={`alerts-panel__switch ${draft.enabled ? "is-on" : ""}`}
         role="switch"
         aria-checked={draft.enabled}
         onClick={() => setDraft((current) => ({ ...current, enabled: !current.enabled }))}
       >
         <span>{t("enabled")}</span>
-        <span className="deck-ui-control-switch-track" aria-hidden="true">
-          <span className="deck-ui-control-switch-thumb" />
+        <span className="alerts-panel__switch-track" aria-hidden="true">
+          <span className="alerts-panel__switch-thumb" />
         </span>
       </button>
 
-      {validationMessage ? <p className="deck-ui-control-error">{validationMessage}</p> : null}
+      {validationMessage ? <p className="alerts-panel__error">{validationMessage}</p> : null}
 
-      <div className="deckgo-actions deck-ui-alerts-actions">
-        <button
-          className="deckgo-button is-primary deck-ui-alerts-button"
-          disabled={props.saving}
-          type="submit"
-        >
-          {props.rule ? t("editRule") : t("addRule")}
+      <div className="alerts-panel__actions">
+        <button className="alerts-panel__button is-primary" disabled={props.saving} type="submit">
+          {props.saving ? tc("saving") : props.rule ? t("editRule") : t("addRule")}
         </button>
-        <button
-          className="deckgo-button deck-ui-alerts-button"
-          type="button"
-          onClick={props.onCancel}
-        >
-          {t("cancel")}
+        <button className="alerts-panel__button" type="button" onClick={props.onCancel}>
+          {tc("cancel")}
         </button>
       </div>
     </form>
