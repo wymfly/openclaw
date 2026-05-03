@@ -84,8 +84,101 @@ function sendVisualMonitorEvents(socket) {
   }
 }
 
+function memoryWorkspaceFor(agentId) {
+  return `/tmp/openclaw-${agentId}`;
+}
+
+function ensureMockMemoryWorkspaces(now = Date.now()) {
+  const workspaces = {
+    builder: memoryWorkspaceFor("builder"),
+    main: memoryWorkspaceFor("main"),
+    ops: memoryWorkspaceFor("ops"),
+    qa: memoryWorkspaceFor("qa"),
+    research: memoryWorkspaceFor("research"),
+    reviewer: memoryWorkspaceFor("reviewer"),
+  };
+  const filesByAgent = {
+    builder: {
+      "daily.md": "# Builder memory\n\n- Keep visual verification repeatable.",
+      "archive/note.md": "Builder archive note for memory browse visual state.",
+    },
+    main: {
+      "daily.md":
+        "# remembered context\n\n- Keep frontend work contract-led.\n- Preserve confirmation guards for dream actions.",
+      "archive/note.md": "Archived memory note for the main agent.",
+      "graph/context.md": "Path relationship context for memory graph rows.",
+    },
+    ops: {
+      "daily.md": "Ops runner remembered incident triage context.",
+    },
+    qa: {
+      "daily.md": "QA remembered smoke-test evidence.",
+    },
+    research: {
+      "daily.md": "Research remembered source review notes.",
+    },
+    reviewer: {
+      "daily.md": "Reviewer remembered critique checklist.",
+    },
+  };
+  for (const [agentId, workspace] of Object.entries(workspaces)) {
+    fs.mkdirSync(workspace, { recursive: true });
+    for (const [relativePath, content] of Object.entries(filesByAgent[agentId] ?? {})) {
+      const target = `${workspace}/${relativePath}`;
+      const dir = target.slice(0, target.lastIndexOf("/"));
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(target, content);
+    }
+    fs.utimesSync(workspace, new Date(now - 90_000), new Date(now - 60_000));
+  }
+  return workspaces;
+}
+
+function listMemoryWorkspaceFiles(workspace) {
+  const entries = [];
+  const walk = (dir, prefix = "") => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) {
+        continue;
+      }
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolutePath = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        walk(absolutePath, relativePath);
+        continue;
+      }
+      const stat = fs.statSync(absolutePath);
+      entries.push({
+        content: fs.readFileSync(absolutePath, "utf8"),
+        missing: false,
+        name: entry.name,
+        path: relativePath,
+        size: stat.size,
+        updatedAtMs: Math.trunc(stat.mtimeMs),
+      });
+    }
+  };
+  if (fs.existsSync(workspace)) {
+    walk(workspace);
+  }
+  return entries;
+}
+
+function readMemoryWorkspaceFile(workspace, name) {
+  const files = listMemoryWorkspaceFiles(workspace);
+  const file = files.find((entry) => entry.name === name || entry.path === name);
+  return (
+    file ?? {
+      missing: true,
+      name,
+      path: name,
+    }
+  );
+}
+
 function defaultMethods() {
   const now = Date.now();
+  const memoryWorkspaces = ensureMockMemoryWorkspaces(now);
   const logCursor = 4208;
   const logLines = [
     `${new Date(now - 42_000).toISOString()} [INFO] [gateway] gateway ready sessionKey=sess-main bind=127.0.0.1:18789 runtime=bundled`,
@@ -823,13 +916,45 @@ function defaultMethods() {
       key: sessionKeyFrom(params),
       checkpointId: params?.checkpointId ?? "cp-1",
     }),
+    "agents.files.list": (params) => {
+      const agentId = params?.agentId ?? "main";
+      const workspace = memoryWorkspaces[agentId] ?? memoryWorkspaces.main;
+      return {
+        agentId,
+        files: listMemoryWorkspaceFiles(workspace),
+        workspace,
+      };
+    },
+    "agents.files.get": (params) => {
+      const agentId = params?.agentId ?? "main";
+      const workspace = memoryWorkspaces[agentId] ?? memoryWorkspaces.main;
+      return {
+        agentId,
+        file: readMemoryWorkspaceFile(workspace, params?.name ?? "daily.md"),
+        workspace,
+      };
+    },
+    "agents.files.set": (params) => {
+      const agentId = params?.agentId ?? "main";
+      const workspace = memoryWorkspaces[agentId] ?? memoryWorkspaces.main;
+      const name = params?.name ?? "note.md";
+      const target = `${workspace}/${name}`;
+      const dir = target.slice(0, target.lastIndexOf("/"));
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(target, params?.content ?? "");
+      return {
+        agentId,
+        file: readMemoryWorkspaceFile(workspace, name),
+        workspace,
+      };
+    },
     "agents.list": () => ({
       agents: [
         {
           id: "main",
           name: "Main",
           identity: { emoji: "M", name: "Main" },
-          workspace: "/tmp/openclaw-main",
+          workspace: memoryWorkspaces.main,
           model: { primary: "gpt-5.4", fallbacks: ["sonnet-4.6"] },
           status: "idle",
           sessionCount: 18,
@@ -840,7 +965,7 @@ function defaultMethods() {
           id: "ops",
           name: "Ops Runner",
           identity: { emoji: "O", name: "Ops Runner" },
-          workspace: "/tmp/openclaw-ops",
+          workspace: memoryWorkspaces.ops,
           model: { primary: "gpt-5.4-mini" },
           status: "busy",
           sessionCount: 7,
@@ -851,7 +976,7 @@ function defaultMethods() {
           id: "research",
           name: "Research",
           identity: { emoji: "R", name: "Research" },
-          workspace: "/tmp/openclaw-research",
+          workspace: memoryWorkspaces.research,
           model: { primary: "gpt-5.4" },
           status: "offline",
           bindingCount: 1,
@@ -860,7 +985,7 @@ function defaultMethods() {
           id: "builder",
           name: "Builder Agent",
           identity: { emoji: "B", name: "Builder Agent" },
-          workspace: "/tmp/openclaw-builder",
+          workspace: memoryWorkspaces.builder,
           model: { primary: "gpt-5.4" },
           status: "busy",
           sessionCount: 5,
@@ -871,7 +996,7 @@ function defaultMethods() {
           id: "reviewer",
           name: "Reviewer Agent",
           identity: { emoji: "R", name: "Reviewer Agent" },
-          workspace: "/tmp/openclaw-reviewer",
+          workspace: memoryWorkspaces.reviewer,
           model: { primary: "gpt-5.4-mini" },
           status: "idle",
           sessionCount: 3,
@@ -882,7 +1007,7 @@ function defaultMethods() {
           id: "qa",
           name: "QA Agent",
           identity: { emoji: "Q", name: "QA Agent" },
-          workspace: "/tmp/openclaw-qa",
+          workspace: memoryWorkspaces.qa,
           model: { primary: "gpt-5.4-mini" },
           status: "idle",
           sessionCount: 2,
@@ -1576,6 +1701,67 @@ function defaultMethods() {
           cumulativeCost: 1.42,
         },
       ],
+    }),
+    "doctor.memory.status": () => ({
+      agentId: "main",
+      embedding: {
+        ok: true,
+      },
+      provider: "mock-embedding",
+    }),
+    "doctor.memory.dreamDiary": () => ({
+      agentId: "main",
+      content:
+        "# Dream diary\n\n- Memory workspace keeps contract-led UI state.\n- Recall search is degraded until LanceDB is available.",
+      found: true,
+      path: ".openclaw/memory/dream-diary.md",
+      updatedAtMs: now - 45_000,
+    }),
+    "doctor.memory.backfillDreamDiary": () => ({
+      action: "backfill",
+      agentId: "main",
+      changed: true,
+      found: true,
+      path: ".openclaw/memory/dream-diary.md",
+      scannedFiles: 3,
+      written: 1,
+      warnings: [],
+    }),
+    "doctor.memory.dedupeDreamDiary": () => ({
+      action: "dedupe",
+      agentId: "main",
+      changed: true,
+      dedupedEntries: 2,
+      found: true,
+      keptEntries: 7,
+      path: ".openclaw/memory/dream-diary.md",
+      removedEntries: 2,
+    }),
+    "doctor.memory.repairDreamingArtifacts": () => ({
+      action: "repair",
+      agentId: "main",
+      changed: true,
+      found: true,
+      path: ".openclaw/memory/dream-diary.md",
+      replaced: 1,
+      warnings: [],
+    }),
+    "doctor.memory.resetDreamDiary": () => ({
+      action: "reset",
+      agentId: "main",
+      archiveDir: ".openclaw/memory/archive/mock-reset",
+      archivedDreamsDiary: true,
+      changed: true,
+      found: true,
+      removedEntries: 7,
+    }),
+    "doctor.memory.resetGroundedShortTerm": () => ({
+      action: "resetShortTerm",
+      agentId: "main",
+      archivedSessionCorpus: true,
+      archivedSessionIngestion: true,
+      changed: true,
+      removedShortTermEntries: 4,
     }),
     "exec.approvals.get": () => ({
       exists: true,

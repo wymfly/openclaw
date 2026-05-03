@@ -30,6 +30,7 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 | **Settings** | `panels/settings/SettingsPanel.tsx`                                                     | 64 lines            | Manages workspace settings, runtime config, gateway tokens, confirm dialogs           |
 | **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | removed             | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
 | **Usage**    | `panels/usage/UsagePanel.tsx` + 7 sub-components                                        | removed             | Cost cockpit, provider quota pressure, session drilldown, trend chart, context weight |
+| **Memory**   | `panels/memory/MemoryPanel.tsx`                                                         | removed             | Agent memory file browser, recall search fallback, graph rows, health, dream actions  |
 | **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | removed             | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
 | **Sessions** | `panels/sessions/SessionsPanel.tsx` + 3 sub-components                                  | 80 lines            | Session list, detail shell, compaction history, subagent tree, usage breakdown        |
 | **Logs**     | `panels/logs/LogsPanel.tsx`                                                             | 41 lines            | Log tape view, level filters, controls strip, sidecar event details                   |
@@ -177,6 +178,12 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 **Migration readiness:** Completed under OpenSpec change `frontend-usage-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept usage KPI, trend, quota, session detail, aggregate, behavior, and context-pressure surfaces as module-local molecules while preserving the no-breaking-change promise.
 
 **Footnote — deprecated patterns:** The old `deck-ui-usage` global block has been removed. Usage now uses `usage-panel.css` with `--ds-*` tokens. Cost trend rows, provider quota cards, session drilldown rows, aggregate rows, and context-pressure summaries remain promotion candidates for a dedicated design-system proposal rather than being silently canonicalized in the Usage rewrite.
+
+### Memory panel
+
+**Migration readiness:** Completed under OpenSpec change `frontend-memory-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept file rows, path graph rows, search-result rows, health diagnostics, dream action strip, raw payload disclosure, and detail sidecar as module-local molecules while preserving the no-breaking-change promise.
+
+**Footnote — deprecated patterns:** The old `deck-ui-memory` global block has been removed. Memory now uses `memory-panel.css` with `--ds-*` tokens. File tree, graph row, search result, diagnostics, dream action, and detail-sidecar patterns remain promotion candidates for a dedicated design-system proposal rather than becoming canonical behavior inside this module rewrite. Mock visual evidence is mock-only and is not real Gateway/LLM evidence.
 
 ### Channels panel
 

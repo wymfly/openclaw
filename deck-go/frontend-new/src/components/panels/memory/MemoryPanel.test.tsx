@@ -126,18 +126,20 @@ describe("MemoryPanel", () => {
     await waitFor(() => expect(apiMocks.browseMemory).toHaveBeenCalledWith("main", undefined));
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
 
-    expect(container.querySelector(".deck-ui-memory")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-memory-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-memory-input")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-memory-tab")).toHaveLength(5);
-    expect(container.querySelectorAll(".deck-ui-memory-row")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-memory-empty")).not.toBeNull();
+    expect(container.querySelector(".memory-panel")).not.toBeNull();
+    expect(container.querySelectorAll(".memory-panel__card")).toHaveLength(2);
+    expect(container.querySelectorAll(".memory-panel__input")).toHaveLength(2);
+    expect(container.querySelectorAll(".memory-panel__tab")).toHaveLength(5);
+    expect(container.querySelectorAll(".memory-panel__row")).toHaveLength(2);
+    expect(container.querySelector(".memory-panel__empty")).not.toBeNull();
     expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Memory operations workspace");
+    expect(container.textContent).toContain("Recall lanes");
     expect(container.textContent).toContain("Main agent");
     expect(container.textContent).toContain("Builder agent");
     expect(container.textContent).toContain("entries2");
     expect(container.textContent).toContain("daily.md");
-    expect(container.textContent).toContain("file | daily.md | size: 42");
+    expect(container.textContent).toContain("file | daily.md | size: 42 B");
     expect(container.textContent).toContain("directory | archive | size: n/a");
     expect(container.textContent).toContain("Select a memory file to read it.");
 
@@ -232,7 +234,6 @@ describe("MemoryPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchMemoryHealth).toHaveBeenCalledTimes(1));
-    expect(container.textContent).toContain("Health payload");
     expect(container.textContent).toContain("Raw health response");
     expect(container.textContent).toContain("provider-a");
     expect(container.textContent).toContain("lance dbenabled");
