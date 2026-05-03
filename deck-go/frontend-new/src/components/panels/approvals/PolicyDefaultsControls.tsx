@@ -51,12 +51,12 @@ export function PolicyDefaultsControls(props: {
   const t = useTranslations("approvals");
 
   return (
-    <div className="deckgo-form-grid deck-ui-approvals-policy-grid">
-      <label className="deckgo-form-row">
+    <div className="approvals-panel__field-grid">
+      <label className="approvals-panel__field">
         <span>{t("security")}</span>
         <select
           aria-label={`${props.label} security`}
-          className="deckgo-input deck-ui-approvals-input"
+          className="approvals-panel__input"
           value={props.defaults.security ?? ""}
           onChange={(event) =>
             props.onChange(setDefaultsSelectValue(props.defaults, "security", event.target.value))
@@ -70,11 +70,11 @@ export function PolicyDefaultsControls(props: {
           ))}
         </select>
       </label>
-      <label className="deckgo-form-row">
+      <label className="approvals-panel__field">
         <span>{t("ask")}</span>
         <select
           aria-label={`${props.label} ask`}
-          className="deckgo-input deck-ui-approvals-input"
+          className="approvals-panel__input"
           value={props.defaults.ask ?? ""}
           onChange={(event) =>
             props.onChange(setDefaultsSelectValue(props.defaults, "ask", event.target.value))
@@ -88,11 +88,11 @@ export function PolicyDefaultsControls(props: {
           ))}
         </select>
       </label>
-      <label className="deckgo-form-row">
+      <label className="approvals-panel__field">
         <span>{t("askFallback")}</span>
         <select
           aria-label={`${props.label} ask fallback`}
-          className="deckgo-input deck-ui-approvals-input"
+          className="approvals-panel__input"
           value={props.defaults.askFallback ?? ""}
           onChange={(event) =>
             props.onChange(
@@ -108,7 +108,7 @@ export function PolicyDefaultsControls(props: {
           ))}
         </select>
       </label>
-      <label className="deckgo-checkbox-row">
+      <label className="approvals-panel__checkbox">
         <input
           aria-label={`${props.label} auto allow skills`}
           type="checkbox"

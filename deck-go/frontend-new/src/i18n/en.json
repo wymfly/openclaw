@@ -3501,6 +3501,11 @@
   },
   "approvals": {
     "title": "Approvals & Security",
+    "panelDescription": "Security decisions, plugin requests, policy state, and live approval evidence.",
+    "decisionInbox": "Decision inbox",
+    "refreshApprovals": "Refresh approvals",
+    "selectedApproval": "Selected approval",
+    "lastApprovalAction": "Last approval action",
     "inlineTitle": "Approval required",
     "pending": "Pending",
     "policy": "Policy",

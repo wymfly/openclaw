@@ -23,26 +23,26 @@ export function PolicyEditor(props: {
   const policy = props.structuredPolicyDraft;
 
   return (
-    <div className="deckgo-surface-tile deck-ui-approvals-surface">
-      <p className="deckgo-surface-label">{t("approvalPolicyEditor")}</p>
+    <div className="approvals-panel__surface">
+      <p className="approvals-panel__eyebrow">{t("approvalPolicyEditor")}</p>
       {policy ? (
         <>
-          <p className="deckgo-kicker">{t("globalDefaults")}</p>
+          <p className="approvals-panel__eyebrow">{t("globalDefaults")}</p>
           <PolicyDefaultsControls
             label="global"
             defaults={policy.defaults}
             onChange={(defaults) => props.onStructuredPolicyChange({ ...policy, defaults })}
           />
 
-          <p className="deckgo-kicker deck-ui-approvals-section-title">{t("perAgent")}</p>
+          <p className="approvals-panel__eyebrow">{t("perAgent")}</p>
           {Object.entries(policy.agents).length > 0 ? (
-            <div className="deckgo-shell-list deck-ui-approvals-agent-list">
+            <div className="approvals-panel__agent-list">
               {Object.entries(policy.agents).map(([agentId, agentDefaults]) => (
-                <div key={agentId} className="deckgo-selectable-card deck-ui-approvals-policy-card">
-                  <div className="deckgo-card-header">
+                <div key={agentId} className="approvals-panel__policy-card">
+                  <div className="approvals-panel__card-head">
                     <strong>{agentId}</strong>
                     <button
-                      className="deckgo-button deck-ui-approvals-button is-danger"
+                      className="approvals-panel__button is-danger"
                       type="button"
                       onClick={() => props.onRemoveAgent(agentId)}
                     >
@@ -66,12 +66,12 @@ export function PolicyEditor(props: {
               ))}
             </div>
           ) : (
-            <p className="deckgo-note">{t("noAgentOverrides")}</p>
+            <p className="approvals-panel__note">{t("noAgentOverrides")}</p>
           )}
-          <div className="deckgo-actions deck-ui-approvals-actions">
+          <div className="approvals-panel__actions">
             <input
               aria-label="new approval agent id"
-              className="deckgo-input deck-ui-approvals-input"
+              className="approvals-panel__input"
               value={props.newAgentId}
               onChange={(event) => props.onNewAgentIdChange(event.target.value)}
               onKeyDown={(event) => {
@@ -83,7 +83,7 @@ export function PolicyEditor(props: {
               placeholder="agent id"
             />
             <button
-              className="deckgo-button deck-ui-approvals-button"
+              className="approvals-panel__button"
               type="button"
               onClick={props.onAddAgent}
               disabled={!props.newAgentId.trim()}
@@ -101,18 +101,18 @@ export function PolicyEditor(props: {
           />
         </>
       ) : (
-        <p className="deckgo-note">{t("policyJsonInvalid")}</p>
+        <p className="approvals-panel__note is-danger">{t("policyJsonInvalid")}</p>
       )}
       <textarea
         aria-label="approval policy json"
-        className="deckgo-textarea deck-ui-approvals-textarea"
+        className="approvals-panel__textarea"
         value={props.policyDraft}
         onChange={(event) => props.onPolicyDraftChange(event.target.value)}
         rows={12}
       />
-      <div className="deckgo-actions deck-ui-approvals-actions deck-ui-approvals-actions-offset">
+      <div className="approvals-panel__actions">
         <button
-          className="deckgo-button deck-ui-approvals-button is-primary"
+          className="approvals-panel__button is-primary"
           type="button"
           onClick={props.onSave}
           disabled={props.policySaveState !== "idle" || !props.policyDraft.trim()}

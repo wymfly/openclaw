@@ -1025,11 +1025,6 @@ details summary:focus-visible {
   letter-spacing: 0.08em;
 }
 
-:where(.deck-ui-approvals-detail-column) {
-  min-width: 0;
-  align-content: start;
-}
-
 .deck-ui-config-field-list {
   display: grid;
   gap: 8px;
@@ -1155,248 +1150,6 @@ details summary:focus-visible {
 .deckgo-usage-chart-detail {
   grid-column: 2 / -1;
   margin-top: -4px;
-}
-
-.deck-ui-approvals {
-  grid-template-columns: minmax(380px, 0.9fr) minmax(520px, 1.1fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-approvals-column {
-  gap: 12px;
-}
-
-.deck-ui-approvals-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-approvals-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-approvals-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-approvals-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-approvals-body > *,
-.deck-ui-approvals-status-row,
-.deck-ui-approvals-tab-row,
-.deck-ui-approvals-actions,
-.deck-ui-approvals-stats,
-.deck-ui-approvals-detail-stats,
-.deck-ui-approvals-input,
-.deck-ui-approvals-textarea,
-.deck-ui-approvals-list,
-.deck-ui-approvals-row,
-.deck-ui-approvals-surface,
-.deck-ui-approvals-hero,
-.deck-ui-approvals-details,
-.deck-ui-approvals-policy-grid,
-.deck-ui-approvals-policy-card,
-.deck-ui-approvals-agent-list,
-.deck-ui-approvals-allowlist-row {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-approvals-status-row,
-.deck-ui-approvals-tab-row,
-.deck-ui-approvals-actions,
-.deck-ui-approvals-allowlist-row {
-  gap: 6px;
-}
-
-.deck-ui-approvals-status-row .deckgo-pill,
-.deck-ui-approvals-hero .deckgo-pill,
-.deck-ui-approvals-allowlist-row .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-approvals-input,
-.deck-ui-approvals-textarea {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-approvals-textarea {
-  min-height: 260px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-}
-
-.deck-ui-approvals-input:focus,
-.deck-ui-approvals-textarea:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-approvals-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-approvals-stats,
-.deck-ui-approvals-detail-stats,
-.deck-ui-approvals-policy-grid {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-approvals-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.deck-ui-approvals-detail-stats,
-.deck-ui-approvals-policy-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-approvals-section-title,
-.deck-ui-approvals-actions-offset {
-  margin-top: 12px;
-}
-
-.deck-ui-approvals-actions-bottom {
-  margin-bottom: 12px;
-}
-
-.deck-ui-approvals-agent-list {
-  margin-bottom: 12px;
-}
-
-.deck-ui-approvals .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-approvals .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-approvals .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-approvals-surface,
-.deck-ui-approvals-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-approvals-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-approvals-list,
-.deck-ui-approvals-agent-list {
-  gap: 8px;
-}
-
-.deck-ui-approvals-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-approvals-row,
-.deck-ui-approvals-policy-card,
-.deck-ui-approvals .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-approvals-row:hover,
-.deck-ui-approvals .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-approvals-row.is-selected,
-.deck-ui-approvals .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-approvals-details {
-  display: grid;
-  gap: 10px;
-}
-
-.deck-ui-approvals-error {
-  color: var(--danger);
-}
-
-.deck-ui-approvals strong,
-.deck-ui-approvals code,
-.deck-ui-approvals .deckgo-meta,
-.deck-ui-approvals .deckgo-note,
-.deck-ui-approvals-empty,
-.deck-ui-approvals-error {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-approvals details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-approvals {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .deck-ui-approvals-stats,
-  .deck-ui-approvals-detail-stats,
-  .deck-ui-approvals-policy-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .deck-ui-skills {
@@ -1642,45 +1395,17 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-approvals > .deck-ui-approvals-column:first-child {
-  position: sticky;
-  top: 0;
-  align-self: start;
-  max-height: calc(100vh - 116px);
-}
-
-.deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  max-height: calc(100vh - 116px);
-}
-
-.deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-body {
-  overflow: auto;
-}
-
-.deck-ui-approvals .deckgo-stat,
 .deck-ui-skills .deckgo-stat {
   padding: 9px 10px;
 }
 
-.deck-ui-approvals .deckgo-stat-value,
 .deck-ui-skills .deckgo-stat-value {
   margin-top: 5px;
   font-size: 0.98rem;
 }
 
-.deck-ui-approvals .deckgo-selectable-card,
 .deck-ui-skills .deckgo-selectable-card {
   padding: 10px 11px;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-approvals > .deck-ui-approvals-column:first-child,
-  .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
-    position: static;
-    max-height: none;
-  }
 }
 
 .deck-ui-control-shell,

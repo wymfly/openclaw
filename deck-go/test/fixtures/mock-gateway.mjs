@@ -2193,7 +2193,63 @@ function defaultMethods() {
           cwd: "/tmp/openclaw-main",
         },
       },
+      {
+        id: "approval-2",
+        createdAtMs: Date.now() - 5_000,
+        expiresAtMs: Date.now() + 120_000,
+        request: {
+          command: "pnpm build",
+          commandArgv: ["pnpm", "build"],
+          agentId: "builder",
+          sessionKey: "session:mock:2",
+          runId: "run:mock:2",
+          cwd: "/tmp/openclaw-main/deck-go",
+        },
+      },
     ],
+    "exec.approval.resolve": (params) => ({
+      ok: true,
+      id: params.id ?? "approval-1",
+      decision: params.decision ?? "allow-once",
+    }),
+    "exec.approvals.set": (params) => ({
+      exists: true,
+      hash: "hash-2",
+      path: "/tmp/mock-approvals.json",
+      file: params.file ?? {
+        defaults: { security: "allowlist", ask: "on-miss" },
+        agents: {},
+        allowlist: [],
+      },
+    }),
+    "plugin.approval.list": () => ({
+      entries: [
+        {
+          id: "plugin-ap-1",
+          pluginId: "wecom",
+          command: "connect workspace",
+          description: "Allow the plugin to connect a workspace.",
+          createdAtMs: Date.now() - 2_000,
+          expiresAtMs: Date.now() + 90_000,
+          status: "pending",
+        },
+        {
+          id: "plugin-ap-resolved",
+          pluginId: "discord",
+          command: "sync channel",
+          description: "Already resolved.",
+          createdAtMs: Date.now() - 40_000,
+          expiresAtMs: Date.now() + 90_000,
+          status: "resolved",
+          decision: "allow-once",
+        },
+      ],
+    }),
+    "plugin.approval.resolve": (params) => ({
+      ok: true,
+      id: params.id ?? "plugin-ap-1",
+      decision: params.decision ?? "allow-once",
+    }),
   };
 }
 

@@ -416,6 +416,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/webhooks-visual.spec.ts` covers the ready receiver workbench, selected receiver switch, event edit state, and test-delivery result through public Deck BFF routes with a temporary local HTTP receiver. This is mock/local visual coverage, not real Gateway/LLM or full external receiver delivery evidence.
 
+### Approvals panel
+
+**Status:** in progress under OpenSpec change `frontend-approvals-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Approvals high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, card, code/json, and status tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** approval metric tile, exec approval row, plugin approval row, selected approval hero, decision action group, policy defaults controls, agent override row, allowlist row, stream evidence seam, and raw policy/action disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, action/result seam, and raw payload detail. Approvals validates these patterns for security/policy operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Approvals-specific molecules:** decision action groups and policy default controls are candidates for a later Security/Control pattern only after another security-sensitive module validates the same API shape. Real Gateway list semantics for `exec.approval.list` and `plugin.approval.list` remain upstream-schema-missing follow-up.
+
+**Mock visual evidence:** `deck-go/test/e2e/approvals-visual.spec.ts` covers the ready approval workbench, plugin approval surface, exec decision result, and policy save state against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM or full approval security assurance.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -446,3 +460,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — API Explorer hifi redesign (`frontend-api-explorer-hifi-contract-redesign`)**: API Explorer moves live `gateway.describe` inspection into a module-local contract catalog with schema tree and untyped/raw evidence. No canonical atom/token changes were introduced; deterministic mock Gateway describe drift was fixed for mock visual coverage, while real upstream schema completeness remains handoff follow-up.
 - **2026-05-03 — Cron hifi redesign (`frontend-cron-hifi-contract-redesign`)**: Cron moves scheduler status, job inventory, job editing, run history, heartbeat, and manual run evidence into a module-local scheduler workbench. No canonical atom/token changes were introduced; deterministic `cron.list`/`cron.status` mock and wrapper drift was fixed for mock visual coverage, while richer real Gateway scheduler state remains handoff follow-up.
 - **2026-05-03 — Webhooks hifi redesign (`frontend-webhooks-hifi-contract-redesign`)**: Webhooks moves receiver inventory, selected receiver evidence, event subscriptions, delivery history, and manual test delivery into a module-local receiver operations workbench. No canonical atom/token changes were introduced; existing BFF/localstore routes were sufficient for deterministic mock/local visual seeding, while real external receiver delivery assurance remains handoff follow-up.
+- **2026-05-03 — Approvals hifi redesign (`frontend-approvals-hifi-contract-redesign`)**: Approvals moves exec decisions, plugin approval requests, policy defaults, per-agent overrides, allowlist paths, stream updates, and raw policy/action evidence into a module-local security operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for approval resolve, policy set, and plugin approval coverage, while real upstream approval-list schemas remain handoff follow-up.

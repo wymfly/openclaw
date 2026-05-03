@@ -3501,6 +3501,11 @@
   },
   "approvals": {
     "title": "审批与安全",
+    "panelDescription": "管理安全决策、插件请求、策略状态和实时审批证据。",
+    "decisionInbox": "决策队列",
+    "refreshApprovals": "刷新审批",
+    "selectedApproval": "选中审批",
+    "lastApprovalAction": "最近审批操作",
     "inlineTitle": "需要审批",
     "pending": "待审批",
     "policy": "安全策略",

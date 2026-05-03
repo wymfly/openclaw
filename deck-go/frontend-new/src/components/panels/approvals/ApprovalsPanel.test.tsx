@@ -173,19 +173,18 @@ describe("ApprovalsPanel", () => {
     expect(container.textContent).toContain("pnpm build");
     expect(container.textContent).not.toContain("rm stale");
     expect(container.textContent).toContain("Run: run-main");
-    expect(container.querySelector(".deck-ui-approvals")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-approvals-card").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-approvals-row").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-approvals-input").length).toBeGreaterThanOrEqual(8);
-    expect(container.querySelectorAll(".deck-ui-approvals-button").length).toBeGreaterThanOrEqual(
+    expect(container.querySelector(".approvals-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".approvals-panel__card").length).toBe(2);
+    expect(container.querySelectorAll(".approvals-panel__row").length).toBe(2);
+    expect(container.querySelectorAll(".approvals-panel__input").length).toBeGreaterThanOrEqual(8);
+    expect(container.querySelectorAll(".approvals-panel__button").length).toBeGreaterThanOrEqual(
       12,
     );
-    expect(container.querySelectorAll(".deck-ui-approvals-hero").length).toBe(1);
-    expect(container.querySelectorAll(".deck-ui-approvals-details").length).toBeGreaterThanOrEqual(
-      2,
+    expect(container.querySelectorAll(".approvals-panel__hero").length).toBe(1);
+    expect(container.querySelectorAll(".approvals-panel__surface").length).toBeGreaterThanOrEqual(
+      3,
     );
-    expect(container.querySelector(".deck-ui-approvals-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-approvals-textarea")).toBeTruthy();
+    expect(container.querySelector(".approvals-panel__textarea")).toBeTruthy();
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),

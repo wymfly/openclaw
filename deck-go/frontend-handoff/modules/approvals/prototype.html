@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Approvals Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ds-bg-0: #0b0d12;
+        --ds-bg-1: #10141b;
+        --ds-bg-2: #151b24;
+        --ds-border-subtle: #283241;
+        --ds-border-strong: #3a465a;
+        --ds-text-1: #f4f7fb;
+        --ds-text-2: #b8c1cf;
+        --ds-text-3: #8a95a6;
+        --ds-accent: #7aa2ff;
+        --ds-accent-bg: rgba(122, 162, 255, 0.16);
+        --ds-success: #69d59b;
+        --ds-success-bg: rgba(105, 213, 155, 0.14);
+        --ds-warn: #f0bd64;
+        --ds-warn-bg: rgba(240, 189, 100, 0.14);
+        --ds-error: #ff7d7d;
+        --ds-error-bg: rgba(255, 125, 125, 0.13);
+        --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font-family: var(--font-sans);
+        letter-spacing: 0;
+      }
+
+      .approvals-panel {
+        display: grid;
+        gap: 14px;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .row,
+      .head,
+      .hero,
+      .actions,
+      .pills {
+        display: flex;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .head,
+      .hero,
+      .row {
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .stack,
+      .card,
+      .body,
+      .surface,
+      .field,
+      .list,
+      .detail {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: minmax(390px, 0.9fr) minmax(560px, 1.1fr);
+        gap: 12px;
+        align-items: start;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2 {
+        color: var(--ds-text-1);
+        line-height: 1.1;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+
+      .eyebrow,
+      .label,
+      .metric span {
+        color: var(--ds-text-3);
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .note,
+      .meta {
+        color: var(--ds-text-2);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .card,
+      .surface,
+      .metric,
+      .row,
+      .hero {
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: 8px;
+        background: var(--ds-bg-2);
+      }
+
+      .card {
+        overflow: hidden;
+      }
+
+      .head {
+        padding: 14px 16px 0;
+      }
+
+      .body,
+      .surface,
+      .row,
+      .hero {
+        padding: 11px;
+      }
+
+      .body {
+        padding: 14px 16px 16px;
+      }
+
+      .metrics,
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .form-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 10px 11px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 5px;
+        overflow: hidden;
+        color: var(--ds-text-1);
+        font-size: 17px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .pill,
+      .button,
+      select,
+      input,
+      textarea {
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: 6px;
+        background: var(--ds-bg-1);
+        color: var(--ds-text-1);
+        font: inherit;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 26px;
+        padding: 4px 8px;
+        color: var(--ds-text-2);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.good {
+        border-color: rgba(105, 213, 155, 0.35);
+        background: var(--ds-success-bg);
+        color: var(--ds-success);
+      }
+
+      .pill.warn {
+        border-color: rgba(240, 189, 100, 0.35);
+        background: var(--ds-warn-bg);
+        color: var(--ds-warn);
+      }
+
+      .pill.danger {
+        border-color: rgba(255, 125, 125, 0.35);
+        background: var(--ds-error-bg);
+        color: var(--ds-error);
+      }
+
+      .button {
+        min-height: 32px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .button.primary {
+        border-color: rgba(122, 162, 255, 0.55);
+        background: var(--ds-accent-bg);
+        color: var(--ds-accent);
+      }
+
+      .button.danger {
+        color: var(--ds-error);
+      }
+
+      .row {
+        width: 100%;
+        color: var(--ds-text-1);
+        text-align: left;
+      }
+
+      .row.selected {
+        border-color: rgba(122, 162, 255, 0.7);
+        background: var(--ds-accent-bg);
+        box-shadow: inset 2px 0 0 var(--ds-accent);
+      }
+
+      .list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .mono,
+      textarea {
+        font-family: var(--font-mono);
+        font-size: 12px;
+      }
+
+      select,
+      input,
+      textarea {
+        width: 100%;
+        min-height: 34px;
+        padding: 7px 9px;
+      }
+
+      textarea {
+        min-height: 190px;
+        resize: vertical;
+      }
+
+      .code {
+        max-height: 260px;
+        overflow: auto;
+        border: 1px solid var(--ds-border-subtle);
+        border-radius: 6px;
+        padding: 10px;
+        background: #0d1117;
+        white-space: pre-wrap;
+      }
+
+      strong,
+      .meta,
+      .note,
+      .code {
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 980px) {
+        .workspace {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="approvals-panel">
+      <header class="head">
+        <div class="stack">
+          <p class="eyebrow">Automate</p>
+          <h1>Approvals</h1>
+          <p class="note">Security decisions, plugin requests, policy state, and live approval evidence.</p>
+        </div>
+        <div class="pills">
+          <span class="pill good">Approvals ready</span>
+          <span class="pill">2 pending</span>
+          <span class="pill warn">1 plugin pending</span>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <article class="card">
+          <div class="head">
+            <div>
+              <p class="eyebrow">Queues</p>
+              <h2>Decision inbox</h2>
+            </div>
+            <button class="button">Refresh approvals</button>
+          </div>
+          <div class="body">
+            <div class="metrics">
+              <div class="metric"><span>exec</span><strong>2</strong></div>
+              <div class="metric"><span>plugins</span><strong>1</strong></div>
+              <div class="metric"><span>allowlist</span><strong>2</strong></div>
+              <div class="metric"><span>overrides</span><strong>1</strong></div>
+            </div>
+            <div class="pills">
+              <button class="button primary">Exec approvals</button>
+              <button class="button">Plugin approvals</button>
+            </div>
+            <div class="actions">
+              <button class="button primary">Allow once</button>
+              <button class="button">Allow always</button>
+              <button class="button danger">Deny</button>
+            </div>
+            <ul class="list">
+              <li>
+                <button class="row selected">
+                  <div>
+                    <strong>pnpm test -- --filter approval-policy</strong>
+                    <p class="meta">id: approval-main | agent: main | session: sess-main</p>
+                    <p class="meta">run: run-main | cwd: /repo/openclaw | expires: 6:42 PM</p>
+                  </div>
+                  <span class="pill warn">pending</span>
+                </button>
+              </li>
+              <li>
+                <button class="row">
+                  <div>
+                    <strong>pnpm build</strong>
+                    <p class="meta">id: approval-build | agent: builder | session: sess-build</p>
+                    <p class="meta">run: run-build | cwd: /repo/openclaw/deck-go | expires: 6:43 PM</p>
+                  </div>
+                  <span class="pill warn">pending</span>
+                </button>
+              </li>
+              <li>
+                <button class="row">
+                  <div>
+                    <strong>Plugin approval: wecom</strong>
+                    <p class="meta">id: plugin-ap-main | status: pending | decision: pending</p>
+                    <p class="meta">command: connect workspace | expires: 6:44 PM</p>
+                  </div>
+                  <span class="pill warn">plugin</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="head">
+            <div>
+              <p class="eyebrow">Selected</p>
+              <h2>Approval evidence</h2>
+            </div>
+            <div class="actions">
+              <button class="button">Open approval agent</button>
+              <button class="button">Open approval session</button>
+            </div>
+          </div>
+          <div class="body detail">
+            <div class="hero">
+              <div>
+                <p class="eyebrow">Command</p>
+                <strong>pnpm test -- --filter approval-policy</strong>
+                <p class="note">run: run-main</p>
+              </div>
+              <div class="pills">
+                <span class="pill">agent: main</span>
+                <span class="pill">session: sess-main</span>
+              </div>
+            </div>
+            <div class="metrics">
+              <div class="metric"><span>created</span><strong>6:41 PM</strong></div>
+              <div class="metric"><span>expires</span><strong>6:42 PM</strong></div>
+              <div class="metric"><span>hash</span><strong>hash-1</strong></div>
+              <div class="metric"><span>stream</span><strong>active</strong></div>
+            </div>
+            <div class="surface">
+              <p class="eyebrow">Policy defaults</p>
+              <div class="form-grid">
+                <label class="field"><span class="label">security</span><select><option>allowlist</option></select></label>
+                <label class="field"><span class="label">ask</span><select><option>on-miss</option></select></label>
+                <label class="field"><span class="label">fallback</span><select><option>deny</option></select></label>
+              </div>
+              <div class="pills">
+                <span class="pill"><code>pwd</code> <button class="button danger">Remove</button></span>
+                <span class="pill"><code>ls</code> <button class="button danger">Remove</button></span>
+              </div>
+              <textarea>{ "defaults": { "security": "allowlist", "ask": "on-miss" }, "agents": { "main": { "security": "full" } }, "allowlist": ["pwd", "ls"] }</textarea>
+              <button class="button primary">Save policy</button>
+            </div>
+            <div class="surface">
+              <p class="eyebrow">Raw approval payload</p>
+              <pre class="code mono">{ "id": "approval-main", "request": { "command": "pnpm test -- --filter approval-policy", "agentId": "main", "sessionKey": "sess-main" } }</pre>
+            </div>
+            <div class="surface">
+              <p class="eyebrow">Last approval action</p>
+              <pre class="code mono">{ "ok": true, "id": "approval-build", "decision": "allow-always" }</pre>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

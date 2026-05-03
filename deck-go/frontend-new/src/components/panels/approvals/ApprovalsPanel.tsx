@@ -19,13 +19,15 @@ import {
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import { formatOptionalDate, isPluginApprovalExpired } from "./approval-model";
+import { ApprovalMetric } from "./ApprovalMetric";
 import { PendingList } from "./PendingList";
 import { PluginApprovalList } from "./PluginApprovalList";
 import { isExecAsk, isExecSecurity } from "./PolicyDefaultsControls";
 import { PolicyEditor } from "./PolicyEditor";
 import { useApprovalsStream } from "./useApprovalsStream";
+import "./approvals-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type ApprovalDecision = "allow-once" | "allow-always" | "deny";
@@ -320,266 +322,306 @@ export function ApprovalsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-approvals">
-      <div className="deckgo-column deck-ui-approvals-column">
-        <article className="deckgo-card is-float deck-ui-approvals-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Pending approvals</h2>
-          </div>
-          <p className="deckgo-card-subtitle">
-            Approvals use the live pending, policy, plugin, and stream contracts.
-          </p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-approvals-body">
-            <div className="deckgo-pill-row deck-ui-approvals-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                Approvals {loadState}
-              </span>
-              <span className="deckgo-pill">{pendingApprovals.length} pending</span>
-              <span className="deckgo-pill">{activePluginApprovals.length} plugin pending</span>
-              <span className="deckgo-pill">allowlist {policy?.allowlist.length ?? 0}</span>
-            </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-approvals-stats">
-              <ShellStat label="pending" value={pendingApprovals.length} />
-              <ShellStat label="plugin pending" value={activePluginApprovals.length} />
-              <ShellStat label="agent overrides" value={Object.keys(policy?.agents ?? {}).length} />
-            </div>
-            <div className="deckgo-pill-row deck-ui-approvals-tab-row">
+    <section className="approvals-panel" data-testid="approvals-panel">
+      <header className="approvals-panel__header">
+        <div className="approvals-panel__title-stack">
+          <p className="approvals-panel__eyebrow">Automate</p>
+          <h1 className="approvals-panel__title">{t("title")}</h1>
+          <p className="approvals-panel__description">{t("panelDescription")}</p>
+        </div>
+        <div className="approvals-panel__pill-row">
+          <span className={`approvals-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
+            Approvals {loadState}
+          </span>
+          <span className="approvals-panel__pill">{pendingApprovals.length} pending</span>
+          <span className="approvals-panel__pill">
+            {activePluginApprovals.length} plugin pending
+          </span>
+        </div>
+      </header>
+
+      <div className="approvals-panel__workspace">
+        <div className="approvals-panel__column">
+          <article className="approvals-panel__card">
+            <div className="approvals-panel__card-head">
+              <div>
+                <p className="approvals-panel__eyebrow">{t("pending")}</p>
+                <h2 className="approvals-panel__title is-compact">{t("decisionInbox")}</h2>
+              </div>
               <button
-                className={`deckgo-button deck-ui-approvals-button ${surface === "exec" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setSurface("exec")}
-              >
-                Exec approvals
-              </button>
-              <button
-                className={`deckgo-button deck-ui-approvals-button ${surface === "plugins" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setSurface("plugins")}
-              >
-                Plugin approvals
-              </button>
-            </div>
-            <div className="deckgo-actions deck-ui-approvals-actions">
-              <button
-                className="deckgo-button deck-ui-approvals-button"
+                className="approvals-panel__button"
                 type="button"
                 onClick={() => void refresh(selectedApprovalId, selectedPluginApprovalId)}
               >
-                Refresh approvals
+                {t("refreshApprovals")}
               </button>
-              {surface === "exec" ? (
-                <>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button is-primary"
-                    type="button"
-                    onClick={() => void runDecision("allow-once")}
-                    disabled={!selectedApproval || actionState !== "idle"}
-                  >
-                    {actionState === "allow-once" ? "Allowing" : "Allow once"}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button"
-                    type="button"
-                    onClick={() => void runDecision("allow-always")}
-                    disabled={!selectedApproval || actionState !== "idle"}
-                  >
-                    {actionState === "allow-always" ? "Saving" : "Allow always"}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button is-danger"
-                    type="button"
-                    onClick={() => void runDecision("deny")}
-                    disabled={!selectedApproval || actionState !== "idle"}
-                  >
-                    {actionState === "deny" ? "Denying" : "Deny"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button is-primary"
-                    type="button"
-                    onClick={() => void runPluginDecision("allow-once")}
-                    disabled={!selectedPluginIsActionable || actionState !== "idle"}
-                  >
-                    {actionState === "allow-once" ? "Allowing" : "Allow once"}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button"
-                    type="button"
-                    onClick={() => void runPluginDecision("allow-always")}
-                    disabled={!selectedPluginIsActionable || actionState !== "idle"}
-                  >
-                    {actionState === "allow-always" ? "Saving" : "Allow always"}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-approvals-button is-danger"
-                    type="button"
-                    onClick={() => void runPluginDecision("deny")}
-                    disabled={!selectedPluginIsActionable || actionState !== "idle"}
-                  >
-                    {actionState === "deny" ? "Denying" : "Deny"}
-                  </button>
-                </>
-              )}
             </div>
-            {error ? <p className="deckgo-note deck-ui-approvals-error">{error}</p> : null}
-            {surface === "exec" ? (
-              <PendingList
-                approvals={pendingApprovals}
-                selectedApprovalId={selectedApproval?.id ?? ""}
-                onSelect={setSelectedApprovalId}
-              />
-            ) : null}
-            {surface === "plugins" ? (
-              <PluginApprovalList
-                approvals={pluginApprovals}
-                selectedApprovalId={selectedPluginApproval?.id ?? ""}
-                onSelect={setSelectedPluginApprovalId}
-              />
-            ) : null}
-          </div>
-        </article>
-      </div>
+            <div className="approvals-panel__body">
+              <div className="approvals-panel__pill-row">
+                <span className={`approvals-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
+                  Approvals {loadState}
+                </span>
+                <span className="approvals-panel__pill">{pendingApprovals.length} pending</span>
+                <span className="approvals-panel__pill">
+                  {activePluginApprovals.length} plugin pending
+                </span>
+                <span className="approvals-panel__pill">
+                  allowlist {policy?.allowlist.length ?? 0}
+                </span>
+              </div>
+              <div className="approvals-panel__metrics">
+                <ApprovalMetric label="pending" value={pendingApprovals.length} />
+                <ApprovalMetric label="plugin pending" value={activePluginApprovals.length} />
+                <ApprovalMetric label="allowlist" value={policy?.allowlist.length ?? 0} />
+                <ApprovalMetric
+                  label="agent overrides"
+                  value={Object.keys(policy?.agents ?? {}).length}
+                />
+              </div>
+              <div className="approvals-panel__pill-row">
+                <button
+                  className={`approvals-panel__button ${surface === "exec" ? "is-primary" : ""}`}
+                  type="button"
+                  onClick={() => setSurface("exec")}
+                >
+                  Exec approvals
+                </button>
+                <button
+                  className={`approvals-panel__button ${surface === "plugins" ? "is-primary" : ""}`}
+                  type="button"
+                  onClick={() => setSurface("plugins")}
+                >
+                  Plugin approvals
+                </button>
+              </div>
+              <div className="approvals-panel__actions">
+                {surface === "exec" ? (
+                  <>
+                    <button
+                      className="approvals-panel__button is-primary"
+                      type="button"
+                      onClick={() => void runDecision("allow-once")}
+                      disabled={!selectedApproval || actionState !== "idle"}
+                    >
+                      {actionState === "allow-once" ? "Allowing" : "Allow once"}
+                    </button>
+                    <button
+                      className="approvals-panel__button"
+                      type="button"
+                      onClick={() => void runDecision("allow-always")}
+                      disabled={!selectedApproval || actionState !== "idle"}
+                    >
+                      {actionState === "allow-always" ? "Saving" : "Allow always"}
+                    </button>
+                    <button
+                      className="approvals-panel__button is-danger"
+                      type="button"
+                      onClick={() => void runDecision("deny")}
+                      disabled={!selectedApproval || actionState !== "idle"}
+                    >
+                      {actionState === "deny" ? "Denying" : "Deny"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="approvals-panel__button is-primary"
+                      type="button"
+                      onClick={() => void runPluginDecision("allow-once")}
+                      disabled={!selectedPluginIsActionable || actionState !== "idle"}
+                    >
+                      {actionState === "allow-once" ? "Allowing" : "Allow once"}
+                    </button>
+                    <button
+                      className="approvals-panel__button"
+                      type="button"
+                      onClick={() => void runPluginDecision("allow-always")}
+                      disabled={!selectedPluginIsActionable || actionState !== "idle"}
+                    >
+                      {actionState === "allow-always" ? "Saving" : "Allow always"}
+                    </button>
+                    <button
+                      className="approvals-panel__button is-danger"
+                      type="button"
+                      onClick={() => void runPluginDecision("deny")}
+                      disabled={!selectedPluginIsActionable || actionState !== "idle"}
+                    >
+                      {actionState === "deny" ? "Denying" : "Deny"}
+                    </button>
+                  </>
+                )}
+              </div>
+              {error ? <p className="approvals-panel__note is-danger">{error}</p> : null}
+              {surface === "exec" ? (
+                <PendingList
+                  approvals={pendingApprovals}
+                  selectedApprovalId={selectedApproval?.id ?? ""}
+                  onSelect={setSelectedApprovalId}
+                />
+              ) : null}
+              {surface === "plugins" ? (
+                <PluginApprovalList
+                  approvals={pluginApprovals}
+                  selectedApprovalId={selectedPluginApproval?.id ?? ""}
+                  onSelect={setSelectedPluginApprovalId}
+                />
+              ) : null}
+            </div>
+          </article>
+        </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-approvals-column deck-ui-approvals-detail-column">
-        <article className="deckgo-card is-float deck-ui-approvals-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">Selected approval</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("inspectDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-approvals-body">
-            {surface === "plugins" && selectedPluginApproval ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-approvals-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("pluginApproval")}</p>
-                    <strong>{selectedPluginApproval.pluginId || selectedPluginApproval.id}</strong>
-                    <p className="deckgo-note">
-                      {t("id")}: {selectedPluginApproval.id}
-                    </p>
-                  </div>
-                  <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">
-                      {t("status")}: {selectedPluginApproval.status || t("pendingBadge")}
-                    </span>
-                    <span className="deckgo-pill">
-                      {t("decision")}: {selectedPluginApproval.decision || t("pendingBadge")}
-                    </span>
-                  </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-approvals-detail-stats">
-                  <ShellStat
-                    label={t("created")}
-                    value={formatOptionalDate(
-                      selectedPluginApproval.createdAtMs,
-                      t("notAvailable"),
-                    )}
-                  />
-                  <ShellStat
-                    label={t("expires")}
-                    value={formatOptionalDate(
-                      selectedPluginApproval.expiresAtMs,
-                      t("notAvailable"),
-                    )}
-                  />
-                </div>
-                <div className="deck-ui-approvals-details">
-                  <JsonDetails
-                    title={t("pluginApprovalPayload")}
-                    payload={selectedPluginApproval}
-                  />
-                </div>
-              </>
-            ) : null}
-            {surface === "exec" && selectedApproval ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-approvals-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("command")}</p>
-                    <strong>{selectedApproval.command}</strong>
-                    <p className="deckgo-note">
-                      {t("run")}: {selectedApproval.runId || t("notAvailable")}
-                    </p>
-                  </div>
-                  <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">
-                      {t("agent")}: {selectedApproval.agentId || t("notAvailable")}
-                    </span>
-                    <span className="deckgo-pill">
-                      {t("session")}: {selectedApproval.sessionKey || t("notAvailable")}
-                    </span>
-                  </div>
-                </div>
-                <div className="deckgo-actions deck-ui-approvals-actions">
-                  {selectedApproval.agentId ? (
-                    <button
-                      className="deckgo-button deck-ui-approvals-button"
-                      type="button"
-                      onClick={() => navigateToAgent(ui, selectedApproval.agentId)}
-                    >
-                      {t("openApprovalAgent")}
-                    </button>
-                  ) : null}
-                  {selectedApproval.sessionKey ? (
-                    <button
-                      className="deckgo-button deck-ui-approvals-button"
-                      type="button"
-                      onClick={() => navigateToSession(ui, selectedApproval.sessionKey)}
-                    >
-                      {t("openApprovalSession")}
-                    </button>
-                  ) : null}
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-approvals-detail-stats">
-                  <ShellStat
-                    label={t("created")}
-                    value={new Date(selectedApproval.createdAtMs).toLocaleString()}
-                  />
-                  <ShellStat
-                    label={t("expires")}
-                    value={new Date(selectedApproval.expiresAtMs).toLocaleString()}
-                  />
-                </div>
-                <div className="deck-ui-approvals-details">
-                  <JsonDetails title={t("approvalPayload")} payload={selectedApproval} />
-                </div>
-              </>
-            ) : null}
-            {surface === "exec" && !selectedApproval ? (
-              <p className="deckgo-note">{t("choosePendingApproval")}</p>
-            ) : null}
-            {surface === "plugins" && !selectedPluginApproval ? (
-              <p className="deckgo-note">{t("choosePluginApproval")}</p>
-            ) : null}
-            {policy ? (
-              <div className="deck-ui-approvals-details">
-                <JsonDetails title={t("policyPayload")} payload={policy} />
+        <div className="approvals-panel__column">
+          <article className="approvals-panel__card">
+            <div className="approvals-panel__card-head">
+              <div>
+                <p className="approvals-panel__eyebrow">{t("selectedApproval")}</p>
+                <h2 className="approvals-panel__title is-compact">{t("selectedApproval")}</h2>
               </div>
-            ) : null}
-            <PolicyEditor
-              structuredPolicyDraft={structuredPolicyDraft}
-              policyDraft={policyDraft}
-              newAgentId={newAgentId}
-              newAllowlistPath={newAllowlistPath}
-              policySaveState={policySaveState}
-              onAddAgent={addAgentOverride}
-              onAddAllowlistPath={addAllowlistPath}
-              onPolicyDraftChange={setPolicyDraft}
-              onNewAgentIdChange={setNewAgentId}
-              onNewAllowlistPathChange={setNewAllowlistPath}
-              onRemoveAgent={removeAgentOverride}
-              onRemoveAllowlistPath={removeAllowlistPath}
-              onSave={() => void savePolicyDraft()}
-              onStructuredPolicyChange={updatePolicyDraft}
-            />
-            {actionResult ? (
-              <div className="deck-ui-approvals-details">
-                <JsonDetails title="Last approval action" payload={actionResult} />
-              </div>
-            ) : null}
-          </div>
-        </article>
+            </div>
+            <div className="approvals-panel__body approvals-panel__detail-stack">
+              <p className="approvals-panel__description">{t("inspectDescription")}</p>
+              {surface === "plugins" && selectedPluginApproval ? (
+                <>
+                  <div className="approvals-panel__hero">
+                    <div>
+                      <p className="approvals-panel__eyebrow">{t("pluginApproval")}</p>
+                      <strong>
+                        {selectedPluginApproval.pluginId || selectedPluginApproval.id}
+                      </strong>
+                      <p className="approvals-panel__note">
+                        {t("id")}: {selectedPluginApproval.id}
+                      </p>
+                    </div>
+                    <div className="approvals-panel__pill-row">
+                      <span className="approvals-panel__pill">
+                        {t("status")}: {selectedPluginApproval.status || t("pendingBadge")}
+                      </span>
+                      <span className="approvals-panel__pill">
+                        {t("decision")}: {selectedPluginApproval.decision || t("pendingBadge")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="approvals-panel__metrics">
+                    <ApprovalMetric
+                      label={t("created")}
+                      value={formatOptionalDate(
+                        selectedPluginApproval.createdAtMs,
+                        t("notAvailable"),
+                      )}
+                    />
+                    <ApprovalMetric
+                      label={t("expires")}
+                      value={formatOptionalDate(
+                        selectedPluginApproval.expiresAtMs,
+                        t("notAvailable"),
+                      )}
+                    />
+                  </div>
+                  <div className="approvals-panel__surface">
+                    <JsonDetails
+                      title={t("pluginApprovalPayload")}
+                      payload={selectedPluginApproval}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {surface === "exec" && selectedApproval ? (
+                <>
+                  <div className="approvals-panel__hero">
+                    <div>
+                      <p className="approvals-panel__eyebrow">{t("command")}</p>
+                      <strong>{selectedApproval.command}</strong>
+                      <p className="approvals-panel__note">
+                        {t("run")}: {selectedApproval.runId || t("notAvailable")}
+                      </p>
+                    </div>
+                    <div className="approvals-panel__pill-row">
+                      <span className="approvals-panel__pill">
+                        {t("agent")}: {selectedApproval.agentId || t("notAvailable")}
+                      </span>
+                      <span className="approvals-panel__pill">
+                        {t("session")}: {selectedApproval.sessionKey || t("notAvailable")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="approvals-panel__actions">
+                    {selectedApproval.agentId ? (
+                      <button
+                        className="approvals-panel__button"
+                        type="button"
+                        onClick={() => navigateToAgent(ui, selectedApproval.agentId)}
+                      >
+                        {t("openApprovalAgent")}
+                      </button>
+                    ) : null}
+                    {selectedApproval.sessionKey ? (
+                      <button
+                        className="approvals-panel__button"
+                        type="button"
+                        onClick={() => navigateToSession(ui, selectedApproval.sessionKey)}
+                      >
+                        {t("openApprovalSession")}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="approvals-panel__metrics">
+                    <ApprovalMetric
+                      label={t("created")}
+                      value={formatOptionalDate(selectedApproval.createdAtMs, t("notAvailable"))}
+                    />
+                    <ApprovalMetric
+                      label={t("expires")}
+                      value={formatOptionalDate(selectedApproval.expiresAtMs, t("notAvailable"))}
+                    />
+                    <ApprovalMetric
+                      label={t("agent")}
+                      value={selectedApproval.agentId || t("notAvailable")}
+                    />
+                    <ApprovalMetric
+                      label={t("session")}
+                      value={selectedApproval.sessionKey || t("notAvailable")}
+                    />
+                  </div>
+                  <div className="approvals-panel__surface">
+                    <JsonDetails title={t("approvalPayload")} payload={selectedApproval} />
+                  </div>
+                </>
+              ) : null}
+              {surface === "exec" && !selectedApproval ? (
+                <p className="approvals-panel__note">{t("choosePendingApproval")}</p>
+              ) : null}
+              {surface === "plugins" && !selectedPluginApproval ? (
+                <p className="approvals-panel__note">{t("choosePluginApproval")}</p>
+              ) : null}
+              {policy ? (
+                <div className="approvals-panel__surface">
+                  <JsonDetails title={t("policyPayload")} payload={policy} />
+                </div>
+              ) : null}
+              <PolicyEditor
+                structuredPolicyDraft={structuredPolicyDraft}
+                policyDraft={policyDraft}
+                newAgentId={newAgentId}
+                newAllowlistPath={newAllowlistPath}
+                policySaveState={policySaveState}
+                onAddAgent={addAgentOverride}
+                onAddAllowlistPath={addAllowlistPath}
+                onPolicyDraftChange={setPolicyDraft}
+                onNewAgentIdChange={setNewAgentId}
+                onNewAllowlistPathChange={setNewAllowlistPath}
+                onRemoveAgent={removeAgentOverride}
+                onRemoveAllowlistPath={removeAllowlistPath}
+                onSave={() => void savePolicyDraft()}
+                onStructuredPolicyChange={updatePolicyDraft}
+              />
+              {actionResult ? (
+                <div className="approvals-panel__surface">
+                  <JsonDetails title={t("lastApprovalAction")} payload={actionResult} />
+                </div>
+              ) : null}
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );
