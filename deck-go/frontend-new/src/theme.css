@@ -1025,10 +1025,7 @@ details summary:focus-visible {
   letter-spacing: 0.08em;
 }
 
-:where(
-  .deck-ui-approvals-detail-column,
-  .deck-ui-webhooks-detail-column
-) {
+:where(.deck-ui-approvals-detail-column) {
   min-width: 0;
   align-content: start;
 }
@@ -1158,227 +1155,6 @@ details summary:focus-visible {
 .deckgo-usage-chart-detail {
   grid-column: 2 / -1;
   margin-top: -4px;
-}
-
-.deck-ui-webhooks {
-  grid-template-columns: minmax(360px, 0.9fr) minmax(480px, 1.1fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-webhooks-column {
-  gap: 12px;
-}
-
-.deck-ui-webhooks-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-webhooks-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-webhooks-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-webhooks-body > *,
-.deck-ui-webhooks-status-row,
-.deck-ui-webhooks-actions,
-.deck-ui-webhooks-event-row,
-.deck-ui-webhooks-stats,
-.deck-ui-webhooks-form-grid,
-.deck-ui-webhooks-input,
-.deck-ui-webhooks-list,
-.deck-ui-webhooks-row,
-.deck-ui-webhooks-surface,
-.deck-ui-webhooks-hero,
-.deck-ui-webhooks-details,
-.deck-ui-webhooks-delivery-list,
-.deck-ui-webhooks-delivery-row {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-webhooks-status-row,
-.deck-ui-webhooks-actions,
-.deck-ui-webhooks-event-row,
-.deck-ui-webhooks-delivery-meta {
-  gap: 6px;
-}
-
-.deck-ui-webhooks-status-row .deckgo-pill,
-.deck-ui-webhooks-hero .deckgo-pill,
-.deck-ui-webhooks-delivery-meta .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-webhooks-input {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-webhooks-stats,
-.deck-ui-webhooks-form-grid {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-webhooks-stats,
-.deck-ui-webhooks-form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-webhooks-actions-offset,
-.deck-ui-webhooks-event-row,
-.deck-ui-webhooks-delivery-list,
-.deck-ui-webhooks-delivery-meta,
-.deck-ui-webhooks-delivery-detail {
-  margin-top: 12px;
-}
-
-.deck-ui-webhooks .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-webhooks .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-webhooks-surface,
-.deck-ui-webhooks-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-webhooks-list,
-.deck-ui-webhooks-delivery-list {
-  gap: 8px;
-}
-
-.deck-ui-webhooks-list > li,
-.deck-ui-webhooks-delivery-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-webhooks-row,
-.deck-ui-webhooks-delivery-row,
-.deck-ui-webhooks .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-row:hover,
-.deck-ui-webhooks-delivery-row:hover,
-.deck-ui-webhooks .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-webhooks-row.is-selected,
-.deck-ui-webhooks .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-webhooks-details {
-  display: grid;
-  gap: 10px;
-}
-
-.deck-ui-webhooks-error {
-  color: var(--danger);
-}
-
-.deck-ui-webhooks strong,
-.deck-ui-webhooks .deckgo-meta,
-.deck-ui-webhooks .deckgo-note,
-.deck-ui-webhooks-empty,
-.deck-ui-webhooks-error {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-webhooks details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-webhooks {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .deck-ui-webhooks-stats,
-  .deck-ui-webhooks-form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .deck-ui-approvals {
@@ -1866,7 +1642,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child {
   position: sticky;
   top: 0;
@@ -1874,41 +1649,34 @@ details summary:focus-visible {
   max-height: calc(100vh - 116px);
 }
 
-.deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   max-height: calc(100vh - 116px);
 }
 
-.deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-body,
 .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-body {
   overflow: auto;
 }
 
-.deck-ui-webhooks .deckgo-stat,
 .deck-ui-approvals .deckgo-stat,
 .deck-ui-skills .deckgo-stat {
   padding: 9px 10px;
 }
 
-.deck-ui-webhooks .deckgo-stat-value,
 .deck-ui-approvals .deckgo-stat-value,
 .deck-ui-skills .deckgo-stat-value {
   margin-top: 5px;
   font-size: 0.98rem;
 }
 
-.deck-ui-webhooks .deckgo-selectable-card,
 .deck-ui-approvals .deckgo-selectable-card,
 .deck-ui-skills .deckgo-selectable-card {
   padding: 10px 11px;
 }
 
 @media (max-width: 1080px) {
-  .deck-ui-webhooks > .deck-ui-webhooks-column:first-child,
   .deck-ui-approvals > .deck-ui-approvals-column:first-child,
-  .deck-ui-webhooks > .deck-ui-webhooks-column:first-child .deck-ui-webhooks-card,
   .deck-ui-approvals > .deck-ui-approvals-column:first-child .deck-ui-approvals-card {
     position: static;
     max-height: none;

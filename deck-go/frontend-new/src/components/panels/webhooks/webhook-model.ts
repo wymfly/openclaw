@@ -63,7 +63,7 @@ export function draftFromWebhook(webhook: DeckGoWebhook): WebhookDraft {
 }
 
 export function deliveryStatusClass(delivery: DeckGoWebhookDelivery) {
-  return delivery.success ? "is-positive" : "is-danger";
+  return delivery.success ? "is-good" : "is-danger";
 }
 
 export function deliveryDetail(delivery: DeckGoWebhookDelivery) {

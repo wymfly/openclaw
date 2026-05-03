@@ -1,7 +1,7 @@
 import type { DeckGoWebhook } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-import { ShellStat } from "../../shared/ShellComponents";
 import type { PanelState } from "./webhook-model";
+import { WebhookMetric } from "./WebhookMetric";
 
 export function WebhookList(props: {
   webhooks: DeckGoWebhook[];
@@ -14,66 +14,85 @@ export function WebhookList(props: {
   onSelect: (webhookId: string) => void;
 }) {
   const t = useTranslations("webhooks");
+  const enabledCount = props.webhooks.filter((webhook) => webhook.enabled).length;
+  const failureCount = props.webhooks.reduce(
+    (total, webhook) => total + webhook.consecutiveFailures,
+    0,
+  );
 
   return (
-    <article className="deckgo-card is-float deck-ui-webhooks-card">
-      <div className="deckgo-card-header">
-        <h2 className="deckgo-card-title">{t("title")}</h2>
+    <article className="webhooks-panel__card">
+      <div className="webhooks-panel__card-head">
+        <div>
+          <p className="webhooks-panel__eyebrow">{t("webhooks")}</p>
+          <h2 className="webhooks-panel__title">{t("title")}</h2>
+        </div>
         <button
-          className="deckgo-button deck-ui-webhooks-button is-primary"
+          className="webhooks-panel__button is-primary"
           type="button"
           onClick={props.onCreate}
         >
           {t("addWebhook")}
         </button>
       </div>
-      <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
-      <div className="deckgo-card-body deckgo-dividerless deck-ui-webhooks-body">
-        <div className="deckgo-pill-row deck-ui-webhooks-status-row">
+      <div className="webhooks-panel__body">
+        <p className="webhooks-panel__description">{t("panelDescription")}</p>
+        <div className="webhooks-panel__pill-row">
           <span
-            className={`deckgo-pill ${props.loadState === "ready" ? "is-positive" : "is-muted"}`}
+            className={`webhooks-panel__pill ${
+              props.loadState === "ready" ? "is-good" : "is-warn"
+            }`}
           >
             {t("statusPrefix")} {t(props.loadState)}
           </span>
-          <span className="deckgo-pill">
+          <span className="webhooks-panel__pill">
             {t("configuredCount", { count: props.webhooks.length })}
           </span>
         </div>
-        <div className="deckgo-grid deckgo-grid-2 deck-ui-webhooks-stats">
-          <ShellStat label={t("webhooks")} value={props.webhooks.length} />
-          <ShellStat label={t("deliveries")} value={props.deliveriesCount} />
+        <div className="webhooks-panel__metrics">
+          <WebhookMetric label={t("webhooks")} value={props.webhooks.length} />
+          <WebhookMetric label={t("enabled")} value={enabledCount} />
+          <WebhookMetric label={t("failures")} value={failureCount} />
+          <WebhookMetric label={t("deliveries")} value={props.deliveriesCount} />
         </div>
-        <div className="deckgo-actions deck-ui-webhooks-actions">
-          <button
-            className="deckgo-button deck-ui-webhooks-button"
-            type="button"
-            onClick={props.onRefresh}
-          >
+        <div className="webhooks-panel__actions">
+          <button className="webhooks-panel__button" type="button" onClick={props.onRefresh}>
             {t("refreshWebhooks")}
           </button>
         </div>
-        {props.error ? <p className="deckgo-note deck-ui-webhooks-error">{props.error}</p> : null}
+        {props.error ? <p className="webhooks-panel__note is-danger">{props.error}</p> : null}
         {props.webhooks.length === 0 ? (
-          <p className="deckgo-note deck-ui-webhooks-empty">{t("noWebhooks")}</p>
+          <p className="webhooks-panel__note">{t("noWebhooks")}</p>
         ) : (
-          <ul className="deckgo-shell-list deck-ui-webhooks-list">
+          <ul className="webhooks-panel__list">
             {props.webhooks.map((webhook) => (
               <li key={webhook.id}>
                 <button
                   type="button"
-                  className={`deckgo-selectable-card deck-ui-webhooks-row ${
+                  className={`webhooks-panel__row ${
                     props.selectedWebhookId === webhook.id ? "is-selected" : ""
                   }`}
                   onClick={() => props.onSelect(webhook.id)}
                 >
-                  <strong>{webhook.name}</strong>
-                  <div className="deckgo-meta">
-                    {webhook.url} | {t("enabled")}: {webhook.enabled ? t("yes") : t("no")}
+                  <div>
+                    <strong>{webhook.name}</strong>
+                    <p className="webhooks-panel__meta">{webhook.url}</p>
+                    <p className="webhooks-panel__meta">
+                      {t("failures")}: {webhook.consecutiveFailures} | {t("lastStatus")}:{" "}
+                      {webhook.lastStatus ?? t("notAvailable")}
+                    </p>
                   </div>
-                  <div className="deckgo-meta">
-                    {t("failures")}: {webhook.consecutiveFailures} | {t("lastStatus")}:{" "}
-                    {webhook.lastStatus ?? t("notAvailable")}
-                  </div>
+                  <span
+                    className={`webhooks-panel__pill ${
+                      webhook.enabled
+                        ? webhook.consecutiveFailures > 0
+                          ? "is-warn"
+                          : "is-good"
+                        : ""
+                    }`}
+                  >
+                    {webhook.enabled ? t("enabled") : t("disabled")}
+                  </span>
                 </button>
               </li>
             ))}

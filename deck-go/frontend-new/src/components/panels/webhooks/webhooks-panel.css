@@ -1,0 +1,314 @@
+.webhooks-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.webhooks-panel,
+.webhooks-panel * {
+  box-sizing: border-box;
+}
+
+.webhooks-panel__header,
+.webhooks-panel__card-head,
+.webhooks-panel__hero,
+.webhooks-panel__row,
+.webhooks-panel__delivery-row,
+.webhooks-panel__actions,
+.webhooks-panel__pill-row {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.webhooks-panel__header,
+.webhooks-panel__card-head,
+.webhooks-panel__hero,
+.webhooks-panel__row,
+.webhooks-panel__delivery-row {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.webhooks-panel__title-stack,
+.webhooks-panel__workspace,
+.webhooks-panel__column,
+.webhooks-panel__card,
+.webhooks-panel__body,
+.webhooks-panel__surface,
+.webhooks-panel__catalog,
+.webhooks-panel__detail-stack,
+.webhooks-panel__form,
+.webhooks-panel__field {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.webhooks-panel__workspace {
+  grid-template-columns: minmax(390px, 0.92fr) minmax(520px, 1.08fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.webhooks-panel__title {
+  margin: 0;
+  color: var(--ds-text-1);
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.webhooks-panel__eyebrow,
+.webhooks-panel__label,
+.webhooks-panel__metric span {
+  margin: 0;
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.webhooks-panel__description,
+.webhooks-panel__meta,
+.webhooks-panel__note {
+  margin: 0;
+  color: var(--ds-text-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.webhooks-panel__note.is-danger {
+  color: var(--ds-error);
+}
+
+.webhooks-panel__field > span {
+  color: var(--ds-text-3);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.webhooks-panel__card,
+.webhooks-panel__surface,
+.webhooks-panel__metric,
+.webhooks-panel__row,
+.webhooks-panel__delivery-row,
+.webhooks-panel__hero {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 8px;
+  background: var(--ds-bg-2);
+}
+
+.webhooks-panel__card {
+  overflow: hidden;
+}
+
+.webhooks-panel__card-head {
+  padding: 14px 16px 0;
+}
+
+.webhooks-panel__body {
+  padding: 14px 16px 16px;
+}
+
+.webhooks-panel__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.webhooks-panel__metric {
+  min-width: 0;
+  padding: 10px 11px;
+}
+
+.webhooks-panel__metric strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--ds-text-1);
+  font-size: 17px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webhooks-panel__pill,
+.webhooks-panel__button,
+.webhooks-panel__input,
+.webhooks-panel__textarea {
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 6px;
+  background: var(--ds-bg-1);
+  color: var(--ds-text-1);
+  font: inherit;
+}
+
+.webhooks-panel__pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 8px;
+  color: var(--ds-text-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.webhooks-panel__pill.is-good {
+  border-color: color-mix(in srgb, var(--ds-success) 35%, var(--ds-border-subtle));
+  background: var(--ds-success-bg);
+  color: var(--ds-success);
+}
+
+.webhooks-panel__pill.is-warn {
+  border-color: color-mix(in srgb, var(--ds-warn) 35%, var(--ds-border-subtle));
+  background: var(--ds-warn-bg);
+  color: var(--ds-warn);
+}
+
+.webhooks-panel__pill.is-danger {
+  border-color: color-mix(in srgb, var(--ds-error) 35%, var(--ds-border-subtle));
+  background: var(--ds-error-bg);
+  color: var(--ds-error);
+}
+
+.webhooks-panel__button {
+  min-height: 32px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.webhooks-panel__button:hover,
+.webhooks-panel__button:focus-visible {
+  border-color: color-mix(in srgb, var(--ds-accent) 38%, var(--ds-border-subtle));
+  background: var(--ds-accent-bg);
+}
+
+.webhooks-panel__button:focus-visible,
+.webhooks-panel__input:focus-visible,
+.webhooks-panel__textarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--ds-accent) 46%, transparent);
+  outline-offset: 1px;
+}
+
+.webhooks-panel__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.webhooks-panel__button.is-primary {
+  border-color: color-mix(in srgb, var(--ds-accent) 48%, var(--ds-border-subtle));
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}
+
+.webhooks-panel__button.is-danger {
+  color: var(--ds-error);
+}
+
+.webhooks-panel__field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.webhooks-panel__input,
+.webhooks-panel__textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 9px;
+}
+
+.webhooks-panel__textarea {
+  min-height: 58px;
+  resize: vertical;
+}
+
+.webhooks-panel__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text-2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.webhooks-panel__row,
+.webhooks-panel__delivery-row,
+.webhooks-panel__hero,
+.webhooks-panel__surface {
+  min-width: 0;
+  padding: 11px;
+}
+
+.webhooks-panel__row {
+  width: 100%;
+  cursor: pointer;
+  color: var(--ds-text-1);
+  text-align: left;
+}
+
+.webhooks-panel__row:hover,
+.webhooks-panel__row:focus-visible {
+  border-color: color-mix(in srgb, var(--ds-accent) 38%, var(--ds-border-subtle));
+  background: var(--ds-accent-bg);
+}
+
+.webhooks-panel__row.is-selected {
+  border-color: color-mix(in srgb, var(--ds-accent) 62%, var(--ds-border-subtle));
+  background: var(--ds-accent-bg);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+.webhooks-panel__row strong,
+.webhooks-panel__delivery-row strong,
+.webhooks-panel__hero strong,
+.webhooks-panel__meta {
+  overflow-wrap: anywhere;
+}
+
+.webhooks-panel__list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.webhooks-panel__raw,
+.webhooks-panel .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--ds-code-bg);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+@media (max-width: 980px) {
+  .webhooks-panel__workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .webhooks-panel__metrics,
+  .webhooks-panel__field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .webhooks-panel__header,
+  .webhooks-panel__card-head,
+  .webhooks-panel__hero,
+  .webhooks-panel__row,
+  .webhooks-panel__delivery-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

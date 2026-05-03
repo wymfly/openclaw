@@ -141,17 +141,14 @@ describe("WebhooksPanel", () => {
     expect(container.textContent).toContain("Attempt 2");
     expect(container.textContent).toContain("Retrying");
     expect(container.textContent).toContain('Details: {"error":"receiver unavailable"}');
-    expect(container.querySelector(".deck-ui-webhooks")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-webhooks-card").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-surface").length).toBeGreaterThanOrEqual(
-      1,
-    );
-    expect(container.querySelectorAll(".deck-ui-webhooks-input").length).toBe(0);
-    expect(container.querySelectorAll(".deck-ui-webhooks-button").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-webhooks-row").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-delivery-row").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-hero").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".deck-ui-webhooks-details").length).toBe(2);
+    expect(container.querySelector(".webhooks-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".webhooks-panel__card").length).toBe(2);
+    expect(container.querySelectorAll(".webhooks-panel__surface").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelectorAll(".webhooks-panel__input").length).toBe(4);
+    expect(container.querySelectorAll(".webhooks-panel__button").length).toBeGreaterThanOrEqual(7);
+    expect(container.querySelectorAll(".webhooks-panel__row").length).toBe(2);
+    expect(container.querySelectorAll(".webhooks-panel__delivery-row").length).toBe(2);
+    expect(container.querySelectorAll(".webhooks-panel__hero").length).toBeGreaterThanOrEqual(3);
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),

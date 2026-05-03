@@ -3458,7 +3458,7 @@
     "show": "显示",
     "hide": "隐藏",
     "emptyDescription": "创建 Webhook 以接收事件通知",
-    "panelDescription": "按旧 Deck 侧栏、表单和投递工作流管理 Webhook。",
+    "panelDescription": "管理 Webhook 接收端、投递证据、事件订阅和受保护操作。",
     "detailDescription": "检查单个 Webhook，编辑配置，测试投递，或查看投递历史。",
     "formDescription": "配置端点、签名密钥、订阅事件和启用状态。",
     "deliveriesDescription": "展示当前 Go facade 返回的状态、重试、尝试次数和响应详情。",

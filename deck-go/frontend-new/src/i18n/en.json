@@ -3458,7 +3458,7 @@
     "show": "Show",
     "hide": "Hide",
     "emptyDescription": "Create a webhook to receive event notifications",
-    "panelDescription": "Webhook inventory with the old Deck sidebar, form, and delivery workflow.",
+    "panelDescription": "Webhook receivers, delivery evidence, event subscriptions, and guarded operations.",
     "detailDescription": "Inspect one webhook, edit its configuration, test delivery, or review delivery history.",
     "formDescription": "Configure the endpoint, signing secret, subscribed events, and enabled state.",
     "deliveriesDescription": "Status, retry, attempt, and response details from the current Go facade.",

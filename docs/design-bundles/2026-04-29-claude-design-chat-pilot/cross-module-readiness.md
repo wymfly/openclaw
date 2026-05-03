@@ -402,6 +402,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/cron-visual.spec.ts` covers the ready scheduler workbench, run-history tab, heartbeat tab, template selection, and manual run result against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM or full upstream scheduler-completeness evidence.
 
+### Webhooks panel
+
+**Status:** in progress under OpenSpec change `frontend-webhooks-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Webhooks high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, card, code/json, and status tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** webhook metric tile, receiver catalog row, selected-receiver hero, event subscription control group, receiver form section, delivery evidence row, local test-delivery result seam, and raw action evidence disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, tab/action seams, and raw payload detail. Webhooks validates these patterns for receiver/delivery operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Webhooks-specific molecules:** event subscription controls and delivery evidence rows are candidates for a later Automate/Integrations pattern only after another receiver/delivery module validates the same API shape. Real external receiver availability, retry behavior, and signature validation remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/webhooks-visual.spec.ts` covers the ready receiver workbench, selected receiver switch, event edit state, and test-delivery result through public Deck BFF routes with a temporary local HTTP receiver. This is mock/local visual coverage, not real Gateway/LLM or full external receiver delivery evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -431,3 +445,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — activity hifi redesign (`frontend-activity-hifi-contract-redesign`)**: Activity moves runtime activity projection, monitor run history, selected event evidence, and selected run diagnostics into a module-local operations timeline. No canonical atom/token changes were introduced; existing mock visual event seeding was sufficient for coverage, while uncertain real Gateway/LLM projection completeness remains handoff follow-up.
 - **2026-05-03 — API Explorer hifi redesign (`frontend-api-explorer-hifi-contract-redesign`)**: API Explorer moves live `gateway.describe` inspection into a module-local contract catalog with schema tree and untyped/raw evidence. No canonical atom/token changes were introduced; deterministic mock Gateway describe drift was fixed for mock visual coverage, while real upstream schema completeness remains handoff follow-up.
 - **2026-05-03 — Cron hifi redesign (`frontend-cron-hifi-contract-redesign`)**: Cron moves scheduler status, job inventory, job editing, run history, heartbeat, and manual run evidence into a module-local scheduler workbench. No canonical atom/token changes were introduced; deterministic `cron.list`/`cron.status` mock and wrapper drift was fixed for mock visual coverage, while richer real Gateway scheduler state remains handoff follow-up.
+- **2026-05-03 — Webhooks hifi redesign (`frontend-webhooks-hifi-contract-redesign`)**: Webhooks moves receiver inventory, selected receiver evidence, event subscriptions, delivery history, and manual test delivery into a module-local receiver operations workbench. No canonical atom/token changes were introduced; existing BFF/localstore routes were sufficient for deterministic mock/local visual seeding, while real external receiver delivery assurance remains handoff follow-up.

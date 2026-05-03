@@ -34,37 +34,39 @@ export function WebhookForm(props: {
 
   return (
     <form
-      className="deckgo-surface-tile deck-ui-webhooks-surface"
+      className="webhooks-panel__surface webhooks-panel__form"
       onSubmit={(event) => {
         event.preventDefault();
         props.onSave();
       }}
     >
-      <div className="deckgo-panel-hero-strip deck-ui-webhooks-hero">
+      <div className="webhooks-panel__hero">
         <div>
-          <p className="deckgo-kicker">{t("configuration")}</p>
+          <p className="webhooks-panel__eyebrow">{t("configuration")}</p>
           <strong>{props.editing ? t("editWebhook") : t("addWebhook")}</strong>
-          <p className="deckgo-note">{t("formDescription")}</p>
+          <p className="webhooks-panel__note">{t("formDescription")}</p>
         </div>
-        <span className="deckgo-pill">{props.editing ? t("editMode") : t("createMode")}</span>
+        <span className="webhooks-panel__pill">
+          {props.editing ? t("editMode") : t("createMode")}
+        </span>
       </div>
-      <div className="deckgo-grid deckgo-grid-2 deck-ui-webhooks-form-grid">
-        <label className="deckgo-label">
+      <div className="webhooks-panel__field-grid">
+        <label className="webhooks-panel__field">
           <span>{t("name")}</span>
           <input
             aria-label="webhook name"
-            className="deckgo-input deck-ui-webhooks-input"
+            className="webhooks-panel__input"
             value={props.draft.name}
             onChange={(event) => updateDraft({ name: event.target.value })}
             placeholder={t("namePlaceholder")}
             required
           />
         </label>
-        <label className="deckgo-label">
+        <label className="webhooks-panel__field">
           <span>{t("url")}</span>
           <input
             aria-label="webhook url"
-            className="deckgo-input deck-ui-webhooks-input"
+            className="webhooks-panel__input"
             type="url"
             value={props.draft.url}
             onChange={(event) => updateDraft({ url: event.target.value })}
@@ -72,33 +74,33 @@ export function WebhookForm(props: {
             required
           />
         </label>
-        <label className="deckgo-label">
+        <label className="webhooks-panel__field">
           <span>{t("secret")}</span>
           <input
             aria-label="webhook secret"
-            className="deckgo-input deck-ui-webhooks-input"
+            className="webhooks-panel__input"
             type="password"
             value={props.draft.secret}
             onChange={(event) => updateDraft({ secret: event.target.value })}
             placeholder={t("optionalSecret")}
           />
         </label>
-        <label className="deckgo-label">
+        <label className="webhooks-panel__field">
           <span>{t("events")}</span>
           <input
             aria-label="webhook events"
-            className="deckgo-input deck-ui-webhooks-input"
+            className="webhooks-panel__input"
             value={props.draft.events}
             onChange={(event) => updateDraft({ events: event.target.value })}
             placeholder={t("eventsPlaceholder")}
           />
         </label>
       </div>
-      <div className="deckgo-pill-row deck-ui-webhooks-event-row">
+      <div className="webhooks-panel__pill-row">
         {AVAILABLE_WEBHOOK_EVENTS.map((eventName) => (
           <button
             aria-label={`toggle webhook event ${eventName}`}
-            className={`deckgo-button deck-ui-webhooks-button ${
+            className={`webhooks-panel__button ${
               draftEvents.includes(eventName) ? "is-primary" : ""
             }`}
             key={eventName}
@@ -109,27 +111,19 @@ export function WebhookForm(props: {
           </button>
         ))}
       </div>
-      <label className="deckgo-label">
-        <span>{t("enabledToggle")}</span>
+      <label className="webhooks-panel__checkbox">
         <input
           type="checkbox"
           checked={props.draft.enabled}
           onChange={(event) => updateDraft({ enabled: event.target.checked })}
         />
+        <span>{t("enabledToggle")}</span>
       </label>
-      <div className="deckgo-actions deck-ui-webhooks-actions deck-ui-webhooks-actions-offset">
-        <button
-          className="deckgo-button deck-ui-webhooks-button is-primary"
-          type="submit"
-          disabled={props.saving}
-        >
+      <div className="webhooks-panel__actions">
+        <button className="webhooks-panel__button is-primary" type="submit" disabled={props.saving}>
           {props.saving ? t("saving") : props.editing ? t("saveSelected") : t("createWebhook")}
         </button>
-        <button
-          className="deckgo-button deck-ui-webhooks-button"
-          type="button"
-          onClick={props.onCancel}
-        >
+        <button className="webhooks-panel__button" type="button" onClick={props.onCancel}>
           {t("cancel")}
         </button>
       </div>

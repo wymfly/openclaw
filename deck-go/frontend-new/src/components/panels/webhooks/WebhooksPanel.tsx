@@ -19,9 +19,24 @@ import {
 } from "./webhook-model";
 import { WebhookForm } from "./WebhookForm";
 import { WebhookList } from "./WebhookList";
+import { WebhookMetric } from "./WebhookMetric";
+import "./webhooks-panel.css";
 
-type ViewMode = "list" | "form" | "deliveries";
 type ActionState = "idle" | "creating" | "updating" | "testing" | "deleting";
+
+function formatWebhookDate(value: string | null | undefined, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(parsed);
+}
 
 export function WebhooksPanel() {
   const t = useTranslations("webhooks");
@@ -29,7 +44,6 @@ export function WebhooksPanel() {
   const [deliveries, setDeliveries] = useState<DeckGoWebhookDelivery[]>([]);
   const [selectedWebhookId, setSelectedWebhookId] = useState("");
   const [draft, setDraft] = useState(DEFAULT_WEBHOOK_DRAFT);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [editingWebhookId, setEditingWebhookId] = useState("");
   const [loadState, setLoadState] = useState<PanelState>("idle");
   const [actionState, setActionState] = useState<ActionState>("idle");
@@ -63,10 +77,8 @@ export function WebhooksPanel() {
       setSelectedWebhookId(nextSelected);
       if (nextSelected) {
         await loadDeliveries(nextSelected);
-        setViewMode((current) => (current === "form" ? current : "deliveries"));
       } else {
         setDeliveries([]);
-        setViewMode((current) => (current === "form" ? current : "list"));
       }
     } catch (loadError) {
       setLoadState("idle");
@@ -96,13 +108,13 @@ export function WebhooksPanel() {
 
   const selectWebhook = (webhookId: string) => {
     setSelectedWebhookId(webhookId);
-    setViewMode("deliveries");
+    setEditingWebhookId("");
+    setDraft(DEFAULT_WEBHOOK_DRAFT);
   };
 
   const startCreate = () => {
     setEditingWebhookId("");
     setDraft(DEFAULT_WEBHOOK_DRAFT);
-    setViewMode("form");
   };
 
   const startEdit = () => {
@@ -111,7 +123,6 @@ export function WebhooksPanel() {
     }
     setEditingWebhookId(selectedWebhook.id);
     setDraft(draftFromWebhook(selectedWebhook));
-    setViewMode("form");
   };
 
   const saveAction = async () => {
@@ -127,7 +138,6 @@ export function WebhooksPanel() {
       setDraft(DEFAULT_WEBHOOK_DRAFT);
       setEditingWebhookId("");
       await refresh(result.id);
-      setViewMode("deliveries");
     } catch (actionError) {
       setError(
         actionError instanceof Error
@@ -151,7 +161,6 @@ export function WebhooksPanel() {
       setActionResult(result);
       setError("");
       await refresh(selectedWebhook.id);
-      setViewMode("deliveries");
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("testFailed"));
     } finally {
@@ -172,7 +181,6 @@ export function WebhooksPanel() {
       setActionResult(result);
       setError("");
       await refresh();
-      setViewMode("list");
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("deleteFailed"));
     } finally {
@@ -181,68 +189,59 @@ export function WebhooksPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-webhooks">
-      <div className="deckgo-column deck-ui-webhooks-column">
-        <WebhookList
-          webhooks={webhooks}
-          deliveriesCount={deliveries.length}
-          error={error}
-          loadState={loadState}
-          selectedWebhookId={selectedWebhookId}
-          onCreate={startCreate}
-          onRefresh={() => void refresh(selectedWebhookId)}
-          onSelect={selectWebhook}
-        />
-      </div>
+    <section className="webhooks-panel" data-testid="webhooks-panel">
+      <header className="webhooks-panel__header">
+        <div className="webhooks-panel__title-stack">
+          <p className="webhooks-panel__eyebrow">Automate</p>
+          <h1 className="webhooks-panel__title">{t("title")}</h1>
+          <p className="webhooks-panel__description">{t("panelDescription")}</p>
+        </div>
+        <div className="webhooks-panel__pill-row">
+          <span className={`webhooks-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
+            {t("statusPrefix")} {t(loadState)}
+          </span>
+          <span className="webhooks-panel__pill">
+            {t("configuredCount", { count: webhooks.length })}
+          </span>
+        </div>
+      </header>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-webhooks-column deck-ui-webhooks-detail-column">
-        <article className="deckgo-card is-float deck-ui-webhooks-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">
-              {viewMode === "form" ? t("configuration") : t("selectedWebhook")}
-            </h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("detailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-webhooks-body">
-            {viewMode === "form" ? (
-              <WebhookForm
-                draft={draft}
-                editing={Boolean(editingWebhook)}
-                saving={actionState === "creating" || actionState === "updating"}
-                onCancel={() => {
-                  setEditingWebhookId("");
-                  setViewMode(selectedWebhook ? "deliveries" : "list");
-                }}
-                onChange={setDraft}
-                onSave={() => void saveAction()}
-              />
-            ) : selectedWebhook ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-webhooks-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("webhook")}</p>
-                    <strong>{selectedWebhook.name}</strong>
-                    <p className="deckgo-note">{selectedWebhook.url}</p>
-                  </div>
-                  <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">
-                      {selectedWebhook.enabled ? t("enabled") : t("disabled")}
-                    </span>
-                    <span className="deckgo-pill">
-                      {t("eventCount", { count: selectedWebhook.events.length })}
-                    </span>
-                  </div>
-                </div>
-                <div className="deckgo-pill-row deck-ui-webhooks-event-row">
-                  {selectedWebhook.events.map((eventName) => (
-                    <span className="deckgo-pill" key={eventName}>
-                      {eventName}
-                    </span>
-                  ))}
-                </div>
-                <div className="deckgo-actions deck-ui-webhooks-actions">
+      <div className="webhooks-panel__workspace">
+        <div className="webhooks-panel__column">
+          <WebhookList
+            webhooks={webhooks}
+            deliveriesCount={deliveries.length}
+            error={error}
+            loadState={loadState}
+            selectedWebhookId={selectedWebhookId}
+            onCreate={startCreate}
+            onRefresh={() => void refresh(selectedWebhookId)}
+            onSelect={selectWebhook}
+          />
+          <WebhookForm
+            draft={draft}
+            editing={Boolean(editingWebhook)}
+            saving={actionState === "creating" || actionState === "updating"}
+            onCancel={() => {
+              setEditingWebhookId("");
+              setDraft(DEFAULT_WEBHOOK_DRAFT);
+            }}
+            onChange={setDraft}
+            onSave={() => void saveAction()}
+          />
+        </div>
+
+        <div className="webhooks-panel__column">
+          <article className="webhooks-panel__card">
+            <div className="webhooks-panel__card-head">
+              <div>
+                <p className="webhooks-panel__eyebrow">{t("webhook")}</p>
+                <h2 className="webhooks-panel__title">{t("selectedWebhook")}</h2>
+              </div>
+              {selectedWebhook ? (
+                <div className="webhooks-panel__actions">
                   <button
-                    className="deckgo-button deck-ui-webhooks-button"
+                    className="webhooks-panel__button"
                     type="button"
                     onClick={startEdit}
                     disabled={actionState !== "idle"}
@@ -250,7 +249,7 @@ export function WebhooksPanel() {
                     {t("editWebhook")}
                   </button>
                   <button
-                    className="deckgo-button deck-ui-webhooks-button is-danger"
+                    className="webhooks-panel__button is-danger"
                     type="button"
                     onClick={() => void deleteAction()}
                     disabled={actionState !== "idle"}
@@ -258,29 +257,80 @@ export function WebhooksPanel() {
                     {actionState === "deleting" ? t("deleting") : t("deleteWebhook")}
                   </button>
                 </div>
-                <div className="deck-ui-webhooks-details">
-                  <JsonDetails title={t("webhookPayload")} payload={selectedWebhook} />
+              ) : null}
+            </div>
+            <div className="webhooks-panel__body webhooks-panel__detail-stack">
+              <p className="webhooks-panel__description">{t("detailDescription")}</p>
+              {selectedWebhook ? (
+                <>
+                  <div className="webhooks-panel__hero">
+                    <div>
+                      <p className="webhooks-panel__eyebrow">{t("webhook")}</p>
+                      <strong>{selectedWebhook.name}</strong>
+                      <p className="webhooks-panel__note">{selectedWebhook.url}</p>
+                    </div>
+                    <div className="webhooks-panel__pill-row">
+                      <span
+                        className={`webhooks-panel__pill ${
+                          selectedWebhook.enabled ? "is-good" : ""
+                        }`}
+                      >
+                        {selectedWebhook.enabled ? t("enabled") : t("disabled")}
+                      </span>
+                      <span className="webhooks-panel__pill">
+                        {t("eventCount", { count: selectedWebhook.events.length })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="webhooks-panel__metrics">
+                    <WebhookMetric
+                      label={t("lastStatus")}
+                      value={selectedWebhook.lastStatus ?? t("notAvailable")}
+                    />
+                    <WebhookMetric
+                      label={t("failures")}
+                      value={selectedWebhook.consecutiveFailures}
+                    />
+                    <WebhookMetric
+                      label={t("time")}
+                      value={formatWebhookDate(selectedWebhook.lastFiredAt, t("notAvailable"))}
+                    />
+                    <WebhookMetric
+                      label={t("secret")}
+                      value={selectedWebhook.secret ? t("enabled") : t("notAvailable")}
+                    />
+                  </div>
+                  <div className="webhooks-panel__pill-row">
+                    {selectedWebhook.events.map((eventName) => (
+                      <span className="webhooks-panel__pill" key={eventName}>
+                        {eventName}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="webhooks-panel__surface">
+                    <JsonDetails title={t("webhookPayload")} payload={selectedWebhook} />
+                  </div>
+                  <DeliveryHistory
+                    deliveries={deliveries}
+                    selectedWebhook={selectedWebhook}
+                    testing={actionState === "testing"}
+                    onTest={() => void testAction()}
+                  />
+                  <div className="webhooks-panel__surface">
+                    <JsonDetails title={t("deliveryHistoryPayload")} payload={deliveries} />
+                  </div>
+                </>
+              ) : (
+                <p className="webhooks-panel__note">{t("selectWebhookHint")}</p>
+              )}
+              {actionResult ? (
+                <div className="webhooks-panel__surface">
+                  <JsonDetails title={t("lastWebhookAction")} payload={actionResult} />
                 </div>
-                <DeliveryHistory
-                  deliveries={deliveries}
-                  selectedWebhook={selectedWebhook}
-                  testing={actionState === "testing"}
-                  onTest={() => void testAction()}
-                />
-                <div className="deck-ui-webhooks-details">
-                  <JsonDetails title={t("deliveryHistoryPayload")} payload={deliveries} />
-                </div>
-              </>
-            ) : (
-              <p className="deckgo-note">{t("selectWebhookHint")}</p>
-            )}
-            {actionResult ? (
-              <div className="deck-ui-webhooks-details">
-                <JsonDetails title={t("lastWebhookAction")} payload={actionResult} />
-              </div>
-            ) : null}
-          </div>
-        </article>
+              ) : null}
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );
