@@ -1,63 +1,87 @@
-# Models States
+# models — states
 
-## Ready
+## View routing
 
-All configured data resolves:
+| State         | Trigger                                                          | Notes                                                              |
+| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `view=list`   | initial mount, `Esc` from detail, "Models" breadcrumb            | Default.                                                           |
+| `view=detail` | row click, Tweaks `Active view = detail`, `Enter` on focused row | Re-mounts DetailView on `selectedModel` change (`key={model.id}`). |
 
-- model config raw JSON + hash
-- runtime configured models
-- model auth overview
-- catalog providers
-- usage cost
-- provider pressure
-- schema lookup
+## ListView state
 
-The first viewport shows readiness, providers, configured models, auth providers,
-catalog providers, latest cost, runtime provider rail, auth rail, and tab
-navigation.
+| State     | Description                  | UI                                                       |
+| --------- | ---------------------------- | -------------------------------------------------------- |
+| `ready`   | Models loaded, rows rendered | KPI strip + toolbar + provider sections.                 |
+| `loading` | Refresh before any data      | Centered spinner + "Loading models…".                    |
+| `error`   | `GET /models/config` failed  | Error block + Retry button; existing rows kept on retry. |
+| `empty`   | No models configured         | EmptyState with "Add from catalog" CTA.                  |
 
-## Loading
+The Tweaks `listState` toggles between these for design verification.
 
-The panel keeps the workbench frame stable while data loads. Loading should show
-`Models loading` and avoid resizing the tab strip.
+## DetailView state
 
-## Config Error
+| State     | Description                                                           |
+| --------- | --------------------------------------------------------------------- |
+| `ready`   | Hero + tabs + selected-tab body all rendered.                         |
+| `loading` | Body shows single spinner; hero stays (it's derived from list cache). |
+| `error`   | Body shows error block; hero stays. Retry button.                     |
 
-If any initial load call fails, show a compact error seam near the header. Do not
-replace the whole workbench unless no data is available.
+Switching models resets `activeTab` to `overview`.
 
-## Empty Runtime Models
+## Tab body states
 
-If `models.configured` returns no models, keep provider config and raw config
-available. Runtime inventory shows an unavailable/empty state.
+- **Overview** — KPI tiles + provider auth row + 3-cell pricing strip.
+- **Limits** — tile row with caps + reasoning/local flags + caveat
+  banner.
+- **Pricing** — 3-cell strip with input / output / avg-call; warn
+  banner clarifying vendor invoice authority.
+- **Usage** — 3 sections: provider quota windows (quota bars at
+  0..100%; level=warn>60, err>80), this-model 24h spend, provider
+  health.
+- **Auth** — auth row + cooldown banner (if active) + OAuth tiles (if
+  applicable).
+- **Audit** — entries filtered to this model.
 
-## Empty Catalog Providers
+Each tab has an explicit empty-state when its source data is missing.
 
-If `models.catalog.providers` returns no providers, catalog actions are hidden
-or disabled and the catalog tab explains that Gateway returned no providers.
+## Provider auth status levels
 
-## Provider Config
+| Status     | Pill          |
+| ---------- | ------------- |
+| `ready`    | `pill--ok`    |
+| `cooldown` | `pill--warn`  |
+| `missing`  | `pill--err`   |
+| `error`    | `pill--err`   |
+| `unknown`  | `pill--muted` |
 
-Global provider config edits are structured projections over the raw draft.
-Fields update `models.providers.<provider>` and save through `/models/config`.
+## Probe edge cases
 
-## Fallback Chains
+- `status=ok` → ok pill + latency.
+- `status=cooldown` → warn pill; latency may be 0.
+- `status=unknown` → muted pill ("—").
+- `status=error` → err pill; reason in `reasonCode` + `error`.
 
-Text and image chains show primary model plus ordered fallbacks. Unknown refs
-remain visible; the UI must not silently remove unavailable fallbacks.
+## Mutations
 
-## Allowlist
+- Set default → PATCH runtime config; runtime re-emits
+  `models.configured`; UI swaps `isDefault` flags.
+- Add model from catalog → PATCH runtime config; new
+  RuntimeConfiguredModel appears next cycle.
+- Configure auth → PATCH runtime config; refresh `deck.auth.overview`.
+- Probe → POST `deck.auth.probe`; result populates probe cache (~30s
+  server-side); dialog can force a re-run.
+- Edit fallback chain → PATCH config; new chain reflected next cycle.
 
-When `agents.defaults.models` is present, each candidate ref can be enabled,
-disabled, aliased, marked streaming, and given JSON params. Invalid params show
-an error and do not mutate the draft.
+## Responsive
 
-## Probe Result
+- ≥1080px: 5-col KPI / 7-col row / 4-col tile-row / 3-col pricing /
+  2-col catalog-grid.
+- 720–1080px: 3-col KPI / 6-col row (drop max-tokens) / 2-col tile-row
+  / 2-col pricing / 1-col catalog.
+- <720px: 2-col KPI / 4-col row (drop context) / 1-col tile / 1-col
+  pricing / 1-col catalog.
 
-Probe result appears as evidence after `deck.auth.probe`. Auth overview refreshes
-after the probe completes.
+## Density
 
-## Mock-Only Visual
-
-Mock visual E2E evidence is not real Gateway/LLM evidence. Any screenshot or
-report must label it as contract-shaped mock coverage.
+`data-density="compact"` reduces vertical padding on rows, KPI tiles,
+detail tiles, audit rows, and auth rows by ≈30%.

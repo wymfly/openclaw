@@ -1,68 +1,151 @@
-# Models Components
+# models — components
 
-## Component Tree
+> v2 multi-file handoff. Engineering target is
+> `frontend-new/src/components/panels/models/`.
 
-- `ModelsPanel`
-  - `ModelsWorkbenchHeader`
-  - `ModelMetricStrip`
-  - `RuntimeProviderRail`
-  - `ProviderAuthRail`
-  - `RawConfigSidecar`
-  - `ModelsWorkbenchTabs`
-    - `RuntimeInventoryView`
-      - `ProviderTree`
-      - `ModelDetailCard`
-      - `ModelInventoryRow`
-    - `ProviderConfigView`
-      - `SchemaLookupStrip`
-      - `ProviderSidebar`
-      - `ProviderConfigForm`
-      - `BedrockDiscoveryCard`
-      - `ProviderModelsEditor`
-      - `StringRecordEditor`
-    - `FallbackChainView`
-      - `FallbackChainCard`
-      - `FallbackEditor`
-      - `AllowlistRow`
-    - `UsageEvidenceView`
-      - `UsageCostBar`
-      - `ProviderQuotaCard`
-      - `ProbeResultCard`
+## Production component skeleton
 
-## Local Molecules
+```
+ModelsPanel
+  └── (route) → ModelsListView
+                 ├── ModelsToolbar (search + filter + add-button)
+                 ├── ModelsKpiStrip
+                 └── ProviderSection[]
+                      ├── ProviderSectionHeader (glyph + status)
+                      └── ModelRow[]
+  └── (route) → ModelsDetailView
+                 ├── DetailHero (provider glyph + model id + status pills)
+                 ├── ModelTabsBar
+                 └── (tab body)
+                      ├── TabOverview
+                      ├── TabLimits
+                      ├── TabPricing
+                      ├── TabUsage
+                      ├── TabAuth
+                      └── TabAudit
+  └── ModelDialogs
+       ├── ProbeResultDialog
+       ├── AuthConfigDialog
+       └── CatalogDialog (add model from provider catalog)
+```
 
-### Model Metric Tile
+## Prototype file → production target
 
-Displays label, numeric value, and small contract hint. It stays local until the
-metric tile API is promoted by a dedicated design-system proposal.
+| Prototype file     | Production target                                                                        |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `app.jsx`          | `ModelsPanel.tsx`                                                                        |
+| `list-view.jsx`    | `ModelsListView.tsx` + `ProviderSection.tsx` + `ModelRow.tsx` + `ProviderStatusPill.tsx` |
+| `detail-view.jsx`  | `ModelsDetailView.tsx` + 6 tab modules                                                   |
+| `dialogs.jsx`      | `dialogs/ProbeResultDialog.tsx` + `AuthConfigDialog.tsx` + `CatalogDialog.tsx`           |
+| `data.js`          | `__fixtures__/models.fixture.ts`                                                         |
+| `icons.jsx`        | `@/design-system/icons` re-exports + provider glyph local                                |
+| `styles.css`       | per-component `.css` files (kebab-case)                                                  |
+| `tokens.css`       | dropped (canonical lives in `frontend-new/src/design-system/tokens/`)                    |
+| `tweaks-panel.jsx` | dropped (design-time tooling only)                                                       |
 
-### Runtime Provider Rail
+## Props (shape contracts)
 
-Compact side rail grouped by provider. Selecting a provider updates the catalog
-selection but does not fetch new data.
+### ModelsListView
 
-### Model Inventory Row
+```ts
+interface ModelsListViewProps {
+  models: RuntimeConfiguredModel[]; // shaped from DeckGoRuntimeConfiguredModelsResponse
+  listState: "ready" | "loading" | "error" | "empty";
+  searchQuery: string;
+  filter: "all" | "default" | "fallback" | "reasoning" | "local";
+  onSearch: (q: string) => void;
+  onFilter: (f: ModelsListFilter) => void;
+  onSelect: (modelId: string) => void;
+  onCatalogClick: () => void;
+}
 
-Table-like row with model name/ref, context window, input modes, default badges,
-and quick actions. It is not a canonical DataTable yet.
+interface RuntimeConfiguredModel {
+  id: string;
+  provider: string;
+  family: string;
+  displayName: string;
+  contextWindow: number;
+  maxTokens: number;
+  reasoning?: boolean;
+  isDefault?: boolean;
+  fallback?: boolean;
+  local?: boolean;
+  lastUsedMs?: number | null;
+}
+```
 
-### Provider Config Field Cluster
+### ModelRow
 
-Groups provider API/auth/base URL/key/header/model fields while preserving raw
-config mutation semantics.
+```ts
+interface ModelRowProps {
+  model: RuntimeConfiguredModel;
+  probe?: DeckGoModelProbeResponse["payload"];
+  perModelCost?: { in: number; out: number; requests: number };
+  selected: boolean;
+  onSelect: (id: string) => void;
+}
+```
 
-### Fallback Chain Card
+7 columns: provider glyph, id+meta + role pills, context window, max
+tokens, probe pill, 24h spend, status pill.
 
-Shows primary model plus ordered fallbacks for text and image chains. The chain
-visually communicates failover order without changing `agents.defaults` shape.
+### ModelsDetailView
 
-### Usage Cost Bar / Provider Quota Card
+```ts
+interface ModelsDetailViewProps {
+  model: RuntimeConfiguredModel;
+  detailState: "ready" | "loading" | "error";
+  activeTab: ModelTabId;
+  onTabChange: (tab: ModelTabId) => void;
+  onBack: () => void;
+  onProbe: () => void;
+  onAuthConfig: () => void;
+}
 
-Shows mock/frontend usage evidence only. It should not imply live billing truth.
+type ModelTabId = "overview" | "limits" | "pricing" | "usage" | "auth" | "audit";
+```
 
-## Production Notes
+### TabOverview / TabLimits / TabPricing / TabUsage / TabAuth / TabAudit
 
-- Keep all state in `ModelsPanel` unless a real duplication pressure appears.
-- Keep `ProviderModelsEditor` and `StringRecordEditor` as local helpers.
-- Keep copy in `i18n/en.json` and `i18n/zh.json`.
-- Keep production CSS in `models-panel.css`; do not add inline styles.
+Each consumes data from `MOCK` (or production: `useModelsConfig()` +
+`useAuthOverview()` + `useUsageCost()` selectors) and renders the
+relevant section. See `data.js` for shape; see `interactions.md` for
+state behavior.
+
+### Dialogs
+
+| Dialog              | Props                                                                                                     |
+| ------------------- | --------------------------------------------------------------------------------------------------------- |
+| `ProbeResultDialog` | `{ open, model, onClose }` — KPI tiles for ok probe; warn banner for cooldown/error.                      |
+| `AuthConfigDialog`  | `{ open, provider, onClose, onSave }` — segmented authType (apiKey/oauth/profile/none) + per-type fields. |
+| `CatalogDialog`     | `{ open, onClose, onAdd(modelId) }` — two-pane: provider list (left) + model cards (right).               |
+
+## Class naming
+
+Production should keep prototype kebab-case classes:
+
+- `.list-view` / `.kpi-strip` / `.kpi`
+- `.provider-section` / `.provider-section__head` / `.provider-section__title`
+- `.row` / `.row.is-default` / `.row__id` / `.row__num`
+- `.detail__head` / `.hero` / `.hero__title` / `.hero__meta`
+- `.tabs` / `.tab`
+- `.section` / `.section__head` / `.section__title`
+- `.tile-row` / `.tile`
+- `.quota` / `.quota__head` / `.quota__bar` / `.quota__fill`
+- `.auth-list` / `.auth-row` / `.auth-row__main`
+- `.pricing` / `.pricing__cell`
+- `.chain` / `.chain__node` / `.chain__node--default`
+- `.audit-list` / `.audit-row`
+- `.catalog-grid` / `.catalog-card`
+- `.modal-backdrop` / `.modal` / `.modal__head` / `.modal__body` / `.modal__foot`
+- `.pill` / `.pill--ok|warn|err|info|muted`
+
+## Accessibility
+
+- Inventory rows: `role="button"`, `tabIndex={0}`, `onKeyDown` for
+  Enter/Space.
+- Tabs: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Modals: `role="dialog"` + `aria-modal="true"` + `aria-label`.
+- Quota bars: engineering adds `role="meter"` with `aria-valuenow`,
+  `aria-valuemax`.
+- Status pills always carry text label; color is decoration.
