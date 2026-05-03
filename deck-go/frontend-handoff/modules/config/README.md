@@ -1,54 +1,156 @@
-# Config Handoff
+# config — high-fidelity handoff (v2)
 
-Status: ready for production rewrite under `frontend-config-hifi-contract-redesign`.
+**Status:** `revised v2 — pending implementation`
+**Protocol version:** `protocol-v1`
+**Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
+**V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
 
-## Contract Truth
+`config/` is the **`openclaw.json` editor**. It pairs a schema-guided form
+view with a raw JSON editor + diff preview + apply history, all driven by
+optimistic-concurrency `baseHash` semantics. Two-pane (section nav + form)
+plus a third right-hand "preview" pane that swaps between Diff / Raw / History.
 
-- Browser entry points:
-  - `fetchDeckConfig()` -> `GET /api/config`
-  - `applyDeckConfig(raw, baseHash)` -> `POST /api/config/apply`
-  - `lookupConfigPath(path)` -> `POST /api/config/schema-lookup`
-- Deck-facing DTO authority:
-  - `DeckGoConfigSnapshotResponse`
-  - `DeckGoConfigApplyResponse`
-  - `DeckGoConfigLookupChild`
-  - `DeckGoConfigLookupResponse`
-- Backend/Gateway chain:
-  - Go routes: `deck-go/backend/internal/server/config.go` and `gateway.go`
-  - Gateway methods: `config.get`, `config.apply`, `config.patch`, `config.schema.lookup`
-- Mutation safety:
-  - Snapshot hash/baseHash is the apply base.
-  - Raw JSON is the single draft source.
-  - Structured field edits write back into the raw JSON draft and do not mutate backend state until apply.
+## File inventory
 
-## Product Frame
+| File                      | Purpose                                                                                                                    |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `prototype.html`          | ~26-line shell loading React + Babel + 7 jsx + 2 css.                                                                      |
+| `data.js`                 | Mock fixture: realistic openclaw.json (6 top-level sections × ~30 leaves) + per-path schemaLookups + recentApplies.        |
+| `icons.jsx`               | 24 SVG icons + `SectionIcon` + `HashChip` + `FieldTypeBadge` + `RequiredDot` + `StatusPill`.                               |
+| `section-nav.jsx`         | Left rail: searchable list of top-level sections + per-section dirty count.                                                |
+| `form-section.jsx`        | Middle column: schema-driven form (`FormGroup` + recursive `SubsectionCard` + per-leaf `FieldRow`).                        |
+| `diff-pane.jsx`           | Right column: Diff / Raw JSON / Apply history (3-mode tab strip).                                                          |
+| `dialogs.jsx`             | `ApplyConfirmDialog` (3-phase wizard, optimistic-concurrency banner) + `ResetDialog` + `RawSnapshotDialog` + `ModalShell`. |
+| `app.jsx`                 | `ConfigApp` orchestrator + draft/snapshot state + ⌘K + dialog lifecycle.                                                   |
+| `styles.css`              | Three-pane workbench + form variants + diff list + apply-history rows + modal shell.                                       |
+| `tokens.css`              | Mirror of canonical `--ds-*` tokens.                                                                                       |
+| `tweaks-panel.jsx`        | Design-time state knobs (theme/density/paneMode).                                                                          |
+| `prototype-v1-codex.html` | Original Codex single-file prototype.                                                                                      |
 
-Config is a governance workbench for openclaw.json. Operators need to inspect current config shape, edit a structured subset safely, review raw JSON diffs before applying, and recover when the backend reports a stale base hash.
+## Contract truth
 
-## Workflow Constraints
+```ts
+// from deck-go/contracts/source/deck-api.contract.ts
+export type DeckGoConfigSnapshotResponse = {
+  path?: string;
+  exists?: boolean;
+  valid?: boolean;
+  raw?: string | null;
+  config?: unknown;
+  hash?: string;
+  baseHash?: string;
+};
 
-- Keep all browser traffic behind the Go BFF. Do not call Gateway directly.
-- Keep raw JSON as the single source of draft truth.
-- Keep sensitive masking as display-only. Do not imply secret vault protection.
-- Keep unsupported concepts out of the UI: schema authoring, schema migration generation, history/version restore, config import/export, collaborative editing, and production rollback assurance.
-- Label mock/local visual tests as mock/local evidence only.
+export type DeckGoConfigApplyResponse = {
+  ok?: boolean;
+  baseHash?: string;
+  hash?: string;
+};
 
-## Implementation Notes
+export type DeckGoConfigLookupChild = {
+  key: string;
+  path: string;
+  type?: string | string[];
+  required: boolean;
+  hasChildren: boolean;
+  hint?: Record<string, unknown>;
+  hintPath?: string;
+};
 
-- First viewport should expose:
-  - config status
-  - top-level key count
-  - schema section count
-  - hash/baseHash
-  - dirty state
-  - raw editor controls
-  - schema lookup and structured fields
-  - diff/conflict surfaces when active
-- Apply flow remains preview-first: raw edit -> diff preview -> confirm apply.
-- Conflict flow remains refresh-aware: failed apply -> latest config fetch -> remote-vs-local diff -> reload latest or retry with latest hash.
+export type DeckGoConfigLookupResponse = {
+  path: string;
+  schema?: Record<string, unknown>;
+  hint?: Record<string, unknown>;
+  children: DeckGoConfigLookupChild[];
+};
+```
 
-## Open Questions
+Endpoints:
 
-- Whether future Gateway contracts will expose config history or rollback.
-- Whether schema hints should provide richer labels/help text for all plugin-owned fields.
-- Whether a future canonical JSON editor atom is justified after config and models both exercise raw JSON editing.
+- `GET  /api/config` → `DeckGoConfigSnapshotResponse`
+- `POST /api/config/apply` → `DeckGoConfigApplyResponse`
+- `POST /api/config/schema-lookup` → `DeckGoConfigLookupResponse`
+
+## Form-lib stack decision (locked here)
+
+The contract returns the **schema per path**, not as a full document — section
+detail expands lazily via `schema-lookup`. v2 uses **plain `useState` +
+schema-driven render** for the prototype:
+
+| Option                      | Pros                                         | Cons                                          | Verdict                 |
+| --------------------------- | -------------------------------------------- | --------------------------------------------- | ----------------------- |
+| Plain `useState` + handlers | Zero deps; matches schema-per-path streaming | Manual validation wiring                      | ✅ for prototype        |
+| `react-hook-form`           | Field-level subscriptions, perf at scale     | Schema is dynamic — register/unregister churn | ⏳ engineering decision |
+| `formik`                    | Mature; nested fields                        | Slower for 100+ field forms; less momentum    | ❌                      |
+| `@tanstack/form`            | Type-safe; field arrays first-class          | Newer; learning curve                         | ⏳ engineering decision |
+
+**Recommendation for engineering integration**: keep the field-render contract
+the prototype establishes (`schemaLookups[path].children` → leaf form rows),
+then layer `react-hook-form` on top so each subsection card can register its
+fields independently. Stack-decisions doc to be updated alongside the first
+real implementation pass — see open question §2 below.
+
+## Contract-reality scope correction
+
+The **PRD originally asked** for a single multi-file form workbench backed by
+"DeckGoConfigSchema". That DTO **does not exist** as a single shape — schema
+is delivered per path via `DeckGoConfigLookupResponse`. v2 reflects that:
+
+- The right pane shows **diff + raw + apply history**, not "validation report".
+- Section navigation expands schema **lazily per path** in production
+  (prototype precomputes for visual fidelity).
+- The "stack decision" output is documented inline here in this README rather
+  than a separate `api-discrepancy.md`, since the form-lib decision is
+  defer-to-engineering, not a blocker.
+
+## Depends on canonical patterns / icons
+
+`@/design-system/patterns`:
+
+- `PageShell`, `EmptyState`, `SectionHeader` (used implicitly by topbar +
+  empty-diff card).
+
+`@/design-system/icons`:
+
+- `IconRefresh`, `IconSave`, `IconUndo`, `IconChevronRight`,
+  `IconChevronDown`, `IconClose`, `IconCheck`, `IconAlert`, `IconLock`,
+  `IconKey`, `IconJson`, `IconDiff`, `IconClock`, `IconUser`, `IconAgent`,
+  `IconModel`, `IconChannel`, `IconPlugin`, `IconHook`, `IconRuntime`,
+  `IconSearch`, `IconCopy`, `IconArrowOut`, `IconBan`.
+
+`SectionIcon`, `HashChip`, `FieldTypeBadge`, `RequiredDot`, `StatusPill`
+stay local to `config/`. `FieldTypeBadge` is a strong promotion candidate —
+any schema-driven panel (api-explorer, webhooks) needs the same chip vocab.
+
+## How to implement
+
+1. Open `prototype.html` in a static server. Walk every state via the Tweaks
+   panel (paneMode ∈ diff/raw/history; density compact/cozy; theme dark/light).
+2. Translate to `frontend-new/src/components/panels/config/` keeping the
+   class-name shape (`form-section__*`, `field-row__*`, `diff-row__*`,
+   `subsection__*`).
+3. Wire real fetcher in `frontend-new/src/api/config.ts`:
+   - `fetchSnapshot()` → `GET /api/config`
+   - `applyConfig({ baseHash, raw })` → `POST /api/config/apply`
+   - `lookupSchema(path)` → `POST /api/config/schema-lookup`
+4. Hardcoded literal strings get extracted to `frontend-new/src/i18n/{en,zh}.json`
+   in one pass.
+5. Schema lookup is **lazy** — fire on subsection expand, not on initial load.
+   Cache responses by `path`; invalidate when an apply succeeds.
+6. Apply concurrency: send `baseHash`, handle 409 by re-fetching snapshot
+   and showing the conflict in the apply dialog (production version of the
+   `phase--error` state).
+
+## Open questions for follow-up
+
+1. **`recentApplies` is BFF-projected** — there is no contract for an apply
+   audit log. Should the contract gain an explicit `DeckGoConfigApplyHistoryResponse`?
+2. **Form-lib choice** — `react-hook-form` is the leading candidate but only
+   commits when the engineering pass starts. Keep this README as the placeholder
+   until then; update `docs/project/stack-decisions.md` once decided.
+3. **Secret fields** — `hint.secret` is a synthetic hint the prototype assumes;
+   should the contract surface `format: "env-ref"` for fields that must
+   reference `$ENV_VAR`?
+4. **Schema lookup batching** — production may need a batch endpoint
+   (`POST /api/config/schema-lookup/batch`) for the section nav to render
+   dirty counts without one round-trip per subsection.
