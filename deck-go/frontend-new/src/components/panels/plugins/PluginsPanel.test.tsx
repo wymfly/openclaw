@@ -47,7 +47,7 @@ function buttonByText(text: string) {
 }
 
 function cardByText(text: string) {
-  return Array.from(container.querySelectorAll<HTMLElement>('[role="button"]')).find((card) =>
+  return Array.from(container.querySelectorAll<HTMLElement>(".plugins-panel__row")).find((card) =>
     card.textContent?.includes(text),
   );
 }
@@ -168,6 +168,8 @@ describe("PluginsPanel", () => {
 
     expect(container.textContent).toContain("Inventory ready");
     expect(container.textContent).toContain("Inventory Scope: workspace");
+    expect(container.textContent).toContain("Plugin inventory");
+    expect(container.textContent).toContain("Selected plugin");
     expect(container.textContent).toContain("Channel plugins");
     expect(container.textContent).toContain("All plugins");
     expect(container.textContent).toContain("2");
@@ -177,19 +179,16 @@ describe("PluginsPanel", () => {
     expect(container.textContent).toContain("Slack");
     expect(container.textContent).toContain("channel, tool");
     expect(container.textContent).toContain("github, teams");
-    expect(container.querySelector(".deck-ui-control-single.deck-ui-plugins")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-plugins-body")).toHaveLength(1);
-    expect(container.querySelectorAll(".deck-ui-plugins-status-row").length).toBeGreaterThanOrEqual(
-      2,
-    );
-    expect(container.querySelector(".deck-ui-plugins-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-plugins-actions")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-plugins-button").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".deck-ui-plugins-list")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-plugins-row")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-plugins-detail-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-plugins-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-plugins-diagnostics")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel__actions")).toBeTruthy();
+    expect(container.querySelectorAll(".plugins-panel__button").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelector(".plugins-panel__catalog")).toBeTruthy();
+    expect(container.querySelectorAll(".plugins-panel__row")).toHaveLength(2);
+    expect(container.querySelector(".plugins-panel__field-grid")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel__surface")).toBeTruthy();
+    expect(container.querySelector(".plugins-panel__diagnostics")).toBeTruthy();
 
     const selectedCard = cardByText("GitHub");
     expect(selectedCard?.className).toContain("is-selected");
@@ -262,6 +261,7 @@ describe("PluginsPanel", () => {
     expect(container.textContent).toContain("Activation Source: config");
     expect(container.textContent).toContain("Activation Reason: channel enabled in config");
     expect(container.textContent).toContain("[warn] token missing");
+    expect(container.textContent).toContain("Lifecycle controls deferred");
     expect(container.textContent).toContain("Not visible in Channels: teams");
     expect(container.textContent).not.toContain("Open teams");
 
@@ -318,6 +318,8 @@ describe("PluginsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("清单就绪"));
     expect(container.textContent).toContain("清单范围");
     expect(container.textContent).toContain("workspace");
+    expect(container.textContent).toContain("插件清单");
+    expect(container.textContent).toContain("选中插件");
     expect(container.textContent).toContain("渠道插件");
     expect(container.textContent).toContain("全部插件");
     expect(container.textContent).toContain("2 个插件");

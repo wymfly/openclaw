@@ -1477,222 +1477,6 @@ details summary:focus-visible {
   border-top: 1px solid var(--border);
 }
 
-.deck-ui-plugins {
-  grid-template-columns: minmax(380px, 0.82fr) minmax(560px, 1.18fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-control-single.deck-ui-plugins {
-  display: flex;
-  gap: 0;
-}
-
-.deck-ui-plugins-header {
-  align-items: flex-start;
-}
-
-.deck-ui-plugins-header h2,
-.deck-ui-plugins-header p {
-  margin: 0;
-}
-
-.deck-ui-plugins-header .deckgo-note,
-.deck-ui-plugins-header .deckgo-meta {
-  margin-top: 5px;
-}
-
-.deck-ui-plugins-column {
-  gap: 12px;
-}
-
-.deck-ui-plugins-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-plugins-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-plugins-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-plugins-body {
-  display: grid;
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-plugins-body > *,
-.deck-ui-plugins-status-row,
-.deck-ui-plugins-actions,
-.deck-ui-plugins-stats,
-.deck-ui-plugins-detail-stats,
-.deck-ui-plugins-diagnostics,
-.deck-ui-plugins-list,
-.deck-ui-plugins-row,
-.deck-ui-plugins-surface,
-.deck-ui-plugins-hero {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-plugins-status-row,
-.deck-ui-plugins-actions {
-  gap: 6px;
-}
-
-.deck-ui-plugins-status-row .deckgo-pill,
-.deck-ui-plugins-hero .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-plugins-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-plugins-stats,
-.deck-ui-plugins-detail-stats,
-.deck-ui-plugins-diagnostics {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-plugins-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.deck-ui-plugins-detail-stats,
-.deck-ui-plugins-diagnostics {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-plugins .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-plugins .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-plugins .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-plugins-surface,
-.deck-ui-plugins-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-plugins-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-plugins-list {
-  gap: 8px;
-}
-
-.deck-ui-plugins-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-plugins-row,
-.deck-ui-plugins .deckgo-selectable-card {
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-plugins-row:hover,
-.deck-ui-plugins .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-plugins-row.is-selected,
-.deck-ui-plugins .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-plugins-error {
-  color: var(--danger);
-}
-
-.deck-ui-plugins strong,
-.deck-ui-plugins code,
-.deck-ui-plugins .deckgo-meta,
-.deck-ui-plugins .deckgo-note,
-.deck-ui-plugins-empty,
-.deck-ui-plugins-error,
-.deck-ui-plugins-handoff {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-plugins details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-plugins {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .deck-ui-plugins-stats,
-  .deck-ui-plugins-detail-stats,
-  .deck-ui-plugins-diagnostics {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .deck-ui-plugins-actions {
-    align-items: stretch;
-  }
-}
-
 .deck-ui-identity {
   grid-template-columns: minmax(380px, 0.9fr) minmax(500px, 1.1fr);
   gap: 12px;
@@ -2750,7 +2534,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-plugins .deckgo-stat,
 .deck-ui-identity .deckgo-stat,
 .deck-ui-config .deckgo-stat,
 .deck-ui-nodes .deckgo-stat,
@@ -2758,7 +2541,6 @@ details summary:focus-visible {
   padding: 9px 10px;
 }
 
-.deck-ui-plugins .deckgo-stat-value,
 .deck-ui-identity .deckgo-stat-value,
 .deck-ui-config .deckgo-stat-value,
 .deck-ui-nodes .deckgo-stat-value,
@@ -2767,7 +2549,6 @@ details summary:focus-visible {
   font-size: 0.98rem;
 }
 
-.deck-ui-plugins .deckgo-selectable-card,
 .deck-ui-identity .deckgo-selectable-card,
 .deck-ui-config .deckgo-selectable-card,
 .deck-ui-nodes .deckgo-selectable-card,

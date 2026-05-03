@@ -472,6 +472,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/alerts-visual.spec.ts` covers the ready alert policy workbench, validation state, create mutation state, and fired-history fallback through public Deck BFF routes. This is mock/local visual coverage, not real Gateway/LLM, real alert delivery, webhook delivery, fired history, or production incident assurance.
 
+### Plugins panel
+
+**Status:** in progress under OpenSpec change `frontend-plugins-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Plugins high-fidelity pass reused canonical typography, color, spacing, radius, button, badge/pill, status, code/json, and compact card tokens. No canonical atom/token was introduced.
+
+**Local molecules retained:** plugin metric tile, plugin inventory row, selected-plugin hero, capability/action evidence surface, activation evidence surface, diagnostic surface, related-channel handoff strip, lifecycle limitation notice, and raw payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, handoff/action seam, diagnostic surface, and raw payload disclosure. Plugins validates these patterns for Control/Integrations inventory, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Plugins-specific molecules:** plugin capability/action evidence, activation evidence, related-channel handoffs, hidden-channel warnings, and lifecycle limitation notices are candidates for later Integrations/Control patterns only after identity/config/nodes validate the same API shape. Real install/uninstall, enable/disable, reload, marketplace trust, package signatures, and production activation assurance remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/plugins-visual.spec.ts` covers the ready plugin inventory workbench, raw payload disclosure, all-plugin scope switch, and WeCom handoff state against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM, plugin lifecycle control, marketplace trust, package signature, or production activation assurance.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -506,3 +520,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — Skills hifi redesign (`frontend-skills-hifi-contract-redesign`)**: Skills moves installed inventory, missing requirement evidence, selected skill config, install options, ClawHub search/detail/install/update, and agent skill matrix assignment into a module-local skill operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for `skills.*` and `deck.agents.skills.*` visual coverage, while real ClawHub marketplace/trust/install safety remains handoff follow-up.
 - **2026-05-03 — Budget hifi redesign (`frontend-budget-hifi-contract-redesign`)**: Budget moves local budget policy rules, threshold evaluations, scoped create/edit/delete flows, validation, and usage-total evidence into a module-local budget governance workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds budget rules through public BFF routes and relies on mock Gateway `usage.cost` totals, while billing accuracy, usage enforcement, and production quota assurance remain handoff follow-up.
 - **2026-05-03 — Alerts hifi redesign (`frontend-alerts-hifi-contract-redesign`)**: Alerts moves Deck-local alert policy rules, trigger/action evidence, inline create/edit/toggle/delete flows, validation, and fired-history fallback into a module-local alert workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds alert rules through public BFF routes, while real alert delivery, webhook delivery, escalation, Gateway-backed fired history, and incident assurance remain handoff follow-up.
+- **2026-05-03 — Plugins hifi redesign (`frontend-plugins-hifi-contract-redesign`)**: Plugins moves read-only plugin inventory, selected capability/action evidence, activation/diagnostic evidence, related-channel handoffs, lifecycle limitation copy, and raw payload disclosure into a module-local plugin inventory workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `deck.plugins.list` and `channels.status`, while real plugin lifecycle control, marketplace trust, package signatures, and production activation assurance remain handoff follow-up.
