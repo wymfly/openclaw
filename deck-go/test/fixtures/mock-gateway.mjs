@@ -201,6 +201,83 @@ function defaultMethods() {
     `${new Date(now - 12_000).toISOString()} [INFO] [gateway] logs.tail served cursor=${logCursor} sessionKey=sess-main`,
   ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
+  const visualNodes = [
+    {
+      nodeId: "node-alpha-control",
+      displayName: "Alpha Control Mac",
+      platform: "darwin",
+      version: "2.1.0",
+      coreVersion: "2.1.1",
+      uiVersion: "2.1.2",
+      deviceFamily: "desktop",
+      modelIdentifier: "MacBookPro18,3",
+      remoteIp: "127.0.0.1",
+      caps: ["chat", "filesystem", "notifications"],
+      commands: ["system.notify", "status.request"],
+      pathEnv: "/opt/homebrew/bin:/usr/local/bin:/usr/bin",
+      permissions: { camera: false, filesystem: true, notifications: true, shell: true },
+      connectedAtMs: now - 240_000,
+      paired: true,
+      connected: true,
+    },
+    {
+      nodeId: "node-beta-field",
+      displayName: "Beta Field Node",
+      platform: "linux",
+      version: "2.0.4",
+      coreVersion: "2.0.4",
+      uiVersion: "2.0.1",
+      deviceFamily: "server",
+      modelIdentifier: "x86_64",
+      remoteIp: "10.20.0.42",
+      caps: ["status", "location"],
+      commands: ["status.request", "location.request"],
+      pathEnv: "/usr/local/sbin:/usr/local/bin:/usr/bin",
+      permissions: { location: true, shell: false },
+      connectedAtMs: now - 900_000,
+      paired: false,
+      connected: false,
+    },
+    {
+      nodeId: "node-ops-tablet",
+      displayName: "Ops Tablet",
+      platform: "android",
+      version: "1.8.0",
+      deviceFamily: "mobile",
+      modelIdentifier: "Pixel Tablet",
+      remoteIp: "10.20.0.65",
+      caps: ["notifications"],
+      commands: ["system.notify"],
+      permissions: { notifications: true },
+      connectedAtMs: now - 60_000,
+      paired: true,
+      connected: true,
+    },
+  ];
+  let visualPairingPending = [
+    {
+      requestId: "pair-beta-repair",
+      nodeId: "node-beta-field",
+      displayName: "Beta Field Node",
+      platform: "linux",
+      remoteIp: "10.20.0.42",
+      isRepair: true,
+      ts: now - 125_000,
+      caps: ["status", "location"],
+      commands: ["status.request", "location.request"],
+    },
+    {
+      requestId: "pair-orphan-kiosk",
+      nodeId: "node-orphan-kiosk",
+      displayName: "Lobby Kiosk",
+      platform: "windows",
+      remoteIp: "10.20.0.77",
+      isRepair: false,
+      ts: now - 92_000,
+      caps: ["notifications"],
+      commands: ["system.notify"],
+    },
+  ];
   const cronJobs = [
     {
       id: "cron-nightly",
@@ -1889,6 +1966,122 @@ function defaultMethods() {
         { tier: "guild+roles", matched: false, checked: true },
         { tier: "channel", matched: false, checked: false },
       ],
+    }),
+    "node.list": () => ({ nodes: clone(visualNodes), ts: now }),
+    "node.describe": (params) => {
+      const nodeId = params?.nodeId ?? "node-alpha-control";
+      const node = visualNodes.find((item) => item.nodeId === nodeId);
+      if (node) {
+        return { ...clone(node), ts: Date.now() };
+      }
+      return {
+        nodeId,
+        caps: [],
+        commands: [],
+        connected: false,
+        paired: false,
+        platform: "unknown",
+        ts: Date.now(),
+      };
+    },
+    "node.rename": (params) => {
+      const nodeId = params?.nodeId ?? "";
+      const displayName = String(params?.displayName ?? "").trim();
+      const node = visualNodes.find((item) => item.nodeId === nodeId);
+      if (node && displayName) {
+        node.displayName = displayName;
+      }
+      return { ok: Boolean(node && displayName), nodeId, displayName };
+    },
+    "node.invoke": (params) => ({
+      ok: true,
+      nodeId: params?.nodeId ?? "node-alpha-control",
+      command: params?.command ?? "system.notify",
+      payload: {
+        delivered: true,
+        idempotencyKey: params?.idempotencyKey ?? "mock-node-invoke",
+        params: params?.params ?? {},
+        timeoutMs: params?.timeoutMs ?? 15000,
+      },
+      payloadJSON: JSON.stringify({
+        delivered: true,
+        command: params?.command ?? "system.notify",
+      }),
+    }),
+    "node.pending.enqueue": (params) => ({
+      nodeId: params?.nodeId ?? "node-alpha-control",
+      revision: 7,
+      queued: {
+        id: "pending-node-work-visual",
+        type: params?.type ?? "status.request",
+        priority: params?.priority ?? "normal",
+      },
+      wakeTriggered: params?.wake !== false,
+    }),
+    "node.pair.list": () => ({
+      pending: clone(visualPairingPending),
+      paired: clone(visualNodes.filter((node) => node.paired)),
+    }),
+    "node.pair.request": (params) => {
+      const request = {
+        requestId: `pair-${params?.nodeId ?? "new-node"}-visual`,
+        nodeId: params?.nodeId ?? "new-node",
+        displayName: params?.displayName,
+        platform: params?.platform,
+        remoteIp: params?.remoteIp,
+        isRepair: false,
+        ts: Date.now(),
+        caps: params?.caps ?? [],
+        commands: params?.commands ?? [],
+      };
+      visualPairingPending = [
+        request,
+        ...visualPairingPending.filter((item) => item.nodeId !== request.nodeId),
+      ];
+      return { status: "pending", request: clone(request), created: true };
+    },
+    "node.pair.approve": (params) => {
+      const requestId = params?.requestId ?? "pair-beta-repair";
+      const request = visualPairingPending.find((item) => item.requestId === requestId);
+      visualPairingPending = visualPairingPending.filter((item) => item.requestId !== requestId);
+      const node = request
+        ? (visualNodes.find((item) => item.nodeId === request.nodeId) ?? {
+            nodeId: request.nodeId,
+            displayName: request.displayName,
+            platform: request.platform,
+            remoteIp: request.remoteIp,
+            caps: request.caps ?? [],
+            commands: request.commands ?? [],
+            connected: false,
+            paired: true,
+          })
+        : visualNodes[0];
+      node.paired = true;
+      return {
+        requestId,
+        node: {
+          ...clone(node),
+          token: "visual-node-token",
+          createdAtMs: now - 240_000,
+          approvedAtMs: Date.now(),
+        },
+      };
+    },
+    "node.pair.reject": (params) => {
+      const requestId = params?.requestId ?? "pair-beta-repair";
+      const request = visualPairingPending.find((item) => item.requestId === requestId);
+      visualPairingPending = visualPairingPending.filter((item) => item.requestId !== requestId);
+      return { requestId, nodeId: request?.nodeId ?? "node-beta-field" };
+    },
+    "node.pair.verify": (params) => ({
+      node: {
+        ...clone(visualNodes.find((item) => item.nodeId === params?.nodeId) ?? visualNodes[0]),
+        token: params?.token ?? "visual-node-token",
+        createdAtMs: now - 240_000,
+        approvedAtMs: Date.now(),
+      },
+      requestId: `verify-${params?.nodeId ?? "node-alpha-control"}`,
+      verified: true,
     }),
     "device.pair.list": () => ({
       pending: [

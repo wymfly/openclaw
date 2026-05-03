@@ -187,22 +187,22 @@ describe("NodesPanel", () => {
     expect(container.textContent).toContain("Permissions");
     expect(container.textContent).toContain("shell: allowed");
     expect(container.textContent).toContain("camera: denied");
-    expect(container.querySelector(".deck-ui-nodes")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-nodes-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-nodes-body")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-nodes-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-nodes-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-nodes-detail-stats")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-nodes-surface").length).toBeGreaterThanOrEqual(6);
-    expect(container.querySelectorAll(".deck-ui-nodes-list")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-nodes-row").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".deck-ui-nodes-actions").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-nodes-button").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-nodes-input").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelector(".deck-ui-nodes-textarea")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-nodes-check")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-nodes-surface-grid")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-nodes-hero")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".nodes-panel__card")).toHaveLength(2);
+    expect(container.querySelectorAll(".nodes-panel__body")).toHaveLength(2);
+    expect(container.querySelector(".nodes-panel__pill-row")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__detail-metrics")).toBeTruthy();
+    expect(container.querySelectorAll(".nodes-panel__surface").length).toBeGreaterThanOrEqual(6);
+    expect(container.querySelectorAll(".nodes-panel__list")).toHaveLength(2);
+    expect(container.querySelectorAll(".nodes-panel__row").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".nodes-panel__actions").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".nodes-panel__button").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".nodes-panel__input").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelector(".nodes-panel__textarea")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__check")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__surface-grid")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__hero")).toBeTruthy();
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),
@@ -428,6 +428,33 @@ describe("NodesPanel", () => {
       }),
     );
     expect(window.confirm).toHaveBeenCalledWith("Queue location.request pending work for node-a?");
+  });
+
+  it("blocks node command invocation when params JSON is invalid", async () => {
+    renderPanel();
+
+    await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
+
+    const paramsTextarea = container.querySelector<HTMLTextAreaElement>(
+      'textarea[aria-label="Node invoke params JSON"]',
+    );
+    expect(paramsTextarea).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(paramsTextarea as HTMLTextAreaElement, {
+        target: { value: '{"message":' },
+      });
+    });
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Invoke command")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(window.confirm).toHaveBeenCalledWith("Invoke node command send on node-a?");
+    expect(apiMocks.invokeNodeCommand).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Invalid invoke params JSON");
   });
 
   it("requests pairing for an unpaired node when no request is already pending", async () => {
