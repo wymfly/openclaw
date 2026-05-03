@@ -1,55 +1,80 @@
-# Alerts Module Handoff
+# Alerts (Rules CRUD)
 
-Status: implemented-awaiting-archive
+**Status**: revised v2 — pending implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (Claude)
+**Depends on atoms**: Pill, Badge, Button, IconButton, Modal, Tabs, KbdHint, Avatar, EmptyState,
+Input, RadioCard
+**Depends on canonical patterns**: PageShell, EmptyState
+**Depends on canonical icons**: IconSearch, IconChevronRight/Left, IconCheck, IconX, IconAlert,
+IconInfo, IconRefresh, IconClock, IconBell, IconWebhook, IconActivity, IconToast, IconPlus,
+IconTrash, IconKbd, IconCopy, IconCode, IconPower, IconEntity, IconThreshold
+**New atoms needed**: none — local prototype molecules (`action-pill`, `threshold-tag`,
+`condition-card`, `entity-tile`, `action-tile`) all map to existing atoms in production
+**New tokens needed**: none — uses canonical `--ds-*`
+**Backend endpoints used**: see `api-usage.md` (alert rules CRUD + BFF projections for fires + audit)
 
-## Contract Truth
+## What this module does
 
-- Deck DTO authority: `deck-go/contracts/source/deck-api.contract.ts`
-  - `DeckGoAlertAction`
-  - `DeckGoAlertRule`
-  - `DeckGoAlertsResponse`
-  - `DeckGoAlertRuleResponse`
-- Browser API facade: `deck-go/frontend-new/src/api.ts`
-  - `fetchAlertRules()`
-  - `createAlertRule(input)`
-  - `updateAlertRule(id, patch)`
-  - `deleteAlertRule(id)`
-- Public BFF routes:
-  - `GET /api/alerts`
-  - `POST /api/alerts`
-  - `PATCH /api/alerts/{ruleId}`
-  - `DELETE /api/alerts/{ruleId}`
-- Runtime source: Deck-local alert rule store. Alerts are not Gateway RPC proxy traffic.
+CRUD for alert rules. Each rule binds an entity type (channel / model / subagent / budget / …)
+to a condition DSL with a threshold and an action sink (toast / activity / webhook). When the
+backend's evaluator finds the condition true on aligned activity events, it fires the action
+and starts a per-(rule × entityId) cooldown.
 
-## Product Intent
+The panel handles four primary jobs:
 
-Alerts is a local policy workbench for alert rules. It is not an incident feed,
-delivery monitor, escalation engine, or webhook assurance dashboard. The UI
-shows rule inventory, trigger/action policy, cooldown, enabled state, timestamps,
-and the current fired-history limitation.
+1. **Browse rules** — filter by action, entity type, enabled/disabled.
+2. **Create / edit** — RuleEditDialog with form (name, entity, condition, threshold, action,
+   cooldown, enabled toggle).
+3. **Test fire** — TestFireDialog dry-runs the rule and previews the action payload.
+4. **Inspect history** — Recent fires (BFF projection over alert.fire activity events) + Audit
+   timeline (CRUD history).
 
-## Workflow Constraints
+## How to implement
 
-- Browser code must use the existing frontend API wrappers only.
-- Rule mutations refresh through the same `/api/alerts` BFF path.
-- Delete requires inline confirmation before calling the mutation wrapper.
-- Fired-history UI may only show the unsupported-history notice and supported
-  `lastFiredAt` fallback evidence.
-- Mock/local visual evidence does not prove real alert delivery, webhook
-  delivery, escalation, fired history, or incident assurance.
+1. Open `prototype.html` in a browser:
+   - 12 mock rules across 12 entity types and all 3 actions.
+   - Click any row → Detail (4 tabs).
+   - Hover row to see inline Test fire + Power toggle icon buttons.
+   - Hero has Test fire / Disable / Edit / Delete actions.
+   - Tweaks panel exercises every state, every dialog.
+2. Read `components.md`, `states.md`, `interactions.md`, `api-usage.md` for engineering handoff.
+3. Translate each `.jsx` file to TypeScript at the production target listed in `components.md`.
 
-## Files
+## Open questions for Claude Code
 
-- `prototype.html` - high-fidelity static reference for the Alerts workbench.
-- `components.md` - production component breakdown and prop contracts.
-- `states.md` - state model and edge cases.
-- `interactions.md` - keyboard, focus, mutation, and accessibility rules.
-- `api-usage.md` - endpoint and DTO usage notes.
+- **Condition DSL grammar.** Prototype renders the condition as raw text. Production may want
+  syntax highlighting + autocomplete once the backend grammar is documented.
+- **Webhook target binding.** Webhook action requires a registered URL; this binding lives in
+  the webhooks module. Should the RuleEditDialog inline a webhook picker, or punt to a separate
+  navigation? Current prototype assumes one default webhook target per workspace.
+- **Test fire side-effects.** Prototype claims test fires don't reset cooldown. Confirm with
+  backend.
+- **Entity-id-aware cooldown.** Cooldown is per (rule × entityId). Surface this somewhere on
+  the Recent fires tab when the same entityId fires multiple times.
 
-## Open Questions
+## File inventory (v2)
 
-- Gateway-backed fired alert history is not exposed.
-- Real webhook delivery and retry assurance are not exposed.
-- Escalation policy semantics are not exposed.
-- Rule condition parsing is stored as fields and should not be presented as a
-  validated expression language.
+```
+alerts/
+├── README.md
+├── prototype.html                   ← ~30-line shell loading external .jsx via Babel standalone
+├── prototype-v1-codex.html          ← preserved V1 single-file prototype
+├── app.jsx                          ← list↔detail routing + 3 dialogs + ⌘K/⌘N/⌘R/Esc
+├── list-view.jsx                    ← KPI strip + 4-axis filter + 8-col rule rows + inline icon buttons
+├── detail-view.jsx                  ← Hero + 4 tabs (Overview/Conditions/Recent fires/Audit)
+├── dialogs.jsx                      ← RuleEditDialog (form) + DeleteRuleDialog + TestFireDialog
+├── data.js                          ← 12 rules across 12 entity types × 3 actions + recentFires + audit
+├── icons.jsx                        ← 20 SVG icons + ActionPill + EntityGlyph (entity-aware avatar)
+├── styles.css                       ← Linear-inspired
+├── tokens.css                       ← mirror copy of canonical tokens
+├── tweaks-panel.jsx                 ← shared design-time tooling
+├── components.md
+├── states.md
+├── interactions.md
+└── api-usage.md
+```
+
+## Reverse sign-off
+
+(pending Claude Code implementation in `frontend-new/src/components/panels/alerts/`)
