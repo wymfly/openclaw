@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="compact">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>deck-go logs prototype</title>
+    <style>
+      :root {
+        --ds-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --ds-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+        --ds-sp-1: 4px;
+        --ds-sp-2: 6px;
+        --ds-sp-3: 8px;
+        --ds-sp-4: 12px;
+        --ds-sp-5: 16px;
+        --ds-sp-6: 20px;
+        --ds-radius-sm: 4px;
+        --ds-radius-md: 6px;
+        --ds-radius-lg: 10px;
+        --ds-bg-0: #0a0b0d;
+        --ds-bg-1: #0f1115;
+        --ds-bg-2: #14171c;
+        --ds-bg-3: #1a1e25;
+        --ds-bg-elev: #1c2028;
+        --ds-bg-hover: #20252e;
+        --ds-text-1: #e6e8ec;
+        --ds-text-2: #a8aeba;
+        --ds-text-3: #8992a3;
+        --ds-text-4: #4a5160;
+        --ds-border-subtle: #1f2530;
+        --ds-border: #262d3a;
+        --ds-border-strong: #313947;
+        --ds-accent: #7aa2ff;
+        --ds-accent-bg: #1a2342;
+        --ds-success: #6ec48a;
+        --ds-success-bg: #142a1d;
+        --ds-warn: #d4a86a;
+        --ds-warn-bg: #2a1f10;
+        --ds-error: #e26b6b;
+        --ds-error-bg: #2c1518;
+        --ds-code-bg: #0c0e12;
+        --ds-code-border: #1d2330;
+        --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font: 13px/1.45 var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .logs-page {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: var(--ds-sp-4);
+        min-height: 100vh;
+        padding: var(--ds-sp-5);
+      }
+
+      .logs-header,
+      .logs-header__actions,
+      .logs-chip-row,
+      .logs-action-row,
+      .logs-row__top,
+      .logs-section-heading {
+        display: flex;
+        align-items: center;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+      }
+
+      .logs-header {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .logs-title h1,
+      .logs-card h2,
+      .logs-card h3 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .logs-eyebrow {
+        margin: 0 0 var(--ds-sp-1);
+        color: var(--ds-text-3);
+        font: 600 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .logs-subtitle,
+      .logs-meta,
+      .logs-note {
+        margin: var(--ds-sp-1) 0 0;
+        color: var(--ds-text-3);
+      }
+
+      .logs-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid var(--ds-border);
+        border-radius: 999px;
+        background: var(--ds-bg-2);
+        color: var(--ds-text-2);
+        font: 600 11px/1 var(--ds-font-mono);
+        white-space: nowrap;
+      }
+
+      .logs-status--ok {
+        border-color: color-mix(in srgb, var(--ds-success) 48%, var(--ds-border));
+        background: var(--ds-success-bg);
+        color: var(--ds-success);
+      }
+
+      .logs-status--warn {
+        border-color: color-mix(in srgb, var(--ds-warn) 50%, var(--ds-border));
+        background: var(--ds-warn-bg);
+        color: var(--ds-warn);
+      }
+
+      .logs-button,
+      .logs-input,
+      .logs-select {
+        min-height: 30px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-2);
+        color: var(--ds-text-1);
+      }
+
+      .logs-button {
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .logs-button:hover,
+      .logs-button:focus-visible,
+      .logs-input:focus-visible,
+      .logs-select:focus-visible {
+        border-color: var(--ds-border-strong);
+        background: var(--ds-bg-hover);
+        outline: 2px solid transparent;
+      }
+
+      .logs-button--primary {
+        border-color: color-mix(in srgb, var(--ds-accent) 55%, var(--ds-border));
+        background: var(--ds-accent-bg);
+      }
+
+      .logs-input,
+      .logs-select {
+        width: 100%;
+        padding: 5px 8px;
+      }
+
+      .logs-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .logs-metric,
+      .logs-card,
+      .logs-surface,
+      .logs-line-row,
+      .logs-tape-row {
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+      }
+
+      .logs-metric {
+        display: grid;
+        gap: var(--ds-sp-1);
+        min-height: 58px;
+        padding: var(--ds-sp-3);
+        background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+      }
+
+      .logs-metric span,
+      .logs-metric strong,
+      .logs-metric small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .logs-metric span {
+        color: var(--ds-text-3);
+        font: 600 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .logs-metric strong {
+        font-size: 1rem;
+        font-weight: 650;
+        line-height: 1.2;
+      }
+
+      .logs-metric small {
+        color: var(--ds-text-3);
+        font-size: 11px;
+      }
+
+      .logs-workbench {
+        display: grid;
+        grid-template-columns: minmax(520px, 1.25fr) minmax(340px, 0.75fr);
+        gap: var(--ds-sp-4);
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .logs-card {
+        min-width: 0;
+        overflow: hidden;
+        box-shadow: var(--ds-shadow-md);
+      }
+
+      .logs-card__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: var(--ds-sp-3);
+        padding: var(--ds-sp-4);
+        border-bottom: 1px solid var(--ds-border-subtle);
+        background: var(--ds-bg-1);
+      }
+
+      .logs-card__body {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-4);
+      }
+
+      .logs-surface {
+        display: grid;
+        gap: var(--ds-sp-3);
+        padding: var(--ds-sp-3);
+        background: var(--ds-bg-2);
+      }
+
+      .logs-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) minmax(140px, 0.4fr) minmax(180px, 0.6fr);
+        gap: var(--ds-sp-3);
+      }
+
+      .logs-label {
+        display: grid;
+        gap: var(--ds-sp-2);
+        min-width: 0;
+        color: var(--ds-text-3);
+        font-size: 11px;
+      }
+
+      .logs-level-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--ds-sp-2);
+        min-width: 0;
+      }
+
+      .logs-level-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ds-sp-2);
+        min-height: 28px;
+        padding: 4px 8px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+        color: var(--ds-text-2);
+      }
+
+      .logs-level-pill input {
+        margin: 0;
+      }
+
+      .logs-action-row {
+        flex-wrap: wrap;
+      }
+
+      .logs-line-list,
+      .logs-tape-list {
+        display: grid;
+        gap: var(--ds-sp-2);
+        min-width: 0;
+        max-height: 420px;
+        margin: 0;
+        padding: 0;
+        overflow: auto;
+        list-style: none;
+      }
+
+      .logs-line-row,
+      .logs-tape-row {
+        display: grid;
+        gap: var(--ds-sp-2);
+        min-width: 0;
+        padding: var(--ds-sp-3);
+        background: var(--ds-bg-2);
+      }
+
+      .logs-row__top {
+        justify-content: space-between;
+      }
+
+      .logs-row__top strong,
+      .logs-row__meta {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .logs-row__meta {
+        color: var(--ds-text-3);
+        font: 11px/1.3 var(--ds-font-mono);
+      }
+
+      .logs-code {
+        max-height: 150px;
+        margin: 0;
+        overflow: auto;
+        border: 1px solid var(--ds-code-border);
+        border-radius: var(--ds-radius-md);
+        padding: var(--ds-sp-3);
+        background: var(--ds-code-bg);
+        color: var(--ds-text-2);
+        font: 12px/1.5 var(--ds-font-mono);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .logs-sidecar {
+        display: grid;
+        align-content: start;
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .logs-payload {
+        max-height: 260px;
+      }
+
+      @media (max-width: 1180px) {
+        .logs-workbench {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .logs-metrics {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .logs-header,
+        .logs-card__header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .logs-metrics,
+        .logs-filter-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="logs-page">
+      <header class="logs-header">
+        <div class="logs-title">
+          <p class="logs-eyebrow">operations / logs</p>
+          <h1>Log Viewer</h1>
+          <p class="logs-subtitle">Tail and stream evidence from the deck-go backend contract. Filters are local to loaded rows.</p>
+        </div>
+        <div class="logs-header__actions">
+          <span class="logs-status logs-status--ok">Tail ready</span>
+          <span class="logs-status logs-status--ok">Stream connected</span>
+          <button class="logs-button" type="button">Pause stream</button>
+          <button class="logs-button logs-button--primary" type="button">Refresh tail</button>
+        </div>
+      </header>
+
+      <section class="logs-metrics" aria-label="Log metrics">
+        <article class="logs-metric">
+          <span>Cursor</span>
+          <strong>4208</strong>
+          <small>deckGoLogsCursor</small>
+        </article>
+        <article class="logs-metric">
+          <span>Visible rows</span>
+          <strong>4</strong>
+          <small>local filters</small>
+        </article>
+        <article class="logs-metric">
+          <span>Loaded rows</span>
+          <strong>7</strong>
+          <small>limit 200</small>
+        </article>
+        <article class="logs-metric">
+          <span>Live events</span>
+          <strong>3</strong>
+          <small>last evt-log-4208</small>
+        </article>
+        <article class="logs-metric">
+          <span>Buffer</span>
+          <strong>5,000</strong>
+          <small>local cap</small>
+        </article>
+      </section>
+
+      <section class="logs-workbench">
+        <article class="logs-card">
+          <div class="logs-card__header">
+            <div>
+              <h2>Latest lines</h2>
+              <p class="logs-note">Gateway tail rows with local level, source, and session filters.</p>
+            </div>
+            <span class="logs-status">4 visible</span>
+          </div>
+          <div class="logs-card__body">
+            <section class="logs-surface">
+              <div class="logs-filter-grid">
+                <label class="logs-label">
+                  Level
+                  <span class="logs-level-row">
+                    <span class="logs-level-pill"><input checked type="checkbox" /> debug</span>
+                    <span class="logs-level-pill"><input checked type="checkbox" /> info</span>
+                    <span class="logs-level-pill"><input checked type="checkbox" /> warn</span>
+                    <span class="logs-level-pill"><input checked type="checkbox" /> error</span>
+                  </span>
+                </label>
+                <label class="logs-label">
+                  Source
+                  <select class="logs-select">
+                    <option>all</option>
+                    <option>gateway</option>
+                    <option>agent</option>
+                    <option>channel</option>
+                  </select>
+                </label>
+                <label class="logs-label">
+                  Session
+                  <input class="logs-input" value="sess-" />
+                </label>
+              </div>
+            </section>
+
+            <div class="logs-action-row">
+              <button class="logs-button logs-button--primary" type="button">Refresh tail</button>
+              <button class="logs-button" type="button">Pause stream</button>
+              <button class="logs-button" type="button">Clear local logs</button>
+              <button class="logs-button" type="button">Prepare export</button>
+            </div>
+
+            <ul class="logs-line-list">
+              <li class="logs-line-row">
+                <div class="logs-row__top">
+                  <strong>[info] [gateway]</strong>
+                  <span class="logs-row__meta">2026-05-03T08:41:18Z | sess-main</span>
+                </div>
+                <pre class="logs-code">gateway ready sessionKey=sess-main bind=127.0.0.1:18789 runtime=bundled</pre>
+              </li>
+              <li class="logs-line-row">
+                <div class="logs-row__top">
+                  <strong>[warn] [agent]</strong>
+                  <span class="logs-row__meta">2026-05-03T08:41:24Z | sess-build</span>
+                </div>
+                <pre class="logs-code">tool retry scheduled sessionKey=sess-build method=deck.agents.chat.start attempt=2</pre>
+              </li>
+              <li class="logs-line-row">
+                <div class="logs-row__top">
+                  <strong>[debug] [channel]</strong>
+                  <span class="logs-row__meta">2026-05-03T08:41:29Z | sess-main</span>
+                </div>
+                <pre class="logs-code">websocket heartbeat acknowledged channel=discord account=ops-bot</pre>
+              </li>
+              <li class="logs-line-row">
+                <div class="logs-row__top">
+                  <strong>[error] [agent]</strong>
+                  <span class="logs-row__meta">2026-05-03T08:41:36Z | sess-build</span>
+                </div>
+                <pre class="logs-code">agent handoff failed sessionKey=sess-build reason="mock upstream timeout for visual fixture"</pre>
+              </li>
+            </ul>
+
+            <section class="logs-surface">
+              <div class="logs-section-heading">
+                <h3>Prepared log export</h3>
+                <span class="logs-status">filtered rows</span>
+              </div>
+              <pre class="logs-code">2026-05-03T08:41:18Z [INFO] [gateway] sessionKey=sess-main gateway ready...
+2026-05-03T08:41:24Z [WARN] [agent] sessionKey=sess-build tool retry scheduled...</pre>
+            </section>
+          </div>
+        </article>
+
+        <aside class="logs-sidecar">
+          <article class="logs-card">
+            <div class="logs-card__header">
+              <div>
+                <h2>Live event tape</h2>
+                <p class="logs-note">Recent SSE summaries from `/logs/stream`.</p>
+              </div>
+            </div>
+            <div class="logs-card__body">
+              <ul class="logs-tape-list">
+                <li class="logs-tape-row">log batch (2 lines, cursor 4208)</li>
+                <li class="logs-tape-row">log batch (1 lines, cursor 4206)</li>
+                <li class="logs-tape-row">log reset</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="logs-card">
+            <div class="logs-card__header">
+              <div>
+                <h2>Log stream events</h2>
+                <p class="logs-note">Raw stream evidence remains secondary.</p>
+              </div>
+            </div>
+            <div class="logs-card__body">
+              <section class="logs-surface">
+                <div class="logs-section-heading">
+                  <h3>evt-log-4208</h3>
+                  <span class="logs-status logs-status--ok">log.batch</span>
+                </div>
+                <pre class="logs-code logs-payload">{
+  "cursor": 4208,
+  "lines": [
+    "gateway ready sessionKey=sess-main",
+    "tool retry scheduled sessionKey=sess-build"
+  ]
+}</pre>
+              </section>
+            </div>
+          </article>
+
+          <article class="logs-card">
+            <div class="logs-card__header">
+              <div>
+                <h2>Filtered tail seam</h2>
+                <p class="logs-note">Contract payload after local filtering.</p>
+              </div>
+            </div>
+            <div class="logs-card__body">
+              <pre class="logs-code logs-payload">{
+  "cursor": 4208,
+  "reset": false,
+  "lines": [
+    { "level": "info", "source": "gateway", "sessionKey": "sess-main" },
+    { "level": "warn", "source": "agent", "sessionKey": "sess-build" }
+  ]
+}</pre>
+            </div>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

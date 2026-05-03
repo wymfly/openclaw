@@ -1,121 +1,146 @@
-# logs - components
+# logs — components (v2)
 
 ## Tree
 
-```txt
-LogsPanel
-├─ LogsHeader
-│  ├─ title / contract subtitle
-│  ├─ tail Badge
-│  ├─ stream Badge
-│  ├─ streaming Toggle
-│  └─ refresh Button
-├─ LogsMetrics
-│  └─ MetricTile x5
-├─ LogsWorkbench
-│  ├─ TailCard
-│  │  ├─ FilterSurface
-│  │  │  ├─ LevelToggleRow
-│  │  │  ├─ source Select
-│  │  │  └─ session Input
-│  │  ├─ ActionRow
-│  │  ├─ LogLineList
-│  │  │  └─ LogLineRow x N
-│  │  └─ ExportPreview
-│  └─ StreamSidecar
-│     ├─ LiveTapeCard
-│     ├─ StreamEventsCard
-│     └─ TailPayloadCard
+```
+LogsApp                                       [app.jsx]
+├─ Topbar                                     [app.jsx — inline]
+│  ├─ eyebrow / title / subtitle
+│  ├─ stream status pill (live | paused)
+│  ├─ tail status pill (ready | loading)
+│  └─ ⌘K kbd hint
+├─ FilterBar                                  [filter-bar.jsx]
+│  ├─ row 1: free text + correlation id + clear-all
+│  └─ row 2: level toggles (debug/info/warn/error) + source select + session select
+└─ Workbench                                  [app.jsx — inline]
+   ├─ LogStream (left pane)                   [log-stream.jsx]
+   │  ├─ MetricStrip (cursor / visible / loaded / warns / errors / buffer)
+   │  ├─ ActionRow (refresh tail + pause/resume + clear local + export + live dot)
+   │  ├─ TailCard (sticky header + LogRow list)
+   │  │  └─ LogRow × N                        [log-row.jsx]
+   │  └─ TapeCard (live SSE summaries)
+   │     └─ TapeRow × N
+   └─ DetailsPane (right pane)                [details-pane.jsx]
+      ├─ Hero (level pill + source tile + cursor + ts + cid)
+      ├─ HeroActions (copy / open raw / filter-by-correlation)
+      ├─ StructuredFields (dl/dt/dd)
+      ├─ CorrelationContext
+      ├─ StackTrace (only when level === "error")
+      └─ RawJson (DeckGoLogsTailResponse.lines[i])
 ```
 
-## Production ownership
+## Dialogs
 
-The production panel can remain a single bounded `LogsPanel.tsx` during this
-pass if helper functions stay readable and unit tests protect the existing
-behavior. A local `logs-panel.css` should own the visual shell instead of
-extending broad `theme.css` selectors.
+| Component             | Trigger                                         | Body                                                                  |
+| --------------------- | ----------------------------------------------- | --------------------------------------------------------------------- | ------ |
+| `RawLineDialog`       | "Open raw payload" hero action / tape row click | Pretty-printed JSON of the line OR tape event                         |
+| `ExportPreviewDialog` | "Prepare export" action button                  | First 6 filtered rows as `<ts> [LEVEL] [source] sess=<sess> cid=<cid> | <msg>` |
+
+Both share `ModalShell` (backdrop click + Esc to close, focus trap).
 
 ## Local molecules
 
+### LevelPill
+
+`<span class="log-pill log-row__pill--{level}">{Icon} {label}</span>` — used in
+the row "Level" column and the details pane hero.
+
+### SourceTile
+
+`<span class="source-tile source-tile--tone-{tone}"><glyph 2-letter>{label}</span>`
+— used only in the details pane hero. The tail row uses a single colored dot
+(`source-dot`) to keep row height under 24px.
+
 ### MetricTile
 
-Small `label + value + optional hint` tile. This repeats agents/routing/
-subagents visually and is another promotion signal, but remains local in this
-module change.
+Used in the stream KPI strip. Variant `--warn` / `--error` shifts the value
+color when the count is non-zero.
 
-### LevelToggleRow
+### LogRow
 
-Four compact checkbox-backed toggles for `debug`, `info`, `warn`, and `error`.
+6-column grid (ts / level / source / session+cid / message / cursor). Selected
+row gets accent border + accent-tinted background. Error rows get a faint red
+background tint regardless of selection. Header row is sticky.
 
-Rules:
+### TapeRow
 
-- Preserve native checkbox semantics for accessibility and existing tests.
-- A checked level participates in local filtering.
-- The row must wrap without resizing the workbench.
+Click-through summary for one SSE event. Variant by event type:
+`tape-row--log-batch` (accent border) and `tape-row--log-reset` (warn border +
+warn-tinted background).
 
-### LogLineRow
+## Props (production target)
 
-Renders:
+```ts
+type FilterBarProps = {
+  query: string;
+  onQueryChange: (q: string) => void;
+  levels: Array<"debug" | "info" | "warn" | "error">;
+  enabledLevels: Set<string>;
+  onToggleLevel: (level: string) => void;
+  sources: string[];
+  source: string; // "__all__" | source name
+  onSourceChange: (s: string) => void;
+  sessions: string[];
+  session: string;
+  onSessionChange: (s: string) => void;
+  correlationId: string;
+  onCorrelationChange: (c: string) => void;
+  onClearAll: () => void;
+};
 
-- timestamp
-- level
-- source
-- optional `sessionKey`
-- message/code text
+type LogRowProps = {
+  line: LogLine;
+  selected: boolean;
+  onSelect: () => void;
+  density: "compact" | "cozy";
+};
 
-Rules:
+type LogStreamProps = {
+  lines: LogLine[];
+  visible: LogLine[];
+  selectedCursor: number | null;
+  onSelect: (cursor: number) => void;
+  density: "compact" | "cozy";
+  streamState: "live" | "paused";
+  onTogglePause: () => void;
+  onRefresh: () => void;
+  onClearLocal: () => void;
+  onPrepareExport: () => void;
+  bufferCap: number;
+  cursor: number;
+  liveTape: TapeEvent[];
+  onOpenTapeRaw: (evt: TapeEvent) => void;
+};
 
-- Long messages wrap inside a stable scrollable code area.
-- Rows do not invent stack trace, host, or request metadata.
-- Latest rows render in loaded/stream insertion order from current state.
-
-### LiveTapeRow
-
-Compact stream summary row from `summarizeLogEvent(event)`.
-
-Rules:
-
-- `log.reset` uses the localized reset label.
-- Batch summaries remain secondary evidence, not a replacement for tail rows.
-
-### StreamEventSummary
-
-Uses existing `EventFeedCard` when useful. The high-fidelity shell should frame
-it as raw stream evidence, not a primary metric.
-
-### PayloadSeam
-
-Uses existing `JsonDetails` or canonical `Code` for raw payload inspection.
-
-Rules:
-
-- `cursor`, filtered entries, and `reset` are visible when a tail payload exists.
-- The seam is secondary and can scroll independently.
-
-## Atom mapping
-
-- Use canonical `Badge`, `Button`, `Card`, `Code`, `Input`, `Select`,
-  `Spinner`, and `Toggle` where they fit.
-- Keep `MetricTile`, `LevelToggleRow`, `LogLineRow`, `LiveTapeRow`, and
-  `PayloadSeam` local.
-- Do not introduce new canonical atoms or tokens in this change.
+type DetailsPaneProps = {
+  line: LogLine | null;
+  onJumpCorrelation: (cid: string) => void;
+  onOpenRaw: () => void;
+  onCopyMessage: () => void;
+  copyState: "idle" | "copied";
+};
+```
 
 ## Class-name intent
 
-Production CSS should preserve these semantic regions:
-
-- `.logs-panel`
-- `.logs-panel__header`
-- `.logs-panel__metrics`
-- `.logs-workbench`
-- `.logs-tail-card`
-- `.logs-filter-surface`
-- `.logs-level-row`
-- `.logs-action-row`
-- `.logs-line-list`
-- `.logs-line-row`
-- `.logs-sidecar`
-- `.logs-live-tape`
-- `.logs-stream-events`
-- `.logs-payload-seam`
-- `.logs-export`
+| Class                                      | Purpose                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `.logs-app`                                | Top-level grid container                         |
+| `.logs-app__topbar`                        | Eyebrow / title / status row                     |
+| `.logs-app__workbench`                     | Two-pane grid (`--loading` / `--error` collapse) |
+| `.filter-bar`                              | Filter container card                            |
+| `.level-toggle` / `--on`                   | Per-level checkbox toggle                        |
+| `.log-stream`                              | Left pane wrapper                                |
+| `.log-stream__metrics`                     | KPI strip (6 columns)                            |
+| `.log-stream__action-row`                  | Action button row                                |
+| `.log-stream__panes`                       | List card + tape card grid                       |
+| `.log-row`                                 | One log line row                                 |
+| `.log-row--selected`                       | Selected state                                   |
+| `.log-row--error-tint`                     | Error tint background                            |
+| `.log-pill--{level}`                       | Level pill variants                              |
+| `.tape-row--log-batch` / `--log-reset`     | Tape row event type variants                     |
+| `.details-pane`                            | Right pane wrapper                               |
+| `.details-pane__hero`                      | Hero header                                      |
+| `.details-pane__kv`                        | Structured fields `<dl>`                         |
+| `.details-pane__stack`                     | Stack trace `<pre>`                              |
+| `.modal` / `.modal__head` / `.modal__body` | Modal shell                                      |
