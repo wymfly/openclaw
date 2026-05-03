@@ -31,6 +31,7 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 | **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | removed             | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
 | **Usage**    | `panels/usage/UsagePanel.tsx` + 7 sub-components                                        | removed             | Cost cockpit, provider quota pressure, session drilldown, trend chart, context weight |
 | **Memory**   | `panels/memory/MemoryPanel.tsx`                                                         | removed             | Agent memory file browser, recall search fallback, graph rows, health, dream actions  |
+| **Threads**  | `panels/threads/ThreadsPanel.tsx` + 3 sub-components                                    | removed             | Thread bindings, relationship map, selected detail, cross-panel handoff actions       |
 | **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | removed             | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
 | **Sessions** | `panels/sessions/SessionsPanel.tsx` + 3 sub-components                                  | 80 lines            | Session list, detail shell, compaction history, subagent tree, usage breakdown        |
 | **Logs**     | `panels/logs/LogsPanel.tsx`                                                             | 41 lines            | Log tape view, level filters, controls strip, sidecar event details                   |
@@ -345,6 +346,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/usage-visual.spec.ts` covers the ready usage operations cockpit, by-model trend state, selected provider quota state, and session drilldown state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Threads panel
+
+**Status:** in progress under OpenSpec change `frontend-threads-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The threads high-fidelity pass reused canonical typography, color, spacing, radius, badge/pill, button, input, select, code/json, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** thread metric tile, filter rail, thread inventory row, selected-thread hero, relationship map node, handoff action strip, and raw payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, sidecar rail, selectable row, selected evidence/detail sidecar, and action/result seams. Threads validates the relationship-map shape for Observe workflows, but the implementation keeps it local until a dedicated design-system proposal defines shared APIs across enough relationship-heavy modules.
+
+**Threads-specific molecules:** thread inventory rows are DataTable candidates only if later modules need sorting/columns; relationship-map nodes are a candidate shared pattern for Threads/Subagents/Sessions/Routing; handoff action strips remain local until cross-panel navigation semantics stabilize.
+
+**Mock visual evidence:** `deck-go/test/e2e/threads-visual.spec.ts` covers the ready thread relationship workbench, selected builder state, filtered security state, and clipboard fallback state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -370,3 +385,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — gateway hifi redesign (`frontend-gateway-hifi-contract-redesign`)**: Gateway moves runtime diagnostics, Gateway health/status, activity evidence, monitor history, and timeline detail into a module-local diagnostics workbench. No canonical atom/token changes were introduced; deterministic Gateway DTO/mock drift was fixed for mock visual coverage, while uncertain real Gateway monitor/event semantics remain handoff follow-up.
 - **2026-05-03 — models hifi redesign (`frontend-models-hifi-contract-redesign`)**: Models moves runtime inventory, provider auth, catalog discovery, provider config, fallback chains, allowlist controls, and usage pressure into a module-local operations workbench. No canonical atom/token changes were introduced; deterministic model/auth/catalog/schema mock drift was fixed for mock visual coverage, while uncertain real Gateway model/auth/catalog semantics remain handoff follow-up.
 - **2026-05-03 — usage hifi redesign (`frontend-usage-hifi-contract-redesign`)**: Usage moves cost, quota, trend, session drilldown, context weight, aggregate, and behavior signals into a module-local operations cockpit. No canonical atom/token changes were introduced; deterministic usage/session/provider/context mock drift was fixed for mock visual coverage, while uncertain real Gateway billing/quota/context aggregation semantics remain handoff follow-up.
+- **2026-05-03 — threads hifi redesign (`frontend-threads-hifi-contract-redesign`)**: Threads moves thread bindings, selected relationship evidence, and session/agent handoff actions into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed by adding `deck.threads.list` fixture support, while uncertain real non-Discord/status semantics remain handoff follow-up.

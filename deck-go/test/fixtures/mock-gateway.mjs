@@ -274,6 +274,55 @@ function defaultMethods() {
       status: "timeout",
     },
   ];
+  const threadBindings = [
+    {
+      threadId: "thread-main",
+      channelId: "discord",
+      agentId: "main",
+      targetSessionKey: "agent:main:web-main",
+      targetKind: "session",
+      boundAt: now - 62_000,
+      lastActivityAt: now - 10_000,
+      accountId: "acct-main",
+      boundBy: "operator",
+      label: "Main support thread",
+    },
+    {
+      threadId: "thread-builder",
+      channelId: "discord",
+      agentId: "builder",
+      targetSessionKey: "agent:builder:web-root",
+      targetKind: "session",
+      boundAt: now - 180_000,
+      lastActivityAt: now - 42_000,
+      accountId: "acct-builder",
+      boundBy: "routing",
+      label: "Builder escalation",
+    },
+    {
+      threadId: "thread-long-enterprise-direct-openclaw-prod-incident-room",
+      channelId: "discord",
+      agentId: "security",
+      targetSessionKey: "agent:security:web-risk",
+      targetKind: "session",
+      boundAt: now - 900_000,
+      lastActivityAt: now - 180_000,
+      accountId: "enterprise",
+      boundBy: "system",
+    },
+    {
+      threadId: "thread-wecom-ops",
+      channelId: "wecom",
+      agentId: "ops",
+      targetSessionKey: "agent:ops:web-incident",
+      targetKind: "session",
+      boundAt: now - 1_200_000,
+      lastActivityAt: now - 360_000,
+      accountId: "default",
+      boundBy: "mock",
+      label: "WeCom operations thread",
+    },
+  ];
   const sessionFixtures = [
     {
       key: "session:mock:1",
@@ -1179,6 +1228,22 @@ function defaultMethods() {
           },
         ],
       };
+    },
+    "deck.threads.list": (params) => {
+      let threads = threadBindings;
+      const agentId = typeof params?.agentId === "string" ? params.agentId.trim() : "";
+      const channel = typeof params?.channel === "string" ? params.channel.trim() : "";
+      const status = typeof params?.status === "string" ? params.status.trim() : "";
+      if (agentId) {
+        threads = threads.filter((thread) => thread.agentId === agentId);
+      }
+      if (channel) {
+        threads = threads.filter((thread) => thread.channelId === channel);
+      }
+      if (status && status !== "active" && status !== "all") {
+        threads = [];
+      }
+      return { threads };
     },
     "deck.subagents.kill": (params) => ({
       ok: true,

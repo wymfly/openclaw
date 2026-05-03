@@ -99,7 +99,7 @@ describe("ThreadsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads active threads and selects the most recently active thread by default", async () => {
+  it("loads, sorts, and selects active threads from the contract-backed API", async () => {
     await act(async () => {
       renderThreadsPanel();
     });
@@ -109,17 +109,18 @@ describe("ThreadsPanel", () => {
       channel: "",
       status: "active",
     });
-    expect(container.querySelector(".deck-ui-threads")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-threads-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-threads-row")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-threads-relation")).not.toBeNull();
+    expect(container.querySelector(".threads-panel")).not.toBeNull();
+    expect(container.querySelectorAll(".threads-panel__card")).toHaveLength(2);
+    expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(2);
+    expect(container.querySelector(".threads-panel__relationship")).not.toBeNull();
     expect(container.textContent).toContain("Threads ready");
     expect(container.textContent).toContain("2 results");
     expect(container.textContent).toContain("Main support thread");
     expect(container.textContent).toContain("Builder escalation");
     expect(container.textContent).toContain("thread-main");
     expect(container.textContent).toContain("agent:main:web-main");
-    const threadRows = Array.from(container.querySelectorAll(".deckgo-shell-list button")).map(
+
+    const threadRows = Array.from(container.querySelectorAll(".threads-panel__thread-row")).map(
       (button) => button.textContent ?? "",
     );
     expect(threadRows[0]).toContain("Main support thread");
@@ -187,7 +188,7 @@ describe("ThreadsPanel", () => {
       renderThreadsPanel();
     });
 
-    expect(container.textContent).toContain("Routing relationship");
+    expect(container.textContent).toContain("Selected relationship");
     expect(container.textContent).toContain(
       "Thread thread-main on discord routes session agent:main:web-main to agent main; bound by operator for account acct-main.",
     );
@@ -228,5 +229,49 @@ describe("ThreadsPanel", () => {
       agentId: "main",
     });
     expect(container.textContent).toContain("Opened Agents panel; target agent: main");
+  });
+
+  it("shows a visible session key when clipboard is unavailable", async () => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: undefined,
+    });
+
+    await act(async () => {
+      renderThreadsPanel();
+    });
+
+    const copyButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Copy session key",
+    );
+    await act(async () => {
+      copyButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("Session key ready to copy: agent:main:web-main");
+  });
+
+  it("renders empty and error states without fabricating thread rows", async () => {
+    apiMocks.fetchThreads.mockResolvedValueOnce({ threads: [] });
+
+    await act(async () => {
+      renderThreadsPanel();
+    });
+
+    expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(0);
+    expect(container.textContent).toContain("No thread bindings found");
+    expect(container.textContent).toContain("Pick a thread binding");
+
+    root?.unmount();
+    root = null;
+    container.innerHTML = "";
+    apiMocks.fetchThreads.mockRejectedValueOnce(new Error("gateway unavailable"));
+
+    await act(async () => {
+      renderThreadsPanel();
+    });
+
+    expect(container.textContent).toContain("gateway unavailable");
+    expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(0);
   });
 });

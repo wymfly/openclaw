@@ -1,6 +1,6 @@
 import type { DeckGoThreadEntry } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import { formatThreadTimestamp } from "./thread-utils";
 import { ThreadRelationView } from "./ThreadRelationView";
 
@@ -12,6 +12,15 @@ type ThreadDetailProps = {
   thread: DeckGoThreadEntry | null;
 };
 
+function ThreadFact(props: { label: string; value: string | number }) {
+  return (
+    <article className="threads-panel__fact">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </article>
+  );
+}
+
 export function ThreadDetail({
   handoffMessage,
   onCopySessionKey,
@@ -22,59 +31,58 @@ export function ThreadDetail({
   const t = useTranslations("threads");
 
   if (!thread) {
-    return <p className="deckgo-note deck-ui-threads-empty">{t("chooseThread")}</p>;
+    return (
+      <div className="threads-panel__empty">
+        <strong>{t("selectThreadTitle")}</strong>
+        <p>{t("selectThreadDescription")}</p>
+      </div>
+    );
   }
 
   return (
     <>
-      <div className="deckgo-panel-hero-strip deck-ui-threads-hero">
-        <div>
-          <p className="deckgo-kicker">{t("thread")}</p>
-          <strong>{thread.label || thread.threadId}</strong>
-          <p className="deckgo-note">{thread.threadId}</p>
+      <div className="threads-panel__hero">
+        <div className="threads-panel__hero-main">
+          <p className="threads-panel__eyebrow">{t("targetSession")}</p>
+          <strong>{thread.targetSessionKey}</strong>
+          <p className="threads-panel__note">
+            {t("bindingExplanation", { boundBy: thread.boundBy, kind: thread.targetKind })}
+          </p>
         </div>
-        <div className="deckgo-pill-row deck-ui-threads-status-row">
-          <span className="deckgo-pill">{thread.channelId}</span>
-          <span className="deckgo-pill">{thread.agentId}</span>
+        <div className="threads-panel__actions">
+          <button
+            className="threads-panel__button is-primary"
+            type="button"
+            onClick={onCopySessionKey}
+          >
+            {t("copySessionKey")}
+          </button>
+          <button className="threads-panel__button" type="button" onClick={onOpenSession}>
+            {t("openSession")}
+          </button>
+          <button className="threads-panel__button" type="button" onClick={onOpenAgent}>
+            {t("openAgent")}
+          </button>
         </div>
       </div>
-      <div className="deckgo-actions deck-ui-threads-actions">
-        <button
-          className="deckgo-button deck-ui-threads-button"
-          type="button"
-          onClick={onCopySessionKey}
-        >
-          {t("copySessionKey")}
-        </button>
-        <button
-          className="deckgo-button deck-ui-threads-button"
-          type="button"
-          onClick={onOpenSession}
-        >
-          {t("openSession")}
-        </button>
-        <button
-          className="deckgo-button deck-ui-threads-button"
-          type="button"
-          onClick={onOpenAgent}
-        >
-          {t("openAgent")}
-        </button>
-      </div>
-      {handoffMessage ? (
-        <p className="deckgo-note deck-ui-threads-handoff">{handoffMessage}</p>
-      ) : null}
-      <div className="deckgo-grid deckgo-grid-2 deck-ui-threads-stats">
-        <ShellStat label={t("boundAtLower")} value={formatThreadTimestamp(thread.boundAt)} />
-        <ShellStat
+
+      {handoffMessage ? <p className="threads-panel__handoff">{handoffMessage}</p> : null}
+
+      <ThreadRelationView thread={thread} />
+
+      <div className="threads-panel__facts">
+        <ThreadFact label={t("boundAtLower")} value={formatThreadTimestamp(thread.boundAt)} />
+        <ThreadFact
           label={t("lastActivityLower")}
           value={formatThreadTimestamp(thread.lastActivityAt)}
         />
-        <ShellStat label={t("accountLower")} value={thread.accountId} />
-        <ShellStat label={t("boundByLower")} value={thread.boundBy} />
+        <ThreadFact label={t("accountLower")} value={thread.accountId || t("na")} />
+        <ThreadFact label={t("boundByLower")} value={thread.boundBy || t("na")} />
       </div>
-      <ThreadRelationView thread={thread} />
-      <JsonDetails title={t("threadPayload")} payload={thread} />
+
+      <div className="threads-panel__payload">
+        <JsonDetails title={t("threadPayload")} payload={thread} />
+      </div>
     </>
   );
 }

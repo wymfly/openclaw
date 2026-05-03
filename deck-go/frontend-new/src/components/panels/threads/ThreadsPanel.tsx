@@ -4,7 +4,6 @@ import { fetchThreads } from "../../../api";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
-import { ShellStat } from "../../shared/ShellComponents";
 import {
   areThreadFiltersEqual,
   DEFAULT_THREAD_FILTERS,
@@ -14,8 +13,22 @@ import {
 } from "./thread-utils";
 import { ThreadDetail } from "./ThreadDetail";
 import { ThreadList } from "./ThreadList";
+import "./threads-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
+
+function ThreadMetric(props: { label: string; value: string | number; tone?: "good" | "warn" }) {
+  return (
+    <article className={`threads-panel__metric ${props.tone ? `is-${props.tone}` : ""}`}>
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </article>
+  );
+}
+
+function formatFilterValue(value: string, fallback: string) {
+  return value.trim() || fallback;
+}
 
 export function ThreadsPanel() {
   const t = useTranslations("threads");
@@ -132,25 +145,36 @@ export function ThreadsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-threads">
-      <div className="deckgo-column deck-ui-threads-column">
-        <article className="deckgo-card is-float deck-ui-threads-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("panelTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-threads-body">
-            <div className="deckgo-pill-row deck-ui-threads-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("threadsStatus", { state: t(loadState) })}
-              </span>
-              <span className="deckgo-pill">
-                {t("resultsCount", { count: sortedThreads.length })}
-              </span>
+    <section className="threads-panel" data-testid="threads-panel">
+      <header className="threads-panel__header">
+        <div className="threads-panel__title-stack">
+          <p className="threads-panel__eyebrow">{t("workspaceEyebrow")}</p>
+          <h2 className="threads-panel__title">{t("panelTitle")}</h2>
+          <p className="threads-panel__description">{t("panelDescription")}</p>
+        </div>
+        <div className="threads-panel__header-actions">
+          <span className={`threads-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
+            {t("threadsStatus", { state: t(loadState) })}
+          </span>
+          <span className="threads-panel__pill">{t("contractSource")}</span>
+        </div>
+      </header>
+
+      <div className="threads-panel__workspace">
+        <article className="threads-panel__card threads-panel__inventory-card">
+          <div className="threads-panel__card-head">
+            <div>
+              <p className="threads-panel__eyebrow">{t("filtersTitle")}</p>
+              <h3 className="threads-panel__card-title">{t("inventoryTitle")}</h3>
             </div>
-            <div className="deckgo-actions deck-ui-threads-controls">
+            <span className="threads-panel__pill">
+              {t("resultsCount", { count: sortedThreads.length })}
+            </span>
+          </div>
+          <div className="threads-panel__body">
+            <div className="threads-panel__filters" aria-label={t("filtersTitle")}>
               <input
-                className="deckgo-input deck-ui-threads-input"
+                className="threads-panel__input"
                 value={draftFilters.agentId}
                 onChange={(event) =>
                   setDraftFilters((current) => ({ ...current, agentId: event.target.value }))
@@ -158,7 +182,7 @@ export function ThreadsPanel() {
                 placeholder={t("agentIdPlaceholder")}
               />
               <input
-                className="deckgo-input deck-ui-threads-input"
+                className="threads-panel__input"
                 value={draftFilters.channel}
                 onChange={(event) =>
                   setDraftFilters((current) => ({ ...current, channel: event.target.value }))
@@ -166,7 +190,7 @@ export function ThreadsPanel() {
                 placeholder={t("channelIdPlaceholder")}
               />
               <select
-                className="deckgo-input deck-ui-threads-input"
+                className="threads-panel__input"
                 value={draftFilters.status}
                 onChange={(event) => updateStatusFilter(event.target.value as "active" | "all")}
               >
@@ -174,18 +198,35 @@ export function ThreadsPanel() {
                 <option value="all">{t("all")}</option>
               </select>
               <button
-                className="deckgo-button deck-ui-threads-button"
+                className="threads-panel__button is-primary"
                 type="button"
                 onClick={refreshFromDraftFilters}
               >
                 {t("refreshThreads")}
               </button>
             </div>
-            {error ? <p className="deckgo-note deck-ui-threads-error">{error}</p> : null}
-            <div className="deckgo-grid deckgo-grid-2 deck-ui-threads-stats">
-              <ShellStat label={t("threadsLower")} value={sortedThreads.length} />
-              <ShellStat label={t("selectedLower")} value={selectedThread?.threadId || t("na")} />
+
+            <div className="threads-panel__metrics">
+              <ThreadMetric
+                label={t("threadsLower")}
+                tone={loadState === "ready" ? "good" : undefined}
+                value={sortedThreads.length}
+              />
+              <ThreadMetric
+                label={t("selectedLower")}
+                value={selectedThread?.threadId || t("na")}
+              />
+              <ThreadMetric
+                label={t("activeFilters")}
+                value={`${formatFilterValue(appliedFilters.agentId, "*")} / ${formatFilterValue(
+                  appliedFilters.channel,
+                  "*",
+                )} / ${appliedFilters.status}`}
+              />
             </div>
+
+            {error ? <p className="threads-panel__error">{error}</p> : null}
+
             <ThreadList
               threads={sortedThreads}
               selectedThreadId={selectedThread?.threadId ?? ""}
@@ -193,15 +234,21 @@ export function ThreadsPanel() {
             />
           </div>
         </article>
-      </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-threads-column deck-ui-threads-detail-column">
-        <article className="deckgo-card is-float deck-ui-threads-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedThread")}</h2>
+        <article className="threads-panel__card threads-panel__detail-card">
+          <div className="threads-panel__card-head">
+            <div>
+              <p className="threads-panel__eyebrow">{t("relationshipTitle")}</p>
+              <h3 className="threads-panel__card-title">{t("selectedThread")}</h3>
+            </div>
+            {selectedThread ? (
+              <div className="threads-panel__pill-row">
+                <span className="threads-panel__pill">{selectedThread.channelId}</span>
+                <span className="threads-panel__pill">{selectedThread.agentId}</span>
+              </div>
+            ) : null}
           </div>
-          <p className="deckgo-card-subtitle">{t("selectedThreadDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-threads-body">
+          <div className="threads-panel__body">
             <ThreadDetail
               thread={selectedThread}
               handoffMessage={handoffMessage}

@@ -12,65 +12,58 @@ export function ThreadList({ threads, selectedThreadId, onSelectThread }: Thread
   const t = useTranslations("threads");
 
   if (threads.length === 0) {
-    return <p className="deckgo-note deck-ui-threads-empty">{t("noThreadsLoaded")}</p>;
+    return (
+      <div className="threads-panel__empty">
+        <strong>{t("noThreads")}</strong>
+        <p>{t("noThreadsLoaded")}</p>
+      </div>
+    );
   }
 
   return (
-    <div className="deck-ui-threads-list-wrap">
-      <div className="deck-ui-threads-list-header" aria-hidden="true">
-        <span>{t("channel")}</span>
-        <span>{t("agent")}</span>
-        <span>{t("threadId")}</span>
-        <span>{t("kind")}</span>
-        <span>{t("boundAt")}</span>
-        <span>{t("lastActivity")}</span>
-      </div>
-      <ul className="deckgo-shell-list deck-ui-threads-list">
-        {threads.map((thread) => (
-          <li key={thread.threadId}>
-            <button
-              type="button"
-              className={`deckgo-selectable-card deck-ui-threads-row ${selectedThreadId === thread.threadId ? "is-selected" : ""}`}
-              onClick={() => onSelectThread(thread.threadId)}
-            >
-              <span className="deck-ui-threads-row-cell" title={thread.channelId}>
-                {thread.channelId}
+    <ul className="threads-panel__thread-list">
+      {threads.map((thread) => (
+        <li key={thread.threadId}>
+          <button
+            type="button"
+            className={`threads-panel__thread-row ${
+              selectedThreadId === thread.threadId ? "is-selected" : ""
+            }`}
+            onClick={() => onSelectThread(thread.threadId)}
+          >
+            <span className="threads-panel__thread-main">
+              <strong>{thread.label || thread.threadId}</strong>
+              <span className="threads-panel__thread-id">{thread.threadId}</span>
+              <span className="threads-panel__row-meta">
+                <span>
+                  {t("threadListAgentChannel", {
+                    agent: thread.agentId,
+                    channel: thread.channelId,
+                  })}
+                </span>
+                <span>
+                  {t("threadListSessionKind", {
+                    kind: thread.targetKind,
+                    session: thread.targetSessionKey,
+                  })}
+                </span>
+                <span>
+                  {t("threadListActivityBound", {
+                    bound: formatRelativeThreadTime(thread.boundAt, t),
+                    lastActivity: formatRelativeThreadTime(thread.lastActivityAt, t),
+                  })}
+                </span>
               </span>
-              <span className="deck-ui-threads-row-cell" title={thread.agentId}>
-                {thread.agentId}
-              </span>
-              <strong className="deck-ui-threads-row-cell" title={thread.threadId}>
-                {thread.label || thread.threadId}
-              </strong>
-              <span className="deckgo-pill deck-ui-threads-kind">{thread.targetKind}</span>
-              <span className="deck-ui-threads-row-cell">
-                {formatRelativeThreadTime(thread.boundAt, t)}
-              </span>
-              <span className="deck-ui-threads-row-cell">
+            </span>
+            <span className="threads-panel__thread-side">
+              <span className="threads-panel__pill">{thread.targetKind}</span>
+              <span className="threads-panel__last-activity">
                 {formatRelativeThreadTime(thread.lastActivityAt, t)}
               </span>
-              <span className="deckgo-meta deck-ui-threads-meta deck-ui-threads-row-summary">
-                {t("threadListAgentChannel", {
-                  agent: thread.agentId,
-                  channel: thread.channelId,
-                })}
-              </span>
-              <span className="deckgo-meta deck-ui-threads-meta deck-ui-threads-row-summary">
-                {t("threadListSessionKind", {
-                  kind: thread.targetKind,
-                  session: thread.targetSessionKey,
-                })}
-              </span>
-              <span className="deckgo-meta deck-ui-threads-meta deck-ui-threads-row-summary">
-                {t("threadListActivityBound", {
-                  bound: formatRelativeThreadTime(thread.boundAt, t),
-                  lastActivity: formatRelativeThreadTime(thread.lastActivityAt, t),
-                })}
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
