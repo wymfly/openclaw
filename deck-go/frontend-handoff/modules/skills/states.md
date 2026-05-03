@@ -1,52 +1,141 @@
-# Skills States
+# skills — states
 
-## Load states
+> View routing, list states, detail state, dialog state machines, focus, a11y.
 
-- `idle`: no request has completed; show neutral readiness and loading affordances.
-- `loading`: inventory or matrix refresh is in progress; keep the prior data visible where available.
-- `ready`: skill inventory and matrix have resolved.
-- `error`: show the wrapper error in the relevant surface without clearing unrelated successful data.
+## View routing
 
-## Inventory states
+Two top-level views, page-transition (no split panel):
 
-- Empty: `skills[]` is missing or empty; show an empty inventory message and keep hub/matrix controls available if their data exists.
-- Filtered empty: search/status filter hides every skill; show a filtered-empty message.
-- Selected missing after refresh: fall back to preferred key when available, otherwise current key if still present, otherwise first skill.
-- Missing optional fields: render `n/a` for source/detail values rather than inventing data.
+- `view = "list"` → `SkillsListView`
+- `view = "detail"` → `SkillsDetailView`
 
-## Selected skill states
+The list view has an additional **mode** dimension:
 
-- Ready skill: show status, source, enabled state, primary env, description, requirement evidence, config editor, install options, and raw payload.
-- Needs setup: emphasize missing env/config/bin/os requirements and primary env.
-- Disabled: enable action is primary; config remains inspectable.
-- Install options absent: hide the install-options surface.
-- Config JSON invalid: keep the draft visible and show a save error without calling the mutation wrapper.
+- `mode = "installed"` → inventory list (default)
+- `mode = "hub"` → marketplace search list
 
-## ClawHub states
+Mode is preserved across `list↔detail` transitions. Selected skill key + active tab are also
+preserved so going back keeps your context.
 
-- Bins loaded: show bin chips as search shortcuts.
-- Search idle: prompt the operator to search ClawHub.
-- Search loading: disable search and keep query visible.
-- Results ready: show result rows with slug, version, summary, and score/updated evidence when present.
-- Detail loading: keep the selected result context visible if possible.
-- Detail ready: show package identity, version, owner, platforms, changelog, and install action.
-- Hub action result: show raw result after install/update; do not replace installed inventory until refresh resolves.
+## List states
 
-## Matrix states
+| State     | Trigger                             | Renders                                |
+| --------- | ----------------------------------- | -------------------------------------- |
+| `ready`   | inventory or hub fetch resolved     | Toolbar + KPI strip + filtered rows    |
+| `loading` | first fetch or manual refresh       | Spinner + "Loading skill inventory…"   |
+| `error`   | BFF returned 5xx / network fail     | Error icon + retry button              |
+| `empty`   | filter or search produces zero rows | Empty illustration + clear-filter hint |
 
-- Matrix loading: keep current matrix if present and disable toggles.
-- Agent missing config: show `n/a` cell.
-- Agent mode `all`: show read-only all-skills coverage.
-- Agent mode `whitelist`: show included/excluded toggle cells.
-- Toggle in flight: disable other matrix cells and show updating in the active cell.
-- Matrix action result: show raw mutation output and update the local matrix with returned `skills` and `configHash`.
+`empty` reaches via two paths in installed mode (zero entries from BFF, or filters hide all rows)
+and one path in hub mode (search returns zero).
 
-## Visual E2E states
+### Filters that compose (installed mode only)
 
-The mock visual test should cover:
+- `searchQuery` — free text on key + name + description + primaryEnv + source.
+- `filter` — status segmented: `all | ready | needs-setup | disabled`.
+- `source` — segmented: `all | bundled | managed | plugin`.
 
-- ready workbench
-- selected skill switch
-- config save or install option result
-- ClawHub search/detail/install or update result
-- matrix toggle result
+All AND-combined.
+
+### Hub mode
+
+- Search applies on `slug + displayName + summary`.
+- No status/source filters (hub is pre-install, those dimensions don't exist yet).
+- Hub rows show score from `DeckGoSkillHubSearchResult.score`.
+
+## Detail states
+
+| State     | Trigger                                      | Renders                                                                 |
+| --------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| `ready`   | skill found in inventory                     | Hero + tabs + active tab body                                           |
+| `loading` | refetch initiated                            | Hero (cached) + spinner panel below tabs                                |
+| `error`   | BFF projection (triggers/files/audit) failed | Hero (cached) + inline error panel; tab content from inventory still ok |
+
+A missing skill key (e.g., user navigates after a refresh that removed the skill) renders the
+list view as a fallback.
+
+## Per-tab state
+
+| Tab        | Source                          | Empty fallback                                |
+| ---------- | ------------------------------- | --------------------------------------------- |
+| `overview` | inventory only                  | n/a (overview always renders)                 |
+| `setup`    | inventory + missingRequirements | "Setup complete." success block when no unmet |
+| `triggers` | BFF projection                  | "No trigger projection available" empty block |
+| `bins`     | inventory.installOptions[]      | "No bins; SKILL.md trigger only" empty block  |
+| `files`    | BFF projection                  | "File inventory unavailable" empty block      |
+| `audit`    | BFF projection                  | "No audit projected" empty block              |
+
+## Dialog state machines
+
+### InstallFromHubDialog
+
+```
+idle ─[Install]─▶ running ─[ok]─▶ done ─[Open in inventory]─▶ closed (route to detail)
+                            └─[fail]─▶ error ─[Retry install]─▶ running
+                                              └─[Cancel/Close]─▶ closed
+                  └─[Close while running]─▶ "Run in background" (closes dialog, leaves work pending)
+```
+
+State variables: `phase ∈ {idle | running | done | error}`, `optionId ∈ {managed | local}`,
+`errorMsg`. State resets on every `open` transition false → true.
+
+### ConfigureSkillDialog
+
+```
+opened ─[Add field]─▶ opened (draft++)
+       ─[Edit value]─▶ opened (draft mutated)
+       ─[Save]─▶ saving ─[ok]─▶ closed (parent applies onSave(draft))
+       ─[Cancel]─▶ closed (draft discarded)
+```
+
+Draft is initialized from `skill.config` on every `open` true transition.
+
+### DisableConfirmDialog
+
+Two-button confirm. No internal state.
+
+### SkillReadmeDialog
+
+Renders `files` from BFF projection. No internal state.
+
+## Tweaks panel
+
+Design-time only. Exposes:
+
+- `theme` ∈ `dark | light`
+- `density` ∈ `comfortable | compact`
+- `view` ∈ `list | detail`
+- `mode` ∈ `installed | hub`
+- `listState` ∈ `ready | loading | error | empty`
+- `selectedSkill` (any installed skill key)
+- `hubSelectedSlug` (any hub slug)
+- `activeTab` ∈ all 6 skill tabs
+- `detailState` ∈ `ready | loading | error`
+- `installOpen` / `configureOpen` / `disableOpen` / `filesOpen` ∈ booleans
+
+Dropped at production translation.
+
+## Focus
+
+- List view first focusable: search input.
+- After selecting a row → focus moves to back button in detail hero.
+- After dismissing a dialog → focus returns to trigger.
+- Esc:
+  - In dialog → close dialog.
+  - In detail (no dialog) → return to list.
+  - In list → no-op.
+- ⌘K → focus search input regardless of mode.
+- ⌘N → switch to hub mode.
+
+## A11y semantics
+
+- Mode / status / source segments: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Detail tabs: same.
+- Inventory rows: `role="button"`, `tabIndex={0}`, Enter/Space activates.
+- Hub rows: not buttons (the row itself isn't clickable); buttons are independently labeled.
+- Modals: `role="dialog"` + `aria-modal="true"` + `aria-label`. Focus trap and Esc close.
+- Status / source / event pills: always carry text; color is decoration only.
+- Install wizard progress block: `aria-live="polite"`.
+- Setup checklist: each row uses an `aria-live="polite"` region so flipping a requirement to
+  satisfied announces "Setup complete." (production: not in prototype).
+- Configure inputs: labeled with explicit `aria-label="Key"` / `"Value"` per row.

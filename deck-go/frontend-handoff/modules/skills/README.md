@@ -1,38 +1,92 @@
-# Skills
+# Skills (Catalog + Hub)
 
-**Status**: implemented-awaiting-archive
-**Design completed**: 2026-05-03
-**Designer**: Codex single-agent replacement workflow
-**Depends on atoms**: Button, Input, Select, Toggle/Checkbox, Badge/Pill, Card, Code/Json detail, Status, Spinner
-**New atoms needed**: none
-**New tokens needed**: none
-**Backend endpoints used**: see `api-usage.md`
+**Status**: revised v2 — pending implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (Claude)
+**Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, Tabs, KbdHint, Avatar,
+EmptyState, Input, RadioCard
+**Depends on canonical patterns**: PageShell, SectionHeader, EmptyState
+**Depends on canonical icons**: IconSearch, IconChevronRight/Left, IconCheck, IconX, IconAlert,
+IconInfo, IconRefresh, IconDownload, IconUpload, IconExternal, IconBox, IconCloud, IconPuzzle,
+IconZap, IconTerminal, IconKey, IconClock, IconBookOpen, IconFile, IconCopy, IconTrash,
+IconSettings, IconKbd, IconHash
+**New atoms needed**: none — local prototype molecules (`source-pill`, `hub-row`, `install-option`,
+`install-progress`, `checklist`, `trigger-chip`, `install-option-card`, `files-table`,
+`config-list`) all map to existing atoms in production
+**New tokens needed**: none — uses canonical `--ds-*` from
+`frontend-handoff/design-system/tokens.css`
+**Backend endpoints used**: see `api-usage.md` (Deck skills inventory + hub search/detail/install)
 
 ## What this module does
 
-Skills is the Automate workspace for installed skill readiness, missing setup evidence, local skill config, install options, ClawHub discovery/actions, and per-agent skill assignment. It lets an operator answer which skills are available, what setup is missing, how a selected skill is configured, which marketplace package is being installed, and how each agent's whitelist uses the current Gateway config hash.
+Skill catalog workbench — both the installed inventory AND the hub-searchable marketplace. Skills
+are reusable workflows surfaced via SKILL.md trigger keywords. Unlike plugins (which is read-only
+inventory), the skills contract supports mutation: install from hub, configure key/value, enable /
+disable.
 
-This package is a high-fidelity handoff for `deck-go/frontend-new/src/components/panels/skills/`. It is based on the current deck-go contract chain and production behavior. Code and contracts remain the source of truth; this prototype is an implementation guide.
+The panel handles four primary jobs:
 
-## Contract truth
-
-- Frontend wrappers: `fetchSkills`, `updateSkill`, `installSkill`, `fetchSkillHubBins`, `searchSkillHub`, `fetchSkillHubDetail`, `installSkillHub`, `updateSkillHub`, `fetchAgentSkills`, and `updateAgentSkills`.
-- BFF endpoints: `GET /api/skills`, `PATCH /api/skills/{skillKey}`, `POST /api/skills/install`, `POST /api/skills/hub`, and `/api/agents` actions for `skills.get` / `skills.set`.
-- Gateway methods: `skills.status`, `skills.update`, `skills.install`, `skills.bins`, `skills.search`, `skills.detail`, `deck.agents.skills.get`, and `deck.agents.skills.set`.
-- DTO authority: `DeckGoSkillEntry`, `DeckGoSkillsResponse`, `DeckGoSkillHub*`, `DeckGoAgentSkillsResponse`, and generated Gateway protocol types.
-- Browser code must continue to call the Go BFF wrappers only; it must not call Gateway, ClawHub, or the filesystem directly.
+1. **Browse installed inventory** — filter / search by name, source, status.
+2. **Search the hub** — discover new skills, preview manifest, install with one wizard.
+3. **Configure a skill** — edit per-skill key/value config (writes via the update endpoint).
+4. **Enable / disable** — flip enablement, with a confirm step for managed skills (because hub
+   bins get pulled from PATH).
 
 ## How to implement
 
-1. Open `prototype.html` and inspect the skill operations workbench layout, inventory, selected skill detail, ClawHub rail, matrix surface, and last-action details.
-2. Read `components.md` for module-local component structure and data boundaries.
-3. Read `states.md` for loading, ready, empty, error, selected-skill, hub, config, install, and matrix states.
-4. Read `interactions.md` for selection, filtering, config save, install, hub search/detail/install/update, matrix toggles, focus, and overflow behavior.
-5. Read `api-usage.md` and preserve the current BFF path and mutation envelopes.
-6. Read `implementation-notes.md` for production migration notes and mock visual follow-ups.
+1. Open `prototype.html` in a browser:
+   - Default mode is **Installed**. 12 skills covering all 3 sources (bundled / managed / plugin)
+     and all 3 statuses (ready / needs-setup / disabled).
+   - Click the **Hub** segment to switch to the marketplace search list with 8 mock skills.
+   - Click any installed row → Detail (6 tabs: Overview / Setup / Triggers / Bins / Files / Audit).
+   - Hub rows have a Preview + Install action; Install opens a 3-phase wizard (idle → running →
+     done | error).
+   - Detail hero has Configure / Disable / Files actions.
+   - The Tweaks panel exercises every state, every dialog, and every tab.
+2. Read `components.md` — production component skeleton + props shapes.
+3. Read `states.md` — view routing + per-tab state + dialog state machine.
+4. Read `interactions.md` — keyboard / pointer / hover / dialog flows.
+5. Read `api-usage.md` — endpoint truth, DTO shapes, BFF projections, open assumptions.
+6. Translate each `.jsx` file to TypeScript at the production target listed in `components.md`.
+   Replace `__fixtures__` mock with real fetch hooks. Keep kebab-case classes verbatim.
 
-## Open questions for implementation
+## Open questions for Claude Code
 
-- Mock visual E2E should add deterministic `skills.*` and `deck.agents.skills.*` mock Gateway handlers if they are still absent.
-- Real ClawHub network access, install safety, binary dependency verification, credential persistence, and marketplace trust are outside mock visual coverage.
-- A full skill authoring IDE, dependency solver, or credential vault is out of scope for this pass.
+- **Hub install side-effects.** The wizard assumes a synchronous BFF endpoint. If the hub install
+  is asynchronous (e.g., download → unpack → register on next session start) the "Open in
+  inventory" CTA needs to be a status check instead of a navigate.
+- **Bin removal on disable.** Is "Disable" a soft toggle, or does it remove managed bins from
+  PATH? Prototype copy assumes the latter for managed skills, the former for bundled / plugin.
+  Confirm with backend.
+- **Trigger projection authority.** Prototype renders BFF-extracted trigger keywords. If the
+  backend prefers to keep SKILL.md as the source of truth and only surface a slug-keyed list,
+  drop the chip render and link to a "View SKILL.md" affordance instead.
+- **Config schema.** Prototype shows free-form key/value editor. If skill configs have JSON
+  schemas (some hub skills carry one), the Configure dialog should switch to schema-driven form
+  rendering for those.
+
+## File inventory (v2)
+
+```
+skills/
+├── README.md                    ← this file
+├── prototype.html               ← ~30-line shell loading external .jsx via Babel standalone
+├── prototype-v1-codex.html      ← preserved V1 single-file prototype (reference)
+├── app.jsx                      ← App shell + list↔detail routing + 4 dialogs + ⌘K/⌘N/⌘R/Esc
+├── list-view.jsx                ← Two modes (Installed | Hub) + KPI strip + 8-col rows + hub rows
+├── detail-view.jsx              ← Hero + 6 tabs (Overview/Setup/Triggers/Bins/Files/Audit)
+├── dialogs.jsx                  ← Install wizard + Configure + Disable confirm + Files preview
+├── data.js                      ← contract-shaped MOCK with 12 installed + 8 hub + projections
+├── icons.jsx                    ← 25 SVG icons + SkillGlyph (emoji + source-aware tint)
+├── styles.css                   ← Linear-inspired, --ds-* tokens only, dark/light + density-aware
+├── tokens.css                   ← mirror copy of canonical tokens
+├── tweaks-panel.jsx             ← shared design-time tooling
+├── components.md                ← production component skeleton + props shapes
+├── states.md                    ← state machine + focus + a11y
+├── interactions.md              ← keyboard / pointer / hover / dialog flows
+└── api-usage.md                 ← endpoint truth + DTO shapes + BFF projections + assumptions
+```
+
+## Reverse sign-off
+
+(pending Claude Code implementation in `frontend-new/src/components/panels/skills/`)
