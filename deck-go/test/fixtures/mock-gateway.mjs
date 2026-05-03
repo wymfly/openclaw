@@ -660,6 +660,120 @@ function defaultMethods() {
       version: "mock-gateway",
       gatewayVersion: "mock-gateway",
       protocol: protocolVersion,
+      methods: {
+        "deck.agents.list": {
+          scope: "operator.read",
+          since: 1,
+          params: {
+            type: "object",
+            properties: {
+              includeInactive: {
+                type: "boolean",
+                enum: [true, false],
+              },
+            },
+          },
+          result: {
+            type: "object",
+            required: ["agents"],
+            properties: {
+              agents: {
+                type: "array",
+                items: {
+                  type: "object",
+                  required: ["id"],
+                  properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    status: {
+                      type: "string",
+                      enum: ["active", "inactive", "error"],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        "deck.sessions.detail": {
+          scope: "operator.read",
+          since: 2,
+          params: {
+            type: "object",
+            required: ["sessionKey"],
+            properties: {
+              sessionKey: { type: "string" },
+              includeHistory: { type: "boolean" },
+            },
+          },
+          result: {
+            type: "object",
+            required: ["session"],
+            properties: {
+              session: {
+                type: "object",
+                required: ["key"],
+                properties: {
+                  key: { type: "string" },
+                  agentId: { type: "string" },
+                  status: {
+                    type: "string",
+                    enum: ["active", "completed", "error"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        "gateway.describe": {
+          scope: "operator.read",
+          since: 1,
+          params: {
+            type: "object",
+            properties: {
+              includeSchemas: { type: "boolean" },
+            },
+          },
+          result: {
+            type: "object",
+            properties: {
+              methods: { type: "object" },
+              events: { type: "object" },
+              untyped: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      events: {
+        "activity.event": {
+          since: 1,
+          payload: {
+            type: "object",
+            required: ["id", "timestamp", "type", "description"],
+            properties: {
+              id: { type: "string" },
+              timestamp: { type: "number" },
+              type: { type: "string" },
+              agentId: { type: "string" },
+              description: { type: "string" },
+            },
+          },
+        },
+        "gateway.ready": {
+          since: 1,
+          payload: {
+            type: "object",
+            properties: {
+              version: { type: "string" },
+              protocol: { type: "number" },
+            },
+          },
+        },
+      },
+      untyped: ["legacy.raw"],
     }),
     health: () => ({
       ok: true,

@@ -139,13 +139,15 @@ describe("ApiExplorerPanel", () => {
     expect(container.textContent).toContain("agentId required");
     expect(container.textContent).toContain("includeInactive");
     expect(container.textContent).toContain("enum: true, false");
-    expect(container.querySelector(".deck-ui-api-explorer")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-api-card").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-api-row").length).toBe(3);
-    expect(container.querySelectorAll(".deck-ui-api-surface").length).toBe(2);
-    expect(container.querySelectorAll(".deck-ui-api-schema-row").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".deck-ui-api-input")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-api-hero")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".api-explorer-panel__card").length).toBe(2);
+    expect(container.querySelectorAll(".api-explorer-panel__row").length).toBe(3);
+    expect(container.querySelectorAll(".api-explorer-panel__surface").length).toBe(2);
+    expect(
+      container.querySelectorAll(".api-explorer-panel__schema-row").length,
+    ).toBeGreaterThanOrEqual(4);
+    expect(container.querySelector(".api-explorer-panel__input")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel__hero")).toBeTruthy();
     expect(container.querySelector('[aria-label="Collapse agents"]')).toBeTruthy();
     expect(container.textContent).toContain("Untyped methods");
     expect(container.textContent).toContain("legacy.raw");

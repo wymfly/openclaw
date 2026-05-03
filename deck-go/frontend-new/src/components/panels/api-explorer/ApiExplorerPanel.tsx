@@ -7,7 +7,8 @@ import {
   gatewayNotConfiguredValue,
   isGatewayNotConfiguredValue,
 } from "../../runtime/GatewayNotConfiguredEmptyState";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
+import "./api-explorer-panel.css";
 
 type ExplorerTab = "methods" | "events";
 type PanelState = "idle" | "loading" | "ready";
@@ -79,6 +80,15 @@ function schemaType(schema: SchemaRecord) {
     return value.map(String).join(" | ");
   }
   return typeof value === "string" ? value : "any";
+}
+
+function ApiMetric(props: { label: string; value: string | number; tone?: "positive" }) {
+  return (
+    <div className={`api-explorer-panel__metric ${props.tone ? `is-${props.tone}` : ""}`}>
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </div>
+  );
 }
 
 export function ApiExplorerPanel() {
@@ -166,44 +176,71 @@ export function ApiExplorerPanel() {
   const gatewayNotConfigured = isGatewayNotConfiguredValue(error);
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-api-explorer">
-      <div className="deckgo-column deck-ui-api-column">
-        <article className="deckgo-card is-float deck-ui-api-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("panelTitle")}</h2>
+    <section className="api-explorer-panel" data-testid="api-explorer-panel">
+      <header className="api-explorer-panel__header">
+        <div className="api-explorer-panel__title-stack">
+          <p className="api-explorer-panel__eyebrow">{t("method")}</p>
+          <h2 className="api-explorer-panel__title">{t("panelTitle")}</h2>
+          <p className="api-explorer-panel__description">{t("panelDescription")}</p>
+        </div>
+        <div className="api-explorer-panel__header-actions">
+          <span
+            className={`api-explorer-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}
+          >
+            {t("describeStatus", { state: t(loadState) })}
+          </span>
+          <span className="api-explorer-panel__pill">
+            {t("methodsCount", { count: methods.length })}
+          </span>
+          <span className="api-explorer-panel__pill">
+            {t("eventsCount", { count: events.length })}
+          </span>
+          <span className="api-explorer-panel__pill">
+            {t("untypedCount", { count: untyped.length })}
+          </span>
+        </div>
+      </header>
+
+      <div className="api-explorer-panel__workspace">
+        <article className="api-explorer-panel__card">
+          <div className="api-explorer-panel__card-head">
+            <div>
+              <p className="api-explorer-panel__eyebrow">{t("methodsTab")}</p>
+              <h3 className="api-explorer-panel__card-title">{t("panelTitle")}</h3>
+            </div>
+            <span className="api-explorer-panel__pill">
+              {tab === "methods" ? t("methodsTab") : t("eventsTab")}
+            </span>
           </div>
-          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-api-body">
-            <div className="deckgo-pill-row deck-ui-api-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("describeStatus", { state: t(loadState) })}
-              </span>
-              <span className="deckgo-pill">{t("methodsCount", { count: methods.length })}</span>
-              <span className="deckgo-pill">{t("eventsCount", { count: events.length })}</span>
-              <span className="deckgo-pill">{t("untypedCount", { count: untyped.length })}</span>
+
+          <div className="api-explorer-panel__body">
+            <div className="api-explorer-panel__metrics">
+              <ApiMetric
+                label={t("methodsLower")}
+                tone={loadState === "ready" ? "positive" : undefined}
+                value={methods.length}
+              />
+              <ApiMetric label={t("eventsLower")} value={events.length} />
+              <ApiMetric label={t("untypedLower")} value={untyped.length} />
             </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-api-stats">
-              <ShellStat label={t("methodsLower")} value={methods.length} />
-              <ShellStat label={t("eventsLower")} value={events.length} />
-              <ShellStat label={t("untypedLower")} value={untyped.length} />
-            </div>
-            <div className="deckgo-pill-row deck-ui-api-actions">
+
+            <div className="api-explorer-panel__actions">
               <button
-                className={`deckgo-button deck-ui-api-button ${tab === "methods" ? "is-primary" : ""}`}
+                className={`api-explorer-panel__button ${tab === "methods" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("methods")}
               >
                 {t("methodsTab")}
               </button>
               <button
-                className={`deckgo-button deck-ui-api-button ${tab === "events" ? "is-primary" : ""}`}
+                className={`api-explorer-panel__button ${tab === "events" ? "is-primary" : ""}`}
                 type="button"
                 onClick={() => setTab("events")}
               >
                 {t("eventsTab")}
               </button>
               <button
-                className="deckgo-button deck-ui-api-button"
+                className="api-explorer-panel__button"
                 disabled={loadState === "loading"}
                 type="button"
                 onClick={() => setReloadNonce((current) => current + 1)}
@@ -211,46 +248,48 @@ export function ApiExplorerPanel() {
                 {loadState === "loading" ? t("loadingDescribe") : t("refreshDescribe")}
               </button>
             </div>
+
             {gatewayNotConfigured ? (
-              <GatewayNotConfiguredEmptyState className="deck-ui-api-surface" />
+              <GatewayNotConfiguredEmptyState className="api-explorer-panel__surface" />
             ) : error ? (
-              <p className="deckgo-note">{error}</p>
+              <p className="api-explorer-panel__note is-error">{error}</p>
             ) : null}
+
             {gatewayNotConfigured ? null : tab === "methods" ? (
               <>
-                <label className="deckgo-label">
+                <label className="api-explorer-panel__field">
                   <span>{t("searchMethods")}</span>
                   <input
-                    className="deckgo-input deck-ui-api-input"
+                    className="api-explorer-panel__input"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder={t("methodSearchPlaceholder")}
                   />
                 </label>
-                <div className="deckgo-shell-list deck-ui-api-domain-list">
+                <div className="api-explorer-panel__catalog">
                   {Object.entries(groupedMethods).length === 0 ? (
-                    <p className="deckgo-note">{t("noMethodsMatchCurrentSearch")}</p>
+                    <p className="api-explorer-panel__note">{t("noMethodsMatchCurrentSearch")}</p>
                   ) : (
                     Object.entries(groupedMethods).map(([domain, items]) => (
-                      <div className="deck-ui-api-domain" key={domain}>
-                        <p className="deckgo-kicker deck-ui-api-domain-title">
+                      <div className="api-explorer-panel__domain" key={domain}>
+                        <p className="api-explorer-panel__eyebrow">
                           {domain} ({items.length})
                         </p>
-                        <ul className="deckgo-shell-list deck-ui-api-method-list">
+                        <ul className="api-explorer-panel__list">
                           {items.map((method) => (
                             <li key={method.name}>
                               <button
                                 type="button"
-                                className={`deckgo-selectable-card deck-ui-api-row ${selectedMethod?.name === method.name ? "is-selected" : ""}`}
+                                className={`api-explorer-panel__row ${selectedMethod?.name === method.name ? "is-selected" : ""}`}
                                 onClick={() => setSelectedMethodName(method.name)}
                               >
                                 <strong>{method.name}</strong>
-                                <div className="deckgo-meta">
+                                <span className="api-explorer-panel__meta">
                                   {t("methodMeta", {
                                     scope: method.scope,
                                     since: method.since ?? t("na"),
                                   })}
-                                </div>
+                                </span>
                               </button>
                             </li>
                           ))}
@@ -261,17 +300,17 @@ export function ApiExplorerPanel() {
                 </div>
               </>
             ) : (
-              <ul className="deckgo-shell-list deck-ui-api-event-list">
+              <ul className="api-explorer-panel__list">
                 {events.length === 0 ? (
-                  <p className="deckgo-note">{t("noEventsDescribed")}</p>
+                  <p className="api-explorer-panel__note">{t("noEventsDescribed")}</p>
                 ) : (
                   events.map((event) => (
                     <li key={event.name}>
-                      <div className="deckgo-selectable-card deck-ui-api-row deck-ui-api-event-row">
+                      <div className="api-explorer-panel__row api-explorer-panel__event-row">
                         <strong>{event.name}</strong>
-                        <div className="deckgo-meta">
+                        <span className="api-explorer-panel__meta">
                           {t("sinceMeta", { since: event.since ?? t("na") })}
-                        </div>
+                        </span>
                         <SchemaSection title={t("eventPayload")} schema={event.payload} />
                       </div>
                     </li>
@@ -281,38 +320,46 @@ export function ApiExplorerPanel() {
             )}
           </div>
         </article>
-      </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-api-column deck-ui-api-detail-column">
-        <article className="deckgo-card is-float deck-ui-api-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedMethod")}</h2>
+        <article className="api-explorer-panel__card">
+          <div className="api-explorer-panel__card-head">
+            <div>
+              <p className="api-explorer-panel__eyebrow">{t("method")}</p>
+              <h3 className="api-explorer-panel__card-title">{t("selectedMethod")}</h3>
+            </div>
+            {selectedMethod ? (
+              <span className="api-explorer-panel__pill">
+                {t("sinceValue", { since: selectedMethod.since ?? t("na") })}
+              </span>
+            ) : null}
           </div>
-          <p className="deckgo-card-subtitle">{t("selectedMethodDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-api-body">
+
+          <div className="api-explorer-panel__body">
+            <p className="api-explorer-panel__description">{t("selectedMethodDescription")}</p>
             {selectedMethod ? (
               <>
-                <div className="deckgo-panel-hero-strip deck-ui-api-hero">
+                <div className="api-explorer-panel__hero">
                   <div>
-                    <p className="deckgo-kicker">{t("method")}</p>
+                    <p className="api-explorer-panel__eyebrow">{t("method")}</p>
                     <strong>{selectedMethod.name}</strong>
-                    <p className="deckgo-note">{t("scopeMeta", { scope: selectedMethod.scope })}</p>
+                    <p className="api-explorer-panel__note">
+                      {t("scopeMeta", { scope: selectedMethod.scope })}
+                    </p>
                   </div>
-                  <div className="deckgo-pill-row">
-                    <span className="deckgo-pill">
-                      {t("sinceValue", { since: selectedMethod.since ?? t("na") })}
-                    </span>
+                  <div className="api-explorer-panel__pill-row">
+                    <span className="api-explorer-panel__pill">{t("paramsSchemaTitle")}</span>
+                    <span className="api-explorer-panel__pill">{t("resultSchemaTitle")}</span>
                   </div>
                 </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-api-detail-stats">
-                  <ShellStat label={t("scope")} value={selectedMethod.scope} />
-                  <ShellStat label={t("since")} value={selectedMethod.since ?? t("na")} />
+                <div className="api-explorer-panel__metrics is-two">
+                  <ApiMetric label={t("scope")} value={selectedMethod.scope} />
+                  <ApiMetric label={t("since")} value={selectedMethod.since ?? t("na")} />
                 </div>
                 <SchemaSection title={t("paramsSchemaTitle")} schema={selectedMethod.params} />
                 <SchemaSection title={t("resultSchemaTitle")} schema={selectedMethod.result} />
               </>
             ) : (
-              <p className="deckgo-note">{t("chooseMethod")}</p>
+              <p className="api-explorer-panel__note">{t("chooseMethod")}</p>
             )}
             {untyped.length > 0 ? (
               <JsonDetails title={t("untypedMethods")} payload={untyped} />
@@ -328,12 +375,12 @@ function SchemaSection({ title, schema }: { title: string; schema?: Record<strin
   const t = useTranslations("apiExplorer");
 
   return (
-    <div className="deckgo-surface-tile deck-ui-api-surface">
-      <p className="deckgo-surface-label">{title}</p>
+    <div className="api-explorer-panel__surface">
+      <p className="api-explorer-panel__label">{title}</p>
       {schema ? (
         <SchemaViewer schema={schema} />
       ) : (
-        <p className="deckgo-note">{t("noSchemaDescribed")}</p>
+        <p className="api-explorer-panel__note">{t("noSchemaDescribed")}</p>
       )}
     </div>
   );
@@ -348,15 +395,17 @@ function SchemaViewer({ schema, depth = 0 }: { schema: SchemaRecord; depth?: num
   const type = schemaType(schema);
 
   return (
-    <div className={`deck-ui-api-schema ${depth > 0 ? "is-nested" : ""}`}>
-      <div className="deckgo-pill-row deck-ui-api-schema-pills">
-        <span className="deckgo-pill">{t("typeMeta", { type })}</span>
+    <div className={`api-explorer-panel__schema ${depth > 0 ? "is-nested" : ""}`}>
+      <div className="api-explorer-panel__pill-row">
+        <span className="api-explorer-panel__pill">{t("typeMeta", { type })}</span>
         {enumValues.length > 0 ? (
-          <span className="deckgo-pill">{t("enumMeta", { values: enumValues.join(", ") })}</span>
+          <span className="api-explorer-panel__pill">
+            {t("enumMeta", { values: enumValues.join(", ") })}
+          </span>
         ) : null}
       </div>
       {properties.length > 0 && depth < MAX_SCHEMA_DEPTH ? (
-        <ul className="deckgo-shell-list deck-ui-api-schema-list">
+        <ul className="api-explorer-panel__list api-explorer-panel__schema-list">
           {properties.map(([name, propertySchema]) => (
             <SchemaPropertyRow
               depth={depth}
@@ -369,8 +418,8 @@ function SchemaViewer({ schema, depth = 0 }: { schema: SchemaRecord; depth?: num
         </ul>
       ) : null}
       {arrayItems && depth < MAX_SCHEMA_DEPTH ? (
-        <div className="deck-ui-api-array-items">
-          <p className="deckgo-kicker">{t("items")}</p>
+        <div className="api-explorer-panel__array-items">
+          <p className="api-explorer-panel__eyebrow">{t("items")}</p>
           <SchemaViewer schema={arrayItems} depth={depth + 1} />
         </div>
       ) : null}
@@ -398,33 +447,30 @@ function SchemaPropertyRow({
 
   return (
     <li>
-      <div className="deckgo-schema-row deck-ui-api-schema-row">
+      <div className="api-explorer-panel__schema-row">
         {hasChildren ? (
           <button
             aria-label={t(expanded ? "collapseSchema" : "expandSchema", { name })}
-            className="deckgo-schema-toggle deck-ui-api-toggle"
+            className="api-explorer-panel__schema-toggle"
             type="button"
             onClick={() => setExpanded((current) => !current)}
           >
             {expanded ? "v" : ">"}
           </button>
         ) : (
-          <span
-            className="deckgo-schema-toggle-placeholder deck-ui-api-toggle-placeholder"
-            aria-hidden="true"
-          />
+          <span className="api-explorer-panel__schema-toggle-placeholder" aria-hidden="true" />
         )}
-        <div className="deck-ui-api-schema-body">
-          <p className="deckgo-kicker">
+        <div className="api-explorer-panel__schema-body">
+          <p className="api-explorer-panel__eyebrow">
             {name}
             {required ? ` ${t("required")}` : ""}
           </p>
-          <div className="deckgo-pill-row deck-ui-api-schema-pills">
-            <span className="deckgo-pill">
+          <div className="api-explorer-panel__pill-row">
+            <span className="api-explorer-panel__pill">
               {t("typeMeta", { type: schemaType(propertySchema) })}
             </span>
             {enumValues.length > 0 ? (
-              <span className="deckgo-pill">
+              <span className="api-explorer-panel__pill">
                 {t("enumMeta", { values: enumValues.join(", ") })}
               </span>
             ) : null}

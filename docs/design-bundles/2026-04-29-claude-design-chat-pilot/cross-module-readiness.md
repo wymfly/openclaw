@@ -374,6 +374,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/activity-visual.spec.ts` covers the ready activity operations timeline, collapsed group state, and run-filtered state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### API Explorer panel
+
+**Status:** in progress under OpenSpec change `frontend-api-explorer-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The API Explorer high-fidelity pass reused canonical typography, color, spacing, radius, button, input, badge/pill, code/json, status, and card tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** API describe metric tile, method domain catalog row, event payload row, selected method hero, schema tree row, tabbed inventory strip, and untyped/raw payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, sidecar inspector, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, tabbed inventory, and raw payload detail. API Explorer validates the contract-inspection/catalog family, but the implementation keeps these molecules local until a dedicated design-system proposal defines shared APIs.
+
+**API Explorer-specific molecules:** schema tree rows are candidates for a shared ContractSchemaTree pattern, method/event catalog rows are candidates for a ContractCatalog pattern, and raw/untyped payload disclosure overlaps with Logs/Gateway/Activity raw evidence. These remain local because this module rewrite must not silently promote canonical design-system behavior.
+
+**Mock visual evidence:** `deck-go/test/e2e/api-explorer-visual.spec.ts` covers the ready Gateway describe catalog, untyped raw evidence expansion, method-filtered state, and event-tab schema inspection against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence and not full upstream schema-completeness proof.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -401,3 +415,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — usage hifi redesign (`frontend-usage-hifi-contract-redesign`)**: Usage moves cost, quota, trend, session drilldown, context weight, aggregate, and behavior signals into a module-local operations cockpit. No canonical atom/token changes were introduced; deterministic usage/session/provider/context mock drift was fixed for mock visual coverage, while uncertain real Gateway billing/quota/context aggregation semantics remain handoff follow-up.
 - **2026-05-03 — threads hifi redesign (`frontend-threads-hifi-contract-redesign`)**: Threads moves thread bindings, selected relationship evidence, and session/agent handoff actions into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed by adding `deck.threads.list` fixture support, while uncertain real non-Discord/status semantics remain handoff follow-up.
 - **2026-05-03 — activity hifi redesign (`frontend-activity-hifi-contract-redesign`)**: Activity moves runtime activity projection, monitor run history, selected event evidence, and selected run diagnostics into a module-local operations timeline. No canonical atom/token changes were introduced; existing mock visual event seeding was sufficient for coverage, while uncertain real Gateway/LLM projection completeness remains handoff follow-up.
+- **2026-05-03 — API Explorer hifi redesign (`frontend-api-explorer-hifi-contract-redesign`)**: API Explorer moves live `gateway.describe` inspection into a module-local contract catalog with schema tree and untyped/raw evidence. No canonical atom/token changes were introduced; deterministic mock Gateway describe drift was fixed for mock visual coverage, while real upstream schema completeness remains handoff follow-up.
