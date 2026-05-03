@@ -107,6 +107,125 @@ function defaultMethods() {
       mainKey: "main",
       scope: "local",
     }),
+    "config.get": () => ({
+      hash: "routing-hash-1",
+      config: {
+        session: { dmScope: "per-channel-peer" },
+        bindings: [
+          {
+            agentId: "ops",
+            comment: "Direct finance escalation",
+            match: {
+              channel: "discord",
+              accountId: "enterprise",
+              peer: { kind: "direct", id: "finance-lead" },
+            },
+          },
+          {
+            agentId: "security",
+            comment: "Guild admins and ops",
+            match: {
+              channel: "discord",
+              guildId: "openclaw-prod",
+              roles: ["admin", "ops"],
+            },
+          },
+          {
+            agentId: "main",
+            comment: "Discord enterprise fallback",
+            match: {
+              channel: "discord",
+              accountId: "enterprise",
+            },
+          },
+        ],
+      },
+    }),
+    "deck.routing.list": () => ({
+      bindings: [
+        {
+          id: "route-finance-direct",
+          agentId: "ops",
+          tier: "peer",
+          comment: "Direct finance escalation",
+          match: {
+            channel: "discord",
+            accountId: "enterprise",
+            peer: { kind: "direct", id: "finance-lead" },
+          },
+        },
+        {
+          id: "route-prod-admins",
+          agentId: "security",
+          tier: "guild+roles",
+          comment: "Guild admins and ops",
+          match: {
+            channel: "discord",
+            guildId: "openclaw-prod",
+            roles: ["admin", "ops"],
+          },
+        },
+        {
+          id: "route-enterprise-fallback",
+          agentId: "main",
+          tier: "channel",
+          comment: "Discord enterprise fallback",
+          match: {
+            channel: "discord",
+            accountId: "enterprise",
+          },
+        },
+      ],
+      defaultAgentId: "main",
+      dmScope: "per-channel-peer",
+      configHash: "routing-hash-1",
+    }),
+    "deck.routing.validate": () => ({
+      ok: true,
+      tier: "peer",
+      conflicts: [],
+    }),
+    "deck.routing.add": (params) => ({
+      ok: true,
+      binding: {
+        id: "route-new-binding",
+        agentId: params?.agentId ?? "support",
+        tier: "peer",
+        comment: params?.comment ?? "Mock added binding",
+        match: params?.match ?? {
+          channel: "wecom",
+          accountId: "default",
+          peer: { kind: "group", id: "support-group" },
+        },
+      },
+      configHash: "routing-hash-2",
+      warnings: [],
+    }),
+    "deck.routing.remove": (params) => ({
+      ok: true,
+      removed: {
+        id: params?.id ?? "route-finance-direct",
+        agentId: "ops",
+        tier: "peer",
+        match: {
+          channel: "discord",
+          accountId: "enterprise",
+          peer: { kind: "direct", id: "finance-lead" },
+        },
+      },
+      configHash: "routing-hash-2",
+      impact: "Messages may fall through to the next matching binding.",
+    }),
+    "deck.routing.simulate": () => ({
+      agentId: "ops",
+      matchedBy: "peer",
+      sessionKey: "agent:ops:discord:finance-lead",
+      tiers: [
+        { tier: "peer", matched: true, checked: true },
+        { tier: "guild+roles", matched: false, checked: true },
+        { tier: "channel", matched: false, checked: false },
+      ],
+    }),
     "deck.commands.discover": () => ({
       commands: [
         {

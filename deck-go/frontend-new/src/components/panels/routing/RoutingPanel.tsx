@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import type {
   DeckGoActivityEvent,
   DeckGoRoutingAddResponse,
@@ -25,6 +25,16 @@ import {
   navigateToSession,
 } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import {
+  Badge,
+  Button,
+  Card,
+  Chip,
+  Input,
+  Select,
+  Spinner,
+  Textarea,
+} from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 import { detectConflicts, type ConflictPair } from "../../../lib/detect-conflicts";
 import {
@@ -32,7 +42,8 @@ import {
   gatewayNotConfiguredValue,
   isGatewayNotConfiguredValue,
 } from "../../runtime/GatewayNotConfiguredEmptyState";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
+import "./routing-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type RoutingTranslator = ReturnType<typeof useTranslations>;
@@ -64,6 +75,12 @@ type RoutingBindingDraft = {
   roles: string;
   comment: string;
   position: string;
+};
+
+type MetricTileProps = {
+  label: string;
+  value: string | number;
+  hint?: string;
 };
 
 const DM_SCOPE_OPTIONS = [
@@ -217,6 +234,79 @@ function isKnownDmScope(value: string) {
   return DM_SCOPE_OPTIONS.some((option) => option.value === value);
 }
 
+function statusVariant(loadState: PanelState) {
+  if (loadState === "ready") {
+    return "ok";
+  }
+  if (loadState === "loading") {
+    return "running";
+  }
+  return "neutral";
+}
+
+function simulationTierVariant(tier: DeckGoRoutingSimulationTier) {
+  if (tier.matched) {
+    return "ok";
+  }
+  return tier.checked ? "neutral" : "warn";
+}
+
+function MetricTile({ label, value, hint }: MetricTileProps) {
+  return (
+    <article className="routing-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      {hint ? <small>{hint}</small> : null}
+    </article>
+  );
+}
+
+function MatchChipRow(props: {
+  binding: DeckGoRoutingBinding;
+  labels: {
+    account: string;
+    channel: string;
+    guild: string;
+    peer: string;
+    roles: string;
+    team: string;
+  };
+}) {
+  const { binding, labels } = props;
+  return (
+    <div className="routing-match-chips">
+      <Chip>
+        <b>{labels.channel}</b> {binding.match.channel}
+      </Chip>
+      {binding.match.accountId ? (
+        <Chip>
+          <b>{labels.account}</b> {binding.match.accountId}
+        </Chip>
+      ) : null}
+      {binding.match.peer ? (
+        <Chip>
+          <b>{labels.peer}</b> {binding.match.peer.kind}:{binding.match.peer.id}
+        </Chip>
+      ) : null}
+      {binding.match.guildId ? (
+        <Chip>
+          <b>{labels.guild}</b> {binding.match.guildId}
+        </Chip>
+      ) : null}
+      {binding.match.teamId ? (
+        <Chip>
+          <b>{labels.team}</b> {binding.match.teamId}
+        </Chip>
+      ) : null}
+      {binding.match.roles?.length ? (
+        <Chip>
+          <b>{labels.roles}</b> {binding.match.roles.join(", ")}
+        </Chip>
+      ) : null}
+    </div>
+  );
+}
+
 export function RoutingPanel() {
   const t = useTranslations("routing");
   const tc = useTranslations("common");
@@ -340,10 +430,7 @@ export function RoutingPanel() {
     }
     setActionState("simulating");
     try {
-      const memberRoleIds = simulationDraft.memberRoleIds
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
+      const memberRoleIds = parseCommaList(simulationDraft.memberRoleIds);
       const result = await simulateRouting({
         channel: simulationDraft.channel.trim(),
         accountId: simulationDraft.accountId.trim() || undefined,
@@ -518,44 +605,99 @@ export function RoutingPanel() {
     }
   };
 
+  const handleBindingKeyDown = (event: KeyboardEvent<HTMLButtonElement>, bindingId: string) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      setSelectedBindingId(bindingId);
+    }
+  };
+
   return (
-    <section className="deckgo-panel-workspace deck-ui-routing">
-      <div className="deckgo-column deck-ui-routing-column">
-        <article className="deckgo-card is-float deck-ui-routing-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
+    <section className="routing-panel" data-testid="routing-panel">
+      <header className="routing-panel__header">
+        <div>
+          <p className="routing-panel__eyebrow">Deck routing</p>
+          <h2>{t("title")}</h2>
+          <p>{t("description")}</p>
+        </div>
+        <div className="routing-panel__header-actions">
+          <Badge variant={statusVariant(loadState)}>
+            {loadState === "loading" ? tc("loading") : t(loadState)}
+          </Badge>
+          <Badge variant={conflictPairs.length > 0 ? "warn" : "neutral"}>
+            {t("conflictCount", { count: conflictPairs.length })}
+          </Badge>
+          <Button size="sm" onClick={() => void refresh()}>
+            {t("refreshRouting")}
+          </Button>
+        </div>
+      </header>
+
+      <section className="routing-panel__metrics" aria-label={t("routingMetrics")}>
+        <MetricTile label={t("bindingsStat")} value={bindings.length} />
+        <MetricTile label={t("defaultAgent")} value={defaultAgentId || emptyLabel} />
+        <MetricTile label={t("dmScope")} value={dmScope || emptyLabel} />
+        <MetricTile label={t("configHash")} value={configHash || emptyLabel} />
+        <MetricTile
+          label={t("matchedBy")}
+          value={simulationResult?.agentId || simulationResult?.matchedBy || emptyLabel}
+        />
+      </section>
+
+      <div className="routing-workbench">
+        <Card className="routing-queue-card" padded={false}>
+          <div className="routing-card-header">
+            <div>
+              <h3>{t("bindings")}</h3>
+              <p>{t("bindingQueueDescription")}</p>
+            </div>
+            {loadState === "loading" ? <Spinner size="sm" aria-label={tc("loading")} /> : null}
           </div>
-          <p className="deckgo-card-subtitle">{t("description")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-routing-body">
-            <div className="deckgo-pill-row deck-ui-routing-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </span>
-              <span className="deckgo-pill">
-                {t("defaultPill", { agent: defaultAgentId || emptyLabel })}
-              </span>
-              <span className="deckgo-pill">
-                {t("dmScopePill", { scope: dmScope || emptyLabel })}
-              </span>
-              <span
-                className={`deckgo-pill ${conflictPairs.length > 0 ? "is-warning" : "is-muted"}`}
-              >
-                {t("conflictCount", { count: conflictPairs.length })}
-              </span>
+          <div className="routing-card-body">
+            <div className="routing-filter-row">
+              <Input
+                inputSize="sm"
+                value={filters.agentId}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, agentId: event.target.value }))
+                }
+                placeholder="agent id"
+                aria-label={t("agentId")}
+              />
+              <Input
+                inputSize="sm"
+                value={filters.channel}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, channel: event.target.value }))
+                }
+                placeholder="channel"
+                aria-label={t("dimChannel")}
+              />
+              <Input
+                inputSize="sm"
+                value={filters.accountId}
+                onChange={(event) =>
+                  setFilters((current) => ({ ...current, accountId: event.target.value }))
+                }
+                placeholder="account id"
+                aria-label={t("dimAccountId")}
+              />
+              <Button size="sm" onClick={() => void refresh()}>
+                {t("refreshRouting")}
+              </Button>
             </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-routing-stats">
-              <ShellStat label={t("bindingsStat")} value={bindings.length} />
-              <ShellStat label={t("dmScope")} value={dmScope || emptyLabel} />
-              <ShellStat label={t("configHash")} value={configHash || emptyLabel} />
-            </div>
-            <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">{t("dmScopeStrategy")}</p>
-              <div className="deckgo-actions deck-ui-routing-actions">
-                <select
-                  aria-label={t("dmScopeStrategy")}
-                  className="deckgo-input deck-ui-routing-input"
+
+            <section className="routing-scope-card">
+              <div>
+                <p className="routing-panel__eyebrow">{t("dmScopeStrategy")}</p>
+                <p className="routing-panel__note">{t("dmScopePatchHint")}</p>
+              </div>
+              <div className="routing-inline-actions">
+                <Select
+                  selectSize="sm"
                   value={scopeDraft}
                   onChange={(event) => setScopeDraft(event.target.value)}
+                  aria-label={t("dmScopeStrategy")}
                 >
                   {scopeDraft && !isKnownDmScope(scopeDraft) ? (
                     <option value={scopeDraft}>{scopeDraft}</option>
@@ -565,227 +707,57 @@ export function RoutingPanel() {
                       {option.label}
                     </option>
                   ))}
-                </select>
-                <button
-                  className="deckgo-button deck-ui-routing-button"
+                </Select>
+                <Button
+                  size="sm"
                   disabled={actionState !== "idle"}
                   onClick={() => void patchDmScope()}
-                  type="button"
                 >
                   {actionState === "scope" ? t("patchingDmScope") : t("patchDmScope")}
-                </button>
+                </Button>
               </div>
-              {scopeResult ? (
-                <p className="deckgo-note deck-ui-routing-result">{scopeResult}</p>
-              ) : null}
-            </div>
-            <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">{t("filterBindings")}</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={filters.agentId}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, agentId: event.target.value }))
-                  }
-                  placeholder="agent id"
-                  aria-label={t("agentId")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={filters.channel}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, channel: event.target.value }))
-                  }
-                  placeholder="channel"
-                  aria-label={t("dimChannel")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={filters.accountId}
-                  onChange={(event) =>
-                    setFilters((current) => ({ ...current, accountId: event.target.value }))
-                  }
-                  placeholder="account id"
-                  aria-label={t("dimAccountId")}
-                />
-              </div>
-              <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-routing-button"
-                  type="button"
-                  onClick={() => void refresh()}
-                >
-                  {t("refreshRouting")}
-                </button>
-              </div>
-            </div>
-            {error ? <p className="deckgo-note deck-ui-routing-error">{error}</p> : null}
-            <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">{t("addOrValidateBinding")}</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.agentId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, agentId: event.target.value }))
-                  }
-                  aria-label={t("bindingAgentId")}
-                  placeholder={t("bindingAgentIdPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.channel}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, channel: event.target.value }))
-                  }
-                  aria-label={t("bindingChannel")}
-                  placeholder={t("bindingChannelPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.accountId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, accountId: event.target.value }))
-                  }
-                  aria-label={t("bindingAccountId")}
-                  placeholder={t("bindingAccountIdPlaceholder")}
-                />
-                <select
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.peerKind}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({
-                      ...current,
-                      peerKind: event.target.value as RoutingBindingDraft["peerKind"],
-                    }))
-                  }
-                  aria-label={t("bindingPeerKind")}
-                >
-                  <option value="">{t("noPeer")}</option>
-                  <option value="direct">{t("directPeer")}</option>
-                  <option value="group">{t("groupPeer")}</option>
-                  <option value="channel">{t("channelPeer")}</option>
-                </select>
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.peerId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, peerId: event.target.value }))
-                  }
-                  aria-label={t("bindingPeerId")}
-                  placeholder={t("bindingPeerIdPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.guildId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, guildId: event.target.value }))
-                  }
-                  aria-label={t("bindingGuildId")}
-                  placeholder={t("bindingGuildIdPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.teamId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, teamId: event.target.value }))
-                  }
-                  aria-label={t("bindingTeamId")}
-                  placeholder={t("bindingTeamIdPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.roles}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, roles: event.target.value }))
-                  }
-                  aria-label={t("bindingRoles")}
-                  placeholder={t("bindingRolesPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.comment}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, comment: event.target.value }))
-                  }
-                  aria-label={t("bindingComment")}
-                  placeholder={t("bindingCommentPlaceholder")}
-                />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
-                  value={bindingDraft.position}
-                  inputMode="numeric"
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, position: event.target.value }))
-                  }
-                  aria-label={t("bindingPosition")}
-                  placeholder={t("bindingPositionPlaceholder")}
-                />
-              </div>
-              <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-routing-button"
-                  type="button"
-                  disabled={actionState !== "idle"}
-                  onClick={() => void validateBinding()}
-                >
-                  {actionState === "validating" ? t("validating") : t("validateBinding")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-routing-button is-primary"
-                  type="button"
-                  disabled={actionState !== "idle"}
-                  onClick={() => void addBinding()}
-                >
-                  {actionState === "adding" ? t("addingBinding") : t("addBindingAction")}
-                </button>
-              </div>
-              {validationResult ? (
-                <div className="deckgo-pill-row deck-ui-routing-status-row deck-ui-routing-actions-offset">
-                  <span
-                    className={`deckgo-pill ${validationResult.ok ? "is-positive" : "is-muted"}`}
-                  >
-                    {t("validationResult", {
-                      state: validationResult.ok ? t("ok") : t("blocked"),
-                    })}
-                  </span>
-                  <span className="deckgo-pill">
-                    {t("tierValue", { tier: validationResult.tier })}
-                  </span>
-                  <span className="deckgo-pill">
-                    {t("conflictsValue", { count: validationResult.conflicts.length })}
-                  </span>
-                </div>
-              ) : null}
-            </div>
+              {scopeResult ? <p className="routing-panel__success">{scopeResult}</p> : null}
+            </section>
+
+            {error ? (
+              <p className="routing-panel__error" role="alert">
+                {error}
+              </p>
+            ) : null}
+
             {bindings.length === 0 ? (
-              <p className="deckgo-note deck-ui-routing-empty">{t("noBindingsLoaded")}</p>
+              <p className="routing-panel__empty">{t("noBindingsLoaded")}</p>
             ) : (
-              <ul className="deckgo-shell-list deck-ui-routing-list">
+              <ul className="routing-binding-list">
                 {bindings.map((binding) => {
                   const conflicts = conflictMap.get(binding.id) ?? [];
+                  const selected = selectedBinding?.id === binding.id;
                   return (
                     <li key={binding.id}>
                       <button
                         type="button"
-                        className={`deckgo-selectable-card deck-ui-routing-row ${selectedBinding?.id === binding.id ? "is-selected" : ""}`}
+                        className={`routing-binding-row ${selected ? "is-selected" : ""}`}
                         onClick={() => setSelectedBindingId(binding.id)}
+                        onKeyDown={(event) => handleBindingKeyDown(event, binding.id)}
+                        aria-pressed={selected}
                       >
-                        <strong>{binding.agentId}</strong>
-                        <div className="deckgo-meta">
-                          {t("tier")}: {binding.tier} | {t("bindingId")}: {binding.id}
-                        </div>
-                        <div className="deckgo-meta">
-                          {summarizeBindingMatch(binding, bindingMatchLabels)}
-                        </div>
+                        <span className="routing-binding-row__top">
+                          <strong>{binding.agentId}</strong>
+                          <Badge variant={conflicts.length > 0 ? "warn" : "neutral"}>
+                            {binding.tier}
+                          </Badge>
+                        </span>
+                        <span className="routing-binding-row__meta">
+                          {t("bindingId")}: {binding.id}
+                        </span>
+                        <MatchChipRow binding={binding} labels={bindingMatchLabels} />
                         {conflicts.length > 0 ? (
-                          <div className="deckgo-meta">
+                          <span className="routing-binding-row__warning">
                             {t("conflictsValue", { count: conflicts.length })}:{" "}
                             {conflicts
                               .map((conflict) => describeConflict(t, binding.id, conflict))
                               .join("; ")}
-                          </div>
+                          </span>
                         ) : null}
                       </button>
                     </li>
@@ -794,125 +766,140 @@ export function RoutingPanel() {
               </ul>
             )}
           </div>
-        </article>
-      </div>
+        </Card>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-routing-column">
-        <article className="deckgo-card is-float deck-ui-routing-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("routingDetail")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("routingDetailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-routing-body">
-            {selectedBinding ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-routing-hero">
+        <div className="routing-detail">
+          <Card className="routing-detail-card" padded={false}>
+            <div className="routing-card-header">
+              <div>
+                <h3>{t("routingDetail")}</h3>
+                <p>{t("routingDetailDescription")}</p>
+              </div>
+              <Badge>
+                {t("configHash")}: {configHash || emptyLabel}
+              </Badge>
+            </div>
+            <div className="routing-card-body">
+              {selectedBinding ? (
+                <section className="routing-selected">
                   <div>
-                    <p className="deckgo-kicker">{t("selectedBinding")}</p>
-                    <strong>{selectedBinding.agentId}</strong>
-                    <p className="deckgo-note">{selectedBinding.id}</p>
+                    <p className="routing-panel__eyebrow">{t("selectedBinding")}</p>
+                    <h3>{selectedBinding.agentId}</h3>
+                    <p className="routing-panel__note">
+                      {selectedBinding.id} - {t("tier")} {selectedBinding.tier} -{" "}
+                      {t("bindingOrder", {
+                        current: selectedBindingIndex + 1,
+                        total: bindings.length,
+                      })}
+                    </p>
+                    <p className="routing-panel__note">
+                      {summarizeBindingMatch(selectedBinding, bindingMatchLabels)}
+                    </p>
                   </div>
-                  <div className="deckgo-pill-row deck-ui-routing-status-row">
-                    <span className="deckgo-pill">{selectedBinding.tier}</span>
-                    <span className="deckgo-pill">{selectedBinding.match.channel}</span>
-                  </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-detail-stats">
-                  <ShellStat label={t("agent")} value={selectedBinding.agentId} />
-                  <ShellStat label={t("tier")} value={selectedBinding.tier} />
-                </div>
-                {(conflictMap.get(selectedBinding.id) ?? []).length > 0 ? (
-                  <div className="deckgo-pill-row deck-ui-routing-status-row deck-ui-routing-actions-offset">
-                    {(conflictMap.get(selectedBinding.id) ?? []).map((conflict) => (
-                      <span
-                        key={`${conflict.bindingA}:${conflict.bindingB}`}
-                        className="deckgo-pill is-warning"
-                      >
-                        {t("conflict")} {describeConflict(t, selectedBinding.id, conflict)}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={actionState !== "idle"}
-                    onClick={loadSelectedBindingIntoSimulation}
-                  >
-                    {t("useAsSimulation")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={!selectedBinding.agentId.trim()}
-                    onClick={() => navigateToAgent(ui, selectedBinding.agentId)}
-                  >
-                    {t("openBindingAgent")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={!selectedBindingChannelId}
-                    onClick={() => navigateToChannel(ui, selectedBindingChannelId)}
-                  >
-                    {t("openBindingChannel")}
-                  </button>
-                  {selectedBindingChannelId === "wecom" && selectedBindingAccountId ? (
-                    <button
-                      className="deckgo-button deck-ui-routing-button"
-                      type="button"
-                      onClick={() =>
-                        navigateToChannelAccess(
-                          ui,
-                          selectedBindingChannelId,
-                          selectedBindingAccountId,
-                        )
+                  <div className="routing-selected__badges">
+                    <Badge>{selectedBinding.match.channel}</Badge>
+                    <Badge
+                      variant={
+                        (conflictMap.get(selectedBinding.id) ?? []).length > 0 ? "warn" : "ok"
                       }
                     >
-                      {t("openBindingAccess")}
-                    </button>
-                  ) : null}
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={actionState !== "idle" || selectedBindingIndex <= 0}
-                    onClick={() => void reorderSelectedBinding(-1)}
-                  >
-                    {actionState === "reordering" ? t("reordering") : t("moveUp")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={
-                      actionState !== "idle" ||
-                      selectedBindingIndex < 0 ||
-                      selectedBindingIndex >= bindings.length - 1
-                    }
-                    onClick={() => void reorderSelectedBinding(1)}
-                  >
-                    {actionState === "reordering" ? t("reordering") : t("moveDown")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button is-danger"
-                    type="button"
-                    disabled={actionState !== "idle"}
-                    onClick={() => void removeSelectedBinding()}
-                  >
-                    {actionState === "removing" ? t("removingBinding") : t("removeBinding")}
-                  </button>
-                </div>
-                <JsonDetails title={t("bindingPayload")} payload={selectedBinding} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-routing-empty">{t("chooseBinding")}</p>
-            )}
+                      {t("conflictsValue", {
+                        count: (conflictMap.get(selectedBinding.id) ?? []).length,
+                      })}
+                    </Badge>
+                  </div>
+                </section>
+              ) : (
+                <p className="routing-panel__empty">{t("chooseBinding")}</p>
+              )}
 
-            <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">{t("simulateRouteSelection")}</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-routing-form-grid">
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+              {selectedBinding ? (
+                <>
+                  <div className="routing-inline-actions">
+                    <Button
+                      size="sm"
+                      disabled={actionState !== "idle"}
+                      onClick={loadSelectedBindingIntoSimulation}
+                    >
+                      {t("useAsSimulation")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!selectedBinding.agentId.trim()}
+                      onClick={() => navigateToAgent(ui, selectedBinding.agentId)}
+                    >
+                      {t("openBindingAgent")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!selectedBindingChannelId}
+                      onClick={() => navigateToChannel(ui, selectedBindingChannelId)}
+                    >
+                      {t("openBindingChannel")}
+                    </Button>
+                    {selectedBindingChannelId === "wecom" && selectedBindingAccountId ? (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          navigateToChannelAccess(
+                            ui,
+                            selectedBindingChannelId,
+                            selectedBindingAccountId,
+                          )
+                        }
+                      >
+                        {t("openBindingAccess")}
+                      </Button>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      disabled={actionState !== "idle" || selectedBindingIndex <= 0}
+                      onClick={() => void reorderSelectedBinding(-1)}
+                    >
+                      {actionState === "reordering" ? t("reordering") : t("moveUp")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={
+                        actionState !== "idle" ||
+                        selectedBindingIndex < 0 ||
+                        selectedBindingIndex >= bindings.length - 1
+                      }
+                      onClick={() => void reorderSelectedBinding(1)}
+                    >
+                      {actionState === "reordering" ? t("reordering") : t("moveDown")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      disabled={actionState !== "idle"}
+                      onClick={() => void removeSelectedBinding()}
+                    >
+                      {actionState === "removing" ? t("removingBinding") : t("removeBinding")}
+                    </Button>
+                  </div>
+                  <JsonDetails title={t("bindingPayload")} payload={selectedBinding} />
+                </>
+              ) : null}
+            </div>
+          </Card>
+
+          <Card className="routing-simulator" padded={false}>
+            <div className="routing-card-header">
+              <div>
+                <h3>{t("simulateRouteSelection")}</h3>
+                <p>{t("simulatorDescription")}</p>
+              </div>
+              {simulationResult ? (
+                <Badge variant="ok">
+                  {t("matchedByValue", { tier: simulationResult.matchedBy })}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="routing-card-body">
+              <div className="routing-form-grid">
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.channel}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, channel: event.target.value }))
@@ -920,8 +907,8 @@ export function RoutingPanel() {
                   aria-label={t("simulationChannel")}
                   placeholder={t("channelPlaceholder")}
                 />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.accountId}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, accountId: event.target.value }))
@@ -929,8 +916,8 @@ export function RoutingPanel() {
                   aria-label={t("simulationAccountId")}
                   placeholder={t("accountIdPlaceholder")}
                 />
-                <select
-                  className="deckgo-input deck-ui-routing-input"
+                <Select
+                  selectSize="sm"
                   value={simulationDraft.peerKind}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({
@@ -944,9 +931,9 @@ export function RoutingPanel() {
                   <option value="direct">{t("directPeer")}</option>
                   <option value="group">{t("groupPeer")}</option>
                   <option value="channel">{t("channelPeer")}</option>
-                </select>
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+                </Select>
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.peerId}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, peerId: event.target.value }))
@@ -954,8 +941,8 @@ export function RoutingPanel() {
                   aria-label={t("simulationPeerId")}
                   placeholder={t("peerIdPlaceholder")}
                 />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.guildId}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, guildId: event.target.value }))
@@ -963,8 +950,8 @@ export function RoutingPanel() {
                   aria-label={t("simulationGuildId")}
                   placeholder={t("guildIdPlaceholder")}
                 />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.teamId}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({ ...current, teamId: event.target.value }))
@@ -972,8 +959,8 @@ export function RoutingPanel() {
                   aria-label={t("simulationTeamId")}
                   placeholder={t("teamIdPlaceholder")}
                 />
-                <input
-                  className="deckgo-input deck-ui-routing-input"
+                <Input
+                  inputSize="sm"
                   value={simulationDraft.memberRoleIds}
                   onChange={(event) =>
                     setSimulationDraft((current) => ({
@@ -985,136 +972,288 @@ export function RoutingPanel() {
                   placeholder={t("roleIdsPlaceholder")}
                 />
               </div>
-              <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-routing-button is-primary"
-                  type="button"
+              <div className="routing-inline-actions">
+                <Button
+                  size="sm"
+                  variant="primary"
                   onClick={() => void runSimulation()}
                   disabled={actionState !== "idle"}
                 >
                   {actionState === "simulating" ? t("simulating") : t("simulate")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-routing-button"
-                  type="button"
-                  onClick={resetSimulation}
-                >
+                </Button>
+                <Button size="sm" onClick={resetSimulation}>
                   {t("resetSimulation")}
-                </button>
+                </Button>
               </div>
-            </div>
 
-            {simulationResult ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-routing-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("simulationResult")}</p>
-                    <strong>{simulationResult.agentId || t("noAgentMatched")}</strong>
-                    <p className="deckgo-note">
-                      {t("sessionValue", { session: simulationResult.sessionKey || emptyLabel })}
-                    </p>
+              {simulationResult ? (
+                <section className="routing-result">
+                  <div className="routing-selected">
+                    <div>
+                      <p className="routing-panel__eyebrow">{t("simulationResult")}</p>
+                      <h3>{simulationResult.agentId || t("noAgentMatched")}</h3>
+                      <p className="routing-panel__note">
+                        {t("sessionValue", { session: simulationResult.sessionKey || emptyLabel })}
+                      </p>
+                    </div>
+                    <Badge>{t("tiersCount", { count: tiers.length })}</Badge>
                   </div>
-                  <div className="deckgo-pill-row deck-ui-routing-status-row">
-                    <span className="deckgo-pill">
-                      {t("matchedByValue", { tier: simulationResult.matchedBy })}
-                    </span>
-                    <span className="deckgo-pill">{t("tiersCount", { count: tiers.length })}</span>
-                  </div>
-                </div>
-                <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={!simulationResult.agentId?.trim()}
-                    onClick={() => navigateToAgent(ui, simulationResult.agentId ?? "")}
-                  >
-                    {t("openSimulationAgent")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={!simulationResult.sessionKey?.trim()}
-                    onClick={() => navigateToSession(ui, simulationResult.sessionKey ?? "")}
-                  >
-                    {t("openSimulationSession")}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-routing-button"
-                    type="button"
-                    disabled={!simulationChannelId}
-                    onClick={() => navigateToChannel(ui, simulationChannelId)}
-                  >
-                    {t("openSimulationChannel")}
-                  </button>
-                  {simulationChannelId === "wecom" && simulationAccountId ? (
-                    <button
-                      className="deckgo-button deck-ui-routing-button"
-                      type="button"
-                      onClick={() =>
-                        navigateToChannelAccess(ui, simulationChannelId, simulationAccountId)
-                      }
+                  <div className="routing-inline-actions">
+                    <Button
+                      size="sm"
+                      disabled={!simulationResult.agentId?.trim()}
+                      onClick={() => navigateToAgent(ui, simulationResult.agentId ?? "")}
                     >
-                      {t("openSimulationAccess")}
-                    </button>
-                  ) : null}
-                </div>
-                <ul className="deckgo-shell-list deck-ui-routing-list">
-                  {tiers.map((tier) => (
-                    <li key={tier.tier}>
-                      <div className="deckgo-selectable-card deck-ui-routing-row">
-                        <strong>{tier.tier}</strong>
-                        <div className="deckgo-meta">{summarizeSimulationTier(t, tier)}</div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                <JsonDetails title={t("simulationPayload")} payload={simulationResult} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-routing-empty">{t("runSimulationPrompt")}</p>
-            )}
-            <div className="deckgo-surface-tile deck-ui-routing-surface">
-              <p className="deckgo-surface-label">{t("activityFeed")}</p>
-              <p className="deckgo-note">{t("activityFeedDescription")}</p>
-              <div className="deckgo-actions deck-ui-routing-actions deck-ui-routing-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-routing-button"
-                  type="button"
-                  onClick={() => void loadRoutingActivity()}
-                >
-                  {t("refreshActivity")}
-                </button>
+                      {t("openSimulationAgent")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!simulationResult.sessionKey?.trim()}
+                      onClick={() => navigateToSession(ui, simulationResult.sessionKey ?? "")}
+                    >
+                      {t("openSimulationSession")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!simulationChannelId}
+                      onClick={() => navigateToChannel(ui, simulationChannelId)}
+                    >
+                      {t("openSimulationChannel")}
+                    </Button>
+                    {simulationChannelId === "wecom" && simulationAccountId ? (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          navigateToChannelAccess(ui, simulationChannelId, simulationAccountId)
+                        }
+                      >
+                        {t("openSimulationAccess")}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <ul className="routing-tier-list">
+                    {tiers.map((tier) => (
+                      <li key={tier.tier}>
+                        <div className="routing-tier-row">
+                          <strong>{tier.tier}</strong>
+                          <Badge variant={simulationTierVariant(tier)}>
+                            {summarizeSimulationTier(t, tier)}
+                          </Badge>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <JsonDetails title={t("simulationPayload")} payload={simulationResult} />
+                </section>
+              ) : (
+                <p className="routing-panel__empty">{t("runSimulationPrompt")}</p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="routing-draft" padded={false}>
+            <div className="routing-card-header">
+              <div>
+                <h3>{t("addOrValidateBinding")}</h3>
+                <p>{t("bindingDraftDescription")}</p>
               </div>
+              {validationResult ? (
+                <Badge variant={validationResult.ok ? "ok" : "warn"}>
+                  {t("validationResult", {
+                    state: validationResult.ok ? t("ok") : t("blocked"),
+                  })}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="routing-card-body">
+              <div className="routing-form-grid">
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.agentId}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, agentId: event.target.value }))
+                  }
+                  aria-label={t("bindingAgentId")}
+                  placeholder={t("bindingAgentIdPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.channel}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, channel: event.target.value }))
+                  }
+                  aria-label={t("bindingChannel")}
+                  placeholder={t("bindingChannelPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.accountId}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, accountId: event.target.value }))
+                  }
+                  aria-label={t("bindingAccountId")}
+                  placeholder={t("bindingAccountIdPlaceholder")}
+                />
+                <Select
+                  selectSize="sm"
+                  value={bindingDraft.peerKind}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({
+                      ...current,
+                      peerKind: event.target.value as RoutingBindingDraft["peerKind"],
+                    }))
+                  }
+                  aria-label={t("bindingPeerKind")}
+                >
+                  <option value="">{t("noPeer")}</option>
+                  <option value="direct">{t("directPeer")}</option>
+                  <option value="group">{t("groupPeer")}</option>
+                  <option value="channel">{t("channelPeer")}</option>
+                </Select>
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.peerId}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, peerId: event.target.value }))
+                  }
+                  aria-label={t("bindingPeerId")}
+                  placeholder={t("bindingPeerIdPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.guildId}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, guildId: event.target.value }))
+                  }
+                  aria-label={t("bindingGuildId")}
+                  placeholder={t("bindingGuildIdPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.teamId}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, teamId: event.target.value }))
+                  }
+                  aria-label={t("bindingTeamId")}
+                  placeholder={t("bindingTeamIdPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.roles}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, roles: event.target.value }))
+                  }
+                  aria-label={t("bindingRoles")}
+                  placeholder={t("bindingRolesPlaceholder")}
+                />
+                <Input
+                  inputSize="sm"
+                  value={bindingDraft.position}
+                  inputMode="numeric"
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, position: event.target.value }))
+                  }
+                  aria-label={t("bindingPosition")}
+                  placeholder={t("bindingPositionPlaceholder")}
+                />
+              </div>
+              <Textarea
+                value={bindingDraft.comment}
+                onChange={(event) =>
+                  setBindingDraft((current) => ({ ...current, comment: event.target.value }))
+                }
+                aria-label={t("bindingComment")}
+                placeholder={t("bindingCommentPlaceholder")}
+                noResize
+              />
+              <div className="routing-inline-actions">
+                <Button
+                  size="sm"
+                  disabled={actionState !== "idle"}
+                  onClick={() => void validateBinding()}
+                >
+                  {actionState === "validating" ? t("validating") : t("validateBinding")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  disabled={actionState !== "idle"}
+                  onClick={() => void addBinding()}
+                >
+                  {actionState === "adding" ? t("addingBinding") : t("addBindingAction")}
+                </Button>
+              </div>
+              {validationResult ? (
+                <div className="routing-validation-row">
+                  <Badge variant={validationResult.ok ? "ok" : "warn"}>
+                    {t("validationResult", {
+                      state: validationResult.ok ? t("ok") : t("blocked"),
+                    })}
+                  </Badge>
+                  <Badge>{t("tierValue", { tier: validationResult.tier })}</Badge>
+                  <Badge>{t("conflictsValue", { count: validationResult.conflicts.length })}</Badge>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+
+          <Card className="routing-activity" padded={false}>
+            <div className="routing-card-header">
+              <div>
+                <h3>{t("activityFeed")}</h3>
+                <p>{t("activityFeedDescription")}</p>
+              </div>
+              <Button size="sm" onClick={() => void loadRoutingActivity()}>
+                {t("refreshActivity")}
+              </Button>
+            </div>
+            <div className="routing-card-body">
               {routingActivityNotConfigured ? (
-                <GatewayNotConfiguredEmptyState className="deck-ui-routing-surface" />
+                <GatewayNotConfiguredEmptyState className="routing-panel__not-configured" />
               ) : routingActivityEvents.length > 0 ? (
-                <ul className="deckgo-shell-list deck-ui-routing-list deck-ui-routing-list-offset">
+                <ul className="routing-activity-list">
                   {routingActivityEvents.map((event) => (
                     <li key={event.id}>
-                      <div className="deckgo-selectable-card deck-ui-routing-row">
+                      <article className="routing-activity-row">
                         <strong>{event.description}</strong>
-                        <div className="deckgo-meta">
-                          {event.type} | {event.agentName || event.agentId || t("systemActor")}
-                        </div>
-                        <div className="deckgo-meta">
+                        <p className="routing-panel__note">
+                          {event.type} - {event.agentName || event.agentId || t("systemActor")}
+                        </p>
+                        <p className="routing-panel__note">
                           {new Date(event.timestamp).toLocaleString()}
-                        </div>
-                      </div>
+                        </p>
+                      </article>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="deckgo-note deck-ui-routing-empty">{t("noRecentActivity")}</p>
+                <p className="routing-panel__empty">{t("noRecentActivity")}</p>
               )}
               {routingActivityError && !routingActivityNotConfigured ? (
-                <p className="deckgo-note deck-ui-routing-error">{routingActivityError}</p>
+                <p className="routing-panel__error">{routingActivityError}</p>
               ) : null}
             </div>
-            {mutationResult ? (
-              <JsonDetails title={t("routingMutation")} payload={mutationResult} />
-            ) : null}
-          </div>
-        </article>
+          </Card>
+
+          {mutationResult ? (
+            <Card className="routing-mutation" padded={false}>
+              <div className="routing-card-header">
+                <div>
+                  <h3>{t("routingMutation")}</h3>
+                  <p>{t("mutationDescription")}</p>
+                </div>
+                {"configHash" in mutationResult ? (
+                  <Badge>
+                    {t("configHash")}: {mutationResult.configHash}
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="routing-card-body">
+                <JsonDetails title={t("routingMutation")} payload={mutationResult} />
+              </div>
+            </Card>
+          ) : null}
+        </div>
       </div>
     </section>
   );

@@ -213,6 +213,18 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Watch items for routing/subagents:** promote metric tile, section header, preview row, or status-dot vocabulary only if a second module repeats the pattern. Until then these remain module-local.
 
+### Routing panel
+
+**Status:** in progress under OpenSpec change `frontend-routing-hifi-contract-redesign`.
+
+**Readiness verdict:** High. The routing high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge/chip, button, select, textarea, spinner, and card atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** routing metric tile, binding queue row, match chip row, selected binding hero, simulator tier timeline, mutation result strip, compact activity row, and advisory conflict marker.
+
+**Repeated from agents:** metric tile, two-column workbench rhythm, compact section header, selected-detail hero, and dense row summaries. These are now repeated twice, but remain local until subagents confirms the same shape and the API for a shared pattern is clear.
+
+**Watch items for subagents/later modules:** candidate shared patterns are `MetricTile`, `WorkbenchHeader`, `SelectableQueueRow`, `DetailHero`, and `StatusTimeline`. Promotion should happen in a dedicated design-system change, not silently inside a panel rewrite.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---

@@ -5000,221 +5000,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-routing {
-  grid-template-columns: minmax(420px, 0.92fr) minmax(560px, 1.08fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-routing-column {
-  gap: 12px;
-}
-
-.deck-ui-routing-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-routing-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-routing-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-routing-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-routing-body > *,
-.deck-ui-routing-status-row,
-.deck-ui-routing-actions,
-.deck-ui-routing-stats,
-.deck-ui-routing-detail-stats,
-.deck-ui-routing-form-grid,
-.deck-ui-routing-input,
-.deck-ui-routing-list,
-.deck-ui-routing-row,
-.deck-ui-routing-surface,
-.deck-ui-routing-hero {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-routing-status-row,
-.deck-ui-routing-actions {
-  gap: 6px;
-}
-
-.deck-ui-routing-status-row .deckgo-pill,
-.deck-ui-routing-hero .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-routing-input {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-routing-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-routing-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-routing-stats,
-.deck-ui-routing-detail-stats,
-.deck-ui-routing-form-grid {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-routing-stats {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.deck-ui-routing-detail-stats,
-.deck-ui-routing-form-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.deck-ui-routing-actions-offset,
-.deck-ui-routing-list-offset {
-  margin-top: 12px;
-}
-
-.deck-ui-routing .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-routing .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-routing .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-routing-surface,
-.deck-ui-routing-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-routing-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-routing-list {
-  gap: 8px;
-}
-
-.deck-ui-routing-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-routing-row,
-.deck-ui-routing .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-routing-row:hover,
-.deck-ui-routing .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-routing-row.is-selected,
-.deck-ui-routing .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-routing-error {
-  color: var(--danger);
-}
-
-.deck-ui-routing strong,
-.deck-ui-routing code,
-.deck-ui-routing .deckgo-meta,
-.deck-ui-routing .deckgo-note,
-.deck-ui-routing-empty,
-.deck-ui-routing-error,
-.deck-ui-routing-result {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-routing details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1080px) {
-  .deck-ui-routing {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .deck-ui-routing-stats,
-  .deck-ui-routing-detail-stats,
-  .deck-ui-routing-form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .deck-ui-routing-actions {
-    align-items: stretch;
-  }
-}
-
 .deck-ui-subagents {
   grid-template-columns: minmax(430px, 0.92fr) minmax(560px, 1.08fr);
   gap: 12px;
@@ -6808,7 +6593,6 @@ details summary:focus-visible {
 .deck-ui-alerts .deckgo-stat,
 .deck-ui-channels .deckgo-stat,
 .deck-ui-plugins .deckgo-stat,
-.deck-ui-routing .deckgo-stat,
 .deck-ui-subagents .deckgo-stat,
 .deck-ui-identity .deckgo-stat,
 .deck-ui-config .deckgo-stat,
@@ -6821,7 +6605,6 @@ details summary:focus-visible {
 .deck-ui-alerts .deckgo-stat-value,
 .deck-ui-channels .deckgo-stat-value,
 .deck-ui-plugins .deckgo-stat-value,
-.deck-ui-routing .deckgo-stat-value,
 .deck-ui-subagents .deckgo-stat-value,
 .deck-ui-identity .deckgo-stat-value,
 .deck-ui-config .deckgo-stat-value,
@@ -6835,7 +6618,6 @@ details summary:focus-visible {
 .deck-ui-alerts .deckgo-selectable-card,
 .deck-ui-channels .deckgo-selectable-card,
 .deck-ui-plugins .deckgo-selectable-card,
-.deck-ui-routing .deckgo-selectable-card,
 .deck-ui-subagents .deckgo-selectable-card,
 .deck-ui-identity .deckgo-selectable-card,
 .deck-ui-config .deckgo-selectable-card,

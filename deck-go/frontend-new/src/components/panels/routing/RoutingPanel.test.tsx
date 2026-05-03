@@ -172,8 +172,8 @@ describe("RoutingPanel", () => {
     expect(apiMocks.fetchActivityEvents).toHaveBeenCalledWith(20);
     await waitFor(() => expect(container.textContent).toContain("Routing ready"));
     expect(container.textContent).toContain("Routing ready");
-    expect(container.textContent).toContain("default main");
-    expect(container.textContent).toContain("dm scope per-channel-peer");
+    expect(container.textContent).toContain("Default Agentmain");
+    expect(container.textContent).toContain("DM Scopeper-channel-peer");
     expect(container.textContent).toContain("hash-1");
     expect(container.textContent).toContain("bind-main");
     expect(container.textContent).toContain("Peer direct:peer-main");
@@ -182,24 +182,18 @@ describe("RoutingPanel", () => {
     expect(container.textContent).toContain("Activity Feed");
     expect(container.textContent).toContain("Routed discord message to builder");
     expect(container.textContent).not.toContain("System-only event");
-    expect(container.querySelector(".deck-ui-routing")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-routing-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-routing-body")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-routing-status-row").length).toBeGreaterThanOrEqual(
-      2,
-    );
-    expect(container.querySelector(".deck-ui-routing-stats")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-routing-surface").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".deck-ui-routing-form-grid").length).toBeGreaterThanOrEqual(
-      3,
-    );
-    expect(container.querySelectorAll(".deck-ui-routing-input").length).toBeGreaterThanOrEqual(10);
-    expect(container.querySelectorAll(".deck-ui-routing-actions").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-routing-button").length).toBeGreaterThanOrEqual(10);
-    expect(container.querySelector(".deck-ui-routing-list")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-routing-row").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".deck-ui-routing-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-routing-detail-stats")).toBeTruthy();
+    expect(container.querySelector(".routing-panel")).toBeTruthy();
+    expect(container.querySelector(".routing-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".routing-workbench")).toBeTruthy();
+    expect(container.querySelector(".routing-queue-card")).toBeTruthy();
+    expect(container.querySelector(".routing-detail-card")).toBeTruthy();
+    expect(container.querySelector(".routing-simulator")).toBeTruthy();
+    expect(container.querySelector(".routing-draft")).toBeTruthy();
+    expect(container.querySelectorAll(".routing-metric")).toHaveLength(5);
+    expect(container.querySelectorAll(".routing-binding-row")).toHaveLength(3);
+    expect(container.querySelectorAll(".routing-form-grid").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".ds-input").length).toBeGreaterThanOrEqual(10);
+    expect(container.querySelectorAll(".ds-button").length).toBeGreaterThanOrEqual(10);
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -291,7 +285,7 @@ describe("RoutingPanel", () => {
     expect(accountFilter?.value).toBe("default");
 
     const [simulateChannel, simulateAccount] = Array.from(
-      container.querySelectorAll<HTMLInputElement>(".deckgo-panel-main input"),
+      container.querySelectorAll<HTMLInputElement>(".routing-simulator input"),
     );
     expect(simulateChannel?.value).toBe("wecom");
     expect(simulateAccount?.value).toBe("default");
@@ -367,7 +361,7 @@ describe("RoutingPanel", () => {
       simulateGuild,
       simulateTeam,
       simulateRoles,
-    ] = Array.from(container.querySelectorAll<HTMLInputElement>(".deckgo-panel-main input"));
+    ] = Array.from(container.querySelectorAll<HTMLInputElement>(".routing-simulator input"));
     const simulatePeerKind = container.querySelector<HTMLSelectElement>(
       'select[aria-label="simulation peer kind"]',
     );
@@ -457,10 +451,14 @@ describe("RoutingPanel", () => {
     const inputs = Array.from(container.querySelectorAll<HTMLInputElement>("input"));
     const inputByPlaceholder = (placeholder: string) =>
       inputs.find((input) => input.placeholder === placeholder);
+    const commentTextarea = container.querySelector<HTMLTextAreaElement>(
+      'textarea[placeholder="binding comment"]',
+    );
     const peerKindSelect = container.querySelector<HTMLSelectElement>(
       'select[aria-label="binding peer kind"]',
     );
     expect(inputByPlaceholder("binding agent id")).toBeTruthy();
+    expect(commentTextarea).toBeTruthy();
     expect(peerKindSelect).toBeTruthy();
 
     await act(async () => {
@@ -480,7 +478,7 @@ describe("RoutingPanel", () => {
       fireEvent.change(inputByPlaceholder("binding roles, comma separated") as HTMLInputElement, {
         target: { value: " admin, ops, " },
       });
-      fireEvent.change(inputByPlaceholder("binding comment") as HTMLInputElement, {
+      fireEvent.change(commentTextarea as HTMLTextAreaElement, {
         target: { value: " routed support " },
       });
       fireEvent.change(inputByPlaceholder("binding position") as HTMLInputElement, {
@@ -564,7 +562,7 @@ describe("RoutingPanel", () => {
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      Array.from(container.querySelectorAll<HTMLButtonElement>(".deckgo-shell-list button"))
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".routing-binding-row"))
         .find((button) => button.textContent?.includes("bind-builder"))
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -597,7 +595,7 @@ describe("RoutingPanel", () => {
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      Array.from(container.querySelectorAll<HTMLButtonElement>(".deckgo-shell-list button"))
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".routing-binding-row"))
         .find((button) => button.textContent?.includes("bind-builder"))
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -614,7 +612,7 @@ describe("RoutingPanel", () => {
       simulateGuild,
       simulateTeam,
       simulateRoles,
-    ] = Array.from(container.querySelectorAll<HTMLInputElement>(".deckgo-panel-main input"));
+    ] = Array.from(container.querySelectorAll<HTMLInputElement>(".routing-simulator input"));
     const simulatePeerKind = container.querySelector<HTMLSelectElement>(
       'select[aria-label="simulation peer kind"]',
     );
@@ -634,7 +632,7 @@ describe("RoutingPanel", () => {
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
     expect(container.textContent).toContain("路由就绪");
-    expect(container.textContent).toContain("过滤绑定");
+    expect(container.textContent).toContain("绑定规则");
     expect(container.textContent).toContain("添加或验证绑定");
     expect(container.textContent).toContain("路由详情");
     expect(container.textContent).toContain("模拟路由选择");
