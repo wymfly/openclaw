@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Usage Operations Cockpit</title>
+    <style>
+      :root {
+        --ds-bg: #f7f8fb;
+        --ds-surface: #ffffff;
+        --ds-surface-muted: #f2f4f8;
+        --ds-border: #d9dee8;
+        --ds-border-strong: #c5ccd9;
+        --ds-text: #151922;
+        --ds-text-muted: #606979;
+        --ds-text-faint: #858e9d;
+        --ds-primary: #3451d1;
+        --ds-primary-soft: #eef2ff;
+        --ds-success: #138a54;
+        --ds-warning: #b7791f;
+        --ds-danger: #c2413b;
+        --ds-radius: 8px;
+        --ds-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        --ds-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg);
+        color: var(--ds-text);
+        font-family: var(--ds-font);
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      .usage-panel {
+        display: grid;
+        gap: 14px;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .usage-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--ds-text-faint);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 680;
+        line-height: 1.18;
+      }
+
+      .description {
+        max-width: 720px;
+        margin-top: 6px;
+        color: var(--ds-text-muted);
+        line-height: 1.45;
+      }
+
+      .actions,
+      .segments,
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .button,
+      .segment,
+      .pill {
+        min-height: 30px;
+        border: 1px solid var(--ds-border);
+        border-radius: 7px;
+        background: var(--ds-surface);
+        color: var(--ds-text);
+        font: inherit;
+      }
+
+      .button,
+      .segment {
+        padding: 6px 10px;
+      }
+
+      .button.primary,
+      .segment.active {
+        border-color: color-mix(in srgb, var(--ds-primary) 40%, var(--ds-border));
+        background: var(--ds-primary-soft);
+        color: var(--ds-primary);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        color: var(--ds-text-muted);
+        font-size: 12px;
+      }
+
+      .pill.good {
+        border-color: color-mix(in srgb, var(--ds-success) 30%, var(--ds-border));
+        color: var(--ds-success);
+      }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(120px, 1fr));
+        gap: 10px;
+      }
+
+      .metric,
+      .card,
+      .row {
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius);
+        background: var(--ds-surface);
+      }
+
+      .metric {
+        min-height: 82px;
+        padding: 12px;
+      }
+
+      .metric span,
+      .label {
+        color: var(--ds-text-faint);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .metric small {
+        display: block;
+        margin-top: 6px;
+        color: var(--ds-text-muted);
+        font-size: 12px;
+      }
+
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(0, 1.38fr) minmax(300px, 0.62fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .card {
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+      }
+
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      h2 {
+        font-size: 15px;
+        font-weight: 680;
+      }
+
+      .chart {
+        display: grid;
+        gap: 9px;
+      }
+
+      .chart-row {
+        display: grid;
+        grid-template-columns: 88px minmax(120px, 1fr) 100px;
+        gap: 10px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .bar {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--ds-surface-muted);
+      }
+
+      .bar span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--ds-primary);
+      }
+
+      .bar.cost span {
+        background: var(--ds-warning);
+      }
+
+      .mono {
+        font-family: var(--ds-mono);
+        font-size: 12px;
+      }
+
+      .session-grid {
+        display: grid;
+        gap: 8px;
+      }
+
+      .row {
+        display: grid;
+        gap: 7px;
+        padding: 10px 12px;
+      }
+
+      .row.selected {
+        border-color: color-mix(in srgb, var(--ds-primary) 42%, var(--ds-border));
+        box-shadow: inset 2px 0 0 var(--ds-primary);
+      }
+
+      .row-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .meta {
+        color: var(--ds-text-muted);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .mini {
+        border: 1px solid var(--ds-border);
+        border-radius: 7px;
+        background: var(--ds-surface-muted);
+        padding: 9px;
+      }
+
+      .quota-window {
+        display: grid;
+        gap: 6px;
+      }
+
+      .pressure {
+        display: grid;
+        gap: 5px;
+      }
+
+      .pressure-track {
+        height: 7px;
+        border-radius: 999px;
+        background: var(--ds-surface-muted);
+      }
+
+      .pressure-track span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: var(--ds-warning);
+      }
+
+      .aggregate-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      @media (max-width: 1180px) {
+        .metrics {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .workbench {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .usage-panel {
+          padding: 14px;
+        }
+
+        .usage-header,
+        .card-head,
+        .row-head {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .metrics,
+        .detail-grid,
+        .aggregate-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .chart-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="usage-panel">
+      <header class="usage-header">
+        <div>
+          <p class="eyebrow">observe / usage</p>
+          <h1>Usage operations cockpit</h1>
+          <p class="description">
+            Cost, quota, session, model, context, and behavior evidence share one contract-led
+            workspace. Mock visual coverage only; code and contracts remain the source of truth.
+          </p>
+        </div>
+        <div class="actions">
+          <span class="pill good">Usage ready</span>
+          <span class="pill">14 days</span>
+          <button class="button primary">Refresh</button>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Usage summary">
+        <div class="metric"><span>Total cost</span><strong>$2.43</strong><small>+ $2.10 latest day</small></div>
+        <div class="metric"><span>Total tokens</span><strong>162k</strong><small>input, output, cache</small></div>
+        <div class="metric"><span>Messages</span><strong>37</strong><small>9 tool calls</small></div>
+        <div class="metric"><span>Latency p95</span><strong>1.2s</strong><small>18 samples</small></div>
+        <div class="metric"><span>Provider pressure</span><strong>90%</strong><small>OpenAI hourly</small></div>
+        <div class="metric"><span>Sessions</span><strong>3</strong><small>2 agents, 2 channels</small></div>
+      </section>
+
+      <section class="workbench">
+        <div class="stack">
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="label">Trend</p>
+                <h2>Spend and token movement</h2>
+              </div>
+              <div class="segments">
+                <button class="segment active">Tokens</button>
+                <button class="segment">Cost</button>
+                <button class="segment">By model</button>
+              </div>
+            </div>
+            <div class="chart">
+              <div class="chart-row"><span class="mono">May 01</span><span class="bar"><span style="width: 28%"></span></span><span class="mono">18k tokens</span></div>
+              <div class="chart-row"><span class="mono">May 02</span><span class="bar"><span style="width: 76%"></span></span><span class="mono">92k tokens</span></div>
+              <div class="chart-row"><span class="mono">May 03</span><span class="bar cost"><span style="width: 100%"></span></span><span class="mono">$2.10</span></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="label">Sessions</p>
+                <h2>Usage drilldown</h2>
+              </div>
+              <button class="button">Search sessions</button>
+            </div>
+            <div class="session-grid">
+              <div class="row selected">
+                <div class="row-head">
+                  <strong>Main production review</strong>
+                  <span class="pill">$1.42 / 84k</span>
+                </div>
+                <p class="meta">main | web | updated 10:30 | gpt-5.4</p>
+                <div class="detail-grid">
+                  <div class="mini"><span class="label">Logs</span><p class="meta">3 turns, latest assistant</p></div>
+                  <div class="mini"><span class="label">Timeseries</span><p class="meta">84k cumulative tokens</p></div>
+                  <div class="mini"><span class="label">Context</span><p class="meta">12.8k chars, run source</p></div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="row-head">
+                  <strong>Builder validation</strong>
+                  <span class="pill">$0.74 / 48k</span>
+                </div>
+                <p class="meta">builder | web | updated 09:48 | gpt-5.4-mini</p>
+              </div>
+              <div class="row">
+                <div class="row-head">
+                  <strong>Ops channel triage</strong>
+                  <span class="pill">$0.27 / 30k</span>
+                </div>
+                <p class="meta">ops | discord | updated 09:15 | sonnet-4.6</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div class="card-head">
+              <div>
+                <p class="label">Breakdown</p>
+                <h2>Aggregate attribution</h2>
+              </div>
+            </div>
+            <div class="aggregate-grid">
+              <div class="row"><strong>model: gpt-5.4</strong><p class="meta">132k tokens | $2.01</p></div>
+              <div class="row"><strong>provider: openai</strong><p class="meta">144k tokens | $2.10</p></div>
+              <div class="row"><strong>agent: main</strong><p class="meta">84k tokens | $1.42</p></div>
+              <div class="row"><strong>channel: web</strong><p class="meta">132k tokens | $2.16</p></div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="stack">
+          <article class="card">
+            <div>
+              <p class="label">Provider pressure</p>
+              <h2>OpenAI hourly window</h2>
+            </div>
+            <div class="quota-window">
+              <div class="pressure">
+                <div class="row-head"><strong>90% used</strong><span class="mono">resets 1h 42m</span></div>
+                <span class="pressure-track"><span style="width: 90%"></span></span>
+              </div>
+              <div class="row selected"><strong>OpenAI</strong><p class="meta">team | daily 40%, hourly 90%</p></div>
+              <div class="row"><strong>Anthropic</strong><p class="meta">pro | daily 50%</p></div>
+            </div>
+          </article>
+
+          <article class="card">
+            <div>
+              <p class="label">Behavior signals</p>
+              <h2>Why usage changed</h2>
+            </div>
+            <div class="row"><strong>Tool calls</strong><p class="meta">search 6, read_file 3</p></div>
+            <div class="row"><strong>Message mix</strong><p class="meta">18 user, 16 assistant, 3 tool results</p></div>
+            <div class="row"><strong>Error signals</strong><p class="meta">1 retry-producing error on May 02</p></div>
+          </article>
+
+          <article class="card">
+            <div>
+              <p class="label">Context pressure</p>
+              <h2>Selected session</h2>
+            </div>
+            <div class="row"><strong>12.8k chars</strong><p class="meta">system 6.8k, tools 3.2k, skills 1.0k, files 1.8k</p></div>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>
