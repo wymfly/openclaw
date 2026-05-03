@@ -15,6 +15,27 @@ function responseError(id, code, message) {
 
 function defaultMethods() {
   const now = Date.now();
+  const logCursor = 4208;
+  const logLines = [
+    `${new Date(now - 42_000).toISOString()} [INFO] [gateway] gateway ready sessionKey=sess-main bind=127.0.0.1:18789 runtime=bundled`,
+    {
+      timestamp: new Date(now - 36_000).toISOString(),
+      level: "warn",
+      source: "agent",
+      sessionKey: "sess-build",
+      message: "tool retry scheduled sessionKey=sess-build method=deck.agents.chat.start attempt=2",
+    },
+    `${new Date(now - 29_000).toISOString()} [DEBUG] [channel] websocket heartbeat acknowledged sessionKey=sess-main channel=discord account=ops-bot`,
+    {
+      timestamp: new Date(now - 22_000).toISOString(),
+      level: "error",
+      source: "agent",
+      sessionKey: "sess-build",
+      message:
+        'agent handoff failed sessionKey=sess-build reason="mock upstream timeout for visual fixture"',
+    },
+    `${new Date(now - 12_000).toISOString()} [INFO] [gateway] logs.tail served cursor=${logCursor} sessionKey=sess-main`,
+  ];
   const subagentRuns = [
     {
       runId: "run-root",
@@ -97,6 +118,17 @@ function defaultMethods() {
     }),
     health: () => ({ status: "healthy" }),
     status: () => ({ status: "running", health: "healthy" }),
+    "logs.tail": (params) => {
+      const cursor = Number.isFinite(params?.cursor) ? Number(params.cursor) : 0;
+      const limit = Number.isFinite(params?.limit)
+        ? Math.max(0, Number(params.limit))
+        : logLines.length;
+      return {
+        cursor: logCursor,
+        lines: cursor >= logCursor ? [] : logLines.slice(-limit),
+        reset: false,
+      };
+    },
     "sessions.create": (params) => ({
       key: params?.sessionKey ?? "session:mock:1",
       sessionKey: params?.sessionKey ?? "session:mock:1",

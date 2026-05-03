@@ -237,6 +237,18 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, `SelectableQueueRow`, `DetailHero`, and `StatusTimeline`. A future design-system proposal should define their API from the three observed modules before moving them into canonical atoms or shared molecules.
 
+### Logs panel
+
+**Status:** in progress under OpenSpec change `frontend-logs-hifi-contract-redesign`.
+
+**Readiness verdict:** High. The logs high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge, button, input, select, toggle, spinner, code, and card atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** logs metric tile, level filter toggle row, log line row, live tape row, stream event summary strip, and raw payload seam.
+
+**Repeated from agents/routing/subagents:** metric tile, compact workbench header, section heading, and two-column workbench rhythm. Logs also validates a code-heavy observability sidecar, but log rows and event tape rows remain local because no second observability module has confirmed their API.
+
+**Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, and `SectionHeading` now have four module data points and should move to a separate design-system proposal when the rollout pauses for pattern consolidation. `LogLineRow`, `LiveTapeRow`, and `PayloadSeam` stay local/follow-up.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -257,3 +269,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-04-30 — chat-parity §11 (axe automation)**: Added `vitest-axe` matcher across all 36 atom test files. Every atom passes with zero violations — no atom required a `disableRules` override. This is a regression gate (no atom API/surface change) and does not affect panel readiness.
 - **2026-05-03 — agents hifi redesign (`frontend-agents-hifi-contract-redesign`)**: Agents was evaluated against the current contract-led design-system rollout. The pass introduced no canonical atom/token/pattern changes. Local molecules are documented in `deck-go/frontend-handoff/modules/agents/implementation-notes.md`; mock visual E2E captures the workbench and create dialog with contract-shaped data.
 - **2026-05-03 — subagents hifi redesign (`frontend-subagents-hifi-contract-redesign`)**: Subagents provides the third data point for the workbench/metric/queue/detail/timeline pattern first seen in agents and routing. This pass introduces no canonical atom/token changes and keeps repeated molecules local; promotion should happen in a separate design-system change after the subagents implementation is archived.
+- **2026-05-03 — logs hifi redesign (`frontend-logs-hifi-contract-redesign`)**: Logs provides the first code-heavy observability panel in the contract-led rollout. This pass introduces no canonical atom/token changes. The shared metric/header/section patterns now have four module data points; log rows, live tape rows, and payload seams stay local until another observability module confirms reuse.

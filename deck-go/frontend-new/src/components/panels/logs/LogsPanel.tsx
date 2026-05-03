@@ -1,9 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DeckGoLogStreamEvent } from "../../../../../contracts/generated/ts/deck-api.generated";
 import { fetchLogsTail, streamLogEvents, type DeckGoLogsTailResponse } from "../../../api";
+import {
+  Badge,
+  Button,
+  Card,
+  Code,
+  Input,
+  Select,
+  Spinner,
+  Toggle,
+} from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 import { parseLogEvent, summarizeLogEvent } from "../../../stream-contract";
 import { EventFeedCard, JsonDetails } from "../../shared/ShellComponents";
+import "./logs-panel.css";
 
 type LogsState = "idle" | "loading" | "ready";
 type StreamState = "idle" | "connecting" | "connected" | "reconnecting" | "error";
@@ -129,6 +140,52 @@ function buildLogExport(entries: ParsedLogEntry[]) {
         .join(" "),
     )
     .join("\n");
+}
+
+function tailStateVariant(state: LogsState) {
+  if (state === "ready") {
+    return "ok";
+  }
+  if (state === "loading") {
+    return "running";
+  }
+  return "neutral";
+}
+
+function streamStateVariant(state: StreamState) {
+  if (state === "connected") {
+    return "ok";
+  }
+  if (state === "connecting" || state === "reconnecting") {
+    return "running";
+  }
+  if (state === "error") {
+    return "err";
+  }
+  return "neutral";
+}
+
+function levelVariant(level: LogLevel) {
+  if (level === "error") {
+    return "err";
+  }
+  if (level === "warn") {
+    return "warn";
+  }
+  if (level === "info") {
+    return "ok";
+  }
+  return "neutral";
+}
+
+function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+  return (
+    <article className="logs-metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+      {props.hint ? <small>{props.hint}</small> : null}
+    </article>
+  );
 }
 
 export function LogsPanel() {
@@ -260,176 +317,271 @@ export function LogsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-logs">
-      <div className="deckgo-column deck-ui-logs-column">
-        <article className="deckgo-card is-float deck-ui-logs-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("tailTitle")}</h2>
+    <section className="logs-panel" data-testid="logs-panel">
+      <div className="logs-panel__header">
+        <div>
+          <p className="logs-panel__eyebrow">operations / logs</p>
+          <h2>{t("title")}</h2>
+          <p>{t("tailDescription")}</p>
+        </div>
+        <div className="logs-panel__header-actions">
+          <Badge variant={tailStateVariant(tailState)}>
+            {t("tailStatus", { state: t(tailState) })}
+          </Badge>
+          <Badge variant={streamStateVariant(streamState)}>
+            {t("streamStatus", { state: t(streamState) })}
+          </Badge>
+          {tailState === "loading" ? <Spinner aria-label={t("loading")} size="sm" /> : null}
+          <div className="logs-toggle">
+            <Toggle
+              aria-label={streamingEnabled ? t("pauseStream") : t("resumeStream")}
+              checked={streamingEnabled}
+              onCheckedChange={setStreamingEnabled}
+            />
+            <span>{streamingEnabled ? t("connected") : t("idle")}</span>
           </div>
-          <p className="deckgo-card-subtitle">{t("tailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-logs-body">
-            <div className="deckgo-pill-row deck-ui-logs-status-row">
-              <span className={`deckgo-pill ${tailState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("tailStatus", { state: t(tailState) })}
-              </span>
-              <span
-                className={`deckgo-pill ${streamState === "connected" ? "is-positive" : "is-muted"}`}
-              >
-                {t("streamStatus", { state: t(streamState) })}
-              </span>
-              <span className="deckgo-pill">{t("cursorValue", { cursor: tail?.cursor ?? 0 })}</span>
-              <span className="deckgo-pill">
-                {t("visibleCount", { count: filteredLogEntries.length })}
-              </span>
+          <Button size="sm" onClick={() => void refreshLogsTail(tail?.cursor)}>
+            {t("refreshTail")}
+          </Button>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="logs-panel__banner" role="status">
+          <Badge variant="err">{t("error")}</Badge>
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <div className="logs-panel__metrics">
+        <MetricTile
+          hint={t("cursorValue", { cursor: tail?.cursor ?? 0 })}
+          label={t("tailPayload")}
+          value={tail?.cursor ?? 0}
+        />
+        <MetricTile
+          hint={t("visibleCount", { count: filteredLogEntries.length })}
+          label={t("latestLines")}
+          value={filteredLogEntries.length}
+        />
+        <MetricTile
+          hint={t("bufferCount", { current: parsedLogEntries.length, max: LOG_BUFFER_LIMIT })}
+          label={t("bufferCount", { current: parsedLogEntries.length, max: LOG_BUFFER_LIMIT })}
+          value={parsedLogEntries.length}
+        />
+        <MetricTile label={t("liveEventTape")} value={liveTape.length} />
+        <MetricTile label={t("streamEventsTitle")} value={logEvents.length} />
+      </div>
+
+      <div className="logs-workbench">
+        <Card className="logs-card logs-tail-card" padded={false}>
+          <div className="logs-card__header">
+            <div>
+              <h3>{t("latestLines")}</h3>
+              <p>{t("tailDescription")}</p>
             </div>
-            <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-filter">
-              <p className="deckgo-surface-label">{t("filters")}</p>
-              <div className="deckgo-pill-row deck-ui-logs-levels">
-                {ALL_LOG_LEVELS.map((level) => (
-                  <label key={level} className="deckgo-checkbox-row deck-ui-logs-level">
-                    <input
-                      checked={selectedLevels.includes(level)}
-                      onChange={() => toggleLevelFilter(level)}
-                      type="checkbox"
-                    />
-                    {level}
-                  </label>
-                ))}
+            <Badge>{t("visibleCount", { count: filteredLogEntries.length })}</Badge>
+          </div>
+          <div className="logs-card__body">
+            <section className="logs-surface logs-filter-surface">
+              <div className="logs-section-heading">
+                <div>
+                  <h3>{t("filters")}</h3>
+                  <p>{t("session")}</p>
+                </div>
+                <Badge>{t("all")}</Badge>
               </div>
-              <div className="deckgo-actions deck-ui-logs-controls">
-                <select
-                  aria-label={t("sourceFilter")}
-                  className="deckgo-input deck-ui-logs-input"
-                  onChange={(event) => setSourceFilter(event.target.value as LogSource | "all")}
-                  value={sourceFilter}
-                >
-                  {ALL_LOG_SOURCES.map((source) => (
-                    <option key={source} value={source}>
-                      {source}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  className="deckgo-input deck-ui-logs-input"
-                  onChange={(event) => setSessionFilter(event.target.value)}
-                  placeholder={t("sessionKeyPlaceholder")}
-                  value={sessionFilter}
-                />
+              <div className="logs-filter-grid">
+                <label className="logs-label">
+                  <span>{t("level")}</span>
+                  <span className="logs-level-row">
+                    {ALL_LOG_LEVELS.map((level) => (
+                      <span className="logs-level-pill" key={level}>
+                        <input
+                          checked={selectedLevels.includes(level)}
+                          onChange={() => toggleLevelFilter(level)}
+                          type="checkbox"
+                        />
+                        {level}
+                      </span>
+                    ))}
+                  </span>
+                </label>
+                <label className="logs-label">
+                  <span>{t("source")}</span>
+                  <Select
+                    aria-label={t("sourceFilter")}
+                    onChange={(event) => setSourceFilter(event.target.value as LogSource | "all")}
+                    selectSize="sm"
+                    value={sourceFilter}
+                  >
+                    {ALL_LOG_SOURCES.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="logs-label">
+                  <span>{t("session")}</span>
+                  <Input
+                    inputSize="sm"
+                    onChange={(event) => setSessionFilter(event.target.value)}
+                    placeholder={t("sessionKeyPlaceholder")}
+                    value={sessionFilter}
+                  />
+                </label>
               </div>
-            </div>
-            <div className="deckgo-actions deck-ui-logs-actions">
-              <button
-                className="deckgo-button deck-ui-logs-button"
-                type="button"
+            </section>
+
+            <div className="logs-action-row">
+              <Button
+                size="sm"
+                variant="primary"
                 onClick={() => void refreshLogsTail(tail?.cursor)}
               >
                 {t("refreshTail")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-logs-button"
+              </Button>
+              <Button
+                aria-pressed={!streamingEnabled}
+                size="sm"
                 onClick={() => setStreamingEnabled((current) => !current)}
-                type="button"
               >
                 {streamingEnabled ? t("pauseStream") : t("resumeStream")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-logs-button"
-                onClick={clearLocalLogs}
-                type="button"
-              >
+              </Button>
+              <Button size="sm" onClick={clearLocalLogs}>
                 {t("clearLocalLogs")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-logs-button"
+              </Button>
+              <Button
+                size="sm"
                 onClick={() => setExportPreview(buildLogExport(filteredLogEntries))}
-                type="button"
               >
                 {t("prepareExport")}
-              </button>
+              </Button>
             </div>
-            <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-lines">
-              <p className="deckgo-surface-label">{t("latestLines")}</p>
+
+            <section className="logs-surface logs-lines">
+              <div className="logs-section-heading">
+                <div>
+                  <h3>{t("latestLines")}</h3>
+                  <p>{t("visibleCount", { count: filteredLogEntries.length })}</p>
+                </div>
+                <Badge variant={tailStateVariant(tailState)}>{t(tailState)}</Badge>
+              </div>
               {filteredLogEntries.length === 0 ? (
-                <p className="deckgo-note">{t("noLogLines")}</p>
+                <p className="logs-panel__empty">{t("noLogLines")}</p>
               ) : (
-                <ul className="deckgo-shell-list deck-ui-logs-list">
+                <ul className="logs-line-list">
                   {filteredLogEntries.slice(0, 50).map((entry, index) => (
                     <li key={`log-line-${index}-${entry.timestamp}`}>
-                      <div className="deckgo-selectable-card deck-ui-logs-row">
-                        <strong>
-                          [{entry.level}] [{entry.source}]
-                        </strong>
-                        <div className="deckgo-meta">
-                          {entry.timestamp}
-                          {entry.sessionKey ? ` | ${entry.sessionKey}` : ""}
+                      <article className="logs-line-row">
+                        <div className="logs-row__top">
+                          <strong>
+                            <Badge variant={levelVariant(entry.level)}>{entry.level}</Badge>
+                            <span>{entry.source}</span>
+                          </strong>
+                          <span className="logs-row__meta">
+                            {entry.timestamp}
+                            {entry.sessionKey ? ` | ${entry.sessionKey}` : ""}
+                          </span>
                         </div>
-                        <pre className="deckgo-code deck-ui-logs-code">{entry.message}</pre>
-                      </div>
+                        <Code
+                          aria-label={`${entry.level} ${entry.source}`}
+                          className="logs-code"
+                          content={entry.message}
+                          language="log"
+                        />
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            {exportPreview ? (
+              <section className="logs-surface logs-export">
+                <div className="logs-section-heading">
+                  <div>
+                    <h3>{t("preparedLogExport")}</h3>
+                    <p>{t("visibleCount", { count: filteredLogEntries.length })}</p>
+                  </div>
+                  <Badge>{t("filteredTailSeam")}</Badge>
+                </div>
+                <Code
+                  aria-label={t("preparedLogExport")}
+                  className="logs-code logs-code--export"
+                  content={exportPreview}
+                  language="log"
+                />
+              </section>
+            ) : null}
+          </div>
+        </Card>
+
+        <aside className="logs-sidecar">
+          <Card className="logs-card logs-live-tape" padded={false}>
+            <div className="logs-card__header">
+              <div>
+                <h3>{t("liveEventTape")}</h3>
+                <p>{t("streamStatus", { state: t(streamState) })}</p>
+              </div>
+              <Badge variant={streamStateVariant(streamState)}>{t(streamState)}</Badge>
+            </div>
+            <div className="logs-card__body">
+              {liveTape.length === 0 ? (
+                <p className="logs-panel__empty">{t("noLiveEvents")}</p>
+              ) : (
+                <ul className="logs-tape-list">
+                  {liveTape.map((item, index) => (
+                    <li className="logs-tape-row" key={`${item}-${index}`}>
+                      {item}
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            {exportPreview ? (
-              <div className="deckgo-surface-tile deck-ui-logs-surface deck-ui-logs-export">
-                <p className="deckgo-surface-label">{t("preparedLogExport")}</p>
-                <pre className="deckgo-code deck-ui-logs-code">{exportPreview}</pre>
+          </Card>
+
+          <Card className="logs-card logs-stream-events" padded={false}>
+            <div className="logs-card__header">
+              <div>
+                <h3>{t("streamEventsTitle")}</h3>
+                <p>{t("logEvents")}</p>
               </div>
-            ) : null}
-            {error ? <p className="deckgo-note deck-ui-logs-error">{error}</p> : null}
-          </div>
-        </article>
+              <Badge>{logEvents.length}</Badge>
+            </div>
+            <div className="logs-card__body">
+              {logEvents.length === 0 ? (
+                <p className="logs-panel__empty">{t("noLogEvents")}</p>
+              ) : (
+                <EventFeedCard title={t("logEvents")} events={logEvents} kind="log" />
+              )}
+            </div>
+          </Card>
+
+          {tail ? (
+            <Card className="logs-card logs-payload-seam" padded={false}>
+              <div className="logs-card__header">
+                <div>
+                  <h3>{t("filteredTailSeam")}</h3>
+                  <p>{t("tailPayload")}</p>
+                </div>
+                <Badge>{t("cursorValue", { cursor: tail.cursor ?? 0 })}</Badge>
+              </div>
+              <div className="logs-card__body">
+                <JsonDetails
+                  title={t("tailPayload")}
+                  payload={{
+                    cursor: tail.cursor,
+                    lines: filteredLogEntries,
+                    reset: tail.reset,
+                  }}
+                />
+              </div>
+            </Card>
+          ) : null}
+        </aside>
       </div>
-
-      <aside className="deckgo-column deck-ui-logs-column deck-ui-logs-sidecar">
-        <article className="deckgo-card deck-ui-logs-card deck-ui-logs-tape">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("liveEventTape")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-logs-body">
-            {liveTape.length === 0 ? (
-              <p className="deckgo-note">{t("noLiveEvents")}</p>
-            ) : (
-              <ul className="deckgo-shell-list deck-ui-logs-list">
-                {liveTape.map((item, index) => (
-                  <li key={`${item}-${index}`}>{item}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </article>
-
-        <article className="deckgo-card deck-ui-logs-card deck-ui-logs-stream-events">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("streamEventsTitle")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-logs-body">
-            {logEvents.length === 0 ? (
-              <p className="deckgo-note">{t("noLogEvents")}</p>
-            ) : (
-              <EventFeedCard title={t("logEvents")} events={logEvents} kind="log" />
-            )}
-          </div>
-        </article>
-
-        {tail ? (
-          <article className="deckgo-card deck-ui-logs-card deck-ui-logs-seam">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("filteredTailSeam")}</h2>
-            </div>
-            <div className="deckgo-card-body deck-ui-logs-body">
-              <JsonDetails
-                title={t("tailPayload")}
-                payload={{
-                  cursor: tail.cursor,
-                  lines: filteredLogEntries,
-                  reset: tail.reset,
-                }}
-              />
-            </div>
-          </article>
-        ) : null}
-      </aside>
     </section>
   );
 }

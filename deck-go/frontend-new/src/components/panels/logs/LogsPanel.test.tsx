@@ -85,10 +85,10 @@ describe("LogsPanel", () => {
     });
     expect(apiMocks.streamLogEvents).toHaveBeenCalledTimes(1);
     expect(streamParams?.initialLastEventId).toBe("evt-before");
-    expect(container.querySelector(".deck-ui-logs")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-logs-card").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".deck-ui-logs-surface").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".deck-ui-logs-row").length).toBe(2);
+    expect(container.querySelector(".logs-panel")).not.toBeNull();
+    expect(container.querySelectorAll(".logs-card").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".logs-surface").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".logs-line-row").length).toBe(2);
     expect(container.textContent).toContain("Tail ready");
     expect(container.textContent).toContain("Stream connected");
     expect(container.textContent).toContain("cursor 12");
