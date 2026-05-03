@@ -20,8 +20,9 @@ import {
   gatewayNotConfiguredValue,
   isGatewayNotConfiguredValue,
 } from "../../runtime/GatewayNotConfiguredEmptyState";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import { useActivitySSE } from "./useActivitySSE";
+import "./activity-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type ActivityTimeRange = "1h" | "6h" | "24h" | "7d" | "all";
@@ -152,6 +153,19 @@ function classifyFileOp(name: string) {
     return "modify";
   }
   return "read";
+}
+
+function ActivityMetric(props: {
+  label: string;
+  value: string | number;
+  tone?: "positive" | "warning" | "danger";
+}) {
+  return (
+    <div className={`activity-panel__metric ${props.tone ? `is-${props.tone}` : ""}`}>
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </div>
+  );
 }
 
 export function ActivityPanel() {
@@ -480,39 +494,65 @@ export function ActivityPanel() {
   }, [runDetail]);
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-activity">
-      <div className="deckgo-column deck-ui-activity-column">
-        <article className="deckgo-card is-float deck-ui-activity-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("activityTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("activityDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
-            <div className="deckgo-pill-row deck-ui-activity-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("activityStatus", { state: t(loadState) })}
+    <section className="activity-panel" data-testid="activity-panel">
+      <header className="activity-panel__header">
+        <div className="activity-panel__title-stack">
+          <p className="activity-panel__eyebrow">{t("title")}</p>
+          <h2 className="activity-panel__title">{t("activityTitle")}</h2>
+          <p className="activity-panel__description">{t("activityDescription")}</p>
+        </div>
+        <div className="activity-panel__header-actions">
+          <span className={`activity-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
+            {t("activityStatus", { state: t(loadState) })}
+          </span>
+          <span className={`activity-panel__pill ${runsState === "ready" ? "is-positive" : ""}`}>
+            {t("runsStatus", { state: t(runsState) })}
+          </span>
+          <span className={`activity-panel__pill ${statsState === "ready" ? "is-positive" : ""}`}>
+            {t("statsStatus", { state: t(statsState) })}
+          </span>
+        </div>
+      </header>
+
+      <div className="activity-panel__workspace">
+        <article className="activity-panel__card activity-panel__timeline-card">
+          <div className="activity-panel__card-head">
+            <div>
+              <p className="activity-panel__eyebrow">{t("filterActivity")}</p>
+              <h3 className="activity-panel__card-title">{t("activityTitle")}</h3>
+            </div>
+            <div className="activity-panel__pill-row">
+              <span className="activity-panel__pill">
+                {t("loadedCount", { count: events.length })}
               </span>
-              <span className="deckgo-pill">{t("loadedCount", { count: events.length })}</span>
-              <span className="deckgo-pill">
+              <span className="activity-panel__pill">
                 {t("visibleCount", { count: filteredEvents.length })}
               </span>
             </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-activity-stats">
-              <ShellStat label={t("eventsLower")} value={events.length} />
-              <ShellStat label={t("visibleLower")} value={filteredEvents.length} />
-              <ShellStat label={t("agentsLower")} value={uniqueAgents} />
+          </div>
+
+          <div className="activity-panel__body">
+            <div className="activity-panel__metrics">
+              <ActivityMetric
+                label={t("eventsLower")}
+                tone={loadState === "ready" ? "positive" : undefined}
+                value={events.length}
+              />
+              <ActivityMetric label={t("visibleLower")} value={filteredEvents.length} />
+              <ActivityMetric label={t("agentsLower")} value={uniqueAgents} />
             </div>
-            <div className="deckgo-surface-tile deck-ui-activity-surface">
-              <p className="deckgo-surface-label">{t("filterActivity")}</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
+
+            <div className="activity-panel__surface">
+              <p className="activity-panel__label">{t("filterActivity")}</p>
+              <div className="activity-panel__filter-grid">
                 <input
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={agentFilter}
                   onChange={(event) => setAgentFilter(event.target.value)}
                   placeholder={t("agentFilterPlaceholder")}
                 />
                 <select
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={eventTypeFilter}
                   onChange={(event) => setEventTypeFilter(event.target.value)}
                 >
@@ -524,7 +564,7 @@ export function ActivityPanel() {
                   ))}
                 </select>
                 <select
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={timeRange}
                   onChange={(event) => setTimeRange(event.target.value as ActivityTimeRange)}
                 >
@@ -534,10 +574,8 @@ export function ActivityPanel() {
                   <option value="7d">{t("last7DaysLower")}</option>
                   <option value="all">{t("allLower")}</option>
                 </select>
-              </div>
-              <div className="deckgo-actions deck-ui-activity-actions deck-ui-activity-actions-offset">
                 <button
-                  className="deckgo-button deck-ui-activity-button"
+                  className="activity-panel__button is-primary"
                   type="button"
                   onClick={() => void refresh(selectedEventId)}
                 >
@@ -545,46 +583,54 @@ export function ActivityPanel() {
                 </button>
               </div>
             </div>
+
             {activityNotConfigured ? (
-              <GatewayNotConfiguredEmptyState className="deck-ui-activity-surface" />
+              <GatewayNotConfiguredEmptyState className="activity-panel__surface" />
             ) : error ? (
-              <p className="deckgo-note">{error}</p>
+              <p className="activity-panel__note is-error">{error}</p>
             ) : null}
+
             {activityNotConfigured ? null : filteredEvents.length === 0 ? (
-              <p className="deckgo-note">{t("noFilteredActivity")}</p>
+              <p className="activity-panel__note">{t("noFilteredActivity")}</p>
             ) : (
-              <div className="deckgo-form-grid">
+              <div className="activity-panel__group-stack">
                 {groupedEvents.map(({ group, events: groupEvents }) => {
                   const isCollapsed = collapsedGroups.has(group);
                   return (
-                    <section className="deckgo-surface-tile deck-ui-activity-surface" key={group}>
+                    <section className="activity-panel__surface" key={group}>
                       <button
                         type="button"
-                        className="deckgo-button deck-ui-activity-button"
+                        className="activity-panel__group-button"
                         aria-expanded={!isCollapsed}
                         onClick={() => toggleGroup(group)}
                       >
-                        {t(GROUP_LABEL_KEYS[group])} ({groupEvents.length})
+                        <span>
+                          {t(GROUP_LABEL_KEYS[group])} ({groupEvents.length})
+                        </span>
+                        <span className="activity-panel__pill">
+                          {isCollapsed ? t("idle") : t("ready")}
+                        </span>
                       </button>
                       {!isCollapsed ? (
-                        <ul className="deckgo-shell-list deck-ui-activity-list deck-ui-activity-list-offset">
+                        <ul className="activity-panel__list">
                           {groupEvents.map((event) => (
                             <li key={event.id}>
                               <button
                                 type="button"
-                                className={`deckgo-selectable-card deck-ui-activity-row ${selectedEvent?.id === event.id ? "is-selected" : ""}`}
+                                className={`activity-panel__row ${selectedEvent?.id === event.id ? "is-selected" : ""}`}
                                 onClick={() => setSelectedEventId(event.id)}
                               >
                                 <strong>{event.description}</strong>
-                                <div className="deckgo-meta">
+                                <span className="activity-panel__meta">
                                   {t("eventMeta", {
                                     agent: event.agentName || event.agentId || t("system"),
                                     type: event.type,
                                   })}
-                                </div>
-                                <div className="deckgo-meta">
+                                </span>
+                                <span className="activity-panel__meta">
                                   {new Date(event.timestamp).toLocaleString()}
-                                </div>
+                                </span>
+                                <span className="activity-panel__mono">{event.id}</span>
                               </button>
                             </li>
                           ))}
@@ -598,49 +644,46 @@ export function ActivityPanel() {
           </div>
         </article>
 
-        <article className="deckgo-card is-float deck-ui-activity-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("runHistory")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("runHistoryDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
-            <div className="deckgo-pill-row deck-ui-activity-status-row">
-              <span className={`deckgo-pill ${runsState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("runsStatus", { state: t(runsState) })}
-              </span>
-              <span
-                className={`deckgo-pill ${statsState === "ready" ? "is-positive" : "is-muted"}`}
-              >
-                {t("statsStatus", { state: t(statsState) })}
-              </span>
-              <span className="deckgo-pill">{t("loadedCount", { count: monitorRuns.length })}</span>
+        <article className="activity-panel__card activity-panel__runs-card">
+          <div className="activity-panel__card-head">
+            <div>
+              <p className="activity-panel__eyebrow">{t("filterRunHistory")}</p>
+              <h3 className="activity-panel__card-title">{t("runHistory")}</h3>
             </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-activity-stats">
-              <ShellStat label={t("totalRuns")} value={monitorStats?.totalRuns ?? 0} />
-              <ShellStat label={t("todayLower")} value={monitorStats?.todayRuns ?? 0} />
-              <ShellStat
+            <span className="activity-panel__pill">
+              {t("loadedCount", { count: monitorRuns.length })}
+            </span>
+          </div>
+
+          <div className="activity-panel__body">
+            <p className="activity-panel__description">{t("runHistoryDescription")}</p>
+            <div className="activity-panel__metrics">
+              <ActivityMetric label={t("totalRuns")} value={monitorStats?.totalRuns ?? 0} />
+              <ActivityMetric label={t("todayLower")} value={monitorStats?.todayRuns ?? 0} />
+              <ActivityMetric
                 label={t("avgDuration")}
                 value={formatDuration(monitorStats?.avgDurationMs)}
               />
             </div>
-            <div className="deckgo-surface-tile deck-ui-activity-surface">
-              <p className="deckgo-surface-label">{t("filterRunHistory")}</p>
-              <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
+
+            <div className="activity-panel__surface">
+              <p className="activity-panel__label">{t("filterRunHistory")}</p>
+              <div className="activity-panel__filter-grid">
                 <input
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={runAgentFilter}
                   onChange={(event) => setRunAgentFilter(event.target.value)}
                   placeholder={t("runAgentIdPlaceholder")}
                 />
                 <input
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={runSessionFilter}
                   onChange={(event) => setRunSessionFilter(event.target.value)}
                   placeholder={t("runSessionKeyPlaceholder")}
                 />
                 <select
                   aria-label={t("runStatusFilter")}
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={runStatusFilter}
                   onChange={(event) =>
                     setRunStatusFilter(event.target.value as MonitorRunStatusFilter)
@@ -654,7 +697,7 @@ export function ActivityPanel() {
                 </select>
                 <select
                   aria-label={t("runTimeRange")}
-                  className="deckgo-input deck-ui-activity-input"
+                  className="activity-panel__input"
                   value={runTimeRange}
                   onChange={(event) => setRunTimeRange(event.target.value as ActivityTimeRange)}
                 >
@@ -669,9 +712,9 @@ export function ActivityPanel() {
               runSessionFilter ||
               runStatusFilter !== "all" ||
               runTimeRange !== "all" ? (
-                <div className="deckgo-actions deck-ui-activity-actions deck-ui-activity-actions-offset">
+                <div className="activity-panel__actions">
                   <button
-                    className="deckgo-button deck-ui-activity-button"
+                    className="activity-panel__button"
                     type="button"
                     onClick={() => {
                       setRunAgentFilter("");
@@ -685,13 +728,14 @@ export function ActivityPanel() {
                 </div>
               ) : null}
             </div>
+
             {monitorStats?.topAgents?.length ? (
-              <div className="deckgo-surface-tile deck-ui-activity-surface">
-                <p className="deckgo-surface-label">{t("topAgents")}</p>
-                <div className="deckgo-pill-row deck-ui-activity-status-row">
+              <div className="activity-panel__surface">
+                <p className="activity-panel__label">{t("topAgents")}</p>
+                <div className="activity-panel__pill-row">
                   {monitorStats.topAgents.map((agent) => (
                     <button
-                      className="deckgo-pill"
+                      className="activity-panel__pill activity-panel__shortcut"
                       key={agent.agentId}
                       type="button"
                       onClick={() => navigateToAgent(ui, agent.agentId)}
@@ -702,9 +746,10 @@ export function ActivityPanel() {
                 </div>
               </div>
             ) : null}
-            <div className="deckgo-actions deck-ui-activity-actions">
+
+            <div className="activity-panel__actions">
               <button
-                className="deckgo-button deck-ui-activity-button"
+                className="activity-panel__button is-primary"
                 type="button"
                 onClick={() => void refreshRuns(selectedRunId)}
               >
@@ -712,7 +757,7 @@ export function ActivityPanel() {
               </button>
               {monitorNextCursor ? (
                 <button
-                  className="deckgo-button deck-ui-activity-button"
+                  className="activity-panel__button"
                   type="button"
                   onClick={() => void loadMoreRuns()}
                 >
@@ -720,278 +765,297 @@ export function ActivityPanel() {
                 </button>
               ) : null}
               <button
-                className="deckgo-button deck-ui-activity-button"
+                className="activity-panel__button"
                 type="button"
                 onClick={() => void refreshMonitorStats()}
               >
                 {t("refreshStats")}
               </button>
             </div>
+
             {monitorNotConfigured ? (
-              <GatewayNotConfiguredEmptyState className="deck-ui-activity-surface" />
+              <GatewayNotConfiguredEmptyState className="activity-panel__surface" />
             ) : monitorError ? (
-              <p className="deckgo-note">{monitorError}</p>
+              <p className="activity-panel__note is-error">{monitorError}</p>
             ) : null}
+
             {monitorNotConfigured ? null : monitorRuns.length ? (
-              <div className="deckgo-form-grid">
+              <div className="activity-panel__run-list">
                 {monitorRuns.map((run) => (
                   <button
                     key={run.runId}
                     type="button"
-                    className={`deckgo-selectable-card deck-ui-activity-row ${selectedRunId === run.runId ? "is-selected" : ""}`}
+                    className={`activity-panel__row ${selectedRunId === run.runId ? "is-selected" : ""}`}
                     onClick={() => void loadRunDetail(run.runId)}
                   >
-                    <strong>{run.runId}</strong>
-                    <div className="deckgo-meta">
+                    <strong className="activity-panel__mono">{run.runId}</strong>
+                    <span className="activity-panel__meta">
                       {t("runMeta", {
                         agent: run.agentId || t("na"),
                         eventCount: run.eventCount,
                         status: run.status,
                       })}
-                    </div>
-                    <div className="deckgo-meta">
+                    </span>
+                    <span className="activity-panel__meta">
                       {t("runUsageMeta", {
                         modelCalls: run.modelCalls,
                         tokens: run.totalTokens,
                         toolCalls: run.toolCalls,
                       })}
-                    </div>
+                    </span>
+                    <span className="activity-panel__meta">
+                      {run.firstEventAt} to {run.lastEventAt}
+                    </span>
                   </button>
                 ))}
               </div>
             ) : (
-              <p className="deckgo-note">{t("noMonitorRuns")}</p>
-            )}
-          </div>
-        </article>
-      </div>
-
-      <div className="deckgo-column deckgo-panel-main deck-ui-activity-column deck-ui-activity-inspector">
-        <article className="deckgo-card is-float deck-ui-activity-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedEvent")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("selectedEventDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
-            {selectedEvent ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-activity-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("event")}</p>
-                    <strong>{selectedEvent.description}</strong>
-                    <p className="deckgo-note">{selectedEvent.id}</p>
-                  </div>
-                  <div className="deckgo-pill-row deck-ui-activity-status-row">
-                    <span className="deckgo-pill">{selectedEvent.type}</span>
-                    <span className="deckgo-pill">
-                      {selectedEvent.agentName || selectedEvent.agentId || t("system")}
-                    </span>
-                  </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
-                  <ShellStat
-                    label={t("timestamp")}
-                    value={new Date(selectedEvent.timestamp).toLocaleString()}
-                  />
-                  <ShellStat label={t("type")} value={selectedEvent.type} />
-                </div>
-                {selectedEvent.agentId ? (
-                  <div className="deckgo-actions deck-ui-activity-actions">
-                    <button
-                      className="deckgo-button deck-ui-activity-button"
-                      type="button"
-                      onClick={() => navigateToAgent(ui, selectedEvent.agentId ?? "")}
-                    >
-                      {t("openEventAgent")}
-                    </button>
-                  </div>
-                ) : null}
-                {selectedEvent.details ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("details")}</p>
-                    <p className="deckgo-note">{selectedEvent.details}</p>
-                  </div>
-                ) : null}
-                <JsonDetails title={t("eventPayload")} payload={selectedEvent} />
-              </>
-            ) : (
-              <p className="deckgo-note">{t("chooseActivityEvent")}</p>
+              <p className="activity-panel__note">{t("noMonitorRuns")}</p>
             )}
           </div>
         </article>
 
-        <article className="deckgo-card is-float deck-ui-activity-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedRun")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("selectedRunDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-activity-body">
-            {selectedRunId ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-activity-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("run")}</p>
-                    <strong>{selectedRunId}</strong>
-                    <p className="deckgo-note">{t("detailStatus", { state: t(runDetailState) })}</p>
+        <div className="activity-panel__inspector">
+          <article className="activity-panel__card">
+            <div className="activity-panel__card-head">
+              <div>
+                <p className="activity-panel__eyebrow">{t("event")}</p>
+                <h3 className="activity-panel__card-title">{t("selectedEvent")}</h3>
+              </div>
+            </div>
+            <div className="activity-panel__body">
+              <p className="activity-panel__description">{t("selectedEventDescription")}</p>
+              {selectedEvent ? (
+                <>
+                  <div className="activity-panel__hero">
+                    <div>
+                      <p className="activity-panel__label">{t("event")}</p>
+                      <strong>{selectedEvent.description}</strong>
+                      <p className="activity-panel__mono">{selectedEvent.id}</p>
+                    </div>
+                    <div className="activity-panel__pill-row">
+                      <span className="activity-panel__pill">{selectedEvent.type}</span>
+                      <span className="activity-panel__pill">
+                        {selectedEvent.agentName || selectedEvent.agentId || t("system")}
+                      </span>
+                    </div>
                   </div>
-                  <div className="deckgo-pill-row deck-ui-activity-status-row">
-                    <span className="deckgo-pill">
-                      {t("eventsCount", {
-                        count: runDetail?.summary?.eventCount ?? runDetail?.events?.length ?? 0,
-                      })}
-                    </span>
-                    <span className="deckgo-pill">
-                      {t("tokensCount", { count: runDetail?.summary?.totalTokens ?? 0 })}
-                    </span>
+                  <div className="activity-panel__metrics is-two">
+                    <ActivityMetric
+                      label={t("timestamp")}
+                      value={new Date(selectedEvent.timestamp).toLocaleString()}
+                    />
+                    <ActivityMetric label={t("type")} value={selectedEvent.type} />
                   </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-activity-grid">
-                  <ShellStat label={t("toolCalls")} value={runDetail?.summary?.toolCalls ?? 0} />
-                  <ShellStat label={t("modelCalls")} value={runDetail?.summary?.modelCalls ?? 0} />
-                  <ShellStat label={t("fileOps")} value={runDetail?.summary?.fileOps ?? 0} />
-                  <ShellStat
-                    label={t("subagents")}
-                    value={runDetail?.summary?.subagentSpawns ?? 0}
-                  />
-                  <ShellStat
-                    label={t("duration")}
-                    value={formatDuration(runDetail?.summary?.durationMs)}
-                  />
-                  <ShellStat
-                    label={t("inputTokens")}
-                    value={formatTokenCount(runDetail?.summary?.totalInputTokens)}
-                  />
-                  <ShellStat
-                    label={t("outputTokens")}
-                    value={formatTokenCount(runDetail?.summary?.totalOutputTokens)}
-                  />
-                  <ShellStat
-                    label={t("cacheTokens")}
-                    value={formatTokenCount(runDetail?.summary?.totalCacheTokens)}
-                  />
-                  <ShellStat
-                    label={t("compacted")}
-                    value={runDetail?.summary?.compacted ? t("yes") : t("no")}
-                  />
-                </div>
-                <div className="deckgo-actions deck-ui-activity-actions">
-                  {selectedRunAgentId ? (
-                    <button
-                      className="deckgo-button deck-ui-activity-button"
-                      type="button"
-                      onClick={() => navigateToAgent(ui, selectedRunAgentId)}
-                    >
-                      {t("openRunAgent")}
-                    </button>
+                  {selectedEvent.agentId ? (
+                    <div className="activity-panel__actions">
+                      <button
+                        className="activity-panel__button"
+                        type="button"
+                        onClick={() => navigateToAgent(ui, selectedEvent.agentId ?? "")}
+                      >
+                        {t("openEventAgent")}
+                      </button>
+                    </div>
                   ) : null}
-                  {selectedRunSessionKey ? (
-                    <button
-                      className="deckgo-button deck-ui-activity-button"
-                      type="button"
-                      onClick={() => navigateToSession(ui, selectedRunSessionKey)}
-                    >
-                      {t("openRunSession")}
-                    </button>
+                  {selectedEvent.details ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("details")}</p>
+                      <p className="activity-panel__note">{selectedEvent.details}</p>
+                    </div>
                   ) : null}
-                </div>
-                {runDiagnostics.modelStats.length ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("modelStats")}</p>
-                    <div className="deckgo-form-grid">
-                      {runDiagnostics.modelStats.slice(0, 5).map((stat) => (
-                        <div
-                          className="deckgo-selectable-card deck-ui-activity-row"
-                          key={stat.model}
-                        >
-                          <strong>{stat.model}</strong>
-                          <div className="deckgo-meta">
-                            {t("modelStatsMeta", {
-                              cache: formatTokenCount(stat.cacheTokens),
-                              calls: stat.calls,
-                              input: formatTokenCount(stat.inputTokens),
-                              output: formatTokenCount(stat.outputTokens),
-                            })}
+                  <JsonDetails title={t("eventPayload")} payload={selectedEvent} />
+                </>
+              ) : (
+                <p className="activity-panel__note">{t("chooseActivityEvent")}</p>
+              )}
+            </div>
+          </article>
+
+          <article className="activity-panel__card">
+            <div className="activity-panel__card-head">
+              <div>
+                <p className="activity-panel__eyebrow">{t("run")}</p>
+                <h3 className="activity-panel__card-title">{t("selectedRun")}</h3>
+              </div>
+            </div>
+            <div className="activity-panel__body">
+              <p className="activity-panel__description">{t("selectedRunDescription")}</p>
+              {selectedRunId ? (
+                <>
+                  <div className="activity-panel__hero">
+                    <div>
+                      <p className="activity-panel__label">{t("run")}</p>
+                      <strong className="activity-panel__mono">{selectedRunId}</strong>
+                      <p className="activity-panel__note">
+                        {t("detailStatus", { state: t(runDetailState) })}
+                      </p>
+                    </div>
+                    <div className="activity-panel__pill-row">
+                      <span className="activity-panel__pill">
+                        {t("eventsCount", {
+                          count: runDetail?.summary?.eventCount ?? runDetail?.events?.length ?? 0,
+                        })}
+                      </span>
+                      <span className="activity-panel__pill">
+                        {t("tokensCount", { count: runDetail?.summary?.totalTokens ?? 0 })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="activity-panel__metrics is-run-detail">
+                    <ActivityMetric
+                      label={t("toolCalls")}
+                      value={runDetail?.summary?.toolCalls ?? 0}
+                    />
+                    <ActivityMetric
+                      label={t("modelCalls")}
+                      value={runDetail?.summary?.modelCalls ?? 0}
+                    />
+                    <ActivityMetric label={t("fileOps")} value={runDetail?.summary?.fileOps ?? 0} />
+                    <ActivityMetric
+                      label={t("subagents")}
+                      value={runDetail?.summary?.subagentSpawns ?? 0}
+                    />
+                    <ActivityMetric
+                      label={t("duration")}
+                      value={formatDuration(runDetail?.summary?.durationMs)}
+                    />
+                    <ActivityMetric
+                      label={t("inputTokens")}
+                      value={formatTokenCount(runDetail?.summary?.totalInputTokens)}
+                    />
+                    <ActivityMetric
+                      label={t("outputTokens")}
+                      value={formatTokenCount(runDetail?.summary?.totalOutputTokens)}
+                    />
+                    <ActivityMetric
+                      label={t("cacheTokens")}
+                      value={formatTokenCount(runDetail?.summary?.totalCacheTokens)}
+                    />
+                    <ActivityMetric
+                      label={t("compacted")}
+                      value={runDetail?.summary?.compacted ? t("yes") : t("no")}
+                    />
+                  </div>
+                  <div className="activity-panel__actions">
+                    {selectedRunAgentId ? (
+                      <button
+                        className="activity-panel__button"
+                        type="button"
+                        onClick={() => navigateToAgent(ui, selectedRunAgentId)}
+                      >
+                        {t("openRunAgent")}
+                      </button>
+                    ) : null}
+                    {selectedRunSessionKey ? (
+                      <button
+                        className="activity-panel__button"
+                        type="button"
+                        onClick={() => navigateToSession(ui, selectedRunSessionKey)}
+                      >
+                        {t("openRunSession")}
+                      </button>
+                    ) : null}
+                  </div>
+                  {runDiagnostics.modelStats.length ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("modelStats")}</p>
+                      <div className="activity-panel__diagnostic-grid">
+                        {runDiagnostics.modelStats.slice(0, 5).map((stat) => (
+                          <div className="activity-panel__row" key={stat.model}>
+                            <strong>{stat.model}</strong>
+                            <span className="activity-panel__meta">
+                              {t("modelStatsMeta", {
+                                cache: formatTokenCount(stat.cacheTokens),
+                                calls: stat.calls,
+                                input: formatTokenCount(stat.inputTokens),
+                                output: formatTokenCount(stat.outputTokens),
+                              })}
+                            </span>
+                            {stat.fallback ? (
+                              <span className="activity-panel__meta">{t("fallbackUsed")}</span>
+                            ) : null}
                           </div>
-                          {stat.fallback ? (
-                            <div className="deckgo-meta">{t("fallbackUsed")}</div>
-                          ) : null}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-                {runDiagnostics.toolEvents.length ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("toolCallsTitle")}</p>
-                    <div className="deckgo-form-grid">
-                      {runDiagnostics.toolEvents.slice(0, 5).map((event) => (
-                        <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
-                          <strong>{event.name}</strong>
-                          <div className="deckgo-meta">
-                            {event.phase || t("eventFallback")} | {formatDuration(event.durationMs)}
+                  ) : null}
+                  {runDiagnostics.toolEvents.length ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("toolCallsTitle")}</p>
+                      <div className="activity-panel__diagnostic-grid">
+                        {runDiagnostics.toolEvents.slice(0, 5).map((event) => (
+                          <div className="activity-panel__row" key={event.id}>
+                            <strong>{event.name}</strong>
+                            <span className="activity-panel__meta">
+                              {event.phase || t("eventFallback")} |{" "}
+                              {formatDuration(event.durationMs)}
+                            </span>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-                {runDiagnostics.fileEvents.length ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("fileOperations")}</p>
-                    <div className="deckgo-form-grid">
-                      {runDiagnostics.fileEvents.slice(0, 5).map((event) => (
-                        <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
-                          <strong>{event.kind}</strong>
-                          <div className="deckgo-meta">{event.path}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-                {runDiagnostics.subagentEvents.length ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("subagentEvents")}</p>
-                    <div className="deckgo-form-grid">
-                      {runDiagnostics.subagentEvents.slice(0, 5).map((event) => (
-                        <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
-                          <strong>{event.runId}</strong>
-                          <div className="deckgo-meta">
-                            {event.agentId || t("agentFallback")} | {event.status}
+                  ) : null}
+                  {runDiagnostics.fileEvents.length ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("fileOperations")}</p>
+                      <div className="activity-panel__diagnostic-grid">
+                        {runDiagnostics.fileEvents.slice(0, 5).map((event) => (
+                          <div className="activity-panel__row" key={event.id}>
+                            <strong>{event.kind}</strong>
+                            <span className="activity-panel__meta">{event.path}</span>
                           </div>
-                          {event.task ? <div className="deckgo-meta">{event.task}</div> : null}
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-                {runDetail?.events?.length ? (
-                  <div className="deckgo-surface-tile deck-ui-activity-surface">
-                    <p className="deckgo-surface-label">{t("runEvents")}</p>
-                    <div className="deckgo-form-grid">
-                      {runDetail.events.slice(0, 5).map((event) => (
-                        <div className="deckgo-selectable-card deck-ui-activity-row" key={event.id}>
-                          <strong>
-                            #{event.seq} {event.stream}
-                          </strong>
-                          <div className="deckgo-meta">
-                            {t("runEventMeta", {
-                              agent: event.agent_id || t("system"),
-                              createdAt: event.created_at,
-                            })}
+                  ) : null}
+                  {runDiagnostics.subagentEvents.length ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("subagentEvents")}</p>
+                      <div className="activity-panel__diagnostic-grid">
+                        {runDiagnostics.subagentEvents.slice(0, 5).map((event) => (
+                          <div className="activity-panel__row" key={event.id}>
+                            <strong>{event.runId}</strong>
+                            <span className="activity-panel__meta">
+                              {event.agentId || t("agentFallback")} | {event.status}
+                            </span>
+                            {event.task ? (
+                              <span className="activity-panel__meta">{event.task}</span>
+                            ) : null}
                           </div>
-                          <div className="deckgo-meta">{event.data}</div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-                <JsonDetails title={t("runDetailPayload")} payload={runDetail} />
-              </>
-            ) : (
-              <p className="deckgo-note">{t("chooseMonitorRun")}</p>
-            )}
-          </div>
-        </article>
+                  ) : null}
+                  {runDetail?.events?.length ? (
+                    <div className="activity-panel__surface">
+                      <p className="activity-panel__label">{t("runEvents")}</p>
+                      <div className="activity-panel__diagnostic-grid">
+                        {runDetail.events.slice(0, 5).map((event) => (
+                          <div className="activity-panel__row" key={event.id}>
+                            <strong>
+                              #{event.seq} {event.stream}
+                            </strong>
+                            <span className="activity-panel__meta">
+                              {t("runEventMeta", {
+                                agent: event.agent_id || t("system"),
+                                createdAt: event.created_at,
+                              })}
+                            </span>
+                            <span className="activity-panel__meta">{event.data}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  <JsonDetails title={t("runDetailPayload")} payload={runDetail} />
+                </>
+              ) : (
+                <p className="activity-panel__note">{t("chooseMonitorRun")}</p>
+              )}
+            </div>
+          </article>
+        </div>
       </div>
     </section>
   );

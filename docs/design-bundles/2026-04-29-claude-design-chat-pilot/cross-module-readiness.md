@@ -360,6 +360,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/threads-visual.spec.ts` covers the ready thread relationship workbench, selected builder state, filtered security state, and clipboard fallback state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Activity panel
+
+**Status:** in progress under OpenSpec change `frontend-activity-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The activity high-fidelity pass reused canonical typography, color, spacing, radius, badge/pill, button, input, select, code/json, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** activity metric tile, grouped timeline row, monitor run row, top-agent shortcut rail, selected-event hero, selected-run summary metrics, diagnostic stack, raw run event row, and payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, sidecar inspector, two/three-column workbench rhythm, selectable row, selected evidence/detail sidecar, action strips, and raw payload detail. Activity validates the Gateway/Logs observability family, but the implementation keeps these molecules local until a dedicated design-system proposal defines shared APIs.
+
+**Activity-specific molecules:** grouped timeline rows are candidates for an ObserveTimeline pattern; run inventory rows and diagnostic stacks are candidates for shared monitor/observability patterns; top-agent shortcuts remain local until cross-panel navigation semantics stabilize.
+
+**Mock visual evidence:** `deck-go/test/e2e/activity-visual.spec.ts` covers the ready activity operations timeline, collapsed group state, and run-filtered state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -386,3 +400,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — models hifi redesign (`frontend-models-hifi-contract-redesign`)**: Models moves runtime inventory, provider auth, catalog discovery, provider config, fallback chains, allowlist controls, and usage pressure into a module-local operations workbench. No canonical atom/token changes were introduced; deterministic model/auth/catalog/schema mock drift was fixed for mock visual coverage, while uncertain real Gateway model/auth/catalog semantics remain handoff follow-up.
 - **2026-05-03 — usage hifi redesign (`frontend-usage-hifi-contract-redesign`)**: Usage moves cost, quota, trend, session drilldown, context weight, aggregate, and behavior signals into a module-local operations cockpit. No canonical atom/token changes were introduced; deterministic usage/session/provider/context mock drift was fixed for mock visual coverage, while uncertain real Gateway billing/quota/context aggregation semantics remain handoff follow-up.
 - **2026-05-03 — threads hifi redesign (`frontend-threads-hifi-contract-redesign`)**: Threads moves thread bindings, selected relationship evidence, and session/agent handoff actions into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed by adding `deck.threads.list` fixture support, while uncertain real non-Discord/status semantics remain handoff follow-up.
+- **2026-05-03 — activity hifi redesign (`frontend-activity-hifi-contract-redesign`)**: Activity moves runtime activity projection, monitor run history, selected event evidence, and selected run diagnostics into a module-local operations timeline. No canonical atom/token changes were introduced; existing mock visual event seeding was sufficient for coverage, while uncertain real Gateway/LLM projection completeness remains handoff follow-up.

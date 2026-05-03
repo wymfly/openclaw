@@ -221,15 +221,13 @@ describe("ActivityPanel", () => {
     await flushEffects();
     await flushEffects();
 
-    expect(container.querySelector(".deck-ui-activity")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-activity-card").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".deck-ui-activity-surface").length).toBeGreaterThanOrEqual(
-      2,
-    );
-    expect(container.querySelectorAll(".deck-ui-activity-row").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelector(".activity-panel")).not.toBeNull();
+    expect(container.querySelectorAll(".activity-panel__card").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelectorAll(".activity-panel__surface").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".activity-panel__row").length).toBeGreaterThanOrEqual(2);
 
     const eventButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>(".deckgo-shell-list button"),
+      container.querySelectorAll<HTMLButtonElement>(".activity-panel__list button"),
     );
     expect(apiMocks.fetchActivityEvents).toHaveBeenCalledWith(100);
     expect(container.textContent).toContain("Activity ready");
@@ -462,7 +460,9 @@ describe("ActivityPanel", () => {
     });
 
     const groupButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
-      (button) => button.textContent === "Today (2)",
+      (button) =>
+        button.className.includes("activity-panel__group-button") &&
+        button.textContent?.includes("Today (2)"),
     );
     expect(groupButton).toBeTruthy();
     expect(groupButton?.getAttribute("aria-expanded")).toBe("true");
@@ -472,9 +472,9 @@ describe("ActivityPanel", () => {
     });
 
     expect(groupButton?.getAttribute("aria-expanded")).toBe("false");
-    expect(container.querySelectorAll<HTMLButtonElement>(".deckgo-shell-list button")).toHaveLength(
-      0,
-    );
+    expect(
+      container.querySelectorAll<HTMLButtonElement>(".activity-panel__list button"),
+    ).toHaveLength(0);
     expect(container.textContent).toContain("evt-new");
   });
 
@@ -535,7 +535,7 @@ describe("ActivityPanel", () => {
     });
 
     const eventButtons = Array.from(
-      container.querySelectorAll<HTMLButtonElement>(".deckgo-shell-list button"),
+      container.querySelectorAll<HTMLButtonElement>(".activity-panel__list button"),
     );
     expect(container.textContent).toContain("3 loaded");
     expect(container.textContent).toContain("Live streamed tool event");
