@@ -19,6 +19,7 @@ import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { AccountDmPolicyEditor } from "./AccountDmPolicyEditor";
 import { ChannelSettingsEditor } from "./ChannelSettingsEditor";
 import { WecomAccessControls, type WecomAccessAccount } from "./WecomAccessControls";
+import "./channels-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type ChannelDiagnosticTone = "success" | "warning" | "error" | "neutral";
@@ -274,6 +275,16 @@ function ChannelProbeResultBadge(props: {
   );
 }
 
+function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+  return (
+    <article className="channels-metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+      {props.hint ? <small>{props.hint}</small> : null}
+    </article>
+  );
+}
+
 export function ChannelsPanel() {
   const t = useTranslations("channels");
   const ui = useDeckUI();
@@ -461,340 +472,403 @@ export function ChannelsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-channels">
-      <div className="deckgo-column deck-ui-channels-column">
-        <article className="deckgo-card is-float deck-ui-channels-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("inventoryTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("inventoryDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
-            <div className="deckgo-pill-row deck-ui-channels-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("inventoryStatus", { status: t(loadState) })}
-              </span>
-              <span className="deckgo-pill">
-                {t("timestampValue", { value: payload?.ts ?? t("notAvailable") })}
-              </span>
-            </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-channels-stats">
-              <ShellStat label={t("channelsStat")} value={channelOrder.length} />
-              <ShellStat label={t("accountsStat")} value={totalAccounts} />
-              <ShellStat
-                label={t("defaultsStat")}
-                value={Object.keys(payload?.channelDefaultAccountId ?? {}).length}
-              />
-            </div>
-            <div className="deckgo-actions deck-ui-channels-actions">
-              <button
-                className="deckgo-button deck-ui-channels-button"
-                type="button"
-                onClick={() => void refresh(selectedChannelId)}
-              >
-                {t("refreshChannels")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-channels-button"
-                type="button"
-                onClick={() => void runLogout()}
-                disabled={!selectedChannelId || actionState !== "idle"}
-              >
-                {actionState === "logging-out" ? t("loggingOut") : t("logoutChannel")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-channels-button"
-                type="button"
-                onClick={() => void runChannelTest()}
-                disabled={!selectedChannelId || actionState !== "idle"}
-              >
-                {actionState === "testing" ? t("testingChannel") : t("testChannel")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-channels-button"
-                type="button"
-                onClick={() => void toggleSelectedChannel()}
-                disabled={!selectedChannelId || actionState !== "idle"}
-              >
-                {actionState === "toggling"
-                  ? t("savingConfig")
-                  : selectedChannelEnabled
-                    ? t("disableChannel")
-                    : t("enableChannel")}
-              </button>
-            </div>
-            {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}
-            {channelOrder.length === 0 ? (
-              <p className="deckgo-note deck-ui-channels-empty">{t("noChannelsLoaded")}</p>
-            ) : (
-              <ul className="deckgo-shell-list deck-ui-channels-list">
-                {channelOrder.map((channelId) => {
-                  const channelAccounts = normalizeChannelAccounts(
-                    rawChannelAccounts[channelId],
-                    t,
-                  );
-                  const alertCount = countAlertingAccounts(channelAccounts);
-                  const channelMeta = channelMetaById.get(channelId);
-                  return (
-                    <li key={channelId}>
-                      <button
-                        type="button"
-                        className={`deckgo-selectable-card deck-ui-channels-row ${selectedChannelId === channelId ? "is-selected" : ""}`}
-                        onClick={() => {
-                          setSelectedChannelId(channelId);
-                          setError("");
-                        }}
-                      >
-                        <strong>{labels[channelId] || channelId}</strong>
-                        <div className="deckgo-meta">
-                          {t("channelRowMeta", {
-                            channelId,
-                            detail:
-                              channelMeta?.detailLabel ||
-                              detailLabels[channelId] ||
-                              t("notAvailable"),
-                            account:
-                              payload?.channelDefaultAccountId?.[channelId] || t("notAvailable"),
-                          })}
-                        </div>
-                        <div className="deckgo-meta">
-                          {t("channelRowStats", {
-                            accounts: channelAccounts.length,
-                            alerts: alertCount,
-                            plugin: channelMeta?.pluginId
-                              ? t("pluginSuffix", { plugin: channelMeta.pluginId })
-                              : "",
-                          })}
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </article>
-      </div>
+    <section className="channels-panel" data-testid="channels-panel">
+      <header className="channels-panel__header">
+        <div>
+          <p className="channels-panel__eyebrow">operations / channels</p>
+          <h2>Channels</h2>
+          <p className="channels-panel__note">{t("inventoryDescription")}</p>
+        </div>
+        <div className="channels-panel__header-actions">
+          <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
+            {t("inventoryStatus", { status: t(loadState) })}
+          </span>
+          <span
+            className={`deckgo-pill ${throughputState === "ready" ? "is-positive" : "is-muted"}`}
+          >
+            {t("throughputStatus", { status: t(throughputState) })}
+          </span>
+          <span className="deckgo-pill">
+            {t("channelsStat")}: {channelOrder.length}
+          </span>
+          <button
+            className="deckgo-button deck-ui-channels-button"
+            type="button"
+            onClick={() => void refresh(selectedChannelId)}
+          >
+            {t("refreshChannels")}
+          </button>
+        </div>
+      </header>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-channels-column">
-        <article className="deckgo-card is-float deck-ui-channels-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedChannel")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("selectedChannelDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
-            {selectedChannelId ? (
-              <>
-                <div className="deckgo-panel-hero-strip deck-ui-channels-hero">
-                  <div>
-                    <p className="deckgo-kicker">{t("channelKicker")}</p>
-                    <strong>{labels[selectedChannelId] || selectedChannelId}</strong>
-                    <p className="deckgo-note">
-                      {t("selectedChannelNote", {
-                        detail:
-                          selectedChannelMeta?.detailLabel ||
-                          detailLabels[selectedChannelId] ||
-                          t("notAvailable"),
-                        account: selectedDefaultAccountId || t("notAvailable"),
-                      })}
-                    </p>
-                  </div>
-                  <div className="deckgo-pill-row deck-ui-channels-status-row">
-                    <span className="deckgo-pill">
-                      {t("accountsBadge", { count: selectedAccounts.length })}
-                    </span>
-                    <span
-                      className={`deckgo-pill ${selectedChannelEnabled ? "is-positive" : "is-muted"}`}
-                    >
-                      {selectedChannelEnabled ? t("enabled") : t("disabled")}
-                    </span>
-                    <span
-                      className={`deckgo-pill ${
-                        countAlertingAccounts(selectedAccounts) > 0 ? "is-warning" : "is-positive"
-                      }`}
-                    >
-                      {t("alertsBadge", { count: countAlertingAccounts(selectedAccounts) })}
-                    </span>
-                    <span className="deckgo-pill">
-                      {t("channelIdBadge", { channelId: selectedChannelId })}
-                    </span>
-                  </div>
-                </div>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-channels-detail-stats">
-                  <ShellStat
-                    label={t("labelStat")}
-                    value={labels[selectedChannelId] || selectedChannelId}
-                  />
-                  <ShellStat
-                    label={t("detailLabelStat")}
-                    value={
-                      selectedChannelMeta?.detailLabel ||
-                      detailLabels[selectedChannelId] ||
-                      t("notAvailable")
-                    }
-                  />
-                  <ShellStat
-                    label={t("systemImageStat")}
-                    value={
-                      selectedChannelMeta?.systemImage ||
-                      systemImages[selectedChannelId] ||
-                      t("notAvailable")
-                    }
-                  />
-                  <ShellStat
-                    label={t("pluginStat")}
-                    value={selectedChannelMeta?.pluginId || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("pluginOriginStat")}
-                    value={selectedChannelMeta?.pluginOrigin || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("pluginConfigStat")}
-                    value={selectedChannelMeta?.pluginConfigPath || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("defaultAccountStat")}
-                    value={selectedDefaultAccountId || t("notAvailable")}
-                  />
-                  <ShellStat label={t("messagesInStat")} value={throughputMessagesIn} />
-                  <ShellStat label={t("messagesOutStat")} value={throughputMessagesOut} />
-                  <ShellStat label={t("throughputBucketsStat")} value={throughputBuckets.length} />
-                  <ShellStat
-                    label={t("probeLatencyStat")}
-                    value={
-                      selectedChannelLatency != null
-                        ? `${selectedChannelLatency}ms`
-                        : t("notAvailable")
-                    }
-                  />
-                </div>
-                {selectedChannelMeta?.pluginId ? (
-                  <div className="deckgo-actions deck-ui-channels-actions deck-ui-channels-actions-offset">
-                    <button
-                      className="deckgo-button deck-ui-channels-button"
-                      type="button"
-                      onClick={() => navigateToPlugin(ui, selectedChannelMeta.pluginId)}
-                    >
-                      {t("openChannelPlugin")}
-                    </button>
-                  </div>
-                ) : null}
-                <div className="deckgo-surface-tile deck-ui-channels-surface">
-                  <p className="deckgo-surface-label">{t("providerOnboardingTitle")}</p>
-                  <p className="deckgo-note">{t("providerOnboardingUnavailable")}</p>
-                </div>
-                <div className="deckgo-surface-tile deck-ui-channels-surface">
-                  <div className="deckgo-card-header deck-ui-channels-surface-head">
+      <section className="channels-metrics" aria-label="Channels metrics">
+        <MetricTile
+          label={t("channelsStat")}
+          value={channelOrder.length}
+          hint={selectedChannelId || t("notAvailable")}
+        />
+        <MetricTile
+          label={t("accountsStat")}
+          value={totalAccounts}
+          hint={t("accountsBadge", { count: selectedAccounts.length })}
+        />
+        <MetricTile
+          label={t("alertsBadge", { count: countAlertingAccounts(selectedAccounts) })}
+          value={countAlertingAccounts(selectedAccounts)}
+          hint={labels[selectedChannelId] || selectedChannelId || t("notAvailable")}
+        />
+        <MetricTile
+          label={t("messagesInStat")}
+          value={throughputMessagesIn}
+          hint={throughputWindow}
+        />
+        <MetricTile
+          label={t("probeLatencyStat")}
+          value={selectedChannelLatency != null ? `${selectedChannelLatency}ms` : t("notAvailable")}
+          hint={selectedProbeResult ? channelProbeLabel(selectedProbeResult, t) : t("probeResult")}
+        />
+      </section>
+
+      <section className="deckgo-panel-workspace deck-ui-channels channels-workbench">
+        <div className="deckgo-column deck-ui-channels-column">
+          <article className="deckgo-card is-float deck-ui-channels-card">
+            <div className="deckgo-card-header">
+              <h2 className="deckgo-card-title">{t("inventoryTitle")}</h2>
+            </div>
+            <p className="deckgo-card-subtitle">{t("inventoryDescription")}</p>
+            <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
+              <div className="deckgo-pill-row deck-ui-channels-status-row">
+                <span
+                  className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}
+                >
+                  {t("inventoryStatus", { status: t(loadState) })}
+                </span>
+                <span className="deckgo-pill">
+                  {t("timestampValue", { value: payload?.ts ?? t("notAvailable") })}
+                </span>
+              </div>
+              <div className="deckgo-grid deckgo-grid-3 deck-ui-channels-stats">
+                <ShellStat label={t("channelsStat")} value={channelOrder.length} />
+                <ShellStat label={t("accountsStat")} value={totalAccounts} />
+                <ShellStat
+                  label={t("defaultsStat")}
+                  value={Object.keys(payload?.channelDefaultAccountId ?? {}).length}
+                />
+              </div>
+              <div className="deckgo-actions deck-ui-channels-actions">
+                <button
+                  className="deckgo-button deck-ui-channels-button"
+                  type="button"
+                  onClick={() => void refresh(selectedChannelId)}
+                >
+                  {t("refreshChannels")}
+                </button>
+                <button
+                  className="deckgo-button deck-ui-channels-button"
+                  type="button"
+                  onClick={() => void runLogout()}
+                  disabled={!selectedChannelId || actionState !== "idle"}
+                >
+                  {actionState === "logging-out" ? t("loggingOut") : t("logoutChannel")}
+                </button>
+                <button
+                  className="deckgo-button deck-ui-channels-button"
+                  type="button"
+                  onClick={() => void runChannelTest()}
+                  disabled={!selectedChannelId || actionState !== "idle"}
+                >
+                  {actionState === "testing" ? t("testingChannel") : t("testChannel")}
+                </button>
+                <button
+                  className="deckgo-button deck-ui-channels-button"
+                  type="button"
+                  onClick={() => void toggleSelectedChannel()}
+                  disabled={!selectedChannelId || actionState !== "idle"}
+                >
+                  {actionState === "toggling"
+                    ? t("savingConfig")
+                    : selectedChannelEnabled
+                      ? t("disableChannel")
+                      : t("enableChannel")}
+                </button>
+              </div>
+              {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}
+              {channelOrder.length === 0 ? (
+                <p className="deckgo-note deck-ui-channels-empty">{t("noChannelsLoaded")}</p>
+              ) : (
+                <ul className="deckgo-shell-list deck-ui-channels-list">
+                  {channelOrder.map((channelId) => {
+                    const channelAccounts = normalizeChannelAccounts(
+                      rawChannelAccounts[channelId],
+                      t,
+                    );
+                    const alertCount = countAlertingAccounts(channelAccounts);
+                    const channelMeta = channelMetaById.get(channelId);
+                    return (
+                      <li key={channelId}>
+                        <button
+                          type="button"
+                          className={`deckgo-selectable-card deck-ui-channels-row ${selectedChannelId === channelId ? "is-selected" : ""}`}
+                          onClick={() => {
+                            setSelectedChannelId(channelId);
+                            setError("");
+                          }}
+                        >
+                          <strong>{labels[channelId] || channelId}</strong>
+                          <div className="deckgo-meta">
+                            {t("channelRowMeta", {
+                              channelId,
+                              detail:
+                                channelMeta?.detailLabel ||
+                                detailLabels[channelId] ||
+                                t("notAvailable"),
+                              account:
+                                payload?.channelDefaultAccountId?.[channelId] || t("notAvailable"),
+                            })}
+                          </div>
+                          <div className="deckgo-meta">
+                            {t("channelRowStats", {
+                              accounts: channelAccounts.length,
+                              alerts: alertCount,
+                              plugin: channelMeta?.pluginId
+                                ? t("pluginSuffix", { plugin: channelMeta.pluginId })
+                                : "",
+                            })}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </article>
+        </div>
+
+        <div className="deckgo-column deckgo-panel-main deck-ui-channels-column">
+          <article className="deckgo-card is-float deck-ui-channels-card">
+            <div className="deckgo-card-header">
+              <h2 className="deckgo-card-title">{t("selectedChannel")}</h2>
+            </div>
+            <p className="deckgo-card-subtitle">{t("selectedChannelDescription")}</p>
+            <div className="deckgo-card-body deckgo-dividerless deck-ui-channels-body">
+              {selectedChannelId ? (
+                <>
+                  <div className="deckgo-panel-hero-strip deck-ui-channels-hero">
                     <div>
-                      <p className="deckgo-surface-label">{t("throughput")}</p>
+                      <p className="deckgo-kicker">{t("channelKicker")}</p>
+                      <strong>{labels[selectedChannelId] || selectedChannelId}</strong>
                       <p className="deckgo-note">
-                        {t("throughputStatus", { status: t(throughputState) })}
+                        {t("selectedChannelNote", {
+                          detail:
+                            selectedChannelMeta?.detailLabel ||
+                            detailLabels[selectedChannelId] ||
+                            t("notAvailable"),
+                          account: selectedDefaultAccountId || t("notAvailable"),
+                        })}
                       </p>
                     </div>
-                    <div className="deckgo-actions deck-ui-channels-actions">
-                      {THROUGHPUT_WINDOWS.map((window) => (
-                        <button
-                          className={`deckgo-button deck-ui-channels-button ${
-                            throughputWindow === window ? "is-primary" : ""
-                          }`}
-                          key={window}
-                          type="button"
-                          onClick={() => setThroughputWindow(window)}
-                        >
-                          {window}
-                        </button>
-                      ))}
+                    <div className="deckgo-pill-row deck-ui-channels-status-row">
+                      <span className="deckgo-pill">
+                        {t("accountsBadge", { count: selectedAccounts.length })}
+                      </span>
+                      <span
+                        className={`deckgo-pill ${selectedChannelEnabled ? "is-positive" : "is-muted"}`}
+                      >
+                        {selectedChannelEnabled ? t("enabled") : t("disabled")}
+                      </span>
+                      <span
+                        className={`deckgo-pill ${
+                          countAlertingAccounts(selectedAccounts) > 0 ? "is-warning" : "is-positive"
+                        }`}
+                      >
+                        {t("alertsBadge", { count: countAlertingAccounts(selectedAccounts) })}
+                      </span>
+                      <span className="deckgo-pill">
+                        {t("channelIdBadge", { channelId: selectedChannelId })}
+                      </span>
                     </div>
                   </div>
-                  <ChannelThroughputChart
-                    buckets={throughputBuckets}
-                    window={throughputWindow}
-                    t={t}
-                  />
-                </div>
-                {selectedProbeResult ? (
-                  <div className="deckgo-surface-tile deck-ui-channels-surface">
-                    <p className="deckgo-surface-label">{t("probeResult")}</p>
-                    <ChannelProbeResultBadge result={selectedProbeResult} t={t} />
+                  <div className="deckgo-grid deckgo-grid-2 deck-ui-channels-detail-stats">
+                    <ShellStat
+                      label={t("labelStat")}
+                      value={labels[selectedChannelId] || selectedChannelId}
+                    />
+                    <ShellStat
+                      label={t("detailLabelStat")}
+                      value={
+                        selectedChannelMeta?.detailLabel ||
+                        detailLabels[selectedChannelId] ||
+                        t("notAvailable")
+                      }
+                    />
+                    <ShellStat
+                      label={t("systemImageStat")}
+                      value={
+                        selectedChannelMeta?.systemImage ||
+                        systemImages[selectedChannelId] ||
+                        t("notAvailable")
+                      }
+                    />
+                    <ShellStat
+                      label={t("pluginStat")}
+                      value={selectedChannelMeta?.pluginId || t("notAvailable")}
+                    />
+                    <ShellStat
+                      label={t("pluginOriginStat")}
+                      value={selectedChannelMeta?.pluginOrigin || t("notAvailable")}
+                    />
+                    <ShellStat
+                      label={t("pluginConfigStat")}
+                      value={selectedChannelMeta?.pluginConfigPath || t("notAvailable")}
+                    />
+                    <ShellStat
+                      label={t("defaultAccountStat")}
+                      value={selectedDefaultAccountId || t("notAvailable")}
+                    />
+                    <ShellStat label={t("messagesInStat")} value={throughputMessagesIn} />
+                    <ShellStat label={t("messagesOutStat")} value={throughputMessagesOut} />
+                    <ShellStat
+                      label={t("throughputBucketsStat")}
+                      value={throughputBuckets.length}
+                    />
+                    <ShellStat
+                      label={t("probeLatencyStat")}
+                      value={
+                        selectedChannelLatency != null
+                          ? `${selectedChannelLatency}ms`
+                          : t("notAvailable")
+                      }
+                    />
                   </div>
-                ) : null}
-                {!selectedIsWecomAccessChannel ? (
-                  <ChannelSettingsEditor
-                    channelId={selectedChannelId}
-                    channel={selectedChannel}
-                    onSaved={async (result) => {
-                      setConfigPatchResult(result);
-                      await refresh(selectedChannelId);
-                    }}
-                  />
-                ) : null}
-                {selectedAccounts.length > 0 ? (
-                  <ul className="deckgo-shell-list deck-ui-channels-list">
-                    {selectedAccounts.map((account) => (
-                      <li key={account.accountId}>
-                        <div className="deckgo-selectable-card deck-ui-channels-account-card">
-                          <div className="deckgo-card-header deck-ui-channels-surface-head">
-                            <div>
-                              <strong>
-                                {stringValue(account.payload, "displayName") ||
-                                  stringValue(account.payload, "name") ||
-                                  account.accountId}
-                              </strong>
-                              <div className="deckgo-meta">{account.accountId}</div>
+                  {selectedChannelMeta?.pluginId ? (
+                    <div className="deckgo-actions deck-ui-channels-actions deck-ui-channels-actions-offset">
+                      <button
+                        className="deckgo-button deck-ui-channels-button"
+                        type="button"
+                        onClick={() => navigateToPlugin(ui, selectedChannelMeta.pluginId)}
+                      >
+                        {t("openChannelPlugin")}
+                      </button>
+                    </div>
+                  ) : null}
+                  <div className="deckgo-surface-tile deck-ui-channels-surface">
+                    <p className="deckgo-surface-label">{t("providerOnboardingTitle")}</p>
+                    <p className="deckgo-note">{t("providerOnboardingUnavailable")}</p>
+                  </div>
+                  <div className="deckgo-surface-tile deck-ui-channels-surface">
+                    <div className="deckgo-card-header deck-ui-channels-surface-head">
+                      <div>
+                        <p className="deckgo-surface-label">{t("throughput")}</p>
+                        <p className="deckgo-note">
+                          {t("throughputStatus", { status: t(throughputState) })}
+                        </p>
+                      </div>
+                      <div className="deckgo-actions deck-ui-channels-actions">
+                        {THROUGHPUT_WINDOWS.map((window) => (
+                          <button
+                            className={`deckgo-button deck-ui-channels-button ${
+                              throughputWindow === window ? "is-primary" : ""
+                            }`}
+                            key={window}
+                            type="button"
+                            onClick={() => setThroughputWindow(window)}
+                          >
+                            {window}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <ChannelThroughputChart
+                      buckets={throughputBuckets}
+                      window={throughputWindow}
+                      t={t}
+                    />
+                  </div>
+                  {selectedProbeResult ? (
+                    <div className="deckgo-surface-tile deck-ui-channels-surface">
+                      <p className="deckgo-surface-label">{t("probeResult")}</p>
+                      <ChannelProbeResultBadge result={selectedProbeResult} t={t} />
+                    </div>
+                  ) : null}
+                  {!selectedIsWecomAccessChannel ? (
+                    <ChannelSettingsEditor
+                      channelId={selectedChannelId}
+                      channel={selectedChannel}
+                      onSaved={async (result) => {
+                        setConfigPatchResult(result);
+                        await refresh(selectedChannelId);
+                      }}
+                    />
+                  ) : null}
+                  {selectedAccounts.length > 0 ? (
+                    <ul className="deckgo-shell-list deck-ui-channels-list">
+                      {selectedAccounts.map((account) => (
+                        <li key={account.accountId}>
+                          <div className="deckgo-selectable-card deck-ui-channels-account-card">
+                            <div className="deckgo-card-header deck-ui-channels-surface-head">
+                              <div>
+                                <strong>
+                                  {stringValue(account.payload, "displayName") ||
+                                    stringValue(account.payload, "name") ||
+                                    account.accountId}
+                                </strong>
+                                <div className="deckgo-meta">{account.accountId}</div>
+                              </div>
+                              <span
+                                className={`deckgo-pill ${diagnosticClassName(
+                                  account.diagnostic.tone,
+                                )}`}
+                              >
+                                {account.diagnostic.title}
+                              </span>
                             </div>
-                            <span
-                              className={`deckgo-pill ${diagnosticClassName(
-                                account.diagnostic.tone,
-                              )}`}
-                            >
-                              {account.diagnostic.title}
-                            </span>
+                            <p className="deckgo-note">{account.diagnostic.description}</p>
+                            <p className="deckgo-note">
+                              {t("nextStep", { step: account.diagnostic.nextStep })}
+                            </p>
+                            {!selectedIsWecomAccessChannel ? (
+                              <AccountDmPolicyEditor
+                                channelId={selectedChannelId}
+                                accountId={account.accountId}
+                                accountPayload={account.payload}
+                                onSaved={async (result) => {
+                                  setConfigPatchResult(result);
+                                  await refresh(selectedChannelId);
+                                }}
+                              />
+                            ) : null}
+                            <div className="deckgo-meta">{JSON.stringify(account.payload)}</div>
                           </div>
-                          <p className="deckgo-note">{account.diagnostic.description}</p>
-                          <p className="deckgo-note">
-                            {t("nextStep", { step: account.diagnostic.nextStep })}
-                          </p>
-                          {!selectedIsWecomAccessChannel ? (
-                            <AccountDmPolicyEditor
-                              channelId={selectedChannelId}
-                              accountId={account.accountId}
-                              accountPayload={account.payload}
-                              onSaved={async (result) => {
-                                setConfigPatchResult(result);
-                                await refresh(selectedChannelId);
-                              }}
-                            />
-                          ) : null}
-                          <div className="deckgo-meta">{JSON.stringify(account.payload)}</div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="deckgo-note">{t("noChannelAccounts")}</p>
-                )}
-                <JsonDetails title={t("channelMetadata")} payload={selectedChannelMeta ?? null} />
-                {selectedIsWecomAccessChannel ? (
-                  <WecomAccessControls
-                    channelId={selectedChannelId}
-                    accounts={selectedAccessAccounts}
-                    defaultAccountId={selectedDefaultAccountId}
-                    initialAccountId={navigationTarget.accountId}
-                    initialFocus={navigationTarget.section === "access" ? "access" : undefined}
-                    onSaved={() => refresh(selectedChannelId)}
-                  />
-                ) : null}
-                <JsonDetails title={t("channelPayload")} payload={selectedChannel} />
-                <JsonDetails title={t("channelTestResult")} payload={selectedProbeResult} />
-                <JsonDetails title={t("channelConfigPatchResult")} payload={configPatchResult} />
-                <JsonDetails title={t("logoutResult")} payload={actionResult} />
-              </>
-            ) : (
-              <p className="deckgo-note deck-ui-channels-empty">{t("chooseChannel")}</p>
-            )}
-          </div>
-        </article>
-      </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="deckgo-note">{t("noChannelAccounts")}</p>
+                  )}
+                  <JsonDetails title={t("channelMetadata")} payload={selectedChannelMeta ?? null} />
+                  {selectedIsWecomAccessChannel ? (
+                    <WecomAccessControls
+                      channelId={selectedChannelId}
+                      accounts={selectedAccessAccounts}
+                      defaultAccountId={selectedDefaultAccountId}
+                      initialAccountId={navigationTarget.accountId}
+                      initialFocus={navigationTarget.section === "access" ? "access" : undefined}
+                      onSaved={() => refresh(selectedChannelId)}
+                    />
+                  ) : null}
+                  <JsonDetails title={t("channelPayload")} payload={selectedChannel} />
+                  <JsonDetails title={t("channelTestResult")} payload={selectedProbeResult} />
+                  <JsonDetails title={t("channelConfigPatchResult")} payload={configPatchResult} />
+                  <JsonDetails title={t("logoutResult")} payload={actionResult} />
+                </>
+              ) : (
+                <p className="deckgo-note deck-ui-channels-empty">{t("chooseChannel")}</p>
+              )}
+            </div>
+          </article>
+        </div>
+      </section>
     </section>
   );
 }

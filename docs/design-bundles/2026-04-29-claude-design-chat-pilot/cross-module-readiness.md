@@ -29,7 +29,7 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 | ------------ | --------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------- |
 | **Settings** | `panels/settings/SettingsPanel.tsx`                                                     | 64 lines            | Manages workspace settings, runtime config, gateway tokens, confirm dialogs           |
 | **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | 145 lines           | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
-| **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | 87 lines            | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
+| **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | removed             | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
 | **Sessions** | `panels/sessions/SessionsPanel.tsx` + 3 sub-components                                  | 80 lines            | Session list, detail shell, compaction history, subagent tree, usage breakdown        |
 | **Logs**     | `panels/logs/LogsPanel.tsx`                                                             | 41 lines            | Log tape view, level filters, controls strip, sidecar event details                   |
 
@@ -173,9 +173,9 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Channels panel
 
-**Migration readiness:** Medium-Low — needs `KpiCard` + `SparklineChart` + `EmptyState` (promotion from chat) + `Banner success` variant confirm + `Textarea monospace+readonly` extension.
+**Migration readiness:** Completed under OpenSpec change `frontend-channels-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it moved the old global `deck-ui-channels` styling into module-local CSS and kept channel-specific diagnostics/settings/access molecules local.
 
-**Footnote — deprecated patterns:** `deckgo-usage-chart-*` family (5 classes) is panel-specific and would migrate to `SparklineChart` atom. WeCom-specific UI (`deck-ui-channels-wecom`) keeps panel-local CSS — those classes don't promote to atoms.
+**Footnote — deprecated patterns:** The old `deck-ui-channels` global block has been removed. Channels now uses `channels-panel.css` with `--ds-*` tokens. `deckgo-usage-chart-*`, account diagnostics, channel settings rows, WeCom access controls, and routing handoff remain panel-local until a dedicated design-system proposal defines stable shared APIs.
 
 ### Sessions panel
 
@@ -275,6 +275,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/sessions-visual.spec.ts` covers the ready workbench, Markdown export preview, and compact confirmation state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Channels panel
+
+**Status:** in progress under OpenSpec change `frontend-channels-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The channels high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, input, select, textarea, toggle, code/json, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** channels metric tile, channel inventory row, selected-channel hero, account diagnostic card, throughput chart row, channel settings form section, account DM policy row, WeCom access policy card, routing handoff strip, and action/result seam.
+
+**Repeated from prior modules:** metric tile, compact workbench header, section heading, two-column workbench rhythm, selected-detail hero, and action/result seam. These remain local until a dedicated design-system proposal defines shared APIs across agents/routing/subagents/logs/settings/sessions/channels.
+
+**Configuration/access molecules:** channel account diagnostics, generic channel settings, account DM policy, WeCom access controls, and routing summary are promotion candidates only after another provider/config module validates the same API shape.
+
+**Mock visual evidence:** `deck-go/test/e2e/channels-visual.spec.ts` covers the ready workbench, probe result state, and WeCom access/routing state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -296,3 +310,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — agents hifi redesign (`frontend-agents-hifi-contract-redesign`)**: Agents was evaluated against the current contract-led design-system rollout. The pass introduced no canonical atom/token/pattern changes. Local molecules are documented in `deck-go/frontend-handoff/modules/agents/implementation-notes.md`; mock visual E2E captures the workbench and create dialog with contract-shaped data.
 - **2026-05-03 — subagents hifi redesign (`frontend-subagents-hifi-contract-redesign`)**: Subagents provides the third data point for the workbench/metric/queue/detail/timeline pattern first seen in agents and routing. This pass introduces no canonical atom/token changes and keeps repeated molecules local; promotion should happen in a separate design-system change after the subagents implementation is archived.
 - **2026-05-03 — logs hifi redesign (`frontend-logs-hifi-contract-redesign`)**: Logs provides the first code-heavy observability panel in the contract-led rollout. This pass introduces no canonical atom/token changes. The shared metric/header/section patterns now have four module data points; log rows, live tape rows, and payload seams stay local until another observability module confirms reuse.
+- **2026-05-03 — channels hifi redesign (`frontend-channels-hifi-contract-redesign`)**: Channels moves the channel operations workbench to module-local `--ds-*` styling and adds contract-shaped mock coverage for channel status, probe, config patch, WeCom access, and routing handoff. No canonical atom/token changes were introduced; channel diagnostics/settings/access molecules stay local pending a separate design-system proposal.

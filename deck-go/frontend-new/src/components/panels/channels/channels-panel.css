@@ -1,0 +1,425 @@
+.channels-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: var(--ds-sp-4);
+  min-width: 0;
+  min-height: calc(100vh - 104px);
+  color: var(--ds-text-1);
+  font: var(--ds-fs-body) / var(--ds-line) var(--ds-font-sans);
+  letter-spacing: 0;
+}
+
+.channels-panel *,
+.channels-panel *::before,
+.channels-panel *::after {
+  box-sizing: border-box;
+}
+
+.channels-panel h2,
+.channels-panel h3,
+.channels-panel p {
+  margin: 0;
+}
+
+.channels-panel h2,
+.channels-panel h3 {
+  color: var(--ds-text-1);
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.channels-panel h2 {
+  font-size: 1.1rem;
+}
+
+.channels-panel h3 {
+  font-size: 0.95rem;
+}
+
+.channels-panel p,
+.channels-panel small {
+  color: var(--ds-text-3);
+}
+
+.channels-panel strong {
+  color: var(--ds-text-1);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.channels-panel__header,
+.channels-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+  min-width: 0;
+}
+
+.channels-panel__header {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.channels-panel__header > div:first-child {
+  display: grid;
+  gap: var(--ds-sp-1);
+  min-width: 0;
+}
+
+.channels-panel__header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.channels-panel__eyebrow {
+  color: var(--ds-text-3);
+  font: 700 var(--ds-fs-meta) / 1.2 var(--ds-font-mono);
+  text-transform: uppercase;
+}
+
+.channels-panel__note {
+  color: var(--ds-text-3);
+}
+
+.channels-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ds-sp-3);
+}
+
+.channels-metric {
+  display: grid;
+  align-content: start;
+  gap: var(--ds-sp-1);
+  min-height: 58px;
+  min-width: 0;
+  padding: var(--ds-sp-3);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+}
+
+.channels-metric span,
+.channels-metric strong,
+.channels-metric small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channels-metric span {
+  color: var(--ds-text-3);
+  font: 700 var(--ds-fs-meta) / 1.2 var(--ds-font-mono);
+  text-transform: uppercase;
+}
+
+.channels-metric strong {
+  font-size: 1rem;
+}
+
+.channels-workbench.deck-ui-channels {
+  grid-template-columns: minmax(380px, 0.78fr) minmax(560px, 1.22fr);
+  gap: var(--ds-sp-4);
+  max-width: none;
+  margin: 0;
+}
+
+.deck-ui-channels-column {
+  gap: var(--ds-sp-4);
+}
+
+.deck-ui-channels-card {
+  overflow: hidden;
+  border-color: var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.deck-ui-channels-card .deckgo-card-header {
+  padding: var(--ds-sp-4) var(--ds-sp-4) 0;
+}
+
+.deck-ui-channels-card .deckgo-card-subtitle {
+  margin: var(--ds-sp-2) var(--ds-sp-4) 0;
+  font-size: var(--ds-fs-body);
+}
+
+.deck-ui-channels-body {
+  gap: var(--ds-sp-3);
+  padding: var(--ds-sp-4);
+}
+
+.deck-ui-channels-body > *,
+.deck-ui-channels-status-row,
+.deck-ui-channels-actions,
+.deck-ui-channels-stats,
+.deck-ui-channels-detail-stats,
+.deck-ui-channels-form-grid,
+.deck-ui-channels-form-row,
+.deck-ui-channels-input,
+.deck-ui-channels-textarea,
+.deck-ui-channels-list,
+.deck-ui-channels-row,
+.deck-ui-channels-account-card,
+.deck-ui-channels-surface,
+.deck-ui-channels-hero,
+.deck-ui-channels-chart,
+.deck-ui-channels-chart-row,
+.deck-ui-channels-grid {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-channels-status-row,
+.deck-ui-channels-actions {
+  gap: var(--ds-sp-3);
+}
+
+.deck-ui-channels-status-row .deckgo-pill,
+.deck-ui-channels-hero .deckgo-pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: var(--ds-fs-meta);
+}
+
+.deck-ui-channels-input,
+.deck-ui-channels-textarea {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  padding: 7px 9px;
+  background: var(--ds-bg-2);
+  color: var(--ds-text-1);
+  box-shadow: none;
+}
+
+.deck-ui-channels-textarea,
+.deck-ui-channels .deckgo-json-textarea {
+  min-height: 160px;
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+}
+
+.deck-ui-channels-input:focus,
+.deck-ui-channels-textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--ds-accent) 42%, transparent);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+.deck-ui-channels-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-fs-body);
+}
+
+.deck-ui-channels-stats,
+.deck-ui-channels-detail-stats,
+.deck-ui-channels-form-grid,
+.deck-ui-channels-grid {
+  max-width: none;
+  margin: 0;
+  gap: var(--ds-sp-3);
+}
+
+.deck-ui-channels-stats,
+.deck-ui-channels-detail-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.deck-ui-channels-form-grid,
+.deck-ui-channels-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.deck-ui-channels-form-grid > .deckgo-form-row {
+  align-self: start;
+  gap: var(--ds-sp-2);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.deck-ui-channels-form-grid > .deckgo-form-row .deck-ui-channels-input,
+select.deck-ui-channels-input {
+  align-self: start;
+  height: 34px;
+}
+
+.deck-ui-channels-actions-offset,
+.deck-ui-channels-label-offset {
+  margin-top: var(--ds-sp-4);
+}
+
+.deck-ui-channels-check {
+  gap: var(--ds-sp-2);
+}
+
+.deck-ui-channels-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ds-accent);
+}
+
+.deck-ui-channels .deckgo-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  box-shadow: none;
+}
+
+.deck-ui-channels .deckgo-stat-label {
+  font-size: var(--ds-fs-meta);
+  letter-spacing: 0;
+}
+
+.deck-ui-channels .deckgo-stat-value {
+  margin-top: var(--ds-sp-2);
+  overflow: hidden;
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-ui-channels-surface,
+.deck-ui-channels-hero {
+  display: grid;
+  gap: var(--ds-sp-3);
+  margin: 0;
+  padding: var(--ds-sp-3);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  box-shadow: none;
+}
+
+.deck-ui-channels-hero {
+  background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+}
+
+.deck-ui-channels-surface-head {
+  align-items: flex-start;
+  padding: 0;
+}
+
+.deck-ui-channels-surface .deckgo-surface-label {
+  color: var(--ds-text-3);
+  font: 700 var(--ds-fs-meta) / 1.2 var(--ds-font-mono);
+  letter-spacing: 0;
+}
+
+.deck-ui-channels-list {
+  gap: var(--ds-sp-3);
+}
+
+.deck-ui-channels-list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.deck-ui-channels-row,
+.deck-ui-channels-account-card,
+.deck-ui-channels .deckgo-selectable-card {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  box-shadow: none;
+}
+
+.deck-ui-channels-row:hover,
+.deck-ui-channels .deckgo-selectable-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--ds-accent) 34%, var(--ds-border));
+  background: var(--ds-bg-hover);
+  box-shadow: none;
+}
+
+.deck-ui-channels-row.is-selected,
+.deck-ui-channels .deckgo-selectable-card.is-selected {
+  border-color: color-mix(in srgb, var(--ds-accent) 42%, var(--ds-border));
+  background: var(--ds-accent-bg);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+.deck-ui-channels-chart {
+  gap: var(--ds-sp-3);
+}
+
+.deck-ui-channels-chart-row {
+  grid-template-columns: minmax(92px, 0.78fr) minmax(120px, 1.2fr) minmax(110px, 0.8fr);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.deck-ui-channels-chart-row:last-child {
+  border-bottom: 0;
+}
+
+.deck-ui-channels-chart-row .deckgo-usage-chart-track {
+  display: grid;
+  gap: 3px;
+  height: auto;
+  padding: 2px;
+}
+
+.deck-ui-channels-chart-row .deckgo-usage-chart-bar {
+  height: 6px;
+  box-shadow: none;
+}
+
+.deck-ui-channels-error {
+  color: var(--ds-error);
+}
+
+.deck-ui-channels strong,
+.deck-ui-channels code,
+.deck-ui-channels .deckgo-meta,
+.deck-ui-channels .deckgo-note,
+.deck-ui-channels-empty,
+.deck-ui-channels-error {
+  overflow-wrap: anywhere;
+}
+
+.deck-ui-channels details .deckgo-code {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--ds-code-border);
+  border-radius: var(--ds-radius-md);
+  padding: 9px 10px;
+  background: var(--ds-code-bg);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-code);
+}
+
+.deck-ui-channels-wecom {
+  border-color: color-mix(in srgb, var(--ds-accent) 24%, var(--ds-border));
+}
+
+@media (max-width: 1080px) {
+  .channels-workbench.deck-ui-channels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .channels-panel__header {
+    display: grid;
+  }
+
+  .channels-metrics,
+  .deck-ui-channels-stats,
+  .deck-ui-channels-detail-stats,
+  .deck-ui-channels-form-grid,
+  .deck-ui-channels-grid,
+  .deck-ui-channels-chart-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deck-ui-channels-actions,
+  .deck-ui-channels-surface-head {
+    align-items: stretch;
+  }
+}

@@ -189,6 +189,221 @@ function defaultMethods() {
       status: "idle",
     };
   const sessionKeyFrom = (params) => params?.key ?? params?.sessionKey ?? "session:mock:1";
+  const channelStatus = {
+    channelOrder: ["discord", "wecom", "telegram"],
+    channels: {
+      discord: {
+        enabled: true,
+        connected: true,
+        status: "ready",
+        latencyMs: 84,
+      },
+      wecom: {
+        enabled: true,
+        connected: true,
+        status: "ready",
+        latencyMs: 128,
+      },
+      telegram: {
+        enabled: false,
+        connected: false,
+        status: "disabled",
+        latencyMs: 0,
+      },
+    },
+    channelAccounts: {
+      discord: [
+        {
+          accountId: "enterprise",
+          name: "Enterprise Discord",
+          enabled: true,
+          configured: true,
+          linked: true,
+          connected: true,
+          healthState: "healthy",
+          activeRuns: 2,
+          dmPolicy: "per-channel-peer",
+          lastInboundAt: now - 32_000,
+          lastOutboundAt: now - 18_000,
+          probe: { ok: true, latencyMs: 84 },
+        },
+        {
+          accountId: "community",
+          name: "Community Guild",
+          enabled: true,
+          configured: true,
+          linked: true,
+          connected: false,
+          healthState: "degraded",
+          lastError: "gateway reconnect backoff is active",
+          reconnectAttempts: 2,
+          probe: { ok: false, error: "gateway reconnect backoff is active" },
+        },
+      ],
+      wecom: [
+        {
+          accountId: "default",
+          name: "WeCom Ops",
+          enabled: true,
+          configured: true,
+          linked: true,
+          connected: true,
+          allowFrom: ["finance-lead", "ops-admin"],
+          allowUnmentionedGroups: false,
+          healthState: "healthy",
+          probe: { ok: true, latencyMs: 128 },
+        },
+        {
+          accountId: "tenant-b",
+          name: "WeCom Tenant B",
+          enabled: true,
+          configured: true,
+          linked: false,
+          connected: false,
+          allowFrom: [],
+          healthState: "attention",
+          lastError: "tenant-b pairing is pending",
+          probe: { ok: false, error: "tenant-b pairing is pending" },
+        },
+      ],
+      telegram: [
+        {
+          accountId: "alerts",
+          name: "Telegram Alerts",
+          enabled: false,
+          configured: false,
+          linked: false,
+          connected: false,
+          healthState: "disabled",
+          probe: { ok: false, error: "channel disabled" },
+        },
+      ],
+    },
+    channelDefaultAccountId: {
+      discord: "enterprise",
+      wecom: "default",
+      telegram: "alerts",
+    },
+    channelLabels: {
+      discord: "Discord",
+      wecom: "WeCom",
+      telegram: "Telegram",
+    },
+    channelDetailLabels: {
+      discord: "Discord workspace bridge",
+      wecom: "WeCom operations bridge",
+      telegram: "Telegram alert bridge",
+    },
+    channelSystemImages: {
+      discord: "discord",
+      wecom: "wecom",
+      telegram: "telegram",
+    },
+    channelMeta: [
+      {
+        id: "discord",
+        label: "Discord",
+        detailLabel: "Discord workspace bridge",
+        systemImage: "discord",
+        pluginId: "discord",
+        pluginOrigin: "bundled",
+        pluginConfigPath: "channels.discord",
+      },
+      {
+        id: "wecom",
+        label: "WeCom",
+        detailLabel: "WeCom operations bridge",
+        systemImage: "wecom",
+        pluginId: "wecom",
+        pluginOrigin: "bundled",
+        pluginConfigPath: "channels.wecom",
+      },
+      {
+        id: "telegram",
+        label: "Telegram",
+        detailLabel: "Telegram alert bridge",
+        systemImage: "telegram",
+        pluginId: "telegram",
+        pluginOrigin: "bundled",
+        pluginConfigPath: "channels.telegram",
+      },
+    ],
+    ts: now,
+  };
+  const configFixture = {
+    session: { dmScope: "per-channel-peer" },
+    agents: {
+      defaults: {
+        subagents: {
+          archiveAfterMinutes: 45,
+          maxChildrenPerAgent: 8,
+          maxConcurrent: 4,
+          maxSpawnDepth: 2,
+          model: "openai/gpt-5.4",
+          requireAgentId: true,
+          runTimeoutSeconds: 120,
+          thinking: "medium",
+        },
+      },
+    },
+    channels: {
+      wecom: {
+        accounts: {
+          default: {
+            bot: { dm: { policy: "allowlist", allowFrom: ["finance-lead", "ops-admin"] } },
+            agent: { dm: { policy: "open", allowFrom: ["ops-admin"] } },
+          },
+          "tenant-b": {
+            bot: { dm: { policy: "pairing", allowFrom: [] } },
+            agent: { dm: { policy: "allowlist", allowFrom: [] } },
+          },
+        },
+        dynamicAgents: {
+          enabled: true,
+          dmCreateAgent: true,
+          groupEnabled: false,
+          adminUsers: ["ops-admin"],
+        },
+        routing: { failClosedOnDefaultRoute: false },
+      },
+    },
+    bindings: [
+      {
+        agentId: "ops",
+        comment: "Direct finance escalation",
+        match: {
+          channel: "discord",
+          accountId: "enterprise",
+          peer: { kind: "direct", id: "finance-lead" },
+        },
+      },
+      {
+        agentId: "security",
+        comment: "Guild admins and ops",
+        match: {
+          channel: "discord",
+          guildId: "openclaw-prod",
+          roles: ["admin", "ops"],
+        },
+      },
+      {
+        agentId: "main",
+        comment: "Discord enterprise fallback",
+        match: {
+          channel: "discord",
+          accountId: "enterprise",
+        },
+      },
+      {
+        agentId: "ops",
+        comment: "WeCom default operations",
+        match: {
+          channel: "wecom",
+          accountId: "default",
+        },
+      },
+    ],
+  };
   return {
     "gateway.describe": () => ({
       version: "mock-gateway",
@@ -197,6 +412,12 @@ function defaultMethods() {
     }),
     health: () => ({ status: "healthy" }),
     status: () => ({ status: "running", health: "healthy" }),
+    "channels.status": () => channelStatus,
+    "channels.logout": (params) => ({
+      accountId: params?.accountId ?? "",
+      channel: params?.channel ?? "discord",
+      cleared: true,
+    }),
     "logs.tail": (params) => {
       const cursor = Number.isFinite(params?.cursor) ? Number(params.cursor) : 0;
       const limit = Number.isFinite(params?.limit)
@@ -391,52 +612,19 @@ function defaultMethods() {
       scope: "local",
     }),
     "config.get": () => ({
+      baseHash: "routing-hash-1",
+      exists: true,
       hash: "routing-hash-1",
-      config: {
-        session: { dmScope: "per-channel-peer" },
-        agents: {
-          defaults: {
-            subagents: {
-              archiveAfterMinutes: 45,
-              maxChildrenPerAgent: 8,
-              maxConcurrent: 4,
-              maxSpawnDepth: 2,
-              model: "openai/gpt-5.4",
-              requireAgentId: true,
-              runTimeoutSeconds: 120,
-              thinking: "medium",
-            },
-          },
-        },
-        bindings: [
-          {
-            agentId: "ops",
-            comment: "Direct finance escalation",
-            match: {
-              channel: "discord",
-              accountId: "enterprise",
-              peer: { kind: "direct", id: "finance-lead" },
-            },
-          },
-          {
-            agentId: "security",
-            comment: "Guild admins and ops",
-            match: {
-              channel: "discord",
-              guildId: "openclaw-prod",
-              roles: ["admin", "ops"],
-            },
-          },
-          {
-            agentId: "main",
-            comment: "Discord enterprise fallback",
-            match: {
-              channel: "discord",
-              accountId: "enterprise",
-            },
-          },
-        ],
-      },
+      path: "/tmp/mock-openclaw.json",
+      raw: JSON.stringify(configFixture, null, 2),
+      valid: true,
+      config: configFixture,
+    }),
+    "config.patch": (params) => ({
+      ok: true,
+      baseHash: params?.baseHash ?? "routing-hash-1",
+      hash: "routing-hash-2",
+      raw: params?.raw ?? "{}",
     }),
     "deck.routing.list": () => ({
       bindings: [
@@ -470,6 +658,16 @@ function defaultMethods() {
           match: {
             channel: "discord",
             accountId: "enterprise",
+          },
+        },
+        {
+          id: "route-wecom-default",
+          agentId: "ops",
+          tier: "account",
+          comment: "WeCom default operations",
+          match: {
+            channel: "wecom",
+            accountId: "default",
           },
         },
       ],
