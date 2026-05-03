@@ -750,7 +750,7 @@ function defaultMethods() {
       diagnostics: [],
     },
   ];
-  const configFixture = {
+  let configFixture = {
     session: { dmScope: "per-channel-peer" },
     agents: {
       defaults: {
@@ -861,6 +861,12 @@ function defaultMethods() {
         },
       },
     ],
+  };
+  let configHashVersion = 1;
+  const configHash = () => `config-hash-visual-${configHashVersion}`;
+  const bumpConfigHash = () => {
+    configHashVersion += 1;
+    return configHash();
   };
   return {
     "gateway.describe": () => ({
@@ -1555,36 +1561,132 @@ function defaultMethods() {
       scope: "local",
     }),
     "config.get": () => ({
-      baseHash: "routing-hash-1",
+      baseHash: configHash(),
       exists: true,
-      hash: "routing-hash-1",
+      hash: configHash(),
       path: "/tmp/mock-openclaw.json",
       raw: JSON.stringify(configFixture, null, 2),
       valid: true,
       config: configFixture,
     }),
-    "config.schema.lookup": (params) => ({
-      path: params?.path ?? "models.providers",
-      schema: { type: "object" },
-      children: [
-        {
-          key: "anthropic",
-          path: "models.providers.anthropic",
-          required: false,
-          hasChildren: true,
-        },
-        {
-          key: "openai",
-          path: "models.providers.openai",
-          required: false,
-          hasChildren: true,
-        },
-      ],
-    }),
+    "config.schema.lookup": (params) => {
+      const path = params?.path ?? "models.providers";
+      if (path === "") {
+        return {
+          path,
+          schema: { type: "object" },
+          children: Object.keys(configFixture).map((key) => ({
+            key,
+            path: key,
+            required: false,
+            hasChildren: true,
+          })),
+        };
+      }
+      if (path === "agents.defaults") {
+        return {
+          path,
+          schema: {
+            type: "object",
+            properties: {
+              thinking: { type: "string", enum: ["low", "medium", "high"] },
+              runTimeoutSeconds: { type: "number" },
+              requireAgentId: { type: "boolean" },
+              model: { type: "string" },
+              openaiApiKeyEnv: { type: "string" },
+              bedrockDiscovery: { type: "object" },
+            },
+          },
+          children: [
+            {
+              key: "thinking",
+              path: "agents.defaults.subagents.thinking",
+              type: "string",
+              required: false,
+              hasChildren: false,
+              hint: { label: "Thinking", enum: ["low", "medium", "high"], tags: ["common"] },
+            },
+            {
+              key: "runTimeoutSeconds",
+              path: "agents.defaults.subagents.runTimeoutSeconds",
+              type: "number",
+              required: false,
+              hasChildren: false,
+              hint: { label: "Run timeout", tags: ["runtime"] },
+            },
+            {
+              key: "requireAgentId",
+              path: "agents.defaults.subagents.requireAgentId",
+              type: "boolean",
+              required: false,
+              hasChildren: false,
+              hint: { label: "Require agent id", tags: ["runtime"] },
+            },
+            {
+              key: "model",
+              path: "agents.defaults.subagents.model",
+              type: "string",
+              required: false,
+              hasChildren: false,
+              hint: { label: "Subagent model", placeholder: "openai/gpt-5.4" },
+            },
+            {
+              key: "openaiApiKeyEnv",
+              path: "models.providers.openai.apiKeyEnv",
+              type: "string",
+              required: false,
+              hasChildren: false,
+              hint: { label: "OpenAI API key env", sensitive: true, tags: ["sensitive"] },
+            },
+            {
+              key: "bedrockDiscovery",
+              path: "models.bedrockDiscovery",
+              type: "object",
+              required: false,
+              hasChildren: true,
+              hint: { tags: ["advanced"] },
+            },
+          ],
+        };
+      }
+      return {
+        path,
+        schema: { type: "object" },
+        children: [
+          {
+            key: "anthropic",
+            path: "models.providers.anthropic",
+            required: false,
+            hasChildren: true,
+          },
+          {
+            key: "openai",
+            path: "models.providers.openai",
+            required: false,
+            hasChildren: true,
+          },
+        ],
+      };
+    },
+    "config.apply": (params) => {
+      if (typeof params?.raw === "string") {
+        try {
+          configFixture = JSON.parse(params.raw);
+        } catch {
+          // The frontend validates raw JSON before apply; keep the last fixture as fallback.
+        }
+      }
+      return {
+        ok: true,
+        baseHash: params?.baseHash ?? configHash(),
+        hash: bumpConfigHash(),
+        raw: JSON.stringify(configFixture, null, 2),
+      };
+    },
     "config.patch": (params) => ({
       ok: true,
-      baseHash: params?.baseHash ?? "routing-hash-1",
-      hash: "routing-hash-2",
+      baseHash: params?.baseHash ?? configHash(),
+      hash: bumpConfigHash(),
       raw: params?.raw ?? "{}",
     }),
     "deck.routing.list": () => ({

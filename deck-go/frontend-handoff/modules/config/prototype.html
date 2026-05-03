@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deck Config Workbench Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08090b;
+        --panel: #111318;
+        --panel-2: #151922;
+        --line: #272d38;
+        --text: #f4f6f8;
+        --muted: #a9b0bb;
+        --faint: #727b88;
+        --accent: #7fb7ff;
+        --success: #71d69a;
+        --warn: #f3c96b;
+        --radius: 8px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); }
+      main { display: grid; gap: 14px; width: min(1180px, calc(100vw - 40px)); margin: 24px auto; }
+      header, .actions, .metrics, .workspace, .card, .body, .field-list, .row, .surface {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+      header { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+      .actions { grid-auto-flow: column; align-items: center; justify-content: end; }
+      .eyebrow, .label { margin: 0; color: var(--faint); font-size: 11px; font-weight: 800; letter-spacing: 0; text-transform: uppercase; }
+      h1, h2, h3, p { margin: 0; }
+      h1 { font-size: 22px; }
+      h2 { font-size: 16px; }
+      h3 { font-size: 14px; }
+      p, .meta { color: var(--muted); font-size: 13px; line-height: 1.45; }
+      button, .pill, input, textarea, select {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-2);
+        color: var(--text);
+        font: inherit;
+      }
+      button { min-height: 32px; padding: 6px 10px; cursor: pointer; font-size: 13px; font-weight: 750; }
+      button.primary { border-color: color-mix(in srgb, var(--accent) 52%, var(--line)); color: var(--accent); }
+      .pill { display: inline-flex; padding: 4px 8px; color: var(--muted); font-size: 12px; font-weight: 700; }
+      .pill.ok { border-color: color-mix(in srgb, var(--success) 42%, var(--line)); color: var(--success); }
+      .pill.warn { border-color: color-mix(in srgb, var(--warn) 42%, var(--line)); color: var(--warn); }
+      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .metric, .card, .row, .surface, details {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+      .metric { padding: 11px; }
+      .metric strong { display: block; margin-top: 6px; overflow: hidden; font-size: 18px; text-overflow: ellipsis; white-space: nowrap; }
+      .workspace { grid-template-columns: minmax(420px, 0.95fr) minmax(560px, 1.05fr); align-items: start; }
+      .card { overflow: hidden; }
+      .head { display: flex; justify-content: space-between; gap: 10px; padding: 14px 16px 0; }
+      .body { padding: 14px 16px 16px; }
+      textarea { min-height: 310px; width: 100%; padding: 10px; resize: vertical; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; line-height: 1.5; }
+      input, select { min-height: 34px; width: 100%; padding: 7px 9px; }
+      .row, .surface { padding: 11px; }
+      .row.selected { border-color: color-mix(in srgb, var(--accent) 48%, var(--line)); box-shadow: inset 2px 0 0 var(--accent); }
+      .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+      code, pre { overflow-wrap: anywhere; font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; }
+      details { padding: 11px; }
+      summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 750; }
+      pre { max-height: 200px; overflow: auto; margin: 10px 0 0; color: var(--muted); line-height: 1.5; }
+      @media (max-width: 980px) { header, .workspace, .metrics { grid-template-columns: minmax(0, 1fr); } .actions { grid-auto-flow: row; justify-content: stretch; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Control / config governance</p>
+          <h1>Configuration</h1>
+          <p>Schema-guided openclaw.json editing with raw diff preview and base-hash recovery.</p>
+          <p class="meta">Contract: GET /api/config, POST /api/config/apply, POST /api/config/schema-lookup</p>
+        </div>
+        <div class="actions">
+          <button>Refresh</button>
+          <button class="primary">Preview apply</button>
+          <button>Reset</button>
+        </div>
+      </header>
+      <section class="metrics">
+        <div class="metric"><p class="label">Keys</p><strong>6</strong></div>
+        <div class="metric"><p class="label">Schema path</p><strong>agents.defaults</strong></div>
+        <div class="metric"><p class="label">Hash</p><strong>config-hash-visual-1</strong></div>
+        <div class="metric"><p class="label">Unsaved</p><strong>No</strong></div>
+      </section>
+      <section class="workspace">
+        <article class="card">
+          <div class="head">
+            <div><h2>Raw config</h2><p class="meta">Single draft source for apply.</p></div>
+            <span class="pill ok">ready</span>
+          </div>
+          <div class="body">
+            <div class="surface">
+              <h3>Diff preview</h3>
+              <p class="meta">Pending changes are reviewed before apply.</p>
+              <div class="toolbar"><span class="pill warn">models.defaultModel changed</span><span class="pill">baseHash config-hash-visual-1</span></div>
+            </div>
+            <textarea>{
+  "agents": {
+    "defaults": {
+      "model": "gpt-5.4",
+      "thinkingDefault": "medium",
+      "allowShell": true
+    }
+  },
+  "models": { "defaultModel": "gpt-5.4" }
+}</textarea>
+          </div>
+        </article>
+        <article class="card">
+          <div class="head">
+            <div><h2>Schema workspace</h2><p class="meta">Lookup-backed structured fields write to the raw draft.</p></div>
+            <span class="pill">5 fields</span>
+          </div>
+          <div class="body">
+            <div class="surface">
+              <p class="label">Schema sections</p>
+              <div class="toolbar"><button class="primary">agents.defaults</button><button>models</button><button>channels</button><button>plugins</button></div>
+            </div>
+            <div class="surface">
+              <p class="label">Lookup path</p>
+              <div class="toolbar"><input value="agents.defaults" /><button>Lookup schema</button></div>
+            </div>
+            <div class="field-list">
+              <div class="row selected"><h3>Model</h3><p class="meta"><code>agents.defaults.model</code></p><input value="gpt-5.4" /></div>
+              <div class="row"><h3>Thinking default</h3><p class="meta"><code>agents.defaults.thinkingDefault</code></p><select><option>medium</option><option>high</option></select></div>
+              <div class="row"><h3>Allow shell</h3><p class="meta"><code>agents.defaults.allowShell</code></p><span class="pill ok">enabled</span></div>
+              <div class="row"><h3>API key</h3><p class="meta"><code>models.providers.openai.apiKey</code></p><input type="password" value="visual-secret" /></div>
+            </div>
+            <details><summary>Schema lookup payload</summary><pre>{ "path": "agents.defaults", "children": [{ "key": "model" }] }</pre></details>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

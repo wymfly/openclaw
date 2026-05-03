@@ -1025,11 +1025,6 @@ details summary:focus-visible {
   letter-spacing: 0.08em;
 }
 
-.deck-ui-config-field-list {
-  display: grid;
-  gap: 8px;
-}
-
 .deckgo-schema-row {
   display: flex;
   align-items: flex-start;
@@ -1475,259 +1470,6 @@ details summary:focus-visible {
 .deck-ui-control-danger-row {
   padding-top: 10px;
   border-top: 1px solid var(--border);
-}
-
-.deck-ui-config {
-  grid-template-columns: minmax(440px, 0.92fr) minmax(580px, 1.08fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-config-column {
-  gap: 12px;
-}
-
-.deck-ui-config-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-config-card > .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-config-card > .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-config-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-config-body > *,
-.deck-ui-config-status-row,
-.deck-ui-config-actions,
-.deck-ui-config-stats,
-.deck-ui-config-input,
-.deck-ui-config-textarea,
-.deck-ui-config-label,
-.deck-ui-config-list,
-.deck-ui-config-row,
-.deck-ui-config-surface,
-.deck-ui-config-hero,
-.deck-ui-config-field-card {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-config-status-row,
-.deck-ui-config-actions {
-  gap: 6px;
-}
-
-.deck-ui-config .deckgo-pill {
-  min-width: 0;
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-config-status-row .deckgo-pill,
-.deck-ui-config-dialog .deckgo-pill,
-.deck-ui-config-hero .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-config-input,
-.deck-ui-config-textarea {
-  width: 100%;
-  border: 1px solid var(--border);
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-config-input {
-  min-height: 34px;
-  padding: 7px 9px;
-}
-
-.deck-ui-config-textarea {
-  min-height: 180px;
-  padding: 9px 10px;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  line-height: 1.55;
-  resize: vertical;
-}
-
-.deck-ui-config-input:focus,
-.deck-ui-config-textarea:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-config-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-config-stats {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.deck-ui-config .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-config .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-config .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-config-surface,
-.deck-ui-config-hero {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-config-dialog {
-  border-color: color-mix(in srgb, var(--primary) 25%, var(--border));
-}
-
-.deck-ui-config-surface .deckgo-surface-label,
-.deck-ui-config-dialog .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-config-list {
-  gap: 8px;
-}
-
-.deck-ui-config-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-config-row,
-.deck-ui-config .deckgo-selectable-card {
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-config-field-card {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 10px;
-}
-
-.deck-ui-config-field-card > *,
-.deck-ui-config-field-card .deckgo-card-header,
-.deck-ui-config-field-card details {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-config-field-card .deckgo-card-header {
-  flex-wrap: wrap;
-  padding: 0;
-}
-
-.deck-ui-config-row:hover,
-.deck-ui-config .deckgo-selectable-card:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-config-row.is-selected,
-.deck-ui-config .deckgo-selectable-card.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-config-check {
-  gap: 6px;
-}
-
-.deck-ui-config-check input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
-}
-
-.deck-ui-config strong,
-.deck-ui-config code,
-.deck-ui-config .deckgo-meta,
-.deck-ui-config .deckgo-note,
-.deck-ui-config-empty,
-.deck-ui-config-error {
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-config-error {
-  color: var(--danger);
-}
-
-.deck-ui-config details .deckgo-code {
-  max-height: 360px;
-  overflow: auto;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 9px 10px;
-  background: var(--surface-inset);
-  font-family: var(--font-mono);
-  font-size: 0.76rem;
-}
-
-@media (max-width: 1180px) {
-  .deck-ui-config {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .deck-ui-config-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .deck-ui-config-actions {
-    align-items: stretch;
-  }
 }
 
 .deck-ui-nodes {
@@ -2253,20 +1995,17 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-config .deckgo-stat,
 .deck-ui-nodes .deckgo-stat,
 .deck-ui-docs .deckgo-stat {
   padding: 9px 10px;
 }
 
-.deck-ui-config .deckgo-stat-value,
 .deck-ui-nodes .deckgo-stat-value,
 .deck-ui-docs .deckgo-stat-value {
   margin-top: 5px;
   font-size: 0.98rem;
 }
 
-.deck-ui-config .deckgo-selectable-card,
 .deck-ui-nodes .deckgo-selectable-card,
 .deck-ui-docs .deckgo-selectable-card {
   padding: 10px 11px;

@@ -8,6 +8,7 @@ import { applyDeckConfig, fetchDeckConfig, lookupConfigPath } from "../../../api
 import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff, type DiffEntry } from "../../../lib/config-diff";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import "./config-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type StructuredFieldKind = "boolean" | "enum" | "number" | "string" | "readonly";
@@ -587,46 +588,44 @@ export function ConfigPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-config">
-      <div className="deckgo-column deck-ui-config-column">
-        <article className="deckgo-card is-float deck-ui-config-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("panelTitle")}</h2>
+    <section className="config-panel" data-testid="config-panel">
+      <div className="config-panel__column">
+        <article className="config-panel__card">
+          <div className="config-panel__card-head">
+            <h2 className="config-panel__card-title">{t("panelTitle")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">{t("panelDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-config-body">
-            <div className="deckgo-pill-row deck-ui-config-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
+          <p className="config-panel__description">{t("panelDescription")}</p>
+          <div className="config-panel__body">
+            <div className="config-panel__pill-row">
+              <span
+                className={`config-panel__pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}
+              >
                 {t("configStatus", { status: t(loadState) })}
               </span>
-              <span className="deckgo-pill">
+              <span className="config-panel__pill">
                 {t("topLevelKeysCount", { count: topLevelKeys.length })}
               </span>
-              <span className="deckgo-pill">
+              <span className="config-panel__pill">
                 {t("schemaSectionsCount", { count: schemaSections.length })}
               </span>
-              <span className="deckgo-pill">
+              <span className="config-panel__pill">
                 {t("hashValue", { value: baseHash || t("notAvailable") })}
               </span>
-              <span className={`deckgo-pill ${isDirty ? "is-warning" : "is-muted"}`}>
+              <span className={`config-panel__pill ${isDirty ? "is-warning" : "is-muted"}`}>
                 {t("unsavedStatus", { value: isDirty ? t("yes") : t("no") })}
               </span>
             </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-config-stats">
+            <div className="config-panel__metrics">
               <ShellStat label={t("keys")} value={topLevelKeys.length} />
               <ShellStat label={t("schemaPath")} value={schemaPath} />
               <ShellStat label={t("hash")} value={baseHash || t("notAvailable")} />
             </div>
-            <div className="deckgo-actions deck-ui-config-actions">
-              <button
-                className="deckgo-button deck-ui-config-button"
-                type="button"
-                onClick={() => void refresh()}
-              >
+            <div className="config-panel__actions">
+              <button className="config-panel__button" type="button" onClick={() => void refresh()}>
                 {t("refreshConfig")}
               </button>
               <button
-                className="deckgo-button is-primary deck-ui-config-button"
+                className="config-panel__button is-primary"
                 type="button"
                 onClick={() => previewSaveAction()}
                 disabled={!isDirty || actionState !== "idle"}
@@ -634,7 +633,7 @@ export function ConfigPanel() {
                 {actionState === "saving" ? t("saving") : t("applyConfig")}
               </button>
               <button
-                className="deckgo-button deck-ui-config-button"
+                className="config-panel__button"
                 type="button"
                 onClick={() => {
                   setRawConfig(lastLoadedRawConfig);
@@ -648,48 +647,48 @@ export function ConfigPanel() {
                 {t("resetEdits")}
               </button>
             </div>
-            {error ? <p className="deckgo-note deck-ui-config-error">{error}</p> : null}
+            {error ? <p className="config-panel__error">{error}</p> : null}
             {pendingDiffEntries ? (
               <div
-                className="deckgo-surface-tile deck-ui-config-surface deck-ui-config-dialog"
+                className="config-panel__surface config-panel__dialog"
                 role="dialog"
                 aria-label={t("configDiffPreview")}
               >
-                <div className="deckgo-card-header">
+                <div className="config-panel__card-head">
                   <div>
-                    <p className="deckgo-surface-label">{t("configDiffPreview")}</p>
+                    <p className="config-panel__label">{t("configDiffPreview")}</p>
                     <strong>
                       {t("pendingConfigChanges", { count: pendingDiffEntries.length })}
                     </strong>
-                    <p className="deckgo-note">{t("configDiffDescription")}</p>
+                    <p className="config-panel__meta">{t("configDiffDescription")}</p>
                   </div>
                 </div>
-                <ul className="deckgo-shell-list deck-ui-config-list">
+                <ul className="config-panel__list">
                   {pendingDiffEntries.slice(0, 50).map((entry) => (
                     <li key={entry.path}>
-                      <div className="deckgo-selectable-card deck-ui-config-row">
-                        <div className="deckgo-card-header">
+                      <div className="config-panel__row">
+                        <div className="config-panel__card-head">
                           <div>
                             <strong>{entry.path}</strong>
-                            <p className="deckgo-note">
+                            <p className="config-panel__meta">
                               {formatDiffValue(entry.oldValue)} -&gt;{" "}
                               {formatDiffValue(entry.newValue)}
                             </p>
                           </div>
-                          <span className="deckgo-pill">{t(diffTypeLabel(entry.type))}</span>
+                          <span className="config-panel__pill">{t(diffTypeLabel(entry.type))}</span>
                         </div>
                       </div>
                     </li>
                   ))}
                 </ul>
                 {pendingDiffEntries.length > 50 ? (
-                  <p className="deckgo-note">
+                  <p className="config-panel__meta">
                     {t("additionalChangesHidden", { count: pendingDiffEntries.length - 50 })}
                   </p>
                 ) : null}
-                <div className="deckgo-actions deck-ui-config-actions">
+                <div className="config-panel__actions">
                   <button
-                    className="deckgo-button is-primary deck-ui-config-button"
+                    className="config-panel__button is-primary"
                     type="button"
                     onClick={() => void saveAction()}
                     disabled={actionState !== "idle"}
@@ -697,7 +696,7 @@ export function ConfigPanel() {
                     {t("confirmApplyConfig")}
                   </button>
                   <button
-                    className="deckgo-button deck-ui-config-button"
+                    className="config-panel__button"
                     type="button"
                     onClick={() => setPendingDiffEntries(null)}
                     disabled={actionState !== "idle"}
@@ -709,43 +708,45 @@ export function ConfigPanel() {
             ) : null}
             {conflictPreview ? (
               <div
-                className="deckgo-surface-tile deck-ui-config-surface deck-ui-config-dialog"
+                className="config-panel__surface config-panel__dialog"
                 role="dialog"
                 aria-label={t("configApplyConflict")}
               >
-                <div className="deckgo-card-header">
+                <div className="config-panel__card-head">
                   <div>
-                    <p className="deckgo-surface-label">{t("configApplyConflict")}</p>
+                    <p className="config-panel__label">{t("configApplyConflict")}</p>
                     <strong>{t("remoteConfigChanged")}</strong>
-                    <p className="deckgo-note">{conflictPreview.message}</p>
-                    <p className="deckgo-note">
+                    <p className="config-panel__meta">{conflictPreview.message}</p>
+                    <p className="config-panel__meta">
                       {t("latestHashDescription", {
                         hash: conflictPreview.remoteHash || t("notAvailable"),
                       })}
                     </p>
                   </div>
-                  <span className="deckgo-pill is-warning">
+                  <span className="config-panel__pill is-warning">
                     {t("diffsCount", { count: conflictPreview.entries.length })}
                   </span>
                 </div>
                 {conflictPreview.entries.length === 0 ? (
-                  <p className="deckgo-note">{t("noConflictDiffComputed")}</p>
+                  <p className="config-panel__meta">{t("noConflictDiffComputed")}</p>
                 ) : (
-                  <ul className="deckgo-shell-list deck-ui-config-list">
+                  <ul className="config-panel__list">
                     {conflictPreview.entries.slice(0, 50).map((entry) => (
                       <li key={entry.path}>
-                        <div className="deckgo-selectable-card deck-ui-config-row">
-                          <div className="deckgo-card-header">
+                        <div className="config-panel__row">
+                          <div className="config-panel__card-head">
                             <div>
                               <strong>{entry.path}</strong>
-                              <p className="deckgo-note">
+                              <p className="config-panel__meta">
                                 {t("remoteToLocalDiff", {
                                   remote: formatDiffValue(entry.oldValue),
                                   local: formatDiffValue(entry.newValue),
                                 })}
                               </p>
                             </div>
-                            <span className="deckgo-pill">{t(diffTypeLabel(entry.type))}</span>
+                            <span className="config-panel__pill">
+                              {t(diffTypeLabel(entry.type))}
+                            </span>
                           </div>
                         </div>
                       </li>
@@ -753,15 +754,15 @@ export function ConfigPanel() {
                   </ul>
                 )}
                 {conflictPreview.entries.length > 50 ? (
-                  <p className="deckgo-note">
+                  <p className="config-panel__meta">
                     {t("additionalConflictDiffsHidden", {
                       count: conflictPreview.entries.length - 50,
                     })}
                   </p>
                 ) : null}
-                <div className="deckgo-actions deck-ui-config-actions">
+                <div className="config-panel__actions">
                   <button
-                    className="deckgo-button deck-ui-config-button"
+                    className="config-panel__button"
                     type="button"
                     onClick={() => reloadConflictRemote()}
                     disabled={actionState !== "idle"}
@@ -769,7 +770,7 @@ export function ConfigPanel() {
                     {t("reloadLatestConfig")}
                   </button>
                   <button
-                    className="deckgo-button is-primary deck-ui-config-button"
+                    className="config-panel__button is-primary"
                     type="button"
                     onClick={() => void saveAction(conflictPreview.remoteHash)}
                     disabled={!conflictPreview.remoteHash || actionState !== "idle"}
@@ -777,7 +778,7 @@ export function ConfigPanel() {
                     {t("retryLocalWithLatestHash")}
                   </button>
                   <button
-                    className="deckgo-button deck-ui-config-button"
+                    className="config-panel__button"
                     type="button"
                     onClick={() => setConflictPreview(null)}
                     disabled={actionState !== "idle"}
@@ -787,10 +788,10 @@ export function ConfigPanel() {
                 </div>
               </div>
             ) : null}
-            <label className="deckgo-label deck-ui-config-label">
+            <label className="config-panel__field">
               <span>{t("rawConfig")}</span>
               <textarea
-                className="deckgo-textarea deck-ui-config-textarea"
+                className="config-panel__textarea"
                 rows={20}
                 value={rawConfig}
                 onChange={(event) => {
@@ -805,31 +806,29 @@ export function ConfigPanel() {
         </article>
       </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-config-column">
-        <article className="deckgo-card is-float deck-ui-config-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("configDetail")}</h2>
+      <div className="config-panel__column config-panel__column--main">
+        <article className="config-panel__card">
+          <div className="config-panel__card-head">
+            <h2 className="config-panel__card-title">{t("configDetail")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">{t("configDetailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-config-body">
-            <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">{t("schemaSections")}</p>
+          <p className="config-panel__description">{t("configDetailDescription")}</p>
+          <div className="config-panel__body">
+            <div className="config-panel__surface">
+              <p className="config-panel__label">{t("schemaSections")}</p>
               <input
-                className="deckgo-input deck-ui-config-input"
+                className="config-panel__input"
                 value={sectionFilter}
                 onChange={(event) => setSectionFilter(event.target.value)}
                 placeholder={t("filterSections")}
               />
-              <div className="deckgo-actions deck-ui-config-actions">
+              <div className="config-panel__actions">
                 {filteredSchemaSections.length === 0 ? (
-                  <span className="deckgo-note deck-ui-config-empty">
-                    {t("noMatchingSchemaSections")}
-                  </span>
+                  <span className="config-panel__empty">{t("noMatchingSchemaSections")}</span>
                 ) : (
                   filteredSchemaSections.map((section) => (
                     <button
                       key={section}
-                      className={`deckgo-button deck-ui-config-button ${selectedSection === section ? "is-primary" : ""}`}
+                      className={`config-panel__button ${selectedSection === section ? "is-primary" : ""}`}
                       type="button"
                       onClick={() => {
                         setSelectedSection(section);
@@ -843,17 +842,17 @@ export function ConfigPanel() {
                 )}
               </div>
             </div>
-            <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">{t("lookupConfigPath")}</p>
-              <div className="deckgo-actions deck-ui-config-actions">
+            <div className="config-panel__surface">
+              <p className="config-panel__label">{t("lookupConfigPath")}</p>
+              <div className="config-panel__actions">
                 <input
-                  className="deckgo-input deck-ui-config-input"
+                  className="config-panel__input"
                   value={schemaPath}
                   onChange={(event) => setSchemaPath(event.target.value)}
                   placeholder={t("configPath")}
                 />
                 <button
-                  className="deckgo-button deck-ui-config-button"
+                  className="config-panel__button"
                   type="button"
                   onClick={() => void lookupAction()}
                   disabled={actionState !== "idle"}
@@ -862,20 +861,20 @@ export function ConfigPanel() {
                 </button>
               </div>
             </div>
-            <div className="deckgo-surface-tile deck-ui-config-surface">
-              <p className="deckgo-surface-label">{t("structuredSectionEditor")}</p>
+            <div className="config-panel__surface">
+              <p className="config-panel__label">{t("structuredSectionEditor")}</p>
               {lookupResult ? (
                 <>
-                  <p className="deckgo-note">
+                  <p className="config-panel__meta">
                     {t("editingSchemaChildren", { path: lookupResult.path })}
                   </p>
                   {lookupResult.children.length === 0 ? (
-                    <p className="deckgo-note deck-ui-config-empty">{t("noEditableChildFields")}</p>
+                    <p className="config-panel__empty">{t("noEditableChildFields")}</p>
                   ) : (
                     <>
-                      <div className="deckgo-actions deck-ui-config-actions">
+                      <div className="config-panel__actions">
                         <input
-                          className="deckgo-input deck-ui-config-input"
+                          className="config-panel__input"
                           value={structuredFieldFilter}
                           onChange={(event) => setStructuredFieldFilter(event.target.value)}
                           placeholder={t("filterStructuredFields")}
@@ -883,7 +882,7 @@ export function ConfigPanel() {
                         {structuredFieldTags.length > 0 ? (
                           <>
                             <button
-                              className={`deckgo-button deckgo-button-compact deck-ui-config-button ${
+                              className={`config-panel__button ${
                                 structuredFieldTag ? "" : "is-primary"
                               }`}
                               type="button"
@@ -894,7 +893,7 @@ export function ConfigPanel() {
                             {structuredFieldTags.map((tag) => (
                               <button
                                 key={tag}
-                                className={`deckgo-button deckgo-button-compact deck-ui-config-button ${
+                                className={`config-panel__button ${
                                   structuredFieldTag === tag ? "is-primary" : ""
                                 }`}
                                 type="button"
@@ -906,18 +905,16 @@ export function ConfigPanel() {
                           </>
                         ) : null}
                       </div>
-                      <p className="deckgo-note">
+                      <p className="config-panel__meta">
                         {t("showingStructuredFields", {
                           visible: visibleLookupChildren.length,
                           total: lookupResult.children.length,
                         })}
                       </p>
                       {visibleLookupChildren.length === 0 ? (
-                        <p className="deckgo-note deck-ui-config-empty">
-                          {t("noStructuredFieldsMatch")}
-                        </p>
+                        <p className="config-panel__empty">{t("noStructuredFieldsMatch")}</p>
                       ) : null}
-                      <div className="deckgo-shell-list deck-ui-config-list deck-ui-config-field-list">
+                      <div className="config-panel__list config-panel__field-list">
                         {visibleLookupChildren.map((child) => {
                           const childPath = schemaChildPath(child);
                           const childValue = readConfigPath(parsedConfig, childPath);
@@ -932,22 +929,24 @@ export function ConfigPanel() {
                           return (
                             <div
                               key={childPath}
-                              className="deckgo-selectable-card deck-ui-config-row deck-ui-config-field-card"
+                              className="config-panel__row config-panel__field-card"
                             >
-                              <div className="deckgo-card-header">
+                              <div className="config-panel__card-head">
                                 <div>
                                   <strong>{label}</strong>
-                                  <p className="deckgo-note">{childPath}</p>
+                                  <p className="config-panel__meta">{childPath}</p>
                                 </div>
-                                <span className="deckgo-pill">
+                                <span className="config-panel__pill">
                                   {schemaChildType(child) ?? fieldKind}
                                 </span>
                                 {isSensitive ? (
-                                  <span className="deckgo-pill is-warning">{t("sensitive")}</span>
+                                  <span className="config-panel__pill is-warning">
+                                    {t("sensitive")}
+                                  </span>
                                 ) : null}
                               </div>
                               {fieldKind === "boolean" ? (
-                                <label className="deckgo-checkbox-row deck-ui-config-check">
+                                <label className="config-panel__check">
                                   <input
                                     aria-label={`Edit ${childPath}`}
                                     type="checkbox"
@@ -962,7 +961,7 @@ export function ConfigPanel() {
                               {fieldKind === "enum" ? (
                                 <select
                                   aria-label={`Edit ${childPath}`}
-                                  className="deckgo-input deck-ui-config-input"
+                                  className="config-panel__input"
                                   value={enumValue}
                                   onChange={(event) => {
                                     const selectedOption = enumOptions.find(
@@ -983,7 +982,7 @@ export function ConfigPanel() {
                               {fieldKind === "number" ? (
                                 <input
                                   aria-label={`Edit ${childPath}`}
-                                  className="deckgo-input deck-ui-config-input"
+                                  className="config-panel__input"
                                   type="number"
                                   value={formatStructuredInputValue(childValue)}
                                   onChange={(event) =>
@@ -993,10 +992,10 @@ export function ConfigPanel() {
                                 />
                               ) : null}
                               {fieldKind === "string" ? (
-                                <div className="deckgo-actions deck-ui-config-actions">
+                                <div className="config-panel__actions">
                                   <input
                                     aria-label={`Edit ${childPath}`}
-                                    className="deckgo-input deck-ui-config-input"
+                                    className="config-panel__input"
                                     type={isSensitive && !isSensitiveVisible ? "password" : "text"}
                                     value={formatStructuredInputValue(childValue)}
                                     onChange={(event) =>
@@ -1007,7 +1006,7 @@ export function ConfigPanel() {
                                   {isSensitive ? (
                                     <button
                                       aria-label={`Toggle visibility ${childPath}`}
-                                      className="deckgo-button deckgo-button-compact deck-ui-config-button"
+                                      className="config-panel__button"
                                       type="button"
                                       onClick={() => toggleSensitiveVisibility(childPath)}
                                     >
@@ -1018,10 +1017,10 @@ export function ConfigPanel() {
                               ) : null}
                               {fieldKind === "readonly" ? (
                                 <div>
-                                  <p className="deckgo-note">{t("jsonFieldDescription")}</p>
+                                  <p className="config-panel__meta">{t("jsonFieldDescription")}</p>
                                   <textarea
                                     aria-label={`Edit JSON ${childPath}`}
-                                    className="deckgo-textarea deck-ui-config-textarea"
+                                    className="config-panel__textarea"
                                     rows={6}
                                     value={
                                       structuredJsonDrafts[childPath] ??
@@ -1031,10 +1030,10 @@ export function ConfigPanel() {
                                       updateStructuredJsonDraft(childPath, event.target.value)
                                     }
                                   />
-                                  <div className="deckgo-actions deck-ui-config-actions">
+                                  <div className="config-panel__actions">
                                     <button
                                       aria-label={`Apply JSON ${childPath}`}
-                                      className="deckgo-button deckgo-button-compact deck-ui-config-button"
+                                      className="config-panel__button"
                                       type="button"
                                       onClick={() => applyStructuredJsonPath(childPath, childValue)}
                                     >
@@ -1042,7 +1041,7 @@ export function ConfigPanel() {
                                     </button>
                                     <button
                                       aria-label={`Reset JSON ${childPath}`}
-                                      className="deckgo-button deckgo-button-compact deck-ui-config-button"
+                                      className="config-panel__button"
                                       type="button"
                                       onClick={() =>
                                         updateStructuredJsonDraft(
@@ -1068,31 +1067,31 @@ export function ConfigPanel() {
                   )}
                 </>
               ) : (
-                <p className="deckgo-note deck-ui-config-empty">{t("runSchemaLookup")}</p>
+                <p className="config-panel__empty">{t("runSchemaLookup")}</p>
               )}
             </div>
-            <div className="deckgo-panel-hero-strip deck-ui-config-hero">
+            <div className="config-panel__hero">
               <div>
-                <p className="deckgo-kicker">{t("topLevelSections")}</p>
+                <p className="config-panel__eyebrow">{t("topLevelSections")}</p>
                 <strong>{selectedSection || topLevelKeys[0] || t("noConfigKeys")}</strong>
-                <p className="deckgo-note">{t("currentSectionValueDescription")}</p>
+                <p className="config-panel__meta">{t("currentSectionValueDescription")}</p>
               </div>
-              <div className="deckgo-pill-row deck-ui-config-status-row">
-                <span className="deckgo-pill">
+              <div className="config-panel__pill-row">
+                <span className="config-panel__pill">
                   {t("sectionsCount", { count: topLevelKeys.length })}
                 </span>
-                <span className="deckgo-pill">
+                <span className="config-panel__pill">
                   {t("schemaChildrenCount", { count: lookupResult?.children.length ?? 0 })}
                 </span>
               </div>
             </div>
             {topLevelKeys.length === 0 ? (
-              <p className="deckgo-note deck-ui-config-empty">{t("noTopLevelKeys")}</p>
+              <p className="config-panel__empty">{t("noTopLevelKeys")}</p>
             ) : (
-              <ul className="deckgo-shell-list deck-ui-config-list">
+              <ul className="config-panel__list">
                 {topLevelKeys.map((key) => (
                   <li key={key}>
-                    <div className="deckgo-selectable-card deck-ui-config-row">
+                    <div className="config-panel__row">
                       <strong>{key}</strong>
                     </div>
                   </li>
@@ -1101,7 +1100,7 @@ export function ConfigPanel() {
             )}
             {selectedSection ? (
               selectedSectionValue === undefined ? (
-                <p className="deckgo-note deck-ui-config-empty">{t("selectedSectionMissing")}</p>
+                <p className="config-panel__empty">{t("selectedSectionMissing")}</p>
               ) : (
                 <JsonDetails
                   title={t("configSectionPayload", { section: selectedSection })}

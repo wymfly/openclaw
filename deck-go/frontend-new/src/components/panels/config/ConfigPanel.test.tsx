@@ -175,20 +175,20 @@ describe("ConfigPanel", () => {
     expect(container.textContent).toContain("6 schema children");
     expect(container.textContent).toContain("Structured section editor");
     expect(container.textContent).toContain("Default model");
-    expect(container.querySelector(".deck-ui-config")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-config-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-config-body")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-config-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-config-stats")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-config-surface")).toHaveLength(3);
-    expect(container.querySelectorAll(".deck-ui-config-input").length).toBeGreaterThanOrEqual(6);
-    expect(container.querySelectorAll(".deck-ui-config-actions").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-config-button").length).toBeGreaterThanOrEqual(8);
-    expect(container.querySelectorAll(".deck-ui-config-list")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-config-row").length).toBeGreaterThanOrEqual(8);
-    expect(container.querySelectorAll(".deck-ui-config-field-card")).toHaveLength(6);
-    expect(container.querySelector(".deck-ui-config-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-config-textarea")).toBeTruthy();
+    expect(container.querySelector(".config-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".config-panel__card")).toHaveLength(2);
+    expect(container.querySelectorAll(".config-panel__body")).toHaveLength(2);
+    expect(container.querySelector(".config-panel__pill-row")).toBeTruthy();
+    expect(container.querySelector(".config-panel__metrics")).toBeTruthy();
+    expect(container.querySelectorAll(".config-panel__surface")).toHaveLength(3);
+    expect(container.querySelectorAll(".config-panel__input").length).toBeGreaterThanOrEqual(6);
+    expect(container.querySelectorAll(".config-panel__actions").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".config-panel__button").length).toBeGreaterThanOrEqual(8);
+    expect(container.querySelectorAll(".config-panel__list")).toHaveLength(2);
+    expect(container.querySelectorAll(".config-panel__row").length).toBeGreaterThanOrEqual(8);
+    expect(container.querySelectorAll(".config-panel__field-card")).toHaveLength(6);
+    expect(container.querySelector(".config-panel__hero")).toBeTruthy();
+    expect(container.querySelector(".config-panel__textarea")).toBeTruthy();
   });
 
   it("renders localized Chinese config editor and schema surfaces", async () => {
