@@ -289,6 +289,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/channels-visual.spec.ts` covers the ready workbench, probe result state, and WeCom access/routing state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Gateway panel
+
+**Status:** in progress under OpenSpec change `frontend-gateway-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The gateway high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, code, segmented-control, spinner, tag, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** gateway runtime metric tile, runtime status strip, diagnostic evidence tile, activity row, monitor run row, timeline stat tile, timeline event row, and first-run empty state slot.
+
+**Repeated from prior modules:** metric tile, compact workbench header, section heading, two-column workbench rhythm, selected evidence/detail sidecar, and action/result seams. These remain local until a dedicated design-system proposal defines shared APIs across agents/routing/subagents/logs/settings/sessions/channels/gateway.
+
+**Gateway-specific molecules:** runtime diagnostics, activity-feed evidence, monitor history, and timeline detail rows are promotion candidates only after another observability/runtime module validates the same API shape. This pass also fixed deterministic DTO/mock drift for Gateway health/status and mock subscription/event seeding; uncertain real Gateway monitor/event coverage remains follow-up.
+
+**Mock visual evidence:** `deck-go/test/e2e/gateway-visual.spec.ts` covers the ready runtime diagnostics workbench, monitor history, and selected timeline state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -311,3 +325,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — subagents hifi redesign (`frontend-subagents-hifi-contract-redesign`)**: Subagents provides the third data point for the workbench/metric/queue/detail/timeline pattern first seen in agents and routing. This pass introduces no canonical atom/token changes and keeps repeated molecules local; promotion should happen in a separate design-system change after the subagents implementation is archived.
 - **2026-05-03 — logs hifi redesign (`frontend-logs-hifi-contract-redesign`)**: Logs provides the first code-heavy observability panel in the contract-led rollout. This pass introduces no canonical atom/token changes. The shared metric/header/section patterns now have four module data points; log rows, live tape rows, and payload seams stay local until another observability module confirms reuse.
 - **2026-05-03 — channels hifi redesign (`frontend-channels-hifi-contract-redesign`)**: Channels moves the channel operations workbench to module-local `--ds-*` styling and adds contract-shaped mock coverage for channel status, probe, config patch, WeCom access, and routing handoff. No canonical atom/token changes were introduced; channel diagnostics/settings/access molecules stay local pending a separate design-system proposal.
+- **2026-05-03 — gateway hifi redesign (`frontend-gateway-hifi-contract-redesign`)**: Gateway moves runtime diagnostics, Gateway health/status, activity evidence, monitor history, and timeline detail into a module-local diagnostics workbench. No canonical atom/token changes were introduced; deterministic Gateway DTO/mock drift was fixed for mock visual coverage, while uncertain real Gateway monitor/event semantics remain handoff follow-up.

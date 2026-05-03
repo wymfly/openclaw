@@ -168,12 +168,22 @@ type DeckGoGatewayHealthResponse struct {
 	Ok bool `json:"ok,omitempty"`
 	DurationMs float64 `json:"durationMs,omitempty"`
 	Agents []map[string]any `json:"agents,omitempty"`
+	Sessions map[string]any `json:"sessions,omitempty"`
 	Channels map[string]any `json:"channels,omitempty"`
+	ChannelLabels map[string]string `json:"channelLabels,omitempty"`
+	ChannelOrder []string `json:"channelOrder,omitempty"`
+	DefaultAgentId string `json:"defaultAgentId,omitempty"`
+	HeartbeatSeconds float64 `json:"heartbeatSeconds,omitempty"`
+	Ts float64 `json:"ts,omitempty"`
 }
 
 type DeckGoGatewayStatusResponse struct {
 	State string `json:"state,omitempty"`
+	ChannelSummary []string `json:"channelSummary,omitempty"`
 	Heartbeat any `json:"heartbeat,omitempty"`
+	LinkChannel map[string]any `json:"linkChannel,omitempty"`
+	QueuedSystemEvents []string `json:"queuedSystemEvents,omitempty"`
+	RuntimeVersion string `json:"runtimeVersion,omitempty"`
 	Sessions any `json:"sessions,omitempty"`
 	Channels map[string]any `json:"channels,omitempty"`
 }

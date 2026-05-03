@@ -570,6 +570,20 @@
       "system": "System"
     },
     "diagnostics": "Diagnostics",
+    "workbench": {
+      "eyebrow": "Runtime diagnostics",
+      "title": "Gateway workbench",
+      "metrics": "Gateway metrics",
+      "diagnostics": "diagnostics",
+      "connectivity": "Connectivity",
+      "monitorRuns": "Monitor runs",
+      "activityEvents": "Activity",
+      "activityEvidence": "Activity evidence",
+      "monitorEvidence": "Monitor evidence",
+      "selectedTimeline": "Selected timeline",
+      "latestRun": "Latest run",
+      "runtimeVersion": "runtime"
+    },
     "tabs": {
       "overview": "Overview",
       "timeline": "Timeline",

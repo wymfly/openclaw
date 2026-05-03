@@ -13,6 +13,77 @@ function responseError(id, code, message) {
   return { type: "res", id, error: { code, message } };
 }
 
+function visualMonitorEvents(now = Date.now()) {
+  const sessionKey = "agent:main:visual";
+  const runId = "run-visual-1";
+  return [
+    {
+      event: "activity.event",
+      payload: {
+        id: "activity-visual-1",
+        timestamp: now - 7_000,
+        type: "chat",
+        agentId: "main",
+        agentName: "Main Agent",
+        description: "Chat run completed",
+        details: `${runId} · ${sessionKey}`,
+      },
+    },
+    {
+      event: "chat",
+      payload: {
+        runId,
+        seq: 1,
+        sessionKey,
+        state: "final",
+        message: {
+          id: "msg-visual-final",
+          role: "assistant",
+          content: [{ type: "text", text: "Mock visual monitor run completed." }],
+          timestamp: now - 6_000,
+        },
+        usage: {
+          input_tokens: 720,
+          output_tokens: 480,
+        },
+      },
+    },
+    {
+      event: "agent",
+      payload: {
+        runId,
+        seq: 2,
+        sessionKey,
+        stream: "tool",
+        data: {
+          name: "write",
+          phase: "result",
+          result: "frontend gateway visual fixture updated",
+        },
+      },
+    },
+    {
+      event: "agent",
+      payload: {
+        runId,
+        seq: 3,
+        sessionKey,
+        stream: "lifecycle",
+        data: {
+          childRunId: "run-visual-review",
+          childSessionKey: "agent:reviewer:visual",
+        },
+      },
+    },
+  ];
+}
+
+function sendVisualMonitorEvents(socket) {
+  for (const item of visualMonitorEvents()) {
+    socket.send(JSON.stringify({ type: "event", event: item.event, payload: item.payload }));
+  }
+}
+
 function defaultMethods() {
   const now = Date.now();
   const logCursor = 4208;
@@ -410,8 +481,39 @@ function defaultMethods() {
       gatewayVersion: "mock-gateway",
       protocol: protocolVersion,
     }),
-    health: () => ({ status: "healthy" }),
-    status: () => ({ status: "running", health: "healthy" }),
+    health: () => ({
+      ok: true,
+      durationMs: 17,
+      agents: [{ id: "main", sessions: { count: 2 } }],
+      sessions: { count: 2, path: "/tmp/mock-sessions.json", recent: [] },
+      channels: { discord: "connected", wecom: "connected" },
+    }),
+    status: () => ({
+      channelSummary: ["discord connected", "wecom connected"],
+      heartbeat: {
+        agents: [{ agentId: "main", enabled: true, every: "30m" }],
+        defaultAgentId: "main",
+      },
+      queuedSystemEvents: [],
+      runtimeVersion: "mock-gateway",
+      sessions: {
+        byAgent: [{ agentId: "main", count: 3 }],
+        count: 3,
+        defaults: { contextTokens: 4096, model: "gpt-5.4" },
+        paths: ["/tmp/mock-sessions.json"],
+        recent: [],
+      },
+    }),
+    "sessions.subscribe": () => ({ ok: true }),
+    "sessions.unsubscribe": () => ({ ok: true }),
+    "sessions.messages.subscribe": (params) => ({
+      ok: true,
+      key: params?.key ?? params?.sessionKey ?? "agent:main:visual",
+    }),
+    "sessions.messages.unsubscribe": (params) => ({
+      ok: true,
+      key: params?.key ?? params?.sessionKey ?? "agent:main:visual",
+    }),
     "channels.status": () => channelStatus,
     "channels.logout": (params) => ({
       accountId: params?.accountId ?? "",
@@ -1115,6 +1217,7 @@ export async function startMockGateway(options = {}) {
   const wss = new WebSocketServer({ server });
 
   wss.on("connection", (socket) => {
+    let visualMonitorSeeded = false;
     socket.send(
       JSON.stringify({
         type: "event",
@@ -1157,6 +1260,13 @@ export async function startMockGateway(options = {}) {
       }
       try {
         socket.send(JSON.stringify(response(frame.id, handler(frame.params ?? {}))));
+        if (
+          !visualMonitorSeeded &&
+          (frame.method === "sessions.subscribe" || frame.method === "sessions.messages.subscribe")
+        ) {
+          visualMonitorSeeded = true;
+          setTimeout(() => sendVisualMonitorEvents(socket), 10);
+        }
       } catch (error) {
         socket.send(
           JSON.stringify(

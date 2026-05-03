@@ -178,19 +178,45 @@ export interface DeckGoRuntimeGatewayActionResponse {
 export interface DeckGoGatewayHealthResponse {
   ok?: boolean;
   durationMs?: number;
-  agents?: Array<{ sessions?: { count?: number } }>;
+  agents?: Array<{ sessions?: { count?: number } } | Record<string, unknown>>;
+  sessions?: { count?: number; path?: string; recent?: unknown[] };
   channels?: Record<string, unknown>;
+  channelLabels?: Record<string, string>;
+  channelOrder?: string[];
+  defaultAgentId?: string;
+  heartbeatSeconds?: number;
+  ts?: number;
 }
 
 export interface DeckGoGatewayStatusResponse {
   state?: string;
+  channelSummary?: string[];
   heartbeat?:
     | string
     | {
-        agents?: Array<{ agentId?: string; enabled?: boolean; every?: string; everyMs?: number }>;
+        agents?: Array<
+          | { agentId?: string; enabled?: boolean; every?: string; everyMs?: number }
+          | Record<string, unknown>
+        >;
         defaultAgentId?: string;
       };
-  sessions?: number | { count?: number };
+  linkChannel?: {
+    authAgeMs?: number | null;
+    id?: string;
+    label?: string;
+    linked?: boolean;
+  };
+  queuedSystemEvents?: string[];
+  runtimeVersion?: string | null;
+  sessions?:
+    | number
+    | {
+        byAgent?: unknown[];
+        count?: number;
+        defaults?: { contextTokens?: number | null; model?: string | null };
+        paths?: string[];
+        recent?: unknown[];
+      };
   channels?: Record<string, unknown>;
 }
 

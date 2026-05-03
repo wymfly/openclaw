@@ -570,6 +570,20 @@
       "system": "系统"
     },
     "diagnostics": "诊断信息",
+    "workbench": {
+      "eyebrow": "运行时诊断",
+      "title": "Gateway 工作台",
+      "metrics": "Gateway 指标",
+      "diagnostics": "诊断",
+      "connectivity": "连接",
+      "monitorRuns": "监控运行",
+      "activityEvents": "活动",
+      "activityEvidence": "活动证据",
+      "monitorEvidence": "监控证据",
+      "selectedTimeline": "已选时间线",
+      "latestRun": "最近运行",
+      "runtimeVersion": "运行时"
+    },
     "tabs": {
       "overview": "概览",
       "timeline": "时间线",
