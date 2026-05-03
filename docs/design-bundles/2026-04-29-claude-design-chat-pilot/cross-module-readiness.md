@@ -528,6 +528,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/nodes-visual.spec.ts` covers the ready node operations workbench, pending repair selection, dynamic command invoke result, and pending-work queue result against bundled mock Gateway `node.list`, `node.describe`, `node.pair.list`, `node.invoke`, and `node.pending.enqueue`. This is mock/local visual coverage, not real Gateway/LLM, real device pairing, production trust proofing, remote command execution, or remote-control safety assurance.
 
+### Docs panel
+
+**Status:** in progress under OpenSpec change `frontend-docs-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Docs high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, code/json, Markdown reader, status, and compact card tokens. No canonical atom/token was introduced.
+
+**Local molecules retained:** document metric tile, category filter chip, document inventory row, selected-document hero, source evidence tile, Markdown reader surface, active-session extraction seam, delete confirmation controls, last-action raw evidence disclosure, and document payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, guarded mutation/action surface, and raw payload disclosure. Docs validates these patterns for local document registry and extraction workflows, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Docs-specific molecules:** Markdown reader surfaces, source evidence tiles, category chips, and extraction/delete seams are candidates for a later Knowledge/Content pattern only after another content-heavy module validates the same API shape. Document authoring, collaborative editing, version history, vector search, ACL, retention policy, import/export, richer provenance, and production knowledge-base completeness remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/docs-visual.spec.ts` seeds documents through public `POST /api/docs/extract` using bundled mock Gateway `chat.history`, then covers the ready document workbench, no-match filtering, raw payload disclosure, and delete confirmation. This is mock/local visual coverage, not real Gateway/LLM, production extraction quality, or full knowledge-base assurance.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -566,3 +580,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — Identity hifi redesign (`frontend-identity-hifi-contract-redesign`)**: Identity moves canonical relationship inventory, selected peer mapping evidence, base-hash mutation guard, link dialog, direct/selected peer unlink affordances, mutation feedback, and raw payload disclosure into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `deck.identity.list` and `deck.identity.link`, while identity proofing, contact directory sync, and production audit assurance remain handoff follow-up.
 - **2026-05-03 — Config hifi redesign (`frontend-config-hifi-contract-redesign`)**: Config moves raw JSON inspection, schema lookup, structured field editing, sensitive reveal, diff preview, apply/hash refresh, and conflict recovery into a module-local config governance workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `config.get`, `config.schema.lookup`, and `config.apply`, while production config mutation, secret vault integration, schema migration, history restore, and rollback assurance remain handoff follow-up.
 - **2026-05-03 — Nodes hifi redesign (`frontend-nodes-hifi-contract-redesign`)**: Nodes moves inventory, pending pairing, selected lifecycle, rename/pairing actions, dynamic command invoke, pending-work queue, permissions, capabilities, commands, and raw action evidence into a module-local node operations workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `node.*` methods, while real device pairing, trust proofing, remote command execution, typed command schemas, and production remote-control safety remain handoff follow-up.
+- **2026-05-03 — Docs hifi redesign (`frontend-docs-hifi-contract-redesign`)**: Docs moves the Deck-local document registry, category/query filters, selected source evidence, Markdown rendering, active-session extraction, delete confirmation, and raw payload/action evidence into a module-local document workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds through public `POST /api/docs/extract` and bundled mock Gateway `chat.history`, while document authoring, search, ACL, retention, richer provenance, production extraction quality, and knowledge-base assurance remain handoff follow-up.

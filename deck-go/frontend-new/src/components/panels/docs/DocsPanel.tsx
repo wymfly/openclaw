@@ -7,6 +7,7 @@ import { useTranslations } from "../../../i18n/provider";
 import { useActiveSessionKey } from "../../../stores/chat-hooks";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { MarkdownText } from "../chat/MarkdownText";
+import "./docs-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 
@@ -36,7 +37,7 @@ function summarizeDoc(doc: DeckGoDoc) {
 }
 
 function docCategoryClass(value: DeckGoDocCategory | "all") {
-  return `deckgo-doc-category--${value}`;
+  return `docs-panel__category--${value}`;
 }
 
 function docMatchesQuery(doc: DeckGoDoc, query: string) {
@@ -193,29 +194,31 @@ export function DocsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-docs">
-      <div className="deckgo-column deck-ui-docs-column">
-        <article className="deckgo-card is-float deck-ui-docs-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
+    <section className="docs-panel" data-testid="docs-panel">
+      <div className="docs-panel__column">
+        <article className="docs-panel__card">
+          <div className="docs-panel__card-head">
+            <h2 className="docs-panel__card-title">{t("title")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">{t("description")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-docs-body">
-            <div className="deckgo-pill-row deck-ui-docs-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
+          <p className="docs-panel__description">{t("description")}</p>
+          <div className="docs-panel__body">
+            <div className="docs-panel__pill-row">
+              <span
+                className={`docs-panel__pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}
+              >
                 {loadState === "loading" ? tc("loading") : t(loadState)}
               </span>
-              <span className="deckgo-pill">{t("docCount", { count: docs.length })}</span>
-              <span className="deckgo-pill">
+              <span className="docs-panel__pill">{t("docCount", { count: docs.length })}</span>
+              <span className="docs-panel__pill">
                 {t("activeSession", { session: activeSessionKey || t("none") })}
               </span>
             </div>
-            <div className="deckgo-grid deckgo-grid-2 deck-ui-docs-stats">
+            <div className="docs-panel__metrics">
               <ShellStat label={t("documents")} value={docs.length} />
               <ShellStat label={t("categories")} value={categorySummary || t("none")} />
             </div>
             <div
-              className="deckgo-doc-category-filter deck-ui-docs-category-filter"
+              className="docs-panel__category-filter"
               role="group"
               aria-label={t("documentCategories")}
             >
@@ -227,35 +230,35 @@ export function DocsPanel() {
                   <button
                     key={value}
                     type="button"
-                    className={`deckgo-doc-category ${docCategoryClass(value)} ${isActive ? "is-active" : ""}`}
+                    className={`docs-panel__category ${docCategoryClass(value)} ${isActive ? "is-active" : ""}`}
                     data-category-filter={value}
                     onClick={() => setCategory(value)}
                   >
-                    <span className="deckgo-doc-dot" aria-hidden="true" />
+                    <span className="docs-panel__dot" aria-hidden="true" />
                     <span>{label}</span>
-                    {count > 0 ? <span className="deckgo-doc-count">{count}</span> : null}
+                    {count > 0 ? <span className="docs-panel__count">{count}</span> : null}
                   </button>
                 );
               })}
             </div>
-            <div className="deckgo-actions deck-ui-docs-actions">
+            <div className="docs-panel__actions">
               <input
-                className="deckgo-input deck-ui-docs-input"
+                className="docs-panel__input"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t("search")}
               />
             </div>
-            <div className="deckgo-actions deck-ui-docs-actions">
+            <div className="docs-panel__actions">
               <button
-                className="deckgo-button deck-ui-docs-button"
+                className="docs-panel__button"
                 type="button"
                 onClick={() => void refresh(selectedDocId)}
               >
                 {t("refresh")}
               </button>
               <button
-                className="deckgo-button deck-ui-docs-button is-primary"
+                className="docs-panel__button is-primary"
                 type="button"
                 onClick={() => void extractAction(activeSessionKey ?? undefined)}
                 disabled={actionState !== "idle" || !activeSessionKey}
@@ -263,7 +266,7 @@ export function DocsPanel() {
                 {actionState === "extracting" ? t("extracting") : t("extractActiveSession")}
               </button>
               <button
-                className="deckgo-button deck-ui-docs-button is-danger"
+                className="docs-panel__button is-danger"
                 type="button"
                 onClick={() => void deleteAction()}
                 disabled={!selectedDoc || actionState !== "idle"}
@@ -276,7 +279,7 @@ export function DocsPanel() {
               </button>
               {confirmDeleteSelected ? (
                 <button
-                  className="deckgo-button deck-ui-docs-button"
+                  className="docs-panel__button"
                   type="button"
                   onClick={() => setConfirmDeleteDocId("")}
                   disabled={actionState !== "idle"}
@@ -285,44 +288,44 @@ export function DocsPanel() {
                 </button>
               ) : null}
             </div>
-            {error ? <p className="deckgo-note deck-ui-docs-error">{error}</p> : null}
+            {error ? <p className="docs-panel__error">{error}</p> : null}
             {docs.length === 0 ? (
-              <p className="deckgo-note deck-ui-docs-empty">{t("empty")}</p>
+              <p className="docs-panel__empty">{t("empty")}</p>
             ) : visibleDocs.length === 0 ? (
-              <p className="deckgo-note deck-ui-docs-empty">{t("noMatches")}</p>
+              <p className="docs-panel__empty">{t("noMatches")}</p>
             ) : (
-              <ul className="deckgo-shell-list deck-ui-docs-list">
+              <ul className="docs-panel__list">
                 {visibleDocs.map((doc) => (
                   <li key={doc.id}>
                     <button
                       type="button"
-                      className={`deckgo-selectable-card deck-ui-docs-row ${selectedDoc?.id === doc.id ? "is-selected" : ""}`}
+                      className={`docs-panel__row ${selectedDoc?.id === doc.id ? "is-selected" : ""}`}
                       data-doc-id={doc.id}
                       onClick={() => {
                         setSelectedDocId(doc.id);
                         setConfirmDeleteDocId("");
                       }}
                     >
-                      <div className={`deckgo-doc-card-row ${docCategoryClass(doc.category)}`}>
-                        <span className="deckgo-doc-dot" aria-hidden="true" />
-                        <span className="deckgo-doc-category-label">
+                      <div className={`docs-panel__doc-meta-row ${docCategoryClass(doc.category)}`}>
+                        <span className="docs-panel__dot" aria-hidden="true" />
+                        <span className="docs-panel__category-label">
                           {t(`category.${doc.category}`)}
                         </span>
-                        <span className="deckgo-doc-date">{formatDocDate(doc.extractedAt)}</span>
+                        <span className="docs-panel__date">{formatDocDate(doc.extractedAt)}</span>
                       </div>
-                      <strong className="deckgo-doc-card-title">{doc.title}</strong>
-                      <p className="deckgo-doc-preview">{summarizeDoc(doc)}</p>
-                      <div className="deckgo-doc-keywords" aria-label={`${doc.title} keywords`}>
+                      <strong className="docs-panel__doc-title">{doc.title}</strong>
+                      <p className="docs-panel__preview">{summarizeDoc(doc)}</p>
+                      <div className="docs-panel__keywords" aria-label={`${doc.title} keywords`}>
                         {doc.keywords.slice(0, 4).map((keyword) => (
-                          <span className="deckgo-doc-keyword" key={keyword}>
+                          <span className="docs-panel__keyword" key={keyword}>
                             {keyword}
                           </span>
                         ))}
                         {doc.keywords.length > 4 ? (
-                          <span className="deckgo-doc-keyword">+{doc.keywords.length - 4}</span>
+                          <span className="docs-panel__keyword">+{doc.keywords.length - 4}</span>
                         ) : null}
                       </div>
-                      <div className="deckgo-meta">
+                      <div className="docs-panel__meta">
                         {t("language")}: {doc.language || t("notAvailable")} | {t("updated")}:{" "}
                         {formatDocDate(doc.updatedAt || doc.extractedAt)}
                       </div>
@@ -335,38 +338,38 @@ export function DocsPanel() {
         </article>
       </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-docs-column">
-        <article className="deckgo-card is-float deck-ui-docs-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("selectedDoc")}</h2>
+      <div className="docs-panel__column docs-panel__column--main">
+        <article className="docs-panel__card">
+          <div className="docs-panel__card-head">
+            <h2 className="docs-panel__card-title">{t("selectedDoc")}</h2>
           </div>
-          <p className="deckgo-card-subtitle">{t("selectedDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-docs-body">
+          <p className="docs-panel__description">{t("selectedDescription")}</p>
+          <div className="docs-panel__body">
             {selectedDoc ? (
               <>
-                <div className="deckgo-panel-hero-strip deck-ui-docs-hero">
+                <div className="docs-panel__hero">
                   <div>
-                    <p className="deckgo-kicker">{t("document")}</p>
+                    <p className="docs-panel__eyebrow">{t("document")}</p>
                     <strong>{selectedDoc.title}</strong>
-                    <p className="deckgo-note">
+                    <p className="docs-panel__meta">
                       {t("categoryLabel")}: {t(`category.${selectedDoc.category}`)} | {t("session")}
                       : {selectedDoc.sourceSession || t("notAvailable")}
                     </p>
                   </div>
-                  <div className="deckgo-pill-row deck-ui-docs-status-row">
-                    <span className="deckgo-pill">{selectedDoc.language || t("unknown")}</span>
-                    <span className="deckgo-pill">
+                  <div className="docs-panel__pill-row">
+                    <span className="docs-panel__pill">{selectedDoc.language || t("unknown")}</span>
+                    <span className="docs-panel__pill">
                       {t("keywordCount", { count: selectedKeywords.length })}
                     </span>
                   </div>
                 </div>
-                <div className="deckgo-surface-grid deck-ui-docs-surface-grid">
-                  <div className="deckgo-surface-tile deck-ui-docs-surface">
-                    <p className="deckgo-surface-label">{t("sourceSession")}</p>
+                <div className="docs-panel__surface-grid">
+                  <div className="docs-panel__surface">
+                    <p className="docs-panel__label">{t("sourceSession")}</p>
                     <strong>{selectedDoc.sourceSession || t("notAvailable")}</strong>
                     {selectedDoc.sourceSession?.trim() ? (
                       <button
-                        className="deckgo-button deck-ui-docs-button is-small"
+                        className="docs-panel__button is-small"
                         type="button"
                         onClick={() =>
                           navigateToSession(ui, selectedDoc.sourceSession?.trim() || "")
@@ -376,12 +379,12 @@ export function DocsPanel() {
                       </button>
                     ) : null}
                   </div>
-                  <div className="deckgo-surface-tile deck-ui-docs-surface">
-                    <p className="deckgo-surface-label">{t("sourceAgent")}</p>
+                  <div className="docs-panel__surface">
+                    <p className="docs-panel__label">{t("sourceAgent")}</p>
                     <strong>{selectedDoc.sourceAgent || t("notAvailable")}</strong>
                     {selectedDoc.sourceAgent?.trim() ? (
                       <button
-                        className="deckgo-button deck-ui-docs-button is-small"
+                        className="docs-panel__button is-small"
                         type="button"
                         onClick={() => navigateToAgent(ui, selectedDoc.sourceAgent?.trim() || "")}
                       >
@@ -389,37 +392,37 @@ export function DocsPanel() {
                       </button>
                     ) : null}
                   </div>
-                  <div className="deckgo-surface-tile deck-ui-docs-surface">
-                    <p className="deckgo-surface-label">{t("extracted")}</p>
+                  <div className="docs-panel__surface">
+                    <p className="docs-panel__label">{t("extracted")}</p>
                     <strong>{formatDocDate(selectedDoc.extractedAt)}</strong>
                   </div>
-                  <div className="deckgo-surface-tile deck-ui-docs-surface">
-                    <p className="deckgo-surface-label">{t("updated")}</p>
+                  <div className="docs-panel__surface">
+                    <p className="docs-panel__label">{t("updated")}</p>
                     <strong>{formatDocDate(selectedDoc.updatedAt)}</strong>
                   </div>
                 </div>
                 {selectedKeywords.length > 0 ? (
                   <div
-                    className="deckgo-doc-keywords"
+                    className="docs-panel__keywords"
                     aria-label={`${selectedDoc.title} detail keywords`}
                   >
                     {selectedKeywords.map((keyword) => (
-                      <span className="deckgo-doc-keyword" key={keyword}>
+                      <span className="docs-panel__keyword" key={keyword}>
                         {keyword}
                       </span>
                     ))}
                   </div>
                 ) : null}
-                <div className="deckgo-surface-tile deck-ui-docs-surface">
-                  <p className="deckgo-surface-label">{t("content")}</p>
-                  <div className="deckgo-doc-prose">
+                <div className="docs-panel__surface">
+                  <p className="docs-panel__label">{t("content")}</p>
+                  <div className="docs-panel__prose">
                     <MarkdownText text={selectedDoc.content} />
                   </div>
                 </div>
                 <JsonDetails title={t("docPayload")} payload={selectedDoc} />
               </>
             ) : (
-              <p className="deckgo-note">{t("chooseDoc")}</p>
+              <p className="docs-panel__empty">{t("chooseDoc")}</p>
             )}
             {actionResult ? (
               <JsonDetails title={t("lastDocsAction")} payload={actionResult} />

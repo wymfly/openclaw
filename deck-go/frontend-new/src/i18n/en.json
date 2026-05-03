@@ -3928,7 +3928,7 @@
   },
   "docs": {
     "title": "Doc Hub",
-    "description": "Docs use existing list, extract, get, and delete routes.",
+    "description": "Deck-local docs registry backed by list, extract, get, and delete routes.",
     "search": "Search docs...",
     "category": {
       "all": "All",
@@ -3960,7 +3960,7 @@
     "delete": "Delete",
     "confirmDelete": "Confirm delete",
     "selectedDoc": "Selected doc",
-    "selectedDescription": "Browse documents, inspect metadata, render Markdown, and run current-session extraction through the Gateway docs API.",
+    "selectedDescription": "Browse local documents, inspect source evidence, render Markdown, and run current-session extraction through the Deck BFF.",
     "document": "Document",
     "categoryLabel": "category",
     "session": "session",

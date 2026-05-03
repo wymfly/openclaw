@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="comfortable">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deck Docs Workbench Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ds-bg-0: #0b0c0f;
+        --ds-bg-1: #111318;
+        --ds-bg-2: #171a20;
+        --ds-surface-1: #151820;
+        --ds-surface-2: #1b1f28;
+        --ds-border-1: #2a303b;
+        --ds-border-2: #3a4352;
+        --ds-text-1: #f3f5f7;
+        --ds-text-2: #b8c0cc;
+        --ds-text-3: #7f8998;
+        --ds-accent-1: #7cc7ff;
+        --ds-accent-2: #9ee493;
+        --ds-warn: #f3c969;
+        --ds-danger: #ff8a80;
+        --ds-radius-sm: 6px;
+        --ds-radius-md: 8px;
+        --ds-font-sans: Inter, ui-sans-serif, system-ui, sans-serif;
+        --ds-font-mono: "JetBrains Mono", ui-monospace, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font-family: var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .docs-prototype {
+        display: grid;
+        grid-template-columns: minmax(360px, 0.86fr) minmax(620px, 1.14fr);
+        gap: 12px;
+        min-height: 100vh;
+        padding: 12px;
+      }
+
+      .column,
+      .card,
+      .body,
+      .list {
+        display: grid;
+        min-width: 0;
+      }
+
+      .column,
+      .body,
+      .list {
+        gap: 12px;
+      }
+
+      .card {
+        align-content: start;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+      }
+
+      .head {
+        padding: 14px 16px 0;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 650;
+      }
+
+      .description {
+        margin: 6px 16px 0;
+        color: var(--ds-text-2);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .body {
+        padding: 14px 16px 16px;
+      }
+
+      .strip,
+      .actions,
+      .filters,
+      .keywords {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .pill,
+      .chip,
+      .button {
+        min-height: 30px;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        padding: 5px 9px;
+        background: var(--ds-surface-1);
+        color: var(--ds-text-2);
+        white-space: normal;
+      }
+
+      .pill.positive {
+        color: var(--ds-accent-2);
+        border-color: color-mix(in srgb, var(--ds-accent-2) 38%, var(--ds-border-1));
+      }
+
+      .button {
+        cursor: pointer;
+        color: var(--ds-text-1);
+      }
+
+      .button.primary {
+        color: #061017;
+        border-color: var(--ds-accent-1);
+        background: var(--ds-accent-1);
+      }
+
+      .button.danger {
+        color: #1e0808;
+        border-color: var(--ds-danger);
+        background: var(--ds-danger);
+      }
+
+      .input {
+        width: 100%;
+        min-height: 34px;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        padding: 7px 9px;
+        color: var(--ds-text-1);
+        background: var(--ds-bg-2);
+      }
+
+      .metrics,
+      .source-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric,
+      .surface,
+      .hero,
+      .row {
+        min-width: 0;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        background: var(--ds-surface-1);
+      }
+
+      .metric,
+      .surface {
+        padding: 10px 12px;
+      }
+
+      .label,
+      .eyebrow {
+        margin: 0;
+        color: var(--ds-text-3);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .value {
+        margin-top: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        cursor: pointer;
+      }
+
+      .chip.active {
+        color: #061017;
+        border-color: var(--doc-color);
+        background: var(--doc-color);
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: var(--doc-color, var(--ds-accent-1));
+      }
+
+      .summary {
+        --doc-color: #7cc7ff;
+      }
+
+      .plan {
+        --doc-color: #9ee493;
+      }
+
+      .spec {
+        --doc-color: #f3c969;
+      }
+
+      .manual {
+        --doc-color: #c2a6ff;
+      }
+
+      .draft {
+        --doc-color: #ff9fb2;
+      }
+
+      .list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .row {
+        width: 100%;
+        padding: 11px;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .row.selected {
+        border-color: color-mix(in srgb, var(--ds-accent-1) 45%, var(--ds-border-1));
+        background: color-mix(in srgb, var(--ds-accent-1) 10%, var(--ds-surface-1));
+        box-shadow: inset 2px 0 0 var(--ds-accent-1);
+      }
+
+      .row-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        color: var(--ds-text-3);
+        font-size: 12px;
+      }
+
+      .row-title {
+        display: block;
+        margin-top: 8px;
+      }
+
+      .preview,
+      .meta {
+        color: var(--ds-text-2);
+        font-size: 13px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+      }
+
+      .keyword {
+        border: 1px solid var(--ds-border-1);
+        border-radius: 999px;
+        padding: 3px 8px;
+        color: var(--ds-text-2);
+        background: var(--ds-bg-2);
+        font-size: 12px;
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .hero strong,
+      .surface strong {
+        overflow-wrap: anywhere;
+      }
+
+      .reader {
+        max-height: 470px;
+        overflow: auto;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        padding: 14px;
+        background: var(--ds-bg-2);
+        line-height: 1.65;
+      }
+
+      .reader code,
+      .payload {
+        font-family: var(--ds-font-mono);
+        font-size: 12px;
+      }
+
+      .payload {
+        max-height: 220px;
+        overflow: auto;
+        border: 1px solid var(--ds-border-1);
+        border-radius: var(--ds-radius-sm);
+        padding: 12px;
+        color: var(--ds-text-2);
+        background: var(--ds-bg-2);
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 1080px) {
+        .docs-prototype {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .metrics,
+        .source-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="docs-prototype">
+      <section class="column">
+        <article class="card">
+          <header class="head">
+            <h1 class="title">Doc Hub</h1>
+          </header>
+          <p class="description">Deck-local document registry extracted from chat-history evidence.</p>
+          <div class="body">
+            <div class="strip">
+              <span class="pill positive">Docs ready</span>
+              <span class="pill">3 docs</span>
+              <span class="pill">active session agent:main:visual</span>
+            </div>
+            <div class="metrics">
+              <div class="metric">
+                <p class="label">Documents</p>
+                <div class="value">3</div>
+              </div>
+              <div class="metric">
+                <p class="label">Categories</p>
+                <div class="value">Summary: 1 | Spec: 1 | Plan: 1</div>
+              </div>
+            </div>
+            <div class="filters" aria-label="Document categories">
+              <button class="chip active summary"><span class="dot"></span>All <span>3</span></button>
+              <button class="chip summary"><span class="dot"></span>Summary <span>1</span></button>
+              <button class="chip plan"><span class="dot"></span>Plan <span>1</span></button>
+              <button class="chip spec"><span class="dot"></span>Spec <span>1</span></button>
+              <button class="chip manual"><span class="dot"></span>Manual</button>
+              <button class="chip draft"><span class="dot"></span>Draft</button>
+            </div>
+            <input class="input" value="contract" aria-label="Search docs" />
+            <div class="actions">
+              <button class="button">Refresh docs</button>
+              <button class="button primary">Extract active session</button>
+              <button class="button danger">Delete</button>
+            </div>
+            <ul class="list">
+              <li>
+                <button class="row selected">
+                  <div class="row-meta spec"><span class="dot"></span><span>Spec</span><span>May 3, 2026, 10:18</span></div>
+                  <strong class="row-title">Contract Chain Field Guide</strong>
+                  <p class="preview">Maps Deck-facing DTOs, BFF routes, localstore extraction, and mock evidence into one implementation reference.</p>
+                  <div class="keywords"><span class="keyword">contract</span><span class="keyword">docs</span><span class="keyword">localstore</span></div>
+                  <p class="meta">language: en | updated: May 3, 2026, 10:21</p>
+                </button>
+              </li>
+              <li>
+                <button class="row">
+                  <div class="row-meta summary"><span class="dot"></span><span>Summary</span><span>May 3, 2026, 09:42</span></div>
+                  <strong class="row-title">Gateway Integration Summary</strong>
+                  <p class="preview">Summarizes the current Gateway connection shape and why Docs remains a Deck-local extraction surface.</p>
+                  <div class="keywords"><span class="keyword">summary</span><span class="keyword">gateway</span></div>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </article>
+      </section>
+      <section class="column">
+        <article class="card">
+          <header class="head">
+            <h2 class="title">Selected document</h2>
+          </header>
+          <p class="description">Inspect metadata, source evidence, Markdown content, and raw contract payload.</p>
+          <div class="body">
+            <div class="hero">
+              <div>
+                <p class="eyebrow">Document</p>
+                <strong>Contract Chain Field Guide</strong>
+                <p class="meta">category: spec | session: agent:main:visual</p>
+              </div>
+              <div class="strip">
+                <span class="pill">en</span>
+                <span class="pill">4 keywords</span>
+              </div>
+            </div>
+            <div class="source-grid">
+              <div class="surface">
+                <p class="label">Source session</p>
+                <strong>agent:main:visual</strong>
+                <button class="button">Open source session</button>
+              </div>
+              <div class="surface">
+                <p class="label">Source agent</p>
+                <strong>main</strong>
+                <button class="button">Open source agent</button>
+              </div>
+              <div class="surface">
+                <p class="label">Extracted</p>
+                <strong>May 3, 2026, 10:18</strong>
+              </div>
+              <div class="surface">
+                <p class="label">Updated</p>
+                <strong>May 3, 2026, 10:21</strong>
+              </div>
+            </div>
+            <div class="keywords"><span class="keyword">contract</span><span class="keyword">bff</span><span class="keyword">localstore</span><span class="keyword">handoff</span></div>
+            <div class="surface">
+              <p class="label">Content</p>
+              <div class="reader">
+                <h2>Contract Chain Field Guide</h2>
+                <p>The Docs panel reads from Deck BFF routes. The current source truth is the Deck-facing DTO plus the Go localstore implementation.</p>
+                <pre><code>fetchDocs() -> GET /api/docs
+extractDocs(sessionKey) -> POST /api/docs/extract</code></pre>
+              </div>
+            </div>
+            <details open>
+              <summary>Doc payload</summary>
+              <pre class="payload">{
+  "id": "doc-contract-guide",
+  "category": "spec",
+  "sourceSession": "agent:main:visual",
+  "sourceAgent": "main"
+}</pre>
+            </details>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

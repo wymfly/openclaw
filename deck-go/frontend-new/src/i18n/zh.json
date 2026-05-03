@@ -3928,7 +3928,7 @@
   },
   "docs": {
     "title": "文档中心",
-    "description": "文档使用现有 list、extract、get、delete 路由。",
+    "description": "Deck 本地文档仓库，基于 list、extract、get、delete 路由。",
     "search": "搜索文档...",
     "category": {
       "all": "全部",
@@ -3960,7 +3960,7 @@
     "delete": "删除",
     "confirmDelete": "确认删除",
     "selectedDoc": "当前文档",
-    "selectedDescription": "浏览文档、查看元数据、渲染 Markdown，并通过 Gateway 文档 API 提取当前 session。",
+    "selectedDescription": "浏览本地文档、查看来源证据、渲染 Markdown，并通过 Deck BFF 提取当前 session。",
     "document": "文档",
     "categoryLabel": "分类",
     "session": "session",

@@ -117,11 +117,12 @@ describe("DocsPanel", () => {
     expect(container.textContent).toContain("active session sess-active");
     expect(container.textContent).toContain("Summary: 1");
     expect(container.textContent).toContain("Spec: 1");
-    expect(container.querySelector(".deck-ui-docs")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-docs-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-docs-stats .deckgo-stat")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-docs-category-filter")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-docs-row")).toHaveLength(2);
+    expect(container.querySelector(".docs-panel")).toBeTruthy();
+    expect(container.querySelector('[data-testid="docs-panel"]')).toBeTruthy();
+    expect(container.querySelectorAll(".docs-panel__card")).toHaveLength(2);
+    expect(container.querySelectorAll(".docs-panel__metrics .deckgo-stat")).toHaveLength(2);
+    expect(container.querySelector(".docs-panel__category-filter")).toBeTruthy();
+    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(2);
     expect(container.querySelector('[data-category-filter="summary"]')?.textContent).toContain("1");
     expect(container.textContent).toContain("summary");
     expect(container.textContent).toContain("project");
@@ -134,8 +135,8 @@ describe("DocsPanel", () => {
     expect(container.textContent).toContain("Project Summary");
     await waitFor(() => expect(apiMocks.fetchDoc).toHaveBeenCalledWith("doc-summary"));
     expect(container.textContent).toContain("Summary content from detail route");
-    expect(container.querySelector(".deck-ui-docs-hero")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-docs-surface")).toHaveLength(5);
+    expect(container.querySelector(".docs-panel__hero")).toBeTruthy();
+    expect(container.querySelectorAll(".docs-panel__surface")).toHaveLength(5);
     expect(container.querySelector("[style]")).toBeNull();
     expect(container.querySelector('[data-markdown-mode="static"] h2')?.textContent).toBe(
       "Detail Heading",
@@ -235,6 +236,48 @@ describe("DocsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.deleteDoc).toHaveBeenCalledWith("doc-api"));
+  });
+
+  it("renders empty, no-match, and load error states without legacy classes", async () => {
+    apiMocks.fetchDocs.mockResolvedValueOnce({ docs: [] });
+    renderPanel();
+
+    await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
+    expect(container.textContent).toContain("No docs loaded.");
+    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(0);
+    expect(container.querySelector(".deck-ui-docs")).toBeNull();
+
+    act(() => {
+      root?.unmount();
+    });
+    root = null;
+    container.innerHTML = "";
+    vi.clearAllMocks();
+    apiMocks.fetchDocs.mockResolvedValue(docsPayload());
+    apiMocks.fetchDoc.mockImplementation((docId: string) => Promise.resolve(docDetail(docId)));
+
+    renderPanel();
+    await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
+    const queryInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search docs..."]',
+    );
+    await act(async () => {
+      fireEvent.change(queryInput as HTMLInputElement, { target: { value: "does-not-exist" } });
+    });
+    expect(container.textContent).toContain("No docs match filters.");
+    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(0);
+
+    act(() => {
+      root?.unmount();
+    });
+    root = null;
+    container.innerHTML = "";
+    vi.clearAllMocks();
+    apiMocks.fetchDocs.mockRejectedValueOnce(new Error("docs unavailable"));
+
+    renderPanel();
+    await waitFor(() => expect(container.textContent).toContain("docs unavailable"));
+    expect(container.querySelector(".docs-panel__error")).toBeTruthy();
   });
 
   it("renders the migrated docs shell in Chinese", async () => {

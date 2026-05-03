@@ -564,6 +564,27 @@ function defaultMethods() {
         content: [{ type: "text", text: "Builder session is running a visual fixture task." }],
       },
     ],
+    "agent:main:visual": [
+      {
+        id: "history-main-visual",
+        role: "user",
+        content: [{ type: "text", text: "Prepare the visual docs contract handoff." }],
+      },
+      {
+        id: "assistant-main-visual-docs",
+        role: "assistant",
+        content: [
+          {
+            type: "text",
+            text: `# Docs Contract Chain Field Guide
+
+This specification records how the Deck Docs panel follows the contract chain for list, detail, extraction, and delete routes. The source truth begins in the Deck-facing DTOs, continues through the Go BFF /api/docs routes, and stores extracted documents in the local document registry. The visual fixture is intentionally mock/local evidence only; it does not prove real Gateway LLM extraction quality or production knowledge-base completeness.
+
+Operators should use this document as an implementation guide for category filtering, source session evidence, source agent evidence, Markdown rendering, raw payload disclosure, and confirmation-gated delete behavior. The contract terms include api, schema, protocol, localstore, and handoff so the extracted keywords exercise the Docs workbench filter surface.`,
+          },
+        ],
+      },
+    ],
   };
   const sessionByKey = new Map(sessionFixtures.map((session) => [session.key, session]));
   const sessionFor = (key) =>
