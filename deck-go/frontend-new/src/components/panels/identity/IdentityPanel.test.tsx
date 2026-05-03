@@ -131,22 +131,24 @@ describe("IdentityPanel", () => {
     vi.restoreAllMocks();
   });
 
-  it("loads canonical links into the old Deck split identity layout", async () => {
+  it("loads canonical links into the contract-backed identity workbench", async () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
-    expect(container.textContent).toContain("Identity ready");
+    expect(container.textContent).toContain("Relationship inventory");
     expect(container.textContent).toContain("2 canonicals");
     expect(container.textContent).toContain("3 peers");
     expect(container.textContent).toContain("hash hash-1");
     expect(container.textContent).toContain("main");
     expect(container.textContent).toContain("telegram: tg-main");
     expect(container.textContent).toContain("discord: disc-main");
-    expect(container.querySelector(".deck-ui-control-shell.deck-ui-identity")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-sidebar")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-detail")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-identity-dialog")).toBeFalsy();
+    expect(container.textContent).toContain("Mutation safety");
+    expect(container.textContent).toContain("Identity payload");
+    expect(container.querySelector(".identity-panel")).toBeTruthy();
+    expect(container.querySelector(".identity-panel__inventory")).toBeTruthy();
+    expect(container.querySelector(".identity-panel__column")).toBeTruthy();
+    expect(container.querySelector(".identity-panel__dialog")).toBeFalsy();
 
     const selectedRow = rowByText("main");
     expect(selectedRow?.className).toContain("is-selected");
@@ -324,7 +326,7 @@ describe("IdentityPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
-    expect(container.textContent).toContain("身份就绪");
+    expect(container.textContent).toContain("关系清单");
     expect(container.textContent).toContain("2 个统一身份");
     expect(container.textContent).toContain("3 个 peer");
     expect(container.textContent).toContain("关联身份");

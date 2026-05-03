@@ -48,20 +48,20 @@ export function LinkDialog(props: {
   }
 
   return (
-    <div className="deck-ui-identity-dialog-backdrop" role="presentation">
+    <div className="identity-panel__dialog-backdrop" role="presentation">
       <form
         aria-label={t("dialogTitle")}
-        className="deck-ui-identity-dialog"
+        className="identity-panel__dialog"
         onSubmit={handleSubmit}
       >
-        <header className="deck-ui-identity-dialog-header">
+        <header className="identity-panel__dialog-header">
           <div>
             <h3>{t("dialogTitle")}</h3>
             <p>{t("dialogDescription")}</p>
           </div>
           <button
             aria-label={tc("cancel")}
-            className="deckgo-button deckgo-button-compact"
+            className="identity-panel__button"
             type="button"
             onClick={props.onClose}
           >
@@ -69,55 +69,51 @@ export function LinkDialog(props: {
           </button>
         </header>
 
-        {props.error ? <p className="deck-ui-control-error">{props.error}</p> : null}
+        {props.error ? <p className="identity-panel__error">{props.error}</p> : null}
 
-        <label className="deck-ui-control-field">
+        <label className="identity-panel__field">
           <span>{t("canonical")}</span>
           <input
             aria-label="identity canonical"
-            className="deck-ui-identity-input"
+            className="identity-panel__input"
             placeholder={t("canonicalPlaceholder")}
             value={draft.canonical}
             onChange={(event) => updateDraft("canonical", event.target.value)}
           />
         </label>
 
-        <label className="deck-ui-control-field">
+        <label className="identity-panel__field">
           <span>{t("channel")}</span>
           <input
             aria-label="identity channel"
-            className="deck-ui-identity-input"
+            className="identity-panel__input"
             placeholder={t("channelPlaceholder")}
             value={draft.channel}
             onChange={(event) => updateDraft("channel", event.target.value)}
           />
         </label>
 
-        <label className="deck-ui-control-field">
+        <label className="identity-panel__field">
           <span>{t("peerId")}</span>
           <input
             aria-label="identity peer id"
-            className="deck-ui-identity-input"
+            className="identity-panel__input"
             placeholder={t("peerIdPlaceholder")}
             value={draft.peerId}
             onChange={(event) => updateDraft("peerId", event.target.value)}
           />
         </label>
 
-        <footer className="deck-ui-identity-dialog-actions">
+        <footer className="identity-panel__dialog-actions">
           <button
-            className="deckgo-button deck-ui-identity-button"
+            className="identity-panel__button"
             disabled={props.submitting}
             type="button"
             onClick={props.onClose}
           >
             {tc("cancel")}
           </button>
-          <button
-            className="deckgo-button is-primary deck-ui-identity-button"
-            disabled={!canSubmit}
-            type="submit"
-          >
+          <button className="identity-panel__button is-primary" disabled={!canSubmit} type="submit">
             {props.submitting ? tc("saving") : tc("save")}
           </button>
         </footer>

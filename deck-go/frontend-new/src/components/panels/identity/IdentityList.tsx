@@ -12,26 +12,34 @@ export function IdentityList(props: {
   const tc = useTranslations("common");
 
   return (
-    <aside className="deck-ui-control-sidebar deck-ui-identity-sidebar">
-      <div className="deck-ui-control-sidebar-header">
-        <h2>{t("title")}</h2>
+    <aside className="identity-panel__card identity-panel__inventory">
+      <div className="identity-panel__card-head">
+        <div>
+          <h3 className="identity-panel__card-title">{t("inventory")}</h3>
+          <p className="identity-panel__meta">
+            {props.loading ? tc("loading") : t("relationshipInventory")}
+          </p>
+        </div>
+        <span className="identity-panel__pill">
+          {t("canonicalCount", { count: props.links.length })}
+        </span>
       </div>
 
-      <div className="deck-ui-control-sidebar-scroll">
+      <div className="identity-panel__body">
         {props.loading && props.links.length === 0 ? (
-          <p className="deck-ui-control-empty">{tc("loading")}</p>
+          <p className="identity-panel__empty">{tc("loading")}</p>
         ) : null}
         {!props.loading && props.links.length === 0 ? (
-          <p className="deck-ui-control-empty">{t("noLinks")}</p>
+          <p className="identity-panel__empty">{t("noLinks")}</p>
         ) : null}
         {props.links.length > 0 ? (
-          <div className="deck-ui-control-list deck-ui-identity-list">
+          <div className="identity-panel__list">
             {props.links.map((link) => (
               <div
                 key={link.canonical}
                 role="button"
                 tabIndex={0}
-                className={`deck-ui-control-row deck-ui-identity-row ${
+                className={`identity-panel__row ${
                   props.selectedCanonical === link.canonical ? "is-selected" : ""
                 }`}
                 onClick={() => props.onSelect(link.canonical)}
@@ -43,18 +51,18 @@ export function IdentityList(props: {
                   props.onSelect(link.canonical);
                 }}
               >
-                <span className="deck-ui-control-row-main">
-                  <span className="deck-ui-control-row-header">
+                <span className="identity-panel__row-main">
+                  <span className="identity-panel__row-head">
                     <strong>{link.canonical}</strong>
-                    <span className="deckgo-pill">
+                    <span className="identity-panel__pill">
                       {t("peerCount", { count: link.peers.length })}
                     </span>
                   </span>
                   {link.peers.length > 0 ? (
-                    <span className="deck-ui-identity-peer-pills">
+                    <span className="identity-panel__pill-row">
                       {link.peers.map((peer) => (
                         <span
-                          className="deckgo-pill"
+                          className="identity-panel__pill"
                           key={`${link.canonical}:${peer.channel}:${peer.peerId}`}
                         >
                           {peer.channel}: {peer.peerId}
@@ -62,7 +70,7 @@ export function IdentityList(props: {
                             role="button"
                             tabIndex={0}
                             aria-label={`Unlink ${peer.channel}:${peer.peerId}`}
-                            className="deckgo-inline-action"
+                            className="identity-panel__inline-action"
                             onClick={(event) => {
                               event.stopPropagation();
                               props.onUnlink(link.canonical, peer.channel, peer.peerId);
@@ -82,7 +90,7 @@ export function IdentityList(props: {
                       ))}
                     </span>
                   ) : (
-                    <span className="deckgo-meta">{t("noPeers")}</span>
+                    <span className="identity-panel__meta">{t("noPeers")}</span>
                   )}
                 </span>
               </div>

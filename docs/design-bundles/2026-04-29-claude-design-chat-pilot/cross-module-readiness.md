@@ -486,6 +486,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/plugins-visual.spec.ts` covers the ready plugin inventory workbench, raw payload disclosure, all-plugin scope switch, and WeCom handoff state against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM, plugin lifecycle control, marketplace trust, package signature, or production activation assurance.
 
+### Identity panel
+
+**Status:** in progress under OpenSpec change `frontend-identity-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Identity high-fidelity pass reused canonical typography, color, spacing, radius, button, badge/pill, status, code/json, dialog, and compact card tokens. No canonical atom/token was introduced.
+
+**Local molecules retained:** identity metric tile, canonical inventory row, selected-canonical hero, peer mapping row, mutation guard strip, link dialog, hash evidence chip, last-action/error surface, and raw payload disclosure.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, guarded mutation surface, dialog form, and raw payload disclosure. Identity validates these patterns for relationship-management workflows, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Identity-specific molecules:** base-hash mutation guard, canonical/peer relationship rows, direct peer unlink affordance, and failed-mutation refresh feedback are candidates for later relationship/control patterns only after config/nodes/docs validate the same API shape. Bulk merge, split, rename, deduplicate, trust, identity proofing, channel lookup, directory sync, contact graph inference, and production audit assurance remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/identity-visual.spec.ts` covers the ready identity relationship workbench, raw payload disclosure, link dialog, and link mutation/hash-refresh state against bundled mock Gateway `deck.identity.list` and `deck.identity.link`. This is mock/local visual coverage, not real Gateway/LLM, identity provider proofing, contact directory sync, or production audit assurance.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -521,3 +535,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — Budget hifi redesign (`frontend-budget-hifi-contract-redesign`)**: Budget moves local budget policy rules, threshold evaluations, scoped create/edit/delete flows, validation, and usage-total evidence into a module-local budget governance workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds budget rules through public BFF routes and relies on mock Gateway `usage.cost` totals, while billing accuracy, usage enforcement, and production quota assurance remain handoff follow-up.
 - **2026-05-03 — Alerts hifi redesign (`frontend-alerts-hifi-contract-redesign`)**: Alerts moves Deck-local alert policy rules, trigger/action evidence, inline create/edit/toggle/delete flows, validation, and fired-history fallback into a module-local alert workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds alert rules through public BFF routes, while real alert delivery, webhook delivery, escalation, Gateway-backed fired history, and incident assurance remain handoff follow-up.
 - **2026-05-03 — Plugins hifi redesign (`frontend-plugins-hifi-contract-redesign`)**: Plugins moves read-only plugin inventory, selected capability/action evidence, activation/diagnostic evidence, related-channel handoffs, lifecycle limitation copy, and raw payload disclosure into a module-local plugin inventory workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `deck.plugins.list` and `channels.status`, while real plugin lifecycle control, marketplace trust, package signatures, and production activation assurance remain handoff follow-up.
+- **2026-05-03 — Identity hifi redesign (`frontend-identity-hifi-contract-redesign`)**: Identity moves canonical relationship inventory, selected peer mapping evidence, base-hash mutation guard, link dialog, direct/selected peer unlink affordances, mutation feedback, and raw payload disclosure into a module-local relationship workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage uses bundled mock Gateway `deck.identity.list` and `deck.identity.link`, while identity proofing, contact directory sync, and production audit assurance remain handoff follow-up.

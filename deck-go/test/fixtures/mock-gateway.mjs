@@ -641,6 +641,34 @@ function defaultMethods() {
     ],
     ts: now,
   };
+  let identityHashVersion = 1;
+  const identityLinks = [
+    {
+      canonical: "main",
+      peers: [
+        { channel: "telegram", peerId: "tg-main" },
+        { channel: "discord", peerId: "disc-main" },
+        { channel: "wecom", peerId: "wecom-main" },
+      ],
+    },
+    {
+      canonical: "builder",
+      peers: [{ channel: "slack", peerId: "slack-builder" }],
+    },
+    {
+      canonical: "empty-review-slot",
+      peers: [],
+    },
+  ];
+  const identityConfigHash = () => `identity-hash-visual-${identityHashVersion}`;
+  const identityResponse = () => ({
+    configHash: identityConfigHash(),
+    links: clone(identityLinks),
+  });
+  const bumpIdentityHash = () => {
+    identityHashVersion += 1;
+    return identityConfigHash();
+  };
   const pluginInventory = [
     {
       id: "github",
@@ -1267,6 +1295,35 @@ function defaultMethods() {
           : pluginInventory.filter((plugin) => plugin.capabilityKinds.includes("channel")),
       ),
     }),
+    "deck.identity.list": () => identityResponse(),
+    "deck.identity.link": (params) => {
+      const canonical = String(params?.canonical ?? "").trim();
+      const channel = String(params?.channel ?? "").trim();
+      const peerId = String(params?.peerId ?? "").trim();
+      if (canonical && channel && peerId) {
+        let link = identityLinks.find((entry) => entry.canonical === canonical);
+        if (!link) {
+          link = { canonical, peers: [] };
+          identityLinks.push(link);
+        }
+        if (!link.peers.some((peer) => peer.channel === channel && peer.peerId === peerId)) {
+          link.peers.push({ channel, peerId });
+        }
+      }
+      return { ok: true, canonical, configHash: bumpIdentityHash() };
+    },
+    "deck.identity.unlink": (params) => {
+      const canonical = String(params?.canonical ?? "").trim();
+      const channel = String(params?.channel ?? "").trim();
+      const peerId = String(params?.peerId ?? "").trim();
+      const link = identityLinks.find((entry) => entry.canonical === canonical);
+      if (link) {
+        link.peers = link.peers.filter(
+          (peer) => !(peer.channel === channel && peer.peerId === peerId),
+        );
+      }
+      return { ok: true, canonical, configHash: bumpIdentityHash() };
+    },
     "channels.logout": (params) => ({
       accountId: params?.accountId ?? "",
       channel: params?.channel ?? "discord",
