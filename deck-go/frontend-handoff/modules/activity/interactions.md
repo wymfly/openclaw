@@ -1,52 +1,63 @@
-# Activity Interactions
+# activity — interactions
 
-## Filtering
+> Pointer, keyboard, hover, empty, error, and dialog flows.
 
-- Activity agent filter matches `agentId` or `agentName` case-insensitively.
-- Activity type filter uses the exact event `type` string.
-- Activity time range filters by timestamp age: `1h`, `6h`, `24h`, `7d`, or `all`.
-- Run agent/session filters are trimmed before being sent to `fetchMonitorRuns`.
-- Run status sends only `"running"`, `"completed"`, or `"error"`; `"all"` omits the status parameter.
-- Run time range maps to `since`; `"all"` omits `since`.
-- Clearing run filters resets agent/session/status/time and reloads with `{ limit: 50 }`.
+## Keyboard
 
-## Selection
+| Key                 | Context                | Behavior                                                |
+| ------------------- | ---------------------- | ------------------------------------------------------- |
+| `⌘K` / `Ctrl K`     | anywhere in the panel  | Focus search input in toolbar                           |
+| `⌘R` / `Ctrl R`     | anywhere in the panel  | Refresh inventory (debounced 320ms; stays on `loading`) |
+| `Esc`               | EventDetailDialog open | Close dialog, focus the trigger row                     |
+| `Enter` / `Space`   | focused feed row       | Open EventDetailDialog                                  |
+| `Tab` / `Shift Tab` | within a dialog        | Cycle focus inside dialog (focus trap)                  |
 
-- Activity refresh preserves selected event if the refreshed result still contains it.
-- Run refresh preserves selected run if the refreshed result still contains it.
-- Fallback selection chooses the newest event or first run from the loaded list.
-- Row selected states must be visible without depending only on color.
+Production must keep these. Prototype implements `⌘K`, `⌘R`, `Esc`, and `Enter` / `Space`
+row activation.
 
-## Grouping
+## Pointer
 
-- Activity groups are ordered Today, Yesterday, This Week, Older.
-- Group header buttons toggle collapse and expose `aria-expanded`.
-- Collapsing a group hides only its rows; selected details remain available if selection still exists.
+- **Feed rows** — full-row click → open EventDetailDialog. Cursor `pointer`.
+- **Toolbar search** — typing filters in real time; production should add ~120ms debounce on
+  large feeds.
+- **Family / severity / time-range segments** — single click sets active filter.
+- **Modal backdrop** — click outside the modal frame closes it.
 
-## Pagination
+## Hover
 
-- Load-more calls `fetchMonitorRuns()` with the current query and `cursor`.
-- New run ids are appended without duplicating existing run ids.
-- The selected run is not reset by loading an additional page.
+- **Feed rows** — background tint on hover; left border becomes accent on `:focus-visible`.
+- **Tabs / segments** — text color brightens on hover; active option highlighted.
+- **Event glyph** — visual only (decorative).
 
-## Cross-Panel Handoffs
+## Empty / loading / error
 
-- Open event agent -> `navigateToAgent(ui, selectedEvent.agentId)`.
-- Open run agent -> `navigateToAgent(ui, selectedRunAgentId)`.
-- Open run session -> `navigateToSession(ui, selectedRunSessionKey)`.
-- Top agent shortcut -> `navigateToAgent(ui, agent.agentId)`.
-- Handoff actions should be omitted when target ids are absent.
+| Scenario                | UI                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------- |
+| `feedState = "loading"` | Centered spinner row with copy "Loading activity feed…"                         |
+| `feedState = "error"`   | Error icon + headline + retry button (`onRefresh`)                              |
+| filter zero results     | Activity icon + "No events match this filter." + clear-filter / time-range hint |
+| time-range past cutoff  | Same empty-block; copy hints at widening the range                              |
 
-## Accessibility / Keyboard
+## Dialog flows
 
-- Timeline group headers and rows are native buttons.
-- Selects and inputs keep visible focus rings.
-- Buttons use concise visible labels and preserve existing i18n text.
-- Loading and empty states should not remove surrounding layout regions abruptly.
+### EventDetailDialog
 
-## Visual QA Checklist
+1. Open via feed row click or Tweaks toggle.
+2. Renders the event header (severity-tinted pill + type + description), full timestamp +
+   id, agent chip if present, details (mono pre), raw JSON code block.
+3. **Copy JSON** writes the entire event to clipboard via `navigator.clipboard.writeText`.
+   Button label flips to "Copied" for ~1.4s.
+4. **Close** (primary) / Esc / backdrop click / `×` → close, focus returns to the trigger row.
 
-- The first viewport shows both activity and monitor evidence.
-- No text overlaps in long event/run/session ids.
-- JSON/raw payloads are constrained and scroll/wrap inside their region.
-- Mock visual screenshots are labeled as mock coverage in closeout evidence.
+## Tweaks-driven exploration
+
+The Tweaks panel exposes:
+
+- `feedState` lets reviewers exercise loading / error / empty without a network.
+- All four filters can be flipped from the panel (mode toggle for filter / severity / time
+  range, plus search).
+- `selectedEvent` rotates through 20 events for the dialog.
+
+In production these knobs disappear; corresponding state arrives from real fetch + selectors
+
+- live stream.

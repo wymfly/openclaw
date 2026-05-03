@@ -1,84 +1,121 @@
-# Activity Components
+# activity — components
 
-## Component Tree
+> v2 single-page handoff. Engineering target is
+> `frontend-new/src/components/panels/activity/`.
 
-```text
+## Production component skeleton
+
+```
 ActivityPanel
-  ActivityWorkbench
-    ActivityStreamColumn
-      WorkbenchHeader
-      ActivityMetrics
-      ActivityFilterBar
-      ActivityTimelineGroups
-        ActivityGroupHeader
-        ActivityTimelineRow
-      ActivityEmptyState
-    MonitorRunColumn
-      MonitorStatsStrip
-      RunFilterBar
-      TopAgentsRail
-      MonitorRunList
-        MonitorRunRow
-      PaginationActions
-    InspectorColumn
-      SelectedEventCard
-      SelectedRunCard
-        RunSummaryMetrics
-        DiagnosticStack
-          ModelDiagnosticRows
-          ToolDiagnosticRows
-          FileDiagnosticRows
-          SubagentDiagnosticRows
-        RawRunEvents
-        JsonPayloadDetail
+  └── ActivityFeedView
+       ├── ActivityToolbar (search + family seg + severity seg + time-range seg)
+       ├── ActivityKpiStrip
+       └── (virtualized rows)
+            ├── GroupHeader[]
+            └── FeedRow[]
+                 ├── EventGlyph (severity-tinted)
+                 └── AgentChip (when event has agentId)
+  └── ActivityDialogs
+       └── EventDetailDialog
 ```
 
-## Module-Local Molecules
+No `DetailView`. A feed row's primary action is opening the EventDetailDialog; navigation never
+leaves the panel.
 
-### Workbench header
+## Prototype file → production target
 
-- Shows title, description, stream/run readiness badges, and refresh actions.
-- Uses existing text and status state; it does not introduce a new shared pattern.
+| Prototype file     | Production target                                                                                           |
+| ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `app.jsx`          | `ActivityPanel.tsx`                                                                                         |
+| `feed-view.jsx`    | `ActivityFeedView.tsx` + `ActivityKpiStrip.tsx` + `ActivityToolbar.tsx` + `FeedRow.tsx` + `GroupHeader.tsx` |
+| `dialogs.jsx`      | `dialogs/EventDetailDialog.tsx`                                                                             |
+| `data.js`          | `__fixtures__/activity.fixture.ts`                                                                          |
+| `icons.jsx`        | `@/design-system/icons` re-exports + `EventGlyph.tsx` + `AgentChip.tsx` local                               |
+| `styles.css`       | per-component `.css` files (kebab-case)                                                                     |
+| `tokens.css`       | dropped (canonical lives in `frontend-new/src/design-system/tokens/`)                                       |
+| `tweaks-panel.jsx` | dropped (design-time tooling only)                                                                          |
 
-### Activity metric tile
+## Props (shape contracts)
 
-- Compact tile for loaded events, visible events, unique agents, total runs, today runs, and average duration.
-- Repeats prior module metric-tile molecules but remains local until a dedicated design-system proposal defines a shared KPI API.
+### ActivityFeedView
 
-### Activity filter bar
+```ts
+interface ActivityFeedViewProps {
+  events: ActivityEvent[]; // from DeckGoActivityResponse.events
+  feedState: "ready" | "loading" | "error" | "empty";
+  searchQuery: string;
+  filter: "all" | "agent" | "tool" | "msg" | "subagent" | "channel" | "ops";
+  severity: "all" | "info" | "ok" | "warn" | "err";
+  timeRange: "1h" | "6h" | "24h" | "all";
+  asOfMs: number;
+  runtimeId: string;
+  onSearch: (q: string) => void;
+  onFilter: (f: ActivityFamilyFilter) => void;
+  onSeverity: (s: ActivitySeverityFilter) => void;
+  onTimeRange: (t: ActivityTimeRange) => void;
+  onSelect: (eventId: string) => void;
+  onRefresh: () => void;
+}
 
-- Inputs/selects for agent id/name, event type, and time range.
-- Event type options come from loaded event data.
-- Empty option means all event types.
+interface ActivityEvent extends DeckGoActivityEvent {
+  // pure pass-through; severity is derived client-side from `type`
+}
+```
 
-### Activity timeline group
+### FeedRow
 
-- Header button toggles group collapse.
-- Group labels use the existing time buckets: Today, Yesterday, This Week, Older.
-- Rows show description, type, agent, timestamp, and event id.
-- Rows are buttons with selected state and stable wrapping for long descriptions.
+```ts
+interface FeedRowProps {
+  event: ActivityEvent;
+  nowMs: number; // for stable relative-time rendering
+  onSelect: (eventId: string) => void;
+}
+```
 
-### Monitor run list
+### GroupHeader
 
-- Rows show run id, status, agent, event count, model/tool/token evidence, and timestamp range.
-- Selected state mirrors selected run id.
-- Pagination action appears only when `nextCursor` exists.
+```ts
+interface GroupHeaderProps {
+  label: string; // hour bucket label, e.g. "2026-05-04 14:00"
+  count: number;
+}
+```
 
-### Selected event card
+### EventDetailDialog
 
-- Shows selected event description, event id, type, agent, timestamp, details, open-agent action, and raw payload.
-- Open-agent action appears only when `agentId` exists.
+```ts
+interface EventDetailDialogProps {
+  open: boolean;
+  event: ActivityEvent | null;
+  onClose: () => void;
+}
+```
 
-### Selected run card
+## Class naming
 
-- Shows selected run id, detail load state, summary badges, metrics, cross-panel actions, diagnostics, raw run event rows, and raw run payload.
-- Open-agent and open-session actions appear only when target ids exist.
+- `.list-view` (feed wrapper)
+- `.kpi-strip` / `.kpi`
+- `.toolbar` / `.toolbar__search` / `.seg` / `.seg__btn`
+- `.feed` / `.feed-group-header` / `.feed-group-header__bar` / `.feed-group-header__label`
+- `.feed-row` / `.feed-row--{ok|warn|err|info|muted}` / `.feed-row__rail` / `.feed-row__main` /
+  `.feed-row__head` / `.feed-row__type` / `.feed-row__desc` / `.feed-row__details` / `.feed-row__ts`
+- `.event-glyph` / `.event-glyph--{ok|warn|err|info|muted}`
+- `.agent-chip` / `.agent-chip__avatar`
+- `.list-state` / `.list-state--{loading|error|empty}`
+- `.modal-backdrop` / `.modal--event` / `.modal__head/body/foot`
+- `.diag-block` / `.diag-block__label` / `.diag-block__pre`
+- `.code-block` / `.code-block--inline`
+- `.pill` / `.pill--{ok|warn|err|info|muted}`
+- `.btn` / `.btn--{ghost|primary}`
 
-### Diagnostic stack
+## Accessibility
 
-- Parses model, tool, file, and subagent rows from `runDetail.events`.
-- Parsing is best-effort and stream-specific; raw rows are always retained.
-
-## Props / Data Boundaries
-
-The production implementation can keep this as one component or split local child components. Public API boundaries should not widen. All data remains internal to `ActivityPanel` and is sourced from existing wrappers/hooks.
+- Feed rows: `role="button"`, `tabIndex={0}`, Enter/Space activates.
+- Family / severity / time-range segments: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Group headers: `role="separator"` (production) or visually decorative `aria-hidden="true"`
+  if not load-bearing.
+- Modal: `role="dialog"` + `aria-modal="true"` + `aria-label`. Focus trap; Esc close.
+- Event glyph: decorative; severity also conveyed by the type label and feed-row tint, so the
+  glyph carries `aria-hidden="true"`.
+- Live tail (production): the feed should use `aria-live="polite"` for new events; production
+  must throttle announcements (every 30s or on user-pause).

@@ -1,80 +1,104 @@
-# Activity API Usage
+# activity — API usage
 
-## Endpoint Chain
+> Endpoint truth and DTO shapes are tracked in
+> `deck-go/contracts/source/deck-api.contract.ts` and
+> `deck-go/contracts/source/deck-endpoints.contract.json`.
 
-| UI need            | Frontend wrapper                        | BFF endpoint                    | Contract source                  |
-| ------------------ | --------------------------------------- | ------------------------------- | -------------------------------- |
-| Activity feed      | `fetchActivityEvents(limit)`            | `GET /api/activity?limit=100`   | `DeckGoActivityResponse`         |
-| Monitor runs       | `fetchMonitorRuns(query)`               | `GET /api/monitor/runs`         | `DeckGoMonitorRunsResponse`      |
-| Monitor run detail | `fetchMonitorRunDetail(runId)`          | `GET /api/monitor/runs/{runId}` | `DeckGoMonitorRunDetailResponse` |
-| Monitor stats      | `fetchMonitorStats()`                   | `GET /api/monitor/stats`        | `DeckGoMonitorStatsResponse`     |
-| Live activity      | `streamEvents()` via `useActivitySSE()` | shared BFF stream               | `activity.event` SSE payload     |
+## Source of truth
 
-## Request Parameters
+The activity module consumes the BFF `activity` endpoint, which is itself a projection over
+Gateway lifecycle messages, agent run events, channel webhooks, and audit-log writes. The
+browser never calls Gateway directly.
 
-### `GET /api/activity`
+## Deck-facing API
 
-- `limit`: integer, clamped by backend to a supported range. Production UI currently requests `100`.
+### `GET /api/deck/activity`
 
-### `GET /api/monitor/runs`
+Wrapper: `fetchActivity()`. Response: `DeckGoActivityResponse` with
+`events: DeckGoActivityEvent[]`.
 
-- `limit`: integer, production UI uses `50`.
-- `agentId`: optional string from run agent filter.
-- `sessionKey`: optional string from run session filter.
-- `status`: optional `"running" | "completed" | "error"`; omitted for all statuses.
-- `since`: optional ISO timestamp derived from time range.
-- `until`: optional ISO timestamp; not used by this prototype.
-- `cursor`: optional run id cursor for pagination.
+Snapshot of recent events. Backend chooses retention window; deck-go currently asks for the
+last 24h.
 
-## Response Fields Used
+### `GET /api/deck/activity/stream` (production target)
 
-### Activity event
+Wrapper: `streamActivity(handler)`. Server-sent events stream of fresh events. Not exercised
+in the prototype; documented here as the production target.
 
-- `id`
-- `timestamp`
-- `type`
-- `agentId`
-- `agentName`
-- `description`
-- `details`
+## DTO shapes (canonical)
 
-Missing optional agent fields render as `System`/`system` or are omitted. The panel must not fabricate a missing agent.
+```ts
+type DeckGoActivityEvent = {
+  id: string;
+  timestamp: number;
+  type: string; // open enum; see TYPE_FAMILY in icons.jsx for the closed set the panel handles
+  agentId?: string;
+  agentName?: string;
+  description: string;
+  details?: string;
+};
 
-### Monitor run
+type DeckGoActivityResponse = {
+  events: DeckGoActivityEvent[];
+};
+```
 
-- `runId`
-- `agentId`
-- `sessionKey`
-- `firstEventAt`
-- `lastEventAt`
-- `eventCount`
-- `status`
-- `toolCalls`
-- `modelCalls`
-- `totalTokens`
+## BFF projections (not part of the contract)
 
-### Monitor stats
+### Severity decoding
 
-- `totalRuns`
-- `todayRuns`
-- `avgDurationMs`
-- `topAgents[]` with `agentId` and `runCount`
+The contract does not carry a severity field. The deck-go BFF could project one in the future;
+today the prototype derives severity client-side via `TYPE_FAMILY` in `icons.jsx`:
 
-### Run detail
+```ts
+type Severity = "info" | "ok" | "warn" | "err" | "muted";
+const TYPE_FAMILY: Record<string, { Icon: ComponentType; severity: Severity }>;
+```
 
-- `summary` fields drive selected-run metrics.
-- `events[]` drives raw event rows and best-effort diagnostics.
-- Event `data` is parsed only when it is JSON object text. Raw event rows remain visible because stream-specific payloads are not fully typed.
+If the BFF starts emitting `severity` directly, drop the client-side mapping. Until then,
+unknown event types fall through to `severity: "muted"` with a generic Activity glyph.
 
-## SSE Usage
+### Family decoding
 
-The panel subscribes through `useActivitySSE(onEvent)`. Only `activity.event` payloads with a valid object and event id should be merged. Merge rules:
+Same shape: families (`agent | tool | msg | subagent | channel | ops`) are derived from `type`
+prefix on the client. If the BFF prefers to emit `family` directly, the toolbar maps directly
+without the FILTER_GROUPS heuristic.
 
-- drop duplicate event ids before inserting the new event
-- sort by newest timestamp first
-- keep a bounded recent list
-- if no event is selected, select the first available event
+## Endpoint summary
 
-## Mock Visual Boundary
+| Endpoint                          | Method | When                   | DTO                      |
+| --------------------------------- | ------ | ---------------------- | ------------------------ |
+| `/api/deck/activity`              | GET    | Initial load + refresh | `DeckGoActivityResponse` |
+| `/api/deck/activity/stream` (SSE) | GET    | Live tail (production) | newline-delimited events |
 
-Mock visual E2E may use the existing mock Gateway event seeding and BFF projections. Evidence from this package is mock visual coverage, not real Gateway/LLM validation.
+## Backend chain
+
+```
+ActivityPanel
+  → frontend-new/src/api/activity.ts
+  → deck-go Go BFF route
+    ├── Gateway lifecycle messages
+    ├── agent run events
+    ├── channel webhook frames
+    └── audit log writes
+  → unified DeckGoActivityEvent
+```
+
+## Mock requirements
+
+- 60+ events across all 21 mock event types defined in `EVENT_TYPES`.
+- Severity coverage: `info`, `ok`, `warn`, `err` all represented.
+- At least 4 system-only events (no `agentId`).
+- At least one event per family for filter sanity.
+
+## Open contract assumptions
+
+- **`type` is open string.** Prototype maps the closed set above; new types fall through.
+- **No severity in contract.** Severity is BFF / client projection. Stable until contract
+  expands.
+- **`details` is freeform string.** Prototype treats it as preformatted text; production
+  may want to parse known prefixes (e.g., `runId=`) into linkified affordances.
+- **Live tail.** Not in current contract. Prototype shows snapshot only. SSE / WebSocket
+  contract should match the snapshot DTO so the deck-go renderer is shape-stable.
+- **Retention window.** Snapshot returns "last 24h" today; not part of the contract. Production
+  may need a `?since=<ms>` query param for paginated history.

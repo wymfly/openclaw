@@ -1,46 +1,75 @@
-# Activity States
+# activity — states
 
-## Activity Feed State
+> Feed states, filter compose, dialog state, focus, a11y.
 
-| State             | Trigger                                    | UI                                                                                                   |
-| ----------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
-| Loading           | `fetchActivityEvents()` pending            | subdued status badge, stable skeleton-like empty slots or existing layout                            |
-| Ready with events | events returned                            | metrics, filters, grouped timeline, selected event                                                   |
-| Ready empty       | zero events                                | empty note that no activity has been reported                                                        |
-| Filter empty      | loaded events exist but filters match none | filter-empty note; existing event detail may remain visible only if still selected by fallback logic |
-| Not configured    | BFF returns `gateway_not_configured`       | shared Gateway not-configured empty state                                                            |
-| Error             | other load failure                         | inline error note without exposing raw configured-gateway sentinel text                              |
+## Feed states
 
-## Live Stream State
+| State     | Trigger                             | Renders                            |
+| --------- | ----------------------------------- | ---------------------------------- |
+| `ready`   | events fetched (snapshot or stream) | KPI strip + toolbar + grouped feed |
+| `loading` | first fetch or manual refresh       | Spinner + "Loading activity feed…" |
+| `error`   | BFF returned 5xx / network fail     | Error icon + retry button          |
+| `empty`   | filter or search produces zero rows | Activity icon + "No events match…" |
 
-- Incoming `activity.event` payload inserts into the timeline.
-- Duplicate ids are replaced rather than duplicated.
-- Non-activity stream events are ignored by `useActivitySSE`.
-- Invalid JSON payloads are ignored.
+The `empty` state can be reached three ways: zero events from BFF, all events filtered out,
+or time range cutoff excludes everything.
 
-## Monitor Run State
+## Filters that compose
 
-| State                | Trigger                              | UI                                                            |
-| -------------------- | ------------------------------------ | ------------------------------------------------------------- |
-| Loading              | `fetchMonitorRuns()` pending         | run readiness badge shows loading while layout remains stable |
-| Ready with runs      | runs returned                        | stats strip, top agents if present, run list, selected run    |
-| Ready empty          | no monitor runs                      | empty note that no monitor runs were reported                 |
-| Filter empty         | filters remove all runs              | same no-runs state for current filters                        |
-| Pagination available | `nextCursor` exists                  | load more action                                              |
-| Not configured       | BFF returns `gateway_not_configured` | shared Gateway not-configured empty state                     |
-| Error                | other monitor failure                | inline error note                                             |
+- `searchQuery` — free text on `id + type + description + details + agentId + agentName`.
+- `filter` — family segmented: `all | agent | tool | msg | subagent | channel | ops`. Each
+  family maps to a fixed list of types defined in `FILTER_GROUPS`.
+- `severity` — segmented: `all | info | ok | warn | err`. Severity is derived client-side from
+  type via `TYPE_FAMILY` in `icons.jsx`.
+- `timeRange` — segmented: `1h | 6h | 24h | all`. Cutoff = `asOfMs - windowMs`. `all` skips
+  the time check entirely.
 
-## Selected Run Detail State
+All AND-combined.
 
-- `idle`: no run selected.
-- `loading`: run id selected, detail request pending.
-- `ready`: summary, diagnostics, raw events, and payload are visible.
-- `error`: inline monitor error shown; selected run list remains available.
+## Grouping
 
-## Empty / Edge Cases
+Events are sorted descending by `timestamp`, then grouped by hour bucket. Each transition into
+a new bucket inserts a `GroupHeader` row. The bucket label format is
+`YYYY-MM-DD HH:00`.
 
-- Missing `agentId`: render system/unavailable and hide open-agent handoff.
-- Missing `sessionKey`: hide open-session handoff.
-- Long ids and JSON payloads: wrap or truncate inside constrained surfaces.
-- Unknown stream data: keep raw event visible and skip parsed diagnostic row.
-- `details` may be string or object-like payload from live events; render through text/raw payload without assuming schema.
+## Dialog state
+
+### EventDetailDialog
+
+No internal state machine. Renders selected event; copies JSON on demand. The "Copied" label
+auto-clears after ~1.4s.
+
+## Tweaks panel
+
+Design-time only. Exposes:
+
+- `theme` ∈ `dark | light`
+- `density` ∈ `comfortable | compact`
+- `feedState` ∈ `ready | loading | error | empty`
+- `filter`, `severity`, `timeRange` — same options as toolbar
+- `selectedEvent` — any event id from MOCK
+- `detailOpen` ∈ booleans
+
+Dropped at production translation.
+
+## Focus
+
+- First focusable: search input.
+- After clicking a feed row → focus moves to the dialog's first focusable (close button by
+  default; production should set initial focus on the dialog body).
+- After dismissing a dialog → focus returns to the trigger row.
+- Esc:
+  - In dialog → close dialog.
+  - In feed (no dialog) → no-op (do not eat Esc; let global handlers see it).
+
+## A11y semantics
+
+- Toolbar segments: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Feed rows: `role="button"`, `tabIndex={0}`, Enter/Space activates.
+- Group headers: visual separator only; production should add `role="separator"` or hide
+  decoratively with `aria-hidden="true"`.
+- Modal: `role="dialog"` + `aria-modal="true"` + `aria-label`. Focus trap; Esc close.
+- Event glyph: `aria-hidden="true"` (severity is also conveyed by the type label + tint).
+- Status pills always carry text; color is decoration only.
+- For live tail (production): wrap the feed in `aria-live="polite"` with a throttling layer so
+  high-volume runs do not flood the screen reader.

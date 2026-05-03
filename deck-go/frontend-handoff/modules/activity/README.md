@@ -1,39 +1,76 @@
-# Activity
+# Activity (Unified Feed)
 
-**Status**: ready-for-implementation
-**Design completed**: 2026-05-03
-**Designer**: Codex single-agent replacement workflow
-**Depends on atoms**: Button, Input, Select, Badge/Pill, Card, Code/Json detail, Status, Spinner
-**New atoms needed**: none
-**New tokens needed**: none
-**Backend endpoints used**: see `api-usage.md`
+**Status**: revised v2 — pending implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (Claude)
+**Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, KbdHint, Avatar, EmptyState
+**Depends on canonical patterns**: PageShell, EmptyState
+**Depends on canonical icons**: IconSearch, IconRefresh, IconCheck, IconX, IconAlert, IconInfo,
+IconErrorCircle, IconClock, IconActivity, IconAgent, IconBranch, IconChevronDown/Right, IconTool,
+IconShield, IconChannel, IconKey, IconKbd, IconMessage, IconArrowDown/Up, IconStop, IconTarget,
+IconPower, IconCopy
+**New atoms needed**: none — local prototype molecules (`event-glyph`, `agent-chip`, `feed-row`,
+`feed-group-header`) all map to existing atoms
+**New tokens needed**: none — uses canonical `--ds-*`
+**Backend endpoints used**: see `api-usage.md` (`DeckGoActivityResponse` + BFF severity projection)
 
 ## What this module does
 
-Activity is an Observe workspace for runtime event projection and execution monitoring. It combines the contract-backed activity feed with monitor run history so an operator can see what happened, which agent/session it belongs to, and what model/tool/file/subagent evidence exists for a selected run.
+Single-page unified timeline across every event type the runtime emits — agent lifecycle, tool
+calls, channel connect/disconnect, config changes, alert fires, approval flows. Severity is
+decoded from the event type by the BFF; the raw frame stays close to the contract.
 
-This package is a high-fidelity handoff for `deck-go/frontend-new/src/components/panels/activity/`. It is intentionally based on the current deck-go contract chain and production code, not on the old visual shell. Code and contracts remain the source of truth; this prototype is an implementation guide.
-
-## Contract truth
-
-- Activity events: `GET /api/activity?limit=...` -> `fetchActivityEvents()` -> `DeckGoActivityEvent[]`.
-- Monitor runs: `GET /api/monitor/runs?...` -> `fetchMonitorRuns()` -> `DeckGoMonitorRun[]`.
-- Monitor stats: `GET /api/monitor/stats` -> `fetchMonitorStats()` -> `DeckGoMonitorStatsResponse`.
-- Monitor run detail: `GET /api/monitor/runs/{runId}` -> `fetchMonitorRunDetail()` -> selected run summary/events.
-- Realtime stream: shared frontend stream + `activity.event` SSE payloads -> `useActivitySSE()` -> merge into the activity timeline.
-- Browser code must continue to call the Go BFF wrapper only; it must not call Gateway directly.
+Unlike list/detail panels (channels / models / plugins / skills / subagents), this panel is
+**flat**: a virtualizable feed with hour-bucket headers, click any row to inspect raw event JSON
+in a modal. No detail page — a feed row IS the surface.
 
 ## How to implement
 
-1. Open `prototype.html` and inspect the density, two-region layout, diagnostics stack, wrapping behavior, and selected states.
-2. Read `components.md` for the module-local component tree and data boundaries.
-3. Read `states.md` for loading, empty, not-configured, error, and mock-ready states.
-4. Read `interactions.md` for filtering, grouping, selection, pagination, and cross-panel handoff behavior.
-5. Read `api-usage.md` and preserve the current API wrapper/SSE path.
-6. Translate prototype classes into `ActivityPanel.tsx` + `activity-panel.css`, keeping strings in i18n and behavior covered by tests.
+1. Open `prototype.html` in a browser:
+   - 60+ events spanning 21 event types and the full severity range.
+   - Filter by family (Agent / Tools / Messages / Subagents / Channels / Ops), severity (Info /
+     OK / Warn / Errors), or time range (1h / 6h / 24h / All).
+   - Click any row → EventDetailDialog with copyable JSON.
+   - Tweaks panel exposes feed-state, every filter, and the dialog toggle.
+2. Read `components.md`, `states.md`, `interactions.md`, `api-usage.md` for engineering handoff.
+3. Translate each `.jsx` file to TypeScript at the production target listed in `components.md`.
+   Replace `__fixtures__` mock with real fetch hooks. Keep kebab-case classes verbatim.
 
-## Open questions for implementation
+## Open questions for Claude Code
 
-- Real Gateway projection completeness differs by event source. The UI must show contract-shaped activity/monitor data when available, but this change does not claim real Gateway/LLM coverage.
-- Monitor event `data` is a JSON string by contract, but the inner schema is stream-specific. Parsed diagnostics should remain best-effort and raw payloads must stay inspectable.
-- Top-agent and run-status taxonomy comes from BFF projections. Do not invent richer statuses or ranking semantics in the frontend.
+- **Virtualization library.** Prototype renders all 60+ events synchronously. For production
+  with thousands of events, the FeedView needs `react-virtual` (or equivalent). Stack decision
+  triggered: pick a virtualization library when the first chart-heavy panel ships, OR earlier
+  if activity ships before then.
+- **Severity projection authority.** Prototype derives severity from `type` in
+  `TYPE_FAMILY`. If the BFF prefers to emit `severity` directly, drop the client-side mapping
+  and treat the BFF field as authoritative.
+- **Live tail vs poll.** Prototype loads a snapshot. Production needs a streaming option (SSE /
+  WebSocket) for live tail. Spec the contract before implementing.
+- **Group bucket size.** Prototype groups by hour. Confirm whether 5-min buckets work better
+  for high-volume runtimes; this should be a per-user pref.
+
+## File inventory (v2)
+
+```
+activity/
+├── README.md                    ← this file
+├── prototype.html               ← ~30-line shell loading external .jsx via Babel standalone
+├── prototype-v1-codex.html      ← preserved V1 single-file prototype (reference)
+├── app.jsx                      ← App shell + dialog wiring + ⌘K/⌘R/Esc
+├── feed-view.jsx                ← KPI strip + filter bar + virtualized timeline (one file, no detail)
+├── dialogs.jsx                  ← EventDetailDialog (raw JSON viewer)
+├── data.js                      ← contract-shaped MOCK with 60+ events covering all 21 types
+├── icons.jsx                    ← 24 SVG icons + EventGlyph + AgentChip + TYPE_FAMILY map
+├── styles.css                   ← Linear-inspired, --ds-* tokens only, dark/light + density-aware
+├── tokens.css                   ← mirror copy of canonical tokens
+├── tweaks-panel.jsx             ← shared design-time tooling
+├── components.md                ← production component skeleton + props shapes
+├── states.md                    ← feed states + filter compose + a11y
+├── interactions.md              ← keyboard / pointer / hover / dialog flows
+└── api-usage.md                 ← endpoint truth + DTO shapes + BFF projections + assumptions
+```
+
+## Reverse sign-off
+
+(pending Claude Code implementation in `frontend-new/src/components/panels/activity/`)
