@@ -1,54 +1,175 @@
-# subagents components
+# subagents — components
 
-This file describes production molecules used by `prototype.html`. The names are
-handoff labels, not required exported React components.
+> v2 multi-file handoff. Engineering target is
+> `frontend-new/src/components/panels/subagents/`.
 
-## Shell
+## Production component skeleton
 
-- `SubagentsWorkbench`: page-level grid with a compact header, metric strip, run
-  queue, and selected-run workspace.
-- `SubagentsHeader`: title, short operational description, load status badge,
-  auto-refresh toggle, and refresh action.
-- `SubagentsMetrics`: five equal tiles for visible runs, server total, active,
-  history, and selected depth/model.
+```
+SubagentsPanel
+  └── (route) → SubagentsListView
+                 ├── SubagentsToolbar (mode seg + search + status seg + spawn-mode seg)
+                 ├── SubagentsKpiStrip
+                 └── (mode = runs) RunRow[]
+                      ├── AgentGlyph (child)
+                      ├── ParentRow (mini AgentGlyph + name)
+                      ├── ModePill
+                      └── StatusPill
+                 └── (mode = permissions) PermissionRow[]
+                      ├── AgentGlyph (agent)
+                      ├── PolicyPill (allowAny | allow-list)
+                      └── CapsBlock (depth + children + thinking)
+  └── (route) → SubagentsDetailView
+                 ├── DetailHero (child glyph + name + status + parent + actions)
+                 ├── SubagentTabsBar
+                 └── (tab body)
+                      ├── TabOverview
+                      ├── TabLineage (recursive tree of LineageNode)
+                      ├── TabOutcome
+                      ├── TabPermissions
+                      ├── TabAudit
+                      └── TabRaw
+  └── SubagentDialogs
+       ├── KillRunDialog
+       ├── SteerRunDialog
+       ├── PermissionsDialog
+       └── RunOutcomeDialog
+```
 
-## Run Triage
+## Prototype file → production target
 
-- `RunFilters`: child-agent select, requester input, status select, time-range
-  select, and refresh controls.
-- `RunQueue`: stable list with fixed row rhythm. Rows expose child agent,
-  requester, run id, status, depth, duration, spawn mode, model, and task.
-- `RunQueueRow`: selectable button row. Selected state uses a left accent and
-  tinted background, not a size change.
+| Prototype file     | Production target                                                                                               |
+| ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `app.jsx`          | `SubagentsPanel.tsx`                                                                                            |
+| `list-view.jsx`    | `SubagentsListView.tsx` + `RunRow.tsx` + `PermissionRow.tsx` + `SubagentsKpiStrip.tsx` + `SubagentsToolbar.tsx` |
+| `detail-view.jsx`  | `SubagentsDetailView.tsx` + 6 tab modules + `LineageNode.tsx`                                                   |
+| `dialogs.jsx`      | `dialogs/KillRunDialog.tsx` + `SteerRunDialog.tsx` + `PermissionsDialog.tsx` + `RunOutcomeDialog.tsx`           |
+| `data.js`          | `__fixtures__/subagents.fixture.ts`                                                                             |
+| `icons.jsx`        | `@/design-system/icons` re-exports + `AgentGlyph.tsx` local                                                     |
+| `styles.css`       | per-component `.css` files (kebab-case)                                                                         |
+| `tokens.css`       | dropped (canonical lives in `frontend-new/src/design-system/tokens/`)                                           |
+| `tweaks-panel.jsx` | dropped (design-time tooling only)                                                                              |
 
-## Selected Run
+## Props (shape contracts)
 
-- `SelectedRunHero`: primary identity for the selected child run, status badges,
-  depth, mode, model, created time, duration, and raw run id.
-- `RunDetailGrid`: contract fields only. Missing optional values render as the
-  common unavailable label.
-- `RunNavigationActions`: open child agent, requester agent, child session, and
-  requester session.
-- `SteerKillPanel`: free-form instruction textarea, steer button, and
-  confirmation-gated kill button.
+### SubagentsListView
 
-## Lineage
+```ts
+interface SubagentsListViewProps {
+  mode: "runs" | "permissions";
+  runs: SubagentRun[]; // from DeckGoSubagentsListResponse.runs
+  agentConfigs: Record<string, AgentSubagentConfig>;
+  allAgents: Array<{ id: string; name?: string }>;
+  selectedRunId: string | null;
+  listState: "ready" | "loading" | "error" | "empty";
+  searchQuery: string;
+  filter: "all" | "running" | "succeeded" | "failed" | "killed" | "stalled";
+  spawnMode: "all" | "blocking" | "background";
+  asOfMs: number;
+  runtimeId: string;
+  onMode: (m: "runs" | "permissions") => void;
+  onSearch: (q: string) => void;
+  onFilter: (f: SubagentsStatusFilter) => void;
+  onSpawnMode: (s: SubagentsSpawnFilter) => void;
+  onSelect: (runId: string) => void;
+  onEditPermissions: (agentId: string) => void;
+  onRefresh: () => void;
+}
 
-- `LineageHero`: root session and node count.
-- `LineageTimeline`: nested tree built from `parentRunId`. Each node displays
-  agent, run id, status, depth, duration when present, and task when present.
-- `PayloadDetails`: raw selected run, lineage, and last action payloads.
+interface SubagentRun extends DeckGoSubagentRun {}
+interface AgentSubagentConfig extends DeckGoAgentSubagentConfigResponse {}
+```
 
-## Config
+### RunRow
 
-- `GlobalDefaultsCard`: conservative editor for `agents.defaults.subagents`.
-  Numeric fields clamp to existing frontend limits.
-- `PerAgentPermissions`: permission rows from
-  `DeckGoAgentSubagentConfigResponse`, with a navigation action into the agent
-  subagents surface.
+```ts
+interface RunRowProps {
+  run: SubagentRun;
+  selected: boolean;
+  onSelect: (runId: string) => void;
+}
+```
 
-## Empty And Error
+8 columns: glyph, name+task (truncated), parent, model, spawn-mode pill, duration/live, status
+pill, chev.
 
-- `SubagentsEmpty`: uses module copy only; does not imply unsupported recovery.
-- `SubagentsError`: inline banner with the thrown error message and a retry
-  action.
+### PermissionRow
+
+```ts
+interface PermissionRowProps {
+  agentId: string;
+  config: AgentSubagentConfig;
+  allAgentsCount: number;
+  onEdit: (agentId: string) => void;
+}
+```
+
+### SubagentsDetailView
+
+```ts
+interface SubagentsDetailViewProps {
+  run: SubagentRun;
+  lineage: SubagentLineage | null;
+  parentConfig: AgentSubagentConfig | null;
+  audit: SubagentAuditEvent[];
+  allAgents: Array<{ id: string; name?: string }>;
+  detailState: "ready" | "loading" | "error";
+  activeTab: SubagentTabId;
+  onTabChange: (tab: SubagentTabId) => void;
+  onBack: () => void;
+  onSteer: () => void;
+  onKill: () => void;
+  onViewOutcome: () => void;
+  onSelectInLineage: (runId: string) => void;
+  onEditPermissions: (agentId: string) => void;
+}
+
+type SubagentTabId = "overview" | "lineage" | "outcome" | "permissions" | "audit" | "raw";
+```
+
+### Dialogs
+
+| Dialog              | Props                                                                                                         |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `KillRunDialog`     | `{ open, run, onCancel, onConfirm }` — copy explains the child session is terminated and partial work is lost |
+| `SteerRunDialog`    | `{ open, run, onClose, onSteered }` — multiline message + dedup outcome (deduped or newRunId returned)        |
+| `PermissionsDialog` | `{ open, agentId, config, allAgents, onClose, onSave }` — checkbox grid + allowAny + default model            |
+| `RunOutcomeDialog`  | `{ open, run, onClose }` — pretty-prints the entire `DeckGoSubagentRun`; copy-to-clipboard                    |
+
+## Class naming
+
+Production should keep prototype kebab-case classes:
+
+- `.list-view` / `.kpi-strip` / `.kpi`
+- `.toolbar` / `.toolbar__search` / `.seg` / `.seg__btn`
+- `.row` / `.row--selected` / `.row--permission`
+- `.parent-row` / `.row__id-task` / `.row__perm-policy` / `.row__perm-caps` / `.row__perm-thinking`
+- `.mode-pill` / `.mode-pill--{blocking|background}`
+- `.meta-pill` / `.meta-pill--depth`
+- `.cap-num` / `.time-mono`
+- `.detail` / `.hero` / `.tabs` / `.tab` / `.tab--active`
+- `.section` / `.field-grid` / `.field-row` / `.field-row__label`
+- `.empty-block`
+- `.banner` / `.banner--info`
+- `.tree` / `.tree-children` / `.tree-node` / `.tree-node--{root|selected}` / `.tree-node__main`
+- `.permission-grid` / `.permission-grid--readonly` / `.perm-row` / `.perm-row.is-{active|blocked|readonly|dimmed}`
+- `.timeline` / `.timeline__row--{spawned|started|ended|kill|steer}`
+- `.event-pill` / `.event-pill--{spawned|started|ended|kill|steer}`
+- `.modal-backdrop` / `.modal` / `.modal--{confirm|steer|permissions|raw}`
+- `.install-progress` / `.install-info` / `.install-done`
+- `.input` / `.input--mono` / `.input--multi`
+- `.pill` / `.pill--{ok|warn|err|info|muted}`
+- `.btn` / `.btn--{ghost|primary|danger|danger-ghost}`
+
+## Accessibility
+
+- Run rows: `role="button"`, `tabIndex={0}`, Enter/Space activates.
+- Mode / status / spawn-mode segments: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Detail tabs: same.
+- Tree nodes: `role="treeitem"` + `aria-expanded` (production: prototype renders flat).
+- Modals: `role="dialog"` + `aria-modal="true"` + `aria-label`. Focus trap + Esc close.
+- Status / mode / event pills: always carry text; color is decoration only.
+- Steer textarea labeled with `aria-label="Steering message"`.
+- Permission checkboxes labeled with the peer's name + id; disabled checkboxes (when `allowAny`)
+  carry `aria-disabled="true"` and visual dimming (no announcement contradiction).
+- Live runs in lists / hero use `aria-live="polite"` so status flips are announced.

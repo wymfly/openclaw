@@ -1,93 +1,97 @@
-# subagents - high-fidelity handoff
+# Subagents (Runs + Permissions)
 
-**Status:** `implemented (sha pending-final-commit)`
-**Protocol version:** `protocol-v1`
-**Active visual target:** [`./prototype.html`](./prototype.html)
-**OpenSpec change:** `frontend-subagents-hifi-contract-redesign`
-
-This package defines the visual and interaction target used for the `subagents/`
-module rewrite in `frontend-new`. The previous production panel was functional
-and had useful behavior, but this package is the visual truth for the
-high-fidelity pass. Code and contracts remain the final authority when a handoff
-note drifts.
+**Status**: revised v2 — pending implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (Claude)
+**Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, Tabs, KbdHint, Avatar,
+EmptyState, Input, RadioCard, Checkbox
+**Depends on canonical patterns**: PageShell, SectionHeader, EmptyState
+**Depends on canonical icons**: IconSearch, IconChevronRight/Left/Down, IconCheck, IconX,
+IconAlert, IconInfo, IconRefresh, IconClock, IconActivity, IconStop, IconTarget, IconBranch,
+IconShield, IconCode, IconCopy, IconKbd, IconArrowRight, IconLayers, IconSparkle, IconUser,
+IconKey, IconHash, IconBrain
+**New atoms needed**: none — local prototype molecules (`mode-pill`, `parent-row`, `tree-node`,
+`perm-row`, `cap-num`) all map to existing atoms in production
+**New tokens needed**: none — uses canonical `--ds-*` from
+`frontend-handoff/design-system/tokens.css`
+**Backend endpoints used**: see `api-usage.md` (subagents inventory + lineage + kill / steer +
+per-agent permission config)
 
 ## What this module does
 
-`subagents/` is the operations workbench for child-agent runs created by
-OpenClaw agents. Operators use it to scan active and historical runs, filter by
-child or requester agent, select a run, inspect lineage, steer an active run,
-kill an active run after confirmation, inspect raw payloads, and maintain global
-`agents.defaults.subagents` settings.
+Operational live view of subagent runs + per-agent permission management. Two list modes the
+operator switches between:
 
-The design is compact and work-focused. It repeats the chat/agents/routing
-typography and token posture while keeping subagent run rows, lineage nodes, and
-spawn-default controls local until a separate design-system proposal promotes
-them.
+1. **Runs** (default) — every recent subagent run with status, duration, parent / child agents,
+   model, spawn mode. Live runs sorted to the top. Click any row to inspect the full lineage,
+   outcome JSON, parent permissions, and audit history. Live runs can be **killed** or **steered**
+   from the hero.
+2. **Permissions** — per-parent-agent allow-list configuration. Each row is one configurable
+   parent agent (those that appear in `agents.subagent-config`). Edit opens a modal with checkbox
+   grid + `allowAny` switch + default model.
 
-## Contract truth
-
-Production and mocks must use the current Deck-facing DTOs:
-
-- `DeckGoSubagentRun`
-- `DeckGoSubagentsListResponse`
-- `DeckGoSubagentLineageRoot`
-- `DeckGoSubagentLineageNode`
-- `DeckGoSubagentsLineageResponse`
-- `DeckGoSubagentKillResponse`
-- `DeckGoSubagentSteerResponse`
-- `DeckGoAgentSubagentConfigResponse`
-- `DeckGoConfigSnapshotResponse`
-- `DeckGoConfigApplyResponse`
-
-Endpoint truth:
-
-- `GET /deck/subagents` with optional `status`, `agentId`,
-  `requesterAgentId`, `limit`, and `offset` query filters.
-- `POST /deck/subagents` with action envelopes: `lineage`, `kill`, and
-  `steer`.
-- Global defaults are edited through existing config get/apply wrappers, not a
-  dedicated subagents mutation route.
-
-## Depends on canonical atoms
-
-`Badge`, `Banner`, `Button`, `Card`, `Chip`, `Input`, `Select`,
-`SegmentedControl`, `Spinner`, `Textarea`, and `Toggle` where production fit is
-straightforward.
-
-No canonical atom or token is required by this handoff. Local molecules:
-
-- subagent metric tile
-- run queue row
-- selected run hero
-- lineage node/timeline
-- config defaults grid
-- per-agent permission row
-- action result strip
+Unlike plugins (read-only) or skills (config + hub), subagents has live operational concerns —
+this is the only deck-go panel that can intervene on a running session via Steer + Kill.
 
 ## How to implement
 
-1. Open `prototype.html` and inspect ready, history, config, empty, and error
-   states with the toolbar controls.
-2. Read `api-usage.md` before touching mocks, API wrappers, or backend
-   forwarding.
-3. Translate the prototype into `frontend-new/src/components/panels/subagents/`,
-   preserving existing wrappers, navigation helpers, polling, and confirmation
-   gates.
-4. Keep raw endpoint/action strings inside `frontend-new/src/api.ts` or tests
-   only.
-5. Add mock visual E2E with contract-shaped data and label evidence as mock
-   visual coverage.
-6. Update `implementation-notes.md` with any production divergence and
-   design-system feedback.
+1. Open `prototype.html` in a browser:
+   - **Runs** mode: 14 mock runs covering all 5 statuses (running / succeeded / failed / killed /
+     stalled) + both spawn modes (blocking / background) + depth 1 and 2.
+   - Click any row → Detail (6 tabs). Live runs show Steer + Kill in the hero; ended runs show
+     only Raw.
+   - **Lineage** tab renders the spawn tree (root → children → grandchildren) with the current
+     run highlighted. Clicking a sibling navigates to its detail.
+   - **Permissions** tab shows the parent agent's allow-list (read-only) with an Edit button
+     that opens the same modal as the Permissions list mode.
+   - Switch list mode (top toolbar segmented control) to **Permissions** to see 3 mock parent
+     agent rows; click Edit on any to exercise the dialog.
+   - Tweaks panel exercises every state, every dialog, every tab.
+2. Read `components.md`, `states.md`, `interactions.md`, `api-usage.md` for engineering handoff.
+3. Translate each `.jsx` file to TypeScript at the production target listed in `components.md`.
+   Replace `__fixtures__` mock with real fetch hooks. Keep kebab-case classes verbatim.
 
-## Open questions for follow-up
+## Open questions for Claude Code
 
-- Whether subagent history should support durable server-side pagination beyond
-  the current `limit`/`offset` contract.
-- Whether lineage should expose per-node logs or stream state instead of static
-  nodes.
-- Whether `steer` should return a richer action outcome for UI copy.
-- Whether global subagent defaults should eventually have a typed dedicated BFF
-  route rather than config get/apply.
-- Whether metric tiles, run rows, selected heroes, and section headers should be
-  promoted after agents, routing, and subagents repeat them.
+- **Lineage navigation off-tree.** Lineage renders nodes from `lineageMap[requesterSessionKey]`.
+  When a sibling node references a different session (recursive subagent spawn jumps sessions),
+  the prototype falls back to "navigate by runId" — production needs a `lineageMap[childSessionKey]`
+  fallback too.
+- **Steer dedupKey ergonomics.** Backend may auto-generate `dedupKey`, or the Deck client may
+  pass one in. Prototype shows a server-generated one. Confirm with backend.
+- **Stalled detection.** Prototype models `status: "stalled"` as a backend signal. If the backend
+  emits only a `lastProgressMs`, the deck-go frontend needs to compute stalled itself with a
+  config-driven threshold.
+- **Permissions write path.** `DeckGoAgentSubagentConfigSetResponse` returns `configHash`, so the
+  Edit dialog should pass the previous hash for optimistic locking. Prototype omits this; production
+  must add the `If-Match`-style check + retry on hash mismatch.
+- **Kill cascade.** Killing a parent run leaves its descendants orphaned. Confirm whether backend
+  cascades the kill or if the operator has to walk the lineage manually.
+
+## File inventory (v2)
+
+```
+subagents/
+├── README.md                    ← this file
+├── prototype.html               ← ~30-line shell loading external .jsx via Babel standalone
+├── prototype-v1-codex.html      ← preserved V1 single-file prototype (reference)
+├── app.jsx                      ← App shell + list↔detail routing + 4 dialogs + ⌘K/⌘P/⌘R/Esc
+├── list-view.jsx                ← Two modes (Runs | Permissions) + KPI strip + 8-col runs / 6-col perms
+├── detail-view.jsx              ← Hero + 6 tabs (Overview/Lineage/Outcome/Permissions/Audit/Raw)
+├── dialogs.jsx                  ← KillRunDialog + SteerRunDialog + PermissionsDialog + RunOutcomeDialog
+├── data.js                      ← contract-shaped MOCK with 14 runs + lineage + 3 agent configs + audit
+├── icons.jsx                    ← 25 SVG icons + AgentGlyph (per-agent palette)
+├── styles.css                   ← Linear-inspired, --ds-* tokens only, dark/light + density-aware
+├── tokens.css                   ← mirror copy of canonical tokens
+├── tweaks-panel.jsx             ← shared design-time tooling
+├── components.md                ← production component skeleton + props shapes
+├── states.md                    ← state machine + focus + a11y
+├── interactions.md              ← keyboard / pointer / hover / dialog flows
+├── api-usage.md                 ← endpoint truth + DTO shapes + BFF projections + assumptions
+├── api-discrepancy.md           ← (preserved from V1) backend gap notes
+└── implementation-notes.md      ← (preserved from V1) reverse-flow notes from Claude Code
+```
+
+## Reverse sign-off
+
+(pending Claude Code implementation in `frontend-new/src/components/panels/subagents/`)

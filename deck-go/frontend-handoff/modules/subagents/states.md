@@ -1,51 +1,141 @@
-# subagents states
+# subagents — states
 
-## Ready
+> View routing, list states, detail state, dialog state machines, focus, a11y.
 
-- Runs list loads from `DeckGoSubagentsListResponse`.
-- The first available run is selected if the prior selected run is missing.
-- Lineage loads for the selected run.
-- Header and metrics show ready status, visible count, server total, active
-  count, history count, and selected depth/model.
-- Action result and config result areas are hidden until a mutation completes.
+## View routing
 
-## Loading
+- `view = "list"` → `SubagentsListView`
+- `view = "detail"` → `SubagentsDetailView`
 
-- Header badge switches to loading.
-- Refresh and mutation buttons can show loading copy or disabled state.
-- Existing selected run remains visible until the new request succeeds.
+The list has a **mode** dimension:
 
-## Empty
+- `mode = "runs"` → operational live view (default)
+- `mode = "permissions"` → per-agent allow-list config
 
-- Run queue shows an empty message when no run matches the current filters.
-- Selected-run detail shows a choose-run message.
-- Lineage area shows a select-run message.
-- Empty state does not fabricate example runs.
+Both `selectedRunId` and `selectedPermissionAgent` are preserved across `list↔detail` transitions.
+Switching mode does not lose either.
 
-## Error
+## List states
 
-- Error text appears in a banner near the workbench header.
-- Prior successful data can remain visible if present.
-- Retry uses the same refresh action and does not reset filters.
+| State     | Trigger                             | Renders                                |
+| --------- | ----------------------------------- | -------------------------------------- |
+| `ready`   | inventory fetch resolved with rows  | Toolbar + KPI strip + filtered rows    |
+| `loading` | first fetch or manual refresh       | Spinner + "Loading subagent runs…"     |
+| `error`   | BFF returned 5xx / network fail     | Error icon + retry button              |
+| `empty`   | filter or search produces zero rows | Empty illustration + clear-filter hint |
 
-## Active Run
+### Filters that compose (runs mode)
 
-- Steering is enabled only when the instruction has non-empty trimmed content.
-- Kill is enabled only for `status === "active"`.
-- Kill must remain confirmation-gated.
+- `searchQuery` — free text on runId + childAgentId/Name + requesterAgentId/Name + task + label + model.
+- `filter` — status segmented: `all | running | succeeded | failed | killed | stalled`.
+- `spawnMode` — segmented: `all | blocking | background`.
 
-## Historical Run
+All AND-combined. Live runs (`running` / `stalled`) sort to the top.
 
-- Steering remains available only if backend supports the action for the run.
-  Current production keeps the same wrapper but disables kill for non-active
-  statuses.
-- Historical fields show ended time and outcome payload when available.
+### Permissions mode
 
-## Config
+- Search applies to `agentId` only (since each row is one parent agent).
+- No status / spawn-mode filters (irrelevant pre-spawn).
 
-- Config mode keeps the active-run workflow reachable through the segmented
-  control.
-- Global defaults are loaded from config get.
-- Save uses current hash/base hash and renders the returned apply result.
-- Per-agent permission rows render after `agents.list` and
-  `deck.agents.subagents.get` data are available.
+## Detail states
+
+| State     | Trigger                | Renders                                                                 |
+| --------- | ---------------------- | ----------------------------------------------------------------------- |
+| `ready`   | run found in inventory | Hero + tabs + active tab body                                           |
+| `loading` | refetch initiated      | Hero (cached) + spinner panel below tabs                                |
+| `error`   | BFF projection failed  | Hero (cached) + inline error panel; tab content from inventory still ok |
+
+A missing runId (e.g., user navigated after a refresh removed the run) renders the list view as
+a fallback.
+
+## Per-tab state
+
+| Tab           | Source                                    | Empty fallback                                                                       |
+| ------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| `overview`    | inventory only                            | n/a — overview always renders                                                        |
+| `lineage`     | BFF projection over `requesterSessionKey` | "No lineage projection available yet."                                               |
+| `outcome`     | inventory.outcome                         | running → "Run is still in progress." banner; ended → "No outcome payload recorded." |
+| `permissions` | agentConfigs[run.requesterAgentId]        | "No permission projection for <agentId> yet."                                        |
+| `audit`       | BFF projection                            | "No audit projected for this run yet."                                               |
+| `raw`         | inventory full DTO                        | n/a — always renders JSON                                                            |
+
+## Dialog state machines
+
+### KillRunDialog
+
+Two-button confirm. No internal state.
+
+### SteerRunDialog
+
+```
+idle ─[Send hint]─▶ running ─▶ done (outcome: { deduped | newRunId })
+                              └─▶ user closes
+       ─[Cancel]─▶ closed
+```
+
+State variables: `phase ∈ {idle | running | done}`, `draft` string, `outcome` ({ success,
+dedupKey, deduped?, newRunId? } | null).
+
+### PermissionsDialog
+
+```
+opened ─[Toggle peer]─▶ opened (draft.allowAgents mutated)
+       ─[Toggle allowAny]─▶ opened (draft.allowAny mutated, peer rows dim)
+       ─[Edit model]─▶ opened (draft.model mutated)
+       ─[Save]─▶ saving ─▶ closed (parent applies onSave(draft))
+       ─[Cancel]─▶ closed (draft discarded)
+```
+
+Draft initializes from `config` on every `open` true transition.
+
+### RunOutcomeDialog
+
+Pretty-print + copy-to-clipboard. No internal state besides the copy toast.
+
+## Tweaks panel
+
+Design-time only. Exposes:
+
+- `theme` ∈ `dark | light`
+- `density` ∈ `comfortable | compact`
+- `view` ∈ `list | detail`
+- `mode` ∈ `runs | permissions`
+- `listState` ∈ `ready | loading | error | empty`
+- `selectedRun` (any runId in MOCK)
+- `selectedPermissionAgent` (any agentId in MOCK.agentConfig)
+- `activeTab` ∈ all 6 detail tabs
+- `detailState` ∈ `ready | loading | error`
+- `killOpen` / `steerOpen` / `permissionsOpen` / `outcomeOpen` ∈ booleans
+
+Dropped at production translation.
+
+## Focus
+
+- List view first focusable: search input.
+- After selecting a row → focus moves to back button in detail hero.
+- After dismissing a dialog → focus returns to trigger.
+- Esc:
+  - In dialog → close dialog.
+  - In detail (no dialog) → return to list.
+  - In list → no-op.
+- ⌘K → focus search input.
+- ⌘P → switch to permissions mode.
+- ⌘R → refresh.
+
+## A11y semantics
+
+- Mode / status / spawn-mode segments: `role="tablist"` + `role="tab"` + `aria-selected`.
+- Detail tabs: same.
+- Run rows: `role="button"`, `tabIndex={0}`, Enter/Space activates.
+- Permission rows: not buttons (hover doesn't navigate); the Edit button is independently
+  labeled.
+- Modals: `role="dialog"` + `aria-modal="true"` + `aria-label`. Focus trap + Esc close.
+- Status / mode pills: always carry text; color is decoration only.
+- Live runs in row + hero use `aria-live="polite"` so a status flip from running → succeeded /
+  killed is announced once.
+- Permission checkbox grid: each label wraps the input + name + id; visible focus ring on the
+  label, not the input.
+- Steer textarea labeled with `aria-label="Steering message"`.
+- Tree nodes (lineage tab): production should add `role="treeitem"` + `aria-level` + sequencing
+  via `aria-setsize` / `aria-posinset`. Prototype uses semantic `<div>` with click + keyboard
+  via parent's tab focus.
