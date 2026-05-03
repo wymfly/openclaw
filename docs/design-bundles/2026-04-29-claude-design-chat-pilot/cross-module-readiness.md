@@ -179,9 +179,9 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Sessions panel
 
-**Migration readiness:** Medium — needs `DataTable` + `PaginationBar` + `KeyValueList` + `KpiCard`. Otherwise mostly atom-applies.
+**Migration readiness:** Completed under OpenSpec change `frontend-sessions-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it used local sessions/list/detail/timeline molecules on top of the settled DS atom set.
 
-**Footnote — deprecated patterns:** Subagent rendering (`deck-ui-sessions-subagent` + `SessionSubagentDetails.tsx`) shares structure with chat's SubagentTree atom — verify visual consistency at migration time.
+**Footnote — deprecated patterns:** The old `deck-ui-sessions` global block has been removed. Sessions now uses module-local `sessions-*` classes and `--ds-*` tokens. Subagent rendering still overlaps conceptually with chat's SubagentTree, but the sessions-specific lineage row stays local until a dedicated promotion proposal defines a stable shared API.
 
 ### Logs panel
 
@@ -262,6 +262,18 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 **Configuration/security molecules:** `SecureReadOnlyField` and token action strips are promotion candidates, but they need at least one more security/configuration module before canonicalization. The endpoint test correction is contract behavior, not a design-system pattern: bundled immutable endpoints hide testing because the BFF returns `endpoint_not_mutable`.
 
 **Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, `SectionHeading`, and `ActionResultSeam` now have five module data points. `SecureReadOnlyField` and `TokenActionStrip` are watch items for the next configuration-heavy module.
+
+### Sessions panel
+
+**Status:** in progress under OpenSpec change `frontend-sessions-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The sessions high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, input, select, toggle, code, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** sessions metric tile, inventory row, selected-session hero, runtime stat tile, usage/context timeline row, compaction checkpoint row, lineage relation row, transcript search/export seam, and action/result seam.
+
+**Repeated from prior modules:** metric tile, compact workbench header, section heading, three-region workbench rhythm, selected-detail hero, timeline row, and action/result seam. These are now strong promotion candidates, but remain local until a dedicated design-system proposal defines the API across agents/routing/subagents/logs/settings/sessions.
+
+**Mock visual evidence:** `deck-go/test/e2e/sessions-visual.spec.ts` covers the ready workbench, Markdown export preview, and compact confirmation state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 

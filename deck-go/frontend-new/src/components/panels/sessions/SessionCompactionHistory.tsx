@@ -5,6 +5,7 @@ import {
   fetchCompactionCheckpoints,
   restoreCompactionCheckpoint,
 } from "../../../api";
+import { Badge, Button } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 
 type SessionCompactionHistoryProps = {
@@ -100,57 +101,56 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
   }
 
   return (
-    <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-compaction">
-      <div className="deckgo-pill-row deck-ui-sessions-status-row">
-        <p className="deckgo-surface-label">{t("compactionCheckpoints")}</p>
-        <span className={`deckgo-pill ${loading ? "is-muted" : "is-positive"}`}>
+    <section className="sessions-surface sessions-compaction-panel">
+      <div className="sessions-section-heading">
+        <h3>{t("compactionCheckpoints")}</h3>
+        <Badge variant={loading ? "neutral" : "ok"}>
           {loading ? t("loading") : t("loadedCount", { count: checkpoints.length })}
-        </span>
+        </Badge>
       </div>
-      {error ? <p className="deckgo-note deck-ui-sessions-error">{error}</p> : null}
+      {error ? <p className="sessions-error">{error}</p> : null}
       {actionResult ? (
-        <p className="deckgo-note deck-ui-sessions-meta">
-          {t("lastCompactionAction", { action: actionResult })}
-        </p>
+        <p className="sessions-note">{t("lastCompactionAction", { action: actionResult })}</p>
       ) : null}
       {checkpoints.length === 0 ? (
-        <p className="deckgo-note deck-ui-sessions-empty">{t("noCompactionCheckpoints")}</p>
+        <p className="sessions-empty">{t("noCompactionCheckpoints")}</p>
       ) : (
-        <ul className="deckgo-shell-list deck-ui-sessions-list">
+        <ul className="sessions-list">
           {checkpoints.map((checkpoint) => {
             const saved = savedTokens(checkpoint);
             const isActing = actingCheckpointId === checkpoint.checkpointId;
             return (
-              <li key={checkpoint.checkpointId}>
-                <strong>{checkpoint.reason}</strong>
-                <div className="deckgo-meta deck-ui-sessions-meta">
+              <li className="sessions-timeline-row" key={checkpoint.checkpointId}>
+                <div className="sessions-row-top">
+                  <strong>{checkpoint.reason}</strong>
+                  <Badge>{checkpoint.checkpointId}</Badge>
+                </div>
+                <div className="sessions-meta">
                   {checkpoint.checkpointId} | {formatTimestamp(checkpoint.createdAt)}
                   {saved ? ` | ${t("savedTokensMeta", { tokens: formatTokens(saved) })}` : ""}
                 </div>
-                {checkpoint.summary ? <p className="deckgo-note">{checkpoint.summary}</p> : null}
-                <div className="deckgo-actions deck-ui-sessions-actions">
-                  <button
-                    className="deckgo-button deck-ui-sessions-button"
-                    type="button"
+                {checkpoint.summary ? <p className="sessions-note">{checkpoint.summary}</p> : null}
+                <div className="sessions-actions">
+                  <Button
+                    size="sm"
                     disabled={isActing}
                     onClick={() => void runCheckpointAction(checkpoint.checkpointId, "branch")}
                   >
                     {t("branchCheckpoint", { checkpointId: checkpoint.checkpointId })}
-                  </button>
-                  <button
-                    className="deckgo-button deck-ui-sessions-button"
-                    type="button"
+                  </Button>
+                  <Button
+                    size="sm"
                     disabled={isActing}
                     onClick={() => void runCheckpointAction(checkpoint.checkpointId, "restore")}
                   >
                     {t("restoreCheckpoint", { checkpointId: checkpoint.checkpointId })}
-                  </button>
+                  </Button>
                 </div>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+    </section>
   );
 }

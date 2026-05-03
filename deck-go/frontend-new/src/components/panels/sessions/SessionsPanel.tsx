@@ -33,17 +33,13 @@ import {
 } from "../../../api";
 import { navigateToPanel } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { Badge, Button, Card, Code, Input, Select, Toggle } from "../../../design-system/atoms";
+import type { BadgeVariant } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
-import {
-  JsonDetails,
-  SessionDetailCard,
-  SessionListCard,
-  SessionPreviewCard,
-  ShellStat,
-} from "../../shared/ShellComponents";
 import { SessionCompactionHistory } from "./SessionCompactionHistory";
 import { SessionSubagentDetails, type SessionRelationshipMeta } from "./SessionSubagentDetails";
 import { SessionUsageDetails } from "./SessionUsageDetails";
+import "./sessions-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 
@@ -53,6 +49,15 @@ type RefreshSessionsOptions = {
   currentSessionKey?: string;
 };
 
+type NormalizedHistoryMessages = ReturnType<typeof normalizeTranscriptMessages>;
+type SessionKindFilter = "" | "direct" | "group" | "global" | "subagent";
+type SessionPreview = NonNullable<DeckGoSessionsPreviewResponse["previews"]>[number];
+
+const PREVIEW_LIMIT = 12;
+const SESSION_FETCH_LIMIT = 200;
+const SESSION_PAGE_SIZE = 20;
+const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
+
 function readSessionNavigationTarget() {
   if (typeof window === "undefined") {
     return { sessionKey: "" };
@@ -61,13 +66,6 @@ function readSessionNavigationTarget() {
     sessionKey: new URL(window.location.href).searchParams.get("sessionKey")?.trim() ?? "",
   };
 }
-
-const PREVIEW_LIMIT = 12;
-const SESSION_FETCH_LIMIT = 200;
-const SESSION_PAGE_SIZE = 20;
-const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
-type NormalizedHistoryMessages = ReturnType<typeof normalizeTranscriptMessages>;
-type SessionKindFilter = "" | "direct" | "group" | "global" | "subagent";
 
 function positiveNumber(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
@@ -90,6 +88,18 @@ function formatCost(value: number | undefined) {
   return typeof value === "number" && Number.isFinite(value) && value > 0
     ? `$${value.toFixed(4)}`
     : "n/a";
+}
+
+function formatTimestamp(value?: number) {
+  return value ? new Date(value).toLocaleString() : "n/a";
+}
+
+function formatJson(value: unknown) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
 function sessionTotalTokens(session: DeckGoSessionMeta | null) {
@@ -165,6 +175,59 @@ function isSubagentSession(session: DeckGoSessionMeta | null, sessionKey: string
   return sessionKey.toLowerCase().includes(":subagent:");
 }
 
+function statusVariant(status: string | undefined): BadgeVariant {
+  switch ((status ?? "").toLowerCase()) {
+    case "idle":
+    case "completed":
+    case "ok":
+    case "ready":
+      return "ok";
+    case "running":
+    case "active":
+    case "loading":
+      return "running";
+    case "failed":
+    case "error":
+    case "timeout":
+      return "err";
+    case "warn":
+    case "warning":
+    case "busy":
+      return "warn";
+    default:
+      return "neutral";
+  }
+}
+
+function previewText(preview: SessionPreview | undefined, session: DeckGoSessionMeta) {
+  const previewItems = preview?.items ?? [];
+  const text = previewItems
+    .map((item) => item.text)
+    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .slice(0, 2)
+    .join(" / ");
+  return text || session.lastMessagePreview || "n/a";
+}
+
+function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+  return (
+    <article className="sessions-metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+      {props.hint ? <small>{props.hint}</small> : null}
+    </article>
+  );
+}
+
+function StatTile(props: { label: string; value: string | number }) {
+  return (
+    <div className="sessions-stat">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </div>
+  );
+}
+
 export function SessionsPanel() {
   const t = useTranslations("sessions");
   const ui = useDeckUI();
@@ -237,7 +300,7 @@ export function SessionsPanel() {
         setError(loadError instanceof Error ? loadError.message : t("failedLoadSessions"));
       }
     },
-    [activeMinutesFilter, searchQuery],
+    [activeMinutesFilter, searchQuery, t],
   );
 
   const refreshSelectedSession = useCallback(
@@ -355,6 +418,13 @@ export function SessionsPanel() {
   const selectedTranscriptMatchIndex = transcriptMatchIndices[currentTranscriptMatch] ?? -1;
   const selectedTranscriptMatch =
     selectedTranscriptMatchIndex >= 0 ? transcriptMessages[selectedTranscriptMatchIndex] : null;
+  const previewByKey = useMemo(() => {
+    const map = new Map<string, SessionPreview>();
+    for (const preview of previews?.previews ?? []) {
+      map.set(preview.key, preview);
+    }
+    return map;
+  }, [previews]);
 
   useEffect(() => {
     setCurrentTranscriptMatch(0);
@@ -435,499 +505,614 @@ export function SessionsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-sessions">
-      <div className="deckgo-column deck-ui-sessions-column">
-        <article className="deckgo-card is-float deck-ui-sessions-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("inventoryTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("inventoryDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-sessions-body">
-            <div className="deckgo-pill-row deck-ui-sessions-status-row">
-              <span
-                className={`deckgo-pill ${inventoryState === "ready" ? "is-positive" : "is-muted"}`}
-              >
-                {t("inventoryStatus", { state: t(inventoryState) })}
-              </span>
-              <span
-                className={`deckgo-pill ${detailState === "ready" ? "is-positive" : "is-muted"}`}
-              >
-                {t("detailStatus", { state: t(detailState) })}
-              </span>
-              <span className="deckgo-pill">
-                {t("visibleCount", { count: filteredSessions.length })}
-              </span>
+    <section className="sessions-panel" data-testid="sessions-panel">
+      <header className="sessions-panel__header">
+        <div>
+          <p className="sessions-eyebrow">operations / sessions</p>
+          <h2>Sessions</h2>
+          <p className="sessions-note">{t("inventoryDescription")}</p>
+        </div>
+        <div className="sessions-panel__header-actions">
+          <Badge variant={inventoryState === "ready" ? "ok" : "neutral"}>
+            {t("inventoryStatus", { state: t(inventoryState) })}
+          </Badge>
+          <Badge variant={detailState === "ready" ? "ok" : "neutral"}>
+            {t("detailStatus", { state: t(detailState) })}
+          </Badge>
+          <Badge>{t("visibleCount", { count: filteredSessions.length })}</Badge>
+          <Button
+            size="sm"
+            onClick={() =>
+              void refreshSessionsInventory({
+                preferredSessionKey: selectedSessionKey,
+                preserveSelection: true,
+                currentSessionKey: selectedSessionKey,
+              })
+            }
+          >
+            {t("refreshSessions")}
+          </Button>
+        </div>
+      </header>
+
+      <section className="sessions-metrics" aria-label="Sessions metrics">
+        <MetricTile
+          label={t("inventoryTitle")}
+          value={filteredSessions.length}
+          hint={t("visibleCount", { count: filteredSessions.length })}
+        />
+        <MetricTile
+          label={t("selectedSession")}
+          value={selectedSession?.title || selectedSessionKey || t("na")}
+          hint={selectedSession?.key}
+        />
+        <MetricTile
+          label={t("contextPressure")}
+          value={selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")}
+          hint={`${formatCompactNumber(selectedTotalTokens)} / ${formatCompactNumber(selectedContextTokens)}`}
+        />
+        <MetricTile
+          label={t("estimatedCost")}
+          value={formatCost(selectedSession?.estimatedCostUsd)}
+          hint={t("totalTokens")}
+        />
+        <MetricTile
+          label={t("compactions")}
+          value={selectedSession?.compactionCount ?? 0}
+          hint={selectedIsSubagent ? t("subagentLineage") : t("runtimeMetadata")}
+        />
+      </section>
+
+      <section className="sessions-workbench">
+        <aside className="sessions-column">
+          <Card className="sessions-card" padded={false}>
+            <div className="sessions-card__header">
+              <div>
+                <h3>{t("inventoryTitle")}</h3>
+                <p>{t("detailDescription")}</p>
+              </div>
             </div>
-            <label className="deckgo-label">
-              <span>{t("searchSessions")}</span>
-              <input
-                className="deckgo-input deck-ui-sessions-input"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder={t("searchSessionsPlaceholder")}
-              />
-            </label>
-            <div className="deckgo-grid deckgo-grid-2 deck-ui-sessions-controls">
-              <label className="deckgo-label">
-                <span>{t("sessionType")}</span>
-                <select
-                  aria-label={t("sessionTypeFilter")}
-                  className="deckgo-input deck-ui-sessions-input"
-                  value={sessionKindFilter}
-                  onChange={(event) =>
-                    setSessionKindFilter(event.target.value as SessionKindFilter)
+            <div className="sessions-card__body">
+              <label className="sessions-field">
+                <span>{t("searchSessions")}</span>
+                <Input
+                  className="sessions-input"
+                  inputSize="sm"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder={t("searchSessionsPlaceholder")}
+                />
+              </label>
+              <div className="sessions-controls">
+                <label className="sessions-field">
+                  <span>{t("sessionType")}</span>
+                  <Select
+                    aria-label={t("sessionTypeFilter")}
+                    className="sessions-select"
+                    selectSize="sm"
+                    value={sessionKindFilter}
+                    onChange={(event) =>
+                      setSessionKindFilter(event.target.value as SessionKindFilter)
+                    }
+                  >
+                    <option value="">{t("allTypes")}</option>
+                    <option value="direct">{t("directValue")}</option>
+                    <option value="group">{t("groupValue")}</option>
+                    <option value="global">{t("globalValue")}</option>
+                    <option value="subagent">{t("subagentValue")}</option>
+                  </Select>
+                </label>
+                <label className="sessions-field">
+                  <span>{t("activeWindow")}</span>
+                  <Select
+                    aria-label={t("activeMinutesFilter")}
+                    className="sessions-select"
+                    selectSize="sm"
+                    value={activeMinutesFilter}
+                    onChange={(event) => setActiveMinutesFilter(event.target.value)}
+                  >
+                    <option value="">{t("allTime")}</option>
+                    <option value="5">{t("last5m")}</option>
+                    <option value="60">{t("last1h")}</option>
+                    <option value="1440">{t("last24h")}</option>
+                  </Select>
+                </label>
+              </div>
+              <div className="sessions-actions">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void refreshSessionsInventory({
+                      preferredSessionKey: selectedSessionKey,
+                      preserveSelection: true,
+                      currentSessionKey: selectedSessionKey,
+                    })
                   }
                 >
-                  <option value="">{t("allTypes")}</option>
-                  <option value="direct">{t("directValue")}</option>
-                  <option value="group">{t("groupValue")}</option>
-                  <option value="global">{t("globalValue")}</option>
-                  <option value="subagent">{t("subagentValue")}</option>
-                </select>
-              </label>
-              <label className="deckgo-label">
-                <span>{t("activeWindow")}</span>
-                <select
-                  aria-label={t("activeMinutesFilter")}
-                  className="deckgo-input deck-ui-sessions-input"
-                  value={activeMinutesFilter}
-                  onChange={(event) => setActiveMinutesFilter(event.target.value)}
+                  {t("refreshSessions")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void refreshSelectedSession(selectedSessionKey)}
+                  disabled={!selectedSessionKey.trim()}
                 >
-                  <option value="">{t("allTime")}</option>
-                  <option value="5">{t("last5m")}</option>
-                  <option value="60">{t("last1h")}</option>
-                  <option value="1440">{t("last24h")}</option>
-                </select>
-              </label>
-            </div>
-            <div className="deckgo-actions deck-ui-sessions-actions">
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() =>
-                  void refreshSessionsInventory({
-                    preferredSessionKey: selectedSessionKey,
-                    preserveSelection: true,
-                    currentSessionKey: selectedSessionKey,
+                  {t("refreshDetail")}
+                </Button>
+              </div>
+              <ul className="sessions-list sessions-inventory-list">
+                {pagedSessions.length === 0 ? (
+                  <li className="sessions-empty">{t("noActiveSession")}</li>
+                ) : (
+                  pagedSessions.map((session) => {
+                    const selected = session.key === selectedSessionKey;
+                    const preview = previewByKey.get(session.key);
+                    return (
+                      <li key={session.key}>
+                        <button
+                          className={`sessions-inventory-row${selected ? " is-selected" : ""}`}
+                          type="button"
+                          onClick={() => onSelectSession(session)}
+                        >
+                          <span className="sessions-row-top">
+                            <strong>{session.title || session.label || session.key}</strong>
+                            <Badge variant={statusVariant(session.status)}>{session.status}</Badge>
+                          </span>
+                          <span className="sessions-meta">
+                            {session.agentId || t("na")} | {session.modelProvider || t("na")}/
+                            {session.model || t("na")} | {inferSessionKind(session)}
+                          </span>
+                          <span className="sessions-note">
+                            {session.lastMessagePreview || "n/a"}
+                          </span>
+                          <span className="sessions-meta">{previewText(preview, session)}</span>
+                          <span className="sessions-meta">
+                            {formatTimestamp(session.updatedAt)}
+                          </span>
+                        </button>
+                      </li>
+                    );
                   })
-                }
-              >
-                {t("refreshSessions")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() => void refreshSelectedSession(selectedSessionKey)}
-                disabled={!selectedSessionKey.trim()}
-              >
-                {t("refreshDetail")}
-              </button>
-            </div>
-            <div className="deck-ui-sessions-list-shell">
-              <SessionListCard
-                sessions={pagedSessions}
-                selectedKey={selectedSessionKey}
-                onSelect={onSelectSession}
-              />
-            </div>
-            <div className="deckgo-actions deck-ui-sessions-actions deck-ui-sessions-pagination">
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                disabled={sessionPage <= 1}
-                onClick={() => setSessionPage((current) => Math.max(1, current - 1))}
-                type="button"
-              >
-                {t("previousPage")}
-              </button>
-              <span className="deckgo-note">
-                {t("pageOf", { page: sessionPage, total: totalSessionPages })}
-              </span>
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                disabled={sessionPage >= totalSessionPages}
-                onClick={() =>
-                  setSessionPage((current) => Math.min(totalSessionPages, current + 1))
-                }
-                type="button"
-              >
-                {t("nextPage")}
-              </button>
-            </div>
-            <details>
-              <summary>{t("previewOverlays")}</summary>
-              <div className="deck-ui-sessions-preview-shell">
-                <SessionPreviewCard
-                  previews={previews?.previews ?? []}
-                  selectedKey={selectedSessionKey}
-                  onSelect={(preview) => setSelectedSessionKey(preview.key)}
-                />
+                )}
+              </ul>
+              <div className="sessions-actions sessions-pagination">
+                <Button
+                  size="sm"
+                  disabled={sessionPage <= 1}
+                  onClick={() => setSessionPage((current) => Math.max(1, current - 1))}
+                >
+                  {t("previousPage")}
+                </Button>
+                <span className="sessions-note">
+                  {t("pageOf", { page: sessionPage, total: totalSessionPages })}
+                </span>
+                <Button
+                  size="sm"
+                  disabled={sessionPage >= totalSessionPages}
+                  onClick={() =>
+                    setSessionPage((current) => Math.min(totalSessionPages, current + 1))
+                  }
+                >
+                  {t("nextPage")}
+                </Button>
               </div>
-            </details>
-          </div>
-        </article>
-      </div>
+            </div>
+          </Card>
+        </aside>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-sessions-column deck-ui-sessions-detail-column">
-        <article className="deckgo-card is-float deck-ui-sessions-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("detailTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("detailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-sessions-body">
-            <div className="deckgo-panel-hero-strip deck-ui-sessions-hero">
+        <section className="sessions-column sessions-column--detail">
+          <Card className="sessions-card" padded={false}>
+            <div className="sessions-card__header">
               <div>
-                <p className="deckgo-kicker">{t("selectedSession")}</p>
-                <strong>
-                  {selectedSession?.title || selectedSessionKey || t("noActiveSession")}
-                </strong>
-                <p className="deckgo-note">
-                  {t("agentStatusLine", {
-                    agent: selectedSession?.agentId || t("na"),
-                    status: selectedSession?.status || t("unknown"),
-                  })}
-                </p>
+                <h3>{t("detailTitle")}</h3>
+                <p>{t("detailDescription")}</p>
               </div>
-              <div className="deckgo-pill-row deck-ui-sessions-status-row">
-                <span className="deckgo-pill">
-                  {t("historyMessages", { count: history?.messages?.length ?? 0 })}
-                </span>
-                {selectedIsSubagent ? (
-                  <span
-                    className={`deckgo-pill ${lineageState === "ready" ? "is-positive" : "is-muted"}`}
-                  >
-                    {t("lineageStatus", { state: t(lineageState) })}
-                  </span>
-                ) : null}
-                <span className="deckgo-pill">
-                  {t("runtimeValue", {
-                    value:
-                      selectedSession?.runtimeMs != null
-                        ? t("milliseconds", { value: selectedSession.runtimeMs })
-                        : t("na"),
-                  })}
-                </span>
-                {selectedContextPressure != null ? (
-                  <span className="deckgo-pill">
-                    {t("contextPercent", { percent: selectedContextPressure })}
-                  </span>
-                ) : null}
-              </div>
+              <Badge variant={detailState === "ready" ? "ok" : "neutral"}>
+                {t("detailStatus", { state: t(detailState) })}
+              </Badge>
             </div>
-            {selectedSession ? (
-              <div className="deckgo-surface-tile deck-ui-sessions-surface">
-                <p className="deckgo-surface-label">{t("runtimeMetadata")}</p>
-                <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
-                  <ShellStat
-                    label={t("inputTokens")}
-                    value={formatCompactNumber(positiveNumber(selectedSession.inputTokens))}
-                  />
-                  <ShellStat
-                    label={t("outputTokens")}
-                    value={formatCompactNumber(positiveNumber(selectedSession.outputTokens))}
-                  />
-                  <ShellStat
-                    label={t("totalTokens")}
-                    value={formatCompactNumber(selectedTotalTokens)}
-                  />
-                  <ShellStat
-                    label={t("contextWindow")}
-                    value={formatCompactNumber(selectedContextTokens)}
-                  />
-                  <ShellStat
-                    label={t("contextPressure")}
-                    value={
-                      selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")
-                    }
-                  />
-                  <ShellStat
-                    label={t("estimatedCost")}
-                    value={formatCost(selectedSession.estimatedCostUsd)}
-                  />
+            <div className="sessions-card__body">
+              <section className="sessions-surface sessions-hero">
+                <div className="sessions-section-heading">
+                  <div>
+                    <p className="sessions-eyebrow">{t("selectedSession")}</p>
+                    <h3>{selectedSession?.title || selectedSessionKey || t("noActiveSession")}</h3>
+                    <p className="sessions-note">
+                      {t("agentStatusLine", {
+                        agent: selectedSession?.agentId || t("na"),
+                        status: selectedSession?.status || t("unknown"),
+                      })}
+                    </p>
+                  </div>
+                  <div className="sessions-status-row">
+                    <Badge>{t("historyMessages", { count: history?.messages?.length ?? 0 })}</Badge>
+                    {selectedIsSubagent ? (
+                      <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
+                        {t("lineageStatus", { state: t(lineageState) })}
+                      </Badge>
+                    ) : null}
+                    <Badge>
+                      {t("runtimeValue", {
+                        value:
+                          selectedSession?.runtimeMs != null
+                            ? t("milliseconds", { value: selectedSession.runtimeMs })
+                            : t("na"),
+                      })}
+                    </Badge>
+                    {selectedContextPressure != null ? (
+                      <Badge>{t("contextPercent", { percent: selectedContextPressure })}</Badge>
+                    ) : null}
+                  </div>
                 </div>
-                <p className="deckgo-note">
-                  {t("thinkingFastMode", {
-                    fastMode: selectedSession.fastMode ? t("on") : t("off"),
-                    thinking: selectedSession.thinkingLevel || t("off"),
-                  })}
-                </p>
-              </div>
-            ) : null}
-            {selectedSessionKey ? (
-              <SessionUsageDetails
-                compactionCount={selectedSession?.compactionCount}
-                sessionKey={selectedSessionKey}
+              </section>
+
+              {selectedSession ? (
+                <section className="sessions-surface">
+                  <div className="sessions-section-heading">
+                    <h3>{t("runtimeMetadata")}</h3>
+                    <Badge variant={statusVariant(selectedSession.status)}>
+                      {selectedSession.status || t("unknown")}
+                    </Badge>
+                  </div>
+                  <div className="sessions-stat-grid">
+                    <StatTile
+                      label={t("inputTokens")}
+                      value={formatCompactNumber(positiveNumber(selectedSession.inputTokens))}
+                    />
+                    <StatTile
+                      label={t("outputTokens")}
+                      value={formatCompactNumber(positiveNumber(selectedSession.outputTokens))}
+                    />
+                    <StatTile
+                      label={t("totalTokens")}
+                      value={formatCompactNumber(selectedTotalTokens)}
+                    />
+                    <StatTile
+                      label={t("contextWindow")}
+                      value={formatCompactNumber(selectedContextTokens)}
+                    />
+                    <StatTile
+                      label={t("contextPressure")}
+                      value={
+                        selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")
+                      }
+                    />
+                    <StatTile
+                      label={t("estimatedCost")}
+                      value={formatCost(selectedSession.estimatedCostUsd)}
+                    />
+                  </div>
+                  <p className="sessions-note">
+                    {t("thinkingFastMode", {
+                      fastMode: selectedSession.fastMode ? t("on") : t("off"),
+                      thinking: selectedSession.thinkingLevel || t("off"),
+                    })}
+                  </p>
+                </section>
+              ) : null}
+
+              {selectedSessionKey ? (
+                <SessionUsageDetails
+                  compactionCount={selectedSession?.compactionCount}
+                  sessionKey={selectedSessionKey}
+                />
+              ) : null}
+              {selectedSessionKey ? (
+                <SessionCompactionHistory
+                  compactionCount={selectedSession?.compactionCount}
+                  sessionKey={selectedSessionKey}
+                />
+              ) : null}
+              <SessionSubagentDetails
+                childSessionKeys={childSessionKeys}
+                isSubagent={selectedIsSubagent}
+                lineage={lineage}
+                lineageState={lineageState}
+                onOpenSubagents={() => navigateToPanel(ui, "subagents")}
+                onSelectSessionKey={setSelectedSessionKey}
+                parentSessionKey={parentSessionKey}
+                relationships={selectedSessionRelationships}
               />
-            ) : null}
-            {selectedSessionKey ? (
-              <SessionCompactionHistory
-                compactionCount={selectedSession?.compactionCount}
-                sessionKey={selectedSessionKey}
-              />
-            ) : null}
-            <SessionSubagentDetails
-              childSessionKeys={childSessionKeys}
-              isSubagent={selectedIsSubagent}
-              lineage={lineage}
-              lineageState={lineageState}
-              onOpenSubagents={() => navigateToPanel(ui, "subagents")}
-              onSelectSessionKey={setSelectedSessionKey}
-              parentSessionKey={parentSessionKey}
-              relationships={selectedSessionRelationships}
-            />
-            <div className="deckgo-surface-tile deck-ui-sessions-surface">
-              <p className="deckgo-surface-label">{t("transcriptSearchExport")}</p>
-              <div className="deckgo-grid">
-                <input
-                  className="deckgo-input deck-ui-sessions-input"
+
+              <section className="sessions-surface">
+                <div className="sessions-section-heading">
+                  <h3>{t("transcriptSearchExport")}</h3>
+                  <Badge>
+                    {transcriptSearchQuery.trim() && transcriptMatchIndices.length > 0
+                      ? t("matchOf", {
+                          current: currentTranscriptMatch + 1,
+                          total: transcriptMatchIndices.length,
+                        })
+                      : t("historyMessages", { count: transcriptMessages.length })}
+                  </Badge>
+                </div>
+                <Input
+                  className="sessions-input"
+                  inputSize="sm"
                   value={transcriptSearchQuery}
                   onChange={(event) => setTranscriptSearchQuery(event.target.value)}
                   placeholder={t("searchTranscriptPlaceholder")}
                 />
-              </div>
-              <div className="deckgo-actions deck-ui-sessions-actions deck-ui-sessions-actions-offset">
-                <button
-                  className="deckgo-button deck-ui-sessions-button"
-                  type="button"
-                  onClick={() => moveTranscriptMatch(-1)}
-                  disabled={transcriptMatchIndices.length === 0}
-                >
-                  {t("previousMatch")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-sessions-button"
-                  type="button"
-                  onClick={() => moveTranscriptMatch(1)}
-                  disabled={transcriptMatchIndices.length === 0}
-                >
-                  {t("nextMatch")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-sessions-button"
-                  type="button"
-                  onClick={() => prepareExport("json")}
-                  disabled={!selectedSession || transcriptMessages.length === 0}
-                >
-                  {t("exportJson")}
-                </button>
-                <button
-                  className="deckgo-button deck-ui-sessions-button"
-                  type="button"
-                  onClick={() => prepareExport("markdown")}
-                  disabled={!selectedSession || transcriptMessages.length === 0}
-                >
-                  {t("exportMarkdown")}
-                </button>
-              </div>
-              <p className="deckgo-note">
-                {transcriptSearchQuery.trim()
-                  ? transcriptMatchIndices.length > 0
-                    ? t("matchOf", {
-                        current: currentTranscriptMatch + 1,
-                        total: transcriptMatchIndices.length,
-                      })
-                    : t("noTranscriptMatches")
-                  : t("searchPrompt")}
-              </p>
-              {selectedTranscriptMatch ? (
-                <pre className="deckgo-code deck-ui-sessions-code">
-                  {transcriptMessageToPlainText(selectedTranscriptMatch)}
-                </pre>
-              ) : null}
-              {exportPreview ? (
-                <details open>
-                  <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
-                  <pre className="deckgo-code deck-ui-sessions-code">{exportPreview.text}</pre>
-                </details>
-              ) : null}
+                <div className="sessions-actions">
+                  <Button
+                    size="sm"
+                    onClick={() => moveTranscriptMatch(-1)}
+                    disabled={transcriptMatchIndices.length === 0}
+                  >
+                    {t("previousMatch")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => moveTranscriptMatch(1)}
+                    disabled={transcriptMatchIndices.length === 0}
+                  >
+                    {t("nextMatch")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => prepareExport("json")}
+                    disabled={!selectedSession || transcriptMessages.length === 0}
+                  >
+                    {t("exportJson")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => prepareExport("markdown")}
+                    disabled={!selectedSession || transcriptMessages.length === 0}
+                  >
+                    {t("exportMarkdown")}
+                  </Button>
+                </div>
+                <p className="sessions-note">
+                  {transcriptSearchQuery.trim()
+                    ? transcriptMatchIndices.length > 0
+                      ? t("matchOf", {
+                          current: currentTranscriptMatch + 1,
+                          total: transcriptMatchIndices.length,
+                        })
+                      : t("noTranscriptMatches")
+                    : t("searchPrompt")}
+                </p>
+                {selectedTranscriptMatch ? (
+                  <Code
+                    aria-label="Selected transcript match"
+                    className="sessions-code"
+                    content={transcriptMessageToPlainText(selectedTranscriptMatch)}
+                  />
+                ) : null}
+                {exportPreview ? (
+                  <details className="sessions-export-preview" open>
+                    <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
+                    <Code
+                      aria-label={t("preparedExport", { format: exportPreview.format })}
+                      className="sessions-code"
+                      content={exportPreview.text}
+                      language={exportPreview.format}
+                    />
+                  </details>
+                ) : null}
+                {transcriptMessages.length > 0 ? (
+                  <ul className="sessions-list sessions-transcript-list">
+                    {transcriptMessages.slice(0, 8).map((message, index) => (
+                      <li
+                        className={
+                          index === selectedTranscriptMatchIndex
+                            ? "sessions-transcript-row is-selected"
+                            : "sessions-transcript-row"
+                        }
+                        key={message.id ?? index}
+                      >
+                        <strong>{message.role ?? t("message")}</strong>
+                        <p className="sessions-note">{transcriptMessageToPlainText(message)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="sessions-empty">{t("noSessionUsageLogs")}</p>
+                )}
+              </section>
             </div>
-            <div className="deck-ui-sessions-detail-shell">
-              <SessionDetailCard detail={detail} snapshot={null} history={history} />
-            </div>
-          </div>
-        </article>
-      </div>
+          </Card>
+        </section>
 
-      <aside className="deckgo-column deck-ui-sessions-column deck-ui-sessions-action-column">
-        <article className="deckgo-card deck-ui-sessions-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("actionsTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("actionsDescription")}</p>
-          <div className="deckgo-card-body deckgo-form-grid deck-ui-sessions-body">
-            <label className="deckgo-label">
-              <span>{t("modelOverride")}</span>
-              <input
-                className="deckgo-input deck-ui-sessions-input"
-                value={modelOverride}
-                onChange={(event) => setModelOverride(event.target.value)}
-                placeholder={t("modelPlaceholder")}
-              />
-            </label>
-            <label className="deckgo-label">
-              <span>{t("sessionLabel")}</span>
-              <input
-                className="deckgo-input deck-ui-sessions-input"
-                value={labelOverride}
-                onChange={(event) => setLabelOverride(event.target.value)}
-                placeholder={t("labelPlaceholder")}
-              />
-            </label>
-            <div className="deckgo-grid deckgo-grid-2 deck-ui-sessions-controls">
-              <label className="deckgo-label">
-                <span>{t("thinkingLevel")}</span>
-                <select
-                  aria-label={t("sessionThinkingLevel")}
-                  className="deckgo-input deck-ui-sessions-input"
-                  value={thinkingOverride}
-                  onChange={(event) => setThinkingOverride(event.target.value)}
-                >
-                  {THINKING_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="deckgo-label">
-                <span>{t("fastMode")}</span>
-                <input
-                  aria-label={t("sessionFastMode")}
-                  checked={fastModeOverride}
-                  onChange={(event) => setFastModeOverride(event.target.checked)}
-                  type="checkbox"
+        <aside className="sessions-column sessions-column--actions">
+          <Card className="sessions-card" padded={false}>
+            <div className="sessions-card__header">
+              <div>
+                <h3>{t("actionsTitle")}</h3>
+                <p>{t("actionsDescription")}</p>
+              </div>
+            </div>
+            <div className="sessions-card__body">
+              <label className="sessions-field">
+                <span>{t("modelOverride")}</span>
+                <Input
+                  className="sessions-input"
+                  inputSize="sm"
+                  value={modelOverride}
+                  onChange={(event) => setModelOverride(event.target.value)}
+                  placeholder={t("modelPlaceholder")}
                 />
               </label>
-            </div>
-            <div className="deckgo-actions deck-ui-sessions-actions">
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() =>
-                  void runAction(() =>
-                    resetSession({ sessionKey: selectedSessionKey, reason: "reset" }),
-                  )
-                }
-                disabled={!selectedSessionKey.trim()}
-              >
-                {t("resetSession")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() =>
-                  void runAction(() => clearSession({ sessionKey: selectedSessionKey }))
-                }
-                disabled={!selectedSessionKey.trim()}
-              >
-                {t("clearSession")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button is-primary"
-                type="button"
-                onClick={() =>
-                  void runAction(() =>
-                    patchSession({
-                      sessionKey: selectedSessionKey,
-                      model: modelOverride.trim(),
-                    }),
-                  )
-                }
-                disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
-              >
-                {t("patchModel")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() =>
-                  void runAction(() =>
-                    patchSession({
-                      sessionKey: selectedSessionKey,
-                      label: labelOverride.trim() || null,
-                      thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
-                      fastMode: fastModeOverride,
-                    }),
-                  )
-                }
-                disabled={!selectedSessionKey.trim()}
-              >
-                {t("patchDirectives")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button"
-                type="button"
-                onClick={() => {
-                  if (!compactConfirming) {
-                    setCompactConfirming(true);
-                    setDeleteConfirming(false);
-                    return;
-                  }
-                  setCompactConfirming(false);
-                  void runAction(async () => {
-                    const response = await compactChatSession(selectedSessionKey);
-                    return {
-                      ok: response.ok,
-                      status: response.status,
-                      key: selectedSessionKey,
-                      action: "compact",
-                    };
-                  });
-                }}
-                disabled={!selectedSessionKey.trim()}
-              >
-                {compactConfirming ? t("confirmCompact") : t("compactSession")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-sessions-button is-danger"
-                type="button"
-                onClick={() => {
-                  if (!deleteConfirming) {
-                    setDeleteConfirming(true);
-                    setCompactConfirming(false);
-                    return;
-                  }
-                  setDeleteConfirming(false);
-                  void runAction(
-                    () =>
-                      deleteSession({
-                        sessionKey: selectedSessionKey,
-                        agentId: selectedSession?.agentId ?? null,
-                      }),
-                    { preserveSelectedSession: false },
-                  );
-                }}
-                disabled={!selectedSessionKey.trim()}
-              >
-                {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
-              </button>
-            </div>
-            {selectedSession ? (
-              <div className="deckgo-surface-tile deck-ui-sessions-surface">
-                <p className="deckgo-surface-label">{t("metadata")}</p>
-                <strong>{selectedSession.key}</strong>
-                <p className="deckgo-note">
-                  {t("providerModelLine", {
-                    model: selectedSession.model || t("na"),
-                    provider: selectedSession.modelProvider || t("na"),
-                  })}
-                </p>
+              <label className="sessions-field">
+                <span>{t("sessionLabel")}</span>
+                <Input
+                  className="sessions-input"
+                  inputSize="sm"
+                  value={labelOverride}
+                  onChange={(event) => setLabelOverride(event.target.value)}
+                  placeholder={t("labelPlaceholder")}
+                />
+              </label>
+              <div className="sessions-controls">
+                <label className="sessions-field">
+                  <span>{t("thinkingLevel")}</span>
+                  <Select
+                    aria-label={t("sessionThinkingLevel")}
+                    className="sessions-select"
+                    selectSize="sm"
+                    value={thinkingOverride}
+                    onChange={(event) => setThinkingOverride(event.target.value)}
+                  >
+                    {THINKING_LEVELS.map((level) => (
+                      <option key={level} value={level}>
+                        {level}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label className="sessions-field">
+                  <span>{t("fastMode")}</span>
+                  <span className="sessions-toggle-field">
+                    <Toggle
+                      aria-label={t("sessionFastMode")}
+                      checked={fastModeOverride}
+                      onCheckedChange={setFastModeOverride}
+                    />
+                    <strong>{fastModeOverride ? t("on") : t("off")}</strong>
+                  </span>
+                </label>
               </div>
-            ) : null}
-            {error ? <p className="deckgo-note deck-ui-sessions-error">{error}</p> : null}
-          </div>
-        </article>
+              <div className="sessions-actions">
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void runAction(() =>
+                      resetSession({ sessionKey: selectedSessionKey, reason: "reset" }),
+                    )
+                  }
+                  disabled={!selectedSessionKey.trim()}
+                >
+                  {t("resetSession")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void runAction(() => clearSession({ sessionKey: selectedSessionKey }))
+                  }
+                  disabled={!selectedSessionKey.trim()}
+                >
+                  {t("clearSession")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() =>
+                    void runAction(() =>
+                      patchSession({
+                        sessionKey: selectedSessionKey,
+                        model: modelOverride.trim(),
+                      }),
+                    )
+                  }
+                  disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
+                >
+                  {t("patchModel")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    void runAction(() =>
+                      patchSession({
+                        sessionKey: selectedSessionKey,
+                        label: labelOverride.trim() || null,
+                        thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
+                        fastMode: fastModeOverride,
+                      }),
+                    )
+                  }
+                  disabled={!selectedSessionKey.trim()}
+                >
+                  {t("patchDirectives")}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    if (!compactConfirming) {
+                      setCompactConfirming(true);
+                      setDeleteConfirming(false);
+                      return;
+                    }
+                    setCompactConfirming(false);
+                    void runAction(async () => {
+                      const response = await compactChatSession(selectedSessionKey);
+                      return {
+                        ok: response.ok,
+                        status: response.status,
+                        key: selectedSessionKey,
+                        action: "compact",
+                      };
+                    });
+                  }}
+                  disabled={!selectedSessionKey.trim()}
+                >
+                  {compactConfirming ? t("confirmCompact") : t("compactSession")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => {
+                    if (!deleteConfirming) {
+                      setDeleteConfirming(true);
+                      setCompactConfirming(false);
+                      return;
+                    }
+                    setDeleteConfirming(false);
+                    void runAction(
+                      () =>
+                        deleteSession({
+                          sessionKey: selectedSessionKey,
+                          agentId: selectedSession?.agentId ?? null,
+                        }),
+                      { preserveSelectedSession: false },
+                    );
+                  }}
+                  disabled={!selectedSessionKey.trim()}
+                >
+                  {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
+                </Button>
+              </div>
+              {selectedSession ? (
+                <section className="sessions-surface">
+                  <div className="sessions-section-heading">
+                    <h3>{t("metadata")}</h3>
+                    <Badge variant={statusVariant(selectedSession.status)}>
+                      {selectedSession.status || t("unknown")}
+                    </Badge>
+                  </div>
+                  <strong>{selectedSession.key}</strong>
+                  <p className="sessions-note">
+                    {t("providerModelLine", {
+                      model: selectedSession.model || t("na"),
+                      provider: selectedSession.modelProvider || t("na"),
+                    })}
+                  </p>
+                </section>
+              ) : null}
+              {error ? <p className="sessions-error">{error}</p> : null}
+            </div>
+          </Card>
 
-        {actionResult ? (
-          <article className="deckgo-card deck-ui-sessions-card">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("latestAction")}</h2>
-            </div>
-            <div className="deckgo-card-body">
-              <JsonDetails title={t("actionResultTitle")} payload={actionResult} />
-            </div>
-          </article>
-        ) : null}
-      </aside>
+          {actionResult ? (
+            <Card className="sessions-card sessions-action-result" padded={false}>
+              <div className="sessions-card__header">
+                <div>
+                  <h3>{t("latestAction")}</h3>
+                  <p>{t("actionResultTitle")}</p>
+                </div>
+              </div>
+              <div className="sessions-card__body">
+                <Code
+                  aria-label={t("actionResultTitle")}
+                  className="sessions-code"
+                  content={formatJson(actionResult)}
+                  language="json"
+                />
+              </div>
+            </Card>
+          ) : null}
+        </aside>
+      </section>
     </section>
   );
 }

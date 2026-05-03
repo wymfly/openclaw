@@ -335,14 +335,12 @@ describe("SessionsPanel", () => {
     });
     expect(container.textContent).toContain("Inventory ready");
     expect(container.textContent).toContain("Detail ready");
-    expect(container.querySelector(".deck-ui-sessions")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-sessions-card").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".deck-ui-sessions-surface").length).toBeGreaterThanOrEqual(
-      5,
-    );
-    expect(container.querySelectorAll(".deck-ui-sessions-input").length).toBeGreaterThanOrEqual(6);
-    expect(container.querySelector(".deck-ui-sessions-list-shell")).not.toBeNull();
-    expect(container.querySelector(".deck-ui-sessions-hero")).not.toBeNull();
+    expect(container.querySelector(".sessions-panel")).not.toBeNull();
+    expect(container.querySelectorAll(".sessions-card").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".sessions-surface").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".sessions-input").length).toBeGreaterThanOrEqual(4);
+    expect(container.querySelector(".sessions-inventory-list")).not.toBeNull();
+    expect(container.querySelector(".sessions-hero")).not.toBeNull();
     expect(container.textContent).toContain("2 visible");
     expect(container.textContent).toContain("Main Session");
     expect(container.textContent).toContain("hello from main");
@@ -651,16 +649,16 @@ describe("SessionsPanel", () => {
     const thinkingSelect = container.querySelector<HTMLSelectElement>(
       'select[aria-label="Session thinking level"]',
     );
-    const fastModeCheckbox = container.querySelector<HTMLInputElement>(
-      'input[aria-label="Session fast mode"]',
+    const fastModeToggle = container.querySelector<HTMLButtonElement>(
+      'button[aria-label="Session fast mode"]',
     );
     expect(modelInput).toBeTruthy();
     expect(labelInput).toBeTruthy();
     expect(thinkingSelect).toBeTruthy();
-    expect(fastModeCheckbox).toBeTruthy();
+    expect(fastModeToggle).toBeTruthy();
     expect(labelInput?.value).toBe("Main Label");
     expect(thinkingSelect?.value).toBe("low");
-    expect(fastModeCheckbox?.checked).toBe(true);
+    expect(fastModeToggle?.getAttribute("aria-checked")).toBe("true");
 
     await act(async () => {
       fireEvent.change(modelInput as HTMLInputElement, { target: { value: " cpa/gpt-5.5 " } });
@@ -682,7 +680,7 @@ describe("SessionsPanel", () => {
     await act(async () => {
       fireEvent.change(labelInput as HTMLInputElement, { target: { value: " Updated Label " } });
       fireEvent.change(thinkingSelect as HTMLSelectElement, { target: { value: "high" } });
-      fireEvent.click(fastModeCheckbox as HTMLInputElement);
+      fireEvent.click(fastModeToggle as HTMLButtonElement);
     });
     await act(async () => {
       Array.from(container.querySelectorAll("button"))

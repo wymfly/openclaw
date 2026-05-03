@@ -110,6 +110,85 @@ function defaultMethods() {
       status: "timeout",
     },
   ];
+  const sessionFixtures = [
+    {
+      key: "session:mock:1",
+      kind: "direct",
+      agentId: "main",
+      label: "Main Label",
+      title: "Main Session",
+      updatedAt: now - 18_000,
+      lastMessagePreview: "hello from main",
+      status: "idle",
+      runtimeMs: 123,
+      model: "gpt-5.4",
+      modelProvider: "openai",
+      thinkingLevel: "low",
+      fastMode: true,
+      inputTokens: 120,
+      outputTokens: 80,
+      totalTokens: 200,
+      totalTokensFresh: true,
+      contextTokens: 1000,
+      estimatedCostUsd: 0.25,
+      compactionCount: 2,
+    },
+    {
+      key: "agent:builder:web-root",
+      kind: "subagent",
+      agentId: "builder",
+      title: "Builder Session",
+      updatedAt: now - 36_000,
+      lastMessagePreview: "build preview",
+      status: "running",
+      runtimeMs: 456,
+      model: "sonnet-4.6",
+      modelProvider: "anthropic",
+      parentSessionKey: "session:mock:1",
+      childSessions: ["agent:reviewer:web-review"],
+      subagentRole: "leaf",
+      subagentControlScope: "children",
+      spawnedWorkspaceDir: "/tmp/openclaw-subagent",
+    },
+  ];
+  const sessionMessages = {
+    "session:mock:1": [
+      {
+        id: "history-session-mock-1",
+        role: "user",
+        content: [{ type: "text", text: "history session:mock:1" }],
+      },
+      {
+        id: "assistant-session-mock-1",
+        role: "assistant",
+        content: [{ type: "text", text: "Main session is ready for export and compaction." }],
+      },
+    ],
+    "agent:builder:web-root": [
+      {
+        id: "history-builder-root",
+        role: "user",
+        content: [{ type: "text", text: "history agent:builder:web-root" }],
+      },
+      {
+        id: "assistant-builder-root",
+        role: "assistant",
+        content: [{ type: "text", text: "Builder session is running a visual fixture task." }],
+      },
+    ],
+  };
+  const sessionByKey = new Map(sessionFixtures.map((session) => [session.key, session]));
+  const sessionFor = (key) =>
+    sessionByKey.get(key) ?? {
+      key,
+      kind: "direct",
+      agentId: "main",
+      label: key,
+      title: key,
+      updatedAt: now,
+      status: "idle",
+    };
+  const sessionKeyFrom = (params) => params?.key ?? params?.sessionKey ?? "session:mock:1";
   return {
     "gateway.describe": () => ({
       version: "mock-gateway",
@@ -149,32 +228,97 @@ function defaultMethods() {
         },
       ],
     }),
+    "chat.history": (params) => {
+      const key = sessionKeyFrom(params);
+      return {
+        messages: sessionMessages[key] ?? [
+          {
+            id: `history-${key}`,
+            role: "user",
+            content: [{ type: "text", text: `history ${key}` }],
+          },
+        ],
+      };
+    },
     "sessions.list": () => ({
-      count: 1,
+      count: sessionFixtures.length,
       defaults: { contextTokens: 4096, model: "gpt-5.4", modelProvider: "openai" },
       path: "/tmp/mock-sessions.json",
-      sessions: [
-        {
-          key: "session:mock:1",
-          kind: "direct",
-          label: "Mock session",
-          lastMessagePreview: "hello",
-          status: "idle",
-          updatedAt: Date.now(),
-        },
-      ],
+      sessions: sessionFixtures,
       ts: Date.now(),
     }),
+    "sessions.get": (params) => {
+      const key = sessionKeyFrom(params);
+      return {
+        session: sessionFor(key),
+        messages: sessionMessages[key] ?? [],
+      };
+    },
     "sessions.preview": (params) => ({
       previews: (params?.keys ?? ["session:mock:1"]).map((key) => ({
         key,
         status: "ok",
         items: [
-          { role: "user", text: "mock preview" },
+          { role: "user", text: sessionFor(key).lastMessagePreview ?? "mock preview" },
           { role: "assistant", text: "ready" },
         ],
       })),
       ts: Date.now(),
+    }),
+    "sessions.reset": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      reason: params?.reason ?? "reset",
+    }),
+    "sessions.clear": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+    }),
+    "sessions.patch": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      entry: {
+        label: params?.label,
+        model: params?.model,
+        thinkingLevel: params?.thinkingLevel,
+        fastMode: params?.fastMode,
+      },
+    }),
+    "sessions.delete": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      action: "delete",
+    }),
+    "sessions.compact": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      status: 202,
+    }),
+    "sessions.compaction.list": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      checkpoints: [
+        {
+          checkpointId: "cp-1",
+          sessionKey: sessionKeyFrom(params),
+          sessionId: sessionKeyFrom(params),
+          createdAt: now - 24_000,
+          reason: "manual",
+          tokensBefore: 5000,
+          tokensAfter: 2000,
+          summary: "compressed older turns",
+        },
+      ],
+    }),
+    "sessions.compaction.branch": (params) => ({
+      ok: true,
+      key: `${sessionKeyFrom(params)}:branch`,
+      checkpointId: params?.checkpointId ?? "cp-1",
+    }),
+    "sessions.compaction.restore": (params) => ({
+      ok: true,
+      key: sessionKeyFrom(params),
+      checkpointId: params?.checkpointId ?? "cp-1",
     }),
     "agents.list": () => ({
       agents: [
@@ -626,39 +770,86 @@ function defaultMethods() {
         },
       ],
     }),
-    "sessions.usage": () => ({
-      updatedAt: Date.now(),
-      startDate: "2026-05-01",
-      endDate: "2026-05-01",
-      totals: {
-        input: 10,
-        output: 5,
-        cacheRead: 2,
-        cacheWrite: 1,
-        totalTokens: 18,
-        totalCost: 0.33,
-      },
-      aggregates: { byAgent: [{ agentId: "main", totals: { totalTokens: 18, totalCost: 0.33 } }] },
-      sessions: [
-        {
-          key: "session:mock:1",
-          label: "Mock session",
-          sessionId: "session:mock:1",
-          updatedAt: Date.now(),
-          agentId: "main",
-          channel: "web",
-          usage: { totalTokens: 18, totalCost: 0.33 },
+    "sessions.usage": (params) => {
+      const key = sessionKeyFrom(params);
+      const session = sessionFor(key);
+      return {
+        updatedAt: Date.now(),
+        startDate: "2026-05-01",
+        endDate: "2026-05-01",
+        totals: {
+          input: 10,
+          output: 5,
+          cacheRead: 2,
+          cacheWrite: 1,
+          totalTokens: 18,
+          totalCost: 0.33,
         },
-      ],
-    }),
+        aggregates: {
+          byAgent: [{ agentId: "main", totals: { totalTokens: 18, totalCost: 0.33 } }],
+        },
+        sessions: [
+          {
+            key,
+            label: session.title ?? session.label ?? key,
+            sessionId: key,
+            updatedAt: Date.now(),
+            agentId: session.agentId ?? "main",
+            channel: "web",
+            usage: { input: 100, output: 50, totalTokens: 150, totalCost: 1.25 },
+            contextWeight: {
+              source: "gateway",
+              generatedAt: Date.now(),
+              systemPrompt: {
+                chars: 2400,
+                projectContextChars: 900,
+                customRulesChars: 200,
+                agentPromptChars: 1300,
+              },
+              tools: {
+                listChars: 800,
+                schemaChars: 1200,
+                entries: [{ name: "search", summaryChars: 120, schemaChars: 240 }],
+              },
+              skills: {
+                promptChars: 500,
+                entries: [{ name: "sessions", blockChars: 500 }],
+              },
+              injectedWorkspaceFiles: [
+                {
+                  name: "README.md",
+                  path: "README.md",
+                  injectedChars: 600,
+                  truncated: false,
+                },
+              ],
+            },
+          },
+        ],
+      };
+    },
     "sessions.usage.logs": () => ({
       logs: [
         {
+          timestamp: Date.now() - 2_000,
+          role: "user",
+          content: "usage log detail",
+          tokens: 12,
+          cost: 0.01,
+        },
+        {
+          timestamp: Date.now() - 1_000,
+          role: "assistant",
+          content: "small turn",
+          tokens: 10,
+          cost: 0.01,
+        },
+        {
           timestamp: Date.now(),
           role: "assistant",
-          content: "mock usage log",
-          tokens: 18,
-          cost: 0.33,
+          content: "large turn",
+          tokens: 80,
+          cost: 0.03,
         },
       ],
     }),

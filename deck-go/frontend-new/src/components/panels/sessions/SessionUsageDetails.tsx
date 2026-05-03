@@ -5,8 +5,8 @@ import type {
   DeckGoUsageSessionLogEntry,
 } from "../../../api";
 import { fetchUsageSessionLogs, fetchUsageSessions } from "../../../api";
+import { Badge } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
-import { ShellStat } from "../../shared/ShellComponents";
 
 type UsageLoadState = "idle" | "loading" | "ready";
 
@@ -64,6 +64,15 @@ function highTokenThreshold(logs: DeckGoUsageSessionLogEntry[]) {
   return (tokenValues.reduce((sum, tokens) => sum + tokens, 0) / tokenValues.length) * 2;
 }
 
+function UsageStat(props: { label: string; value: string | number }) {
+  return (
+    <div className="sessions-stat">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+    </div>
+  );
+}
+
 export function SessionUsageDetails(props: SessionUsageDetailsProps) {
   const t = useTranslations("sessions");
   const [loadState, setLoadState] = useState<UsageLoadState>("idle");
@@ -119,63 +128,63 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
   const threshold = useMemo(() => highTokenThreshold(logs), [logs]);
 
   return (
-    <div className="deckgo-surface-tile deck-ui-sessions-surface deck-ui-sessions-usage">
-      <div className="deckgo-pill-row deck-ui-sessions-status-row">
-        <p className="deckgo-surface-label">{t("usageContext")}</p>
-        <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
+    <section className="sessions-surface sessions-usage-panel">
+      <div className="sessions-section-heading">
+        <h3>{t("usageContext")}</h3>
+        <Badge variant={loadState === "ready" ? "ok" : "neutral"}>
           {t("usageStatus", { state: t(loadState) })}
-        </span>
+        </Badge>
       </div>
-      {error ? <p className="deckgo-note deck-ui-sessions-error">{error}</p> : null}
-      <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
-        <ShellStat label={t("usageTokens")} value={usageTotal(usageEntry)} />
-        <ShellStat
+      {error ? <p className="sessions-error">{error}</p> : null}
+      <div className="sessions-stat-grid">
+        <UsageStat label={t("usageTokens")} value={usageTotal(usageEntry)} />
+        <UsageStat
           label={t("usageCost")}
           value={formatCurrency(usageEntry?.usage?.totalCost ?? 0)}
         />
-        <ShellStat label={t("compactions")} value={props.compactionCount ?? 0} />
+        <UsageStat label={t("compactions")} value={props.compactionCount ?? 0} />
       </div>
       {contextSummary ? (
         <>
-          <div className="deckgo-grid deckgo-grid-3 deck-ui-sessions-stats">
-            <ShellStat label={t("contextTotal")} value={formatChars(contextSummary.total)} />
-            <ShellStat
+          <div className="sessions-stat-grid">
+            <UsageStat label={t("contextTotal")} value={formatChars(contextSummary.total)} />
+            <UsageStat
               label={t("contextSource")}
               value={usageEntry?.contextWeight?.source ?? t("unknown")}
             />
-            <ShellStat
+            <UsageStat
               label={t("contextGenerated")}
               value={formatTimestamp(usageEntry?.contextWeight?.generatedAt)}
             />
           </div>
-          <ul className="deckgo-shell-list deck-ui-sessions-list">
-            <li>
+          <ul className="sessions-list">
+            <li className="sessions-timeline-row">
               <strong>{t("systemPrompt")}</strong>
-              <div className="deckgo-meta deck-ui-sessions-meta">
+              <div className="sessions-meta">
                 {t("charsValue", { count: formatChars(contextSummary.system) })}
               </div>
             </li>
-            <li>
+            <li className="sessions-timeline-row">
               <strong>{t("toolsLower")}</strong>
-              <div className="deckgo-meta deck-ui-sessions-meta">
+              <div className="sessions-meta">
                 {t("contextEntryDetail", {
                   chars: formatChars(contextSummary.tools),
                   count: usageEntry?.contextWeight?.tools.entries.length ?? 0,
                 })}
               </div>
             </li>
-            <li>
+            <li className="sessions-timeline-row">
               <strong>{t("skillsLower")}</strong>
-              <div className="deckgo-meta deck-ui-sessions-meta">
+              <div className="sessions-meta">
                 {t("contextEntryDetail", {
                   chars: formatChars(contextSummary.skills),
                   count: usageEntry?.contextWeight?.skills.entries.length ?? 0,
                 })}
               </div>
             </li>
-            <li>
+            <li className="sessions-timeline-row">
               <strong>{t("filesLower")}</strong>
-              <div className="deckgo-meta deck-ui-sessions-meta">
+              <div className="sessions-meta">
                 {t("contextFilesDetail", {
                   chars: formatChars(contextSummary.files),
                   count: usageEntry?.contextWeight?.injectedWorkspaceFiles.length ?? 0,
@@ -185,19 +194,24 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
           </ul>
         </>
       ) : (
-        <p className="deckgo-note deck-ui-sessions-empty">{t("noContextWeight")}</p>
+        <p className="sessions-empty">{t("noContextWeight")}</p>
       )}
-      <p className="deckgo-surface-label">{t("sessionTurnTimeline")}</p>
+      <h3>{t("sessionTurnTimeline")}</h3>
       {logs.length === 0 ? (
-        <p className="deckgo-note deck-ui-sessions-empty">{t("noSessionUsageLogs")}</p>
+        <p className="sessions-empty">{t("noSessionUsageLogs")}</p>
       ) : (
-        <ul className="deckgo-shell-list deck-ui-sessions-list">
+        <ul className="sessions-list">
           {logs.slice(0, 8).map((entry, index) => {
             const isHighToken = typeof entry.tokens === "number" && entry.tokens > threshold;
             return (
-              <li key={`${entry.timestamp}-${index}`}>
+              <li
+                className={
+                  isHighToken ? "sessions-timeline-row is-warning" : "sessions-timeline-row"
+                }
+                key={`${entry.timestamp}-${index}`}
+              >
                 <strong>{entry.role || t("message")}</strong>
-                <div className="deckgo-meta deck-ui-sessions-meta">
+                <div className="sessions-meta">
                   {t("timelineEntryMeta", {
                     cost: formatCurrency(entry.cost ?? 0),
                     tokens: entry.tokens ?? 0,
@@ -205,12 +219,12 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
                   })}
                   {isHighToken ? ` | ${t("highTokenTurn")}` : ""}
                 </div>
-                <p className="deckgo-note">{entry.content}</p>
+                <p className="sessions-note">{entry.content}</p>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+    </section>
   );
 }
