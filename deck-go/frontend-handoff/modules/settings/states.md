@@ -1,96 +1,185 @@
-# settings - states
+# settings — states (v2)
 
-## Load states
+## Top-level state
 
-| State            | Meaning                                 | UI                                                              |
-| ---------------- | --------------------------------------- | --------------------------------------------------------------- |
-| settings loading | `fetchSettings` pending                 | settings badge muted/running; previous values can remain        |
-| settings ready   | `fetchSettings` resolved                | settings badge OK; settings path/token configured state visible |
-| endpoint loading | `fetchEndpoint` or capabilities pending | endpoint card shows loading note                                |
-| endpoint ready   | capabilities and endpoint resolved      | endpoint state/form visible                                     |
-| devices loading  | `fetchDevices` pending                  | devices badge muted/running                                     |
-| devices ready    | devices resolved                        | pending/paired counts and rows visible                          |
+```ts
+{
+  // Section navigation
+  activeSection: "identity" | "runtime" | "appearance" | "notifications" | "devices" | "version",
+  navQuery: string,                          // section-nav search filter
 
-Errors render as compact banners or card-local error notes. They must wrap long
-messages without breaking the workbench.
+  // Draft state
+  draftSettings: DeckGoSettings,             // appearance + notifications + pairedDevices edits live here
+  draftEndpoint: DeckGoRuntimeEndpointResponse,
+  endpointDirty: boolean,                    // tracks whether the endpoint draft diverges from baseline
 
-## Settings save
+  // Server-side snapshot
+  bootstrap: DeckGoBootstrapStatusResponse,  // includes runtime + gateway connection state
+  recentSaves: SaveEvent[],                  // last 8 saves (BFF projection)
 
-When Save settings is clicked:
+  // Mutation lifecycle
+  dialog: { kind: "test-connection" | "rotate-token" | "unpair" | "save"; device? } | null,
 
-- send `buildSettingsSavePayload(settings)`
-- include only `appearance`, `notifications`, and `pairedDevices`
-- refresh settings and runtime summary on success
-- render `settingsSaveResult` JSON seam when available
+  now: number,                               // for relative-time formatting
+}
+```
 
-## Runtime endpoint
+Tweaks-driven (design-time only):
 
-### Immutable endpoint
+```ts
+{
+  theme: "dark" | "light",
+  density: "compact" | "cozy",
+  runtimeMode: "bundled" | "remote",         // toggles fixture between bundled/remote runtime
+}
+```
 
-When `capabilities.endpointMutable` is false:
+## Runtime mode states
 
-- endpoint URL, token configured state, and TLS state render read-only
-- source/mutability badges make `.env` ownership visible
-- Save endpoint is hidden
-- Test endpoint is hidden because the current bundled facade returns
-  `endpoint_not_mutable` for `POST /runtime/endpoint:test`
+Two top-level behaviors gate every interactive control in the Runtime
+section:
 
-### Mutable endpoint
+| `bootstrap.runtime.mode` | Locked fields                             | Editable fields                         | Editable destination                |
+| ------------------------ | ----------------------------------------- | --------------------------------------- | ----------------------------------- |
+| `"bundled"`              | URL, token, TLS, autoStart, command, bind | (none — all 4 settings rows are locked) | n/a (operator edits .env + restart) |
+| `"remote"`               | (none)                                    | URL, token, tlsVerify                   | `PUT /api/runtime/endpoint`         |
 
-When `capabilities.endpointMutable` is true:
+Switching between fixtures (Tweaks toggle) re-renders the same
+`RuntimeGroup` component but feeds different `runtime` + `endpoint` props.
+The component reads `runtime.mode` and applies the lock visually +
+functionally.
 
-- endpoint URL input is editable
-- endpoint token input starts empty
-- if token is configured and input remains empty, save/test sends
-  `token: "__unchanged__"`
-- TLS verify can be toggled
-- Save endpoint calls `updateEndpoint`
-- Test endpoint calls `testEndpoint(undefined)` when not dirty, or an explicit
-  payload when dirty
+## Per-section dirty composition
 
-## Appearance and language
+`dirtyBySection` is computed from a shallow comparison:
 
-Theme and locale controls are local Deck UI shell state. They do not save through
-`PUT /settings` in this change.
+| Section         | Compared keys                                                         | Source                       |
+| --------------- | --------------------------------------------------------------------- | ---------------------------- |
+| `identity`      | (n/a — token rotation triggers a save event, no field-level diff)     | recent-saves projection only |
+| `runtime`       | `endpointDirty` flag (URL / token / tlsVerify diverged from baseline) | `endpointDirty`              |
+| `appearance`    | All keys in `draftSettings.appearance`                                | shallow-vs-baseline          |
+| `notifications` | All keys in `draftSettings.notifications`                             | shallow-vs-baseline          |
+| `devices`       | (n/a — unpair triggers a save event, not a draft)                     | mutation-only                |
+| `version`       | (n/a — read-only)                                                     | none                         |
 
-## Notifications
+The footer Save button is enabled when `dirtyTotal > 0`. Reset only
+clears `appearance` / `notifications` / `endpoint` drafts — pending
+unpair / rotate dialogs are not "drafts" and are dismissed via their
+own Cancel buttons.
 
-Notification preference rows are placeholders. They render scope information and
-copy that persisted notification preferences are not exposed by a contract yet.
+## Bootstrap states
 
-## Devices
+The bootstrap response feeds three independent slots:
 
-### Pending request
+- `bootstrap.settings` — file presence, token configured, command
+  configured, autoStart. Used to render an EmptyState if `path` is missing
+  (production target — prototype always seeds `exists: true`).
+- `bootstrap.runtime` — runtime supervisor status (mode/status/health/url/...).
+  Drives the RuntimeGroup completely.
+- `bootstrap.gateway` — connection-side facts (connected, methodCount,
+  schemaVersion). Drives the VersionGroup capability/schema rows.
 
-Pending request rows expose approve/reject actions. Each action opens a
-confirmation dialog before calling the device wrapper.
+When `bootstrap.gateway.connected === false`, the topbar shows an error
+StatusPill ("Gateway disconnected") and the runtime summary status reads
+"connecting…" instead of latency.
 
-### Paired device
+## Identity states
 
-Paired device rows expose platform/IP/role metadata and token summaries.
+| `accessTokenSource` | UI                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `"env"`             | Token row locked + accent SourcePill "from .env" + no Rotate CTA.                                                 |
+| `"json"`            | Token row editable-style (still masked) + neutral "from JSON" pill + Rotate CTA visible.                          |
+| `"missing"`         | Token row shows "(not configured)" + error SourcePill "missing" + an EmptyState below prompting to set the token. |
 
-Rules:
+Reveal toggle never reveals the actual token value — only a stylized
+masked form `"openclaw_at_••••3a91"`. Production should also avoid
+returning the raw token; mask in BFF if possible.
 
-- self-device remove/revoke actions are disabled
-- revoked token actions are disabled
-- action result renders as secondary JSON evidence
+## Dialog flows
 
-### Rotated token
+### TestConnectionDialog
 
-After token rotation returns `token`, show one-time token dialog. Closing the
-dialog clears token state.
+```
+opened ─[Cancel]─▶ closed
+       ─[Run test]─▶ running ─(820ms)─▶ done   ─[Done]─▶ closed
+                                       └─▶ error (18% simulated TLS fail) ─[Test again]─▶ running
+                                                                          └─[Done]─▶ closed
+```
 
-## Device stream
+Production: POST `/api/runtime/endpoint/test` with the current draft.
+Returns `DeckGoRuntimeEndpointTestResponse`. Render `latencyMs`,
+`gatewayVersion`, `tlsVerified`.
 
-`device.pair.requested` and `device.pair.resolved` events update the last stream
-event label and trigger `refreshDevices`.
+### RotateTokenDialog
 
-## Unsupported states
+```
+opened ─[Cancel]─▶ closed
+       ─[Rotate]─▶ running ─(720ms)─▶ done ─(600ms)─▶ closed (parent records save event)
+```
 
-These are not guaranteed by current contracts and should remain follow-up notes:
+Production: POST `/api/settings/rotate-token` (TBD endpoint — see open
+question §3 in README). Server returns the new token; UI may surface it
+once for copying, then never again.
 
-- persisted notification preference editing
-- revealing configured access/runtime tokens
-- server-side device list pagination/filtering
-- device token expiry editing
-- Gateway-level settings RPCs from browser code
+### UnpairDeviceDialog
+
+Stateless. Confirm or cancel. On confirm, parent removes the device from
+`draftSettings.pairedDevices` and posts the change as part of a Save.
+
+### SaveDialog
+
+```
+opened ─[Cancel]─▶ closed
+       ─[Save]──▶ running ─(720ms)─▶ done ─(480ms)─▶ closed (parent commits draft + records save event)
+```
+
+Production: POST `/api/settings` with the full draft. If endpointDirty,
+also PUT `/api/runtime/endpoint`. Both must succeed — if endpoint write
+fails, settings save still records but runtime row regains its dirty
+flag with an error banner.
+
+## Error states (production target)
+
+| Error                                          | UI                                                                           |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| GET `/api/settings` 5xx                        | full-width retry overlay                                                     |
+| POST `/api/settings` 4xx/5xx                   | dialog stays open in `phase--error`; retry button surfaces                   |
+| PUT `/api/runtime/endpoint` 409                | endpoint row inline error: "Endpoint changed concurrently. Refresh & retry." |
+| Test connection failure                        | dialog `phase--error`; runtime summary shows last-error sentence             |
+| Bundled mode but `runtime.status === "failed"` | Runtime summary shows error tone + lastError + "Edit .env and restart" hint  |
+| Token rotate failure                           | dialog `phase--error`; suggests Refresh & try again                          |
+
+## A11y / focus rules
+
+- After SettingsNav item click → focus jumps to the group's title h2.
+- After dialog dismiss → focus returns to the trigger button.
+- After Save → focus returns to the Save button (which is now disabled).
+- After Reset → focus returns to the section nav search.
+- ⌘K → focus the section nav search input from anywhere.
+- Bundled-mode locked rows still receive Tab focus on labels (so screen
+  readers can read the description), but the inputs are `readOnly` /
+  `disabled` — they don't receive focus.
+
+## Boundary cases
+
+- **bundled with `runtime.status === "failed"`**: the Runtime summary
+  cells show `failed · unhealthy`, the bundled callout banner adds an
+  error tint, and the Auto-start row reads "Disabled". No edit lane.
+- **remote with `runtime.status === "failed"`**: the URL/token rows are
+  editable, and the Test button is enabled — operator must repair the
+  endpoint to recover.
+- **`pairedDevices.length === 0`**: DevicesGroup shows an EmptyState card
+  ("No devices paired. Pair a device by entering this access token in the
+  mobile app.").
+- **`recentSaves.length === 0`**: footer omits the "Last saved" status.
+- **`endpointDirty === true && bundled`**: cannot happen — all bundled
+  inputs are `readOnly`. If somehow encountered (URL race), the dirty
+  flag is reset on the next bootstrap fetch.
+
+## Theme variants
+
+- `data-theme="dark"` (default) — uses canonical `--ds-*` palette.
+- `data-theme="light"` (Tweaks demo only) — overrides body via the
+  `[data-theme="light"]` block. Production will flip the entire token
+  set, not just body — this is a visual sanity stub, not a complete
+  theme.

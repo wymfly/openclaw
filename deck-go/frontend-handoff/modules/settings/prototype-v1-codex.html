@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="compact">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>deck-go settings prototype</title>
+    <style>
+      :root {
+        --ds-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --ds-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+        --ds-sp-1: 4px;
+        --ds-sp-2: 6px;
+        --ds-sp-3: 8px;
+        --ds-sp-4: 12px;
+        --ds-sp-5: 16px;
+        --ds-sp-6: 20px;
+        --ds-radius-md: 6px;
+        --ds-bg-0: #0a0b0d;
+        --ds-bg-1: #0f1115;
+        --ds-bg-2: #14171c;
+        --ds-bg-elev: #1c2028;
+        --ds-bg-hover: #20252e;
+        --ds-text-1: #e6e8ec;
+        --ds-text-2: #a8aeba;
+        --ds-text-3: #8992a3;
+        --ds-border-subtle: #1f2530;
+        --ds-border: #262d3a;
+        --ds-border-strong: #313947;
+        --ds-accent: #7aa2ff;
+        --ds-accent-bg: #1a2342;
+        --ds-success: #6ec48a;
+        --ds-success-bg: #142a1d;
+        --ds-warn: #d4a86a;
+        --ds-warn-bg: #2a1f10;
+        --ds-error: #e26b6b;
+        --ds-error-bg: #2c1518;
+        --ds-code-bg: #0c0e12;
+        --ds-code-border: #1d2330;
+        --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font: 13px/1.45 var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      .settings-page {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: var(--ds-sp-4);
+        min-height: 100vh;
+        padding: var(--ds-sp-5);
+      }
+
+      .settings-header,
+      .settings-header__actions,
+      .settings-row__top,
+      .settings-actions,
+      .settings-section-heading {
+        display: flex;
+        align-items: center;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+      }
+
+      .settings-header {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .settings-eyebrow {
+        margin-bottom: var(--ds-sp-1);
+        color: var(--ds-text-3);
+        font: 600 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .settings-subtitle,
+      .settings-note,
+      .settings-meta {
+        color: var(--ds-text-3);
+      }
+
+      .settings-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid var(--ds-border);
+        border-radius: 999px;
+        background: var(--ds-bg-2);
+        color: var(--ds-text-2);
+        font: 600 11px/1 var(--ds-font-mono);
+        white-space: nowrap;
+      }
+
+      .settings-status--ok {
+        border-color: color-mix(in srgb, var(--ds-success) 48%, var(--ds-border));
+        background: var(--ds-success-bg);
+        color: var(--ds-success);
+      }
+
+      .settings-status--warn {
+        border-color: color-mix(in srgb, var(--ds-warn) 50%, var(--ds-border));
+        background: var(--ds-warn-bg);
+        color: var(--ds-warn);
+      }
+
+      .settings-button,
+      .settings-input {
+        min-height: 30px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-2);
+        color: var(--ds-text-1);
+      }
+
+      .settings-button {
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .settings-button--primary {
+        border-color: color-mix(in srgb, var(--ds-accent) 55%, var(--ds-border));
+        background: var(--ds-accent-bg);
+      }
+
+      .settings-button--danger {
+        border-color: color-mix(in srgb, var(--ds-error) 55%, var(--ds-border));
+        background: var(--ds-error-bg);
+      }
+
+      .settings-input {
+        width: 100%;
+        padding: 5px 8px;
+      }
+
+      .settings-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .settings-metric,
+      .settings-card,
+      .settings-surface,
+      .settings-device-row {
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+      }
+
+      .settings-metric {
+        display: grid;
+        gap: var(--ds-sp-1);
+        min-height: 58px;
+        padding: var(--ds-sp-3);
+        background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+      }
+
+      .settings-metric span,
+      .settings-metric strong,
+      .settings-metric small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .settings-metric span {
+        color: var(--ds-text-3);
+        font: 600 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .settings-metric strong {
+        font-size: 1rem;
+        font-weight: 650;
+      }
+
+      .settings-workbench {
+        display: grid;
+        grid-template-columns: minmax(520px, 1.05fr) minmax(420px, 0.95fr);
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .settings-column {
+        display: grid;
+        align-content: start;
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .settings-card {
+        min-width: 0;
+        overflow: hidden;
+        box-shadow: var(--ds-shadow-md);
+      }
+
+      .settings-card__header,
+      .settings-card__body {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-4);
+      }
+
+      .settings-card__header {
+        border-bottom: 1px solid var(--ds-border-subtle);
+        background: var(--ds-bg-1);
+      }
+
+      .settings-surface,
+      .settings-device-row {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-3);
+        background: var(--ds-bg-2);
+      }
+
+      .settings-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .settings-field {
+        display: grid;
+        gap: var(--ds-sp-2);
+        color: var(--ds-text-3);
+        font-size: 11px;
+      }
+
+      .settings-list {
+        display: grid;
+        gap: var(--ds-sp-2);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .settings-code {
+        max-height: 180px;
+        margin: 0;
+        overflow: auto;
+        border: 1px solid var(--ds-code-border);
+        border-radius: var(--ds-radius-md);
+        padding: var(--ds-sp-3);
+        background: var(--ds-code-bg);
+        color: var(--ds-text-2);
+        font: 12px/1.5 var(--ds-font-mono);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 1180px) {
+        .settings-workbench {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .settings-metrics {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 760px) {
+        .settings-header,
+        .settings-header__actions,
+        .settings-actions,
+        .settings-section-heading {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .settings-metrics,
+        .settings-form-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="settings-page">
+      <header class="settings-header">
+        <div>
+          <p class="settings-eyebrow">control plane / settings</p>
+          <h1>Settings</h1>
+          <p class="settings-subtitle">Local preferences, runtime endpoint state, and device trust controls without exposing configured tokens.</p>
+        </div>
+        <div class="settings-header__actions">
+          <span class="settings-status settings-status--ok">Settings ready</span>
+          <span class="settings-status settings-status--ok">Gateway linked</span>
+          <span class="settings-status">Runtime running</span>
+          <button class="settings-button" type="button">Refresh runtime</button>
+          <button class="settings-button settings-button--primary" type="button">Save settings</button>
+        </div>
+      </header>
+
+      <section class="settings-metrics" aria-label="Settings metrics">
+        <article class="settings-metric">
+          <span>Runtime mode</span>
+          <strong>remote</strong>
+          <small>endpoint mutable</small>
+        </article>
+        <article class="settings-metric">
+          <span>Endpoint token</span>
+          <strong>configured</strong>
+          <small>value hidden</small>
+        </article>
+        <article class="settings-metric">
+          <span>Pending devices</span>
+          <strong>1</strong>
+          <small>needs approval</small>
+        </article>
+        <article class="settings-metric">
+          <span>Paired devices</span>
+          <strong>2</strong>
+          <small>self protected</small>
+        </article>
+        <article class="settings-metric">
+          <span>Versions</span>
+          <strong>3</strong>
+          <small>deck / gateway / cli</small>
+        </article>
+      </section>
+
+      <section class="settings-workbench">
+        <div class="settings-column">
+          <article class="settings-card">
+            <div class="settings-card__header">
+              <div class="settings-section-heading">
+                <div>
+                  <h2>Runtime endpoint</h2>
+                  <p class="settings-note">Remote mode can save a complete endpoint override while preserving configured tokens.</p>
+                </div>
+                <span class="settings-status settings-status--warn">source env</span>
+              </div>
+            </div>
+            <div class="settings-card__body">
+              <section class="settings-surface">
+                <div class="settings-actions">
+                  <span class="settings-status">token configured yes</span>
+                  <span class="settings-status">tls verify false</span>
+                  <span class="settings-status settings-status--ok">mutable</span>
+                </div>
+                <div class="settings-form-grid">
+                  <label class="settings-field">
+                    Endpoint URL
+                    <input class="settings-input" value="http://remote-gateway:18789" />
+                  </label>
+                  <label class="settings-field">
+                    Endpoint token
+                    <input class="settings-input" type="password" placeholder="configured; leave blank to keep" />
+                  </label>
+                </div>
+                <div class="settings-actions">
+                  <button class="settings-button settings-button--primary" type="button">Save endpoint</button>
+                  <button class="settings-button" type="button">Test endpoint</button>
+                </div>
+              </section>
+            </div>
+          </article>
+
+          <article class="settings-card">
+            <div class="settings-card__header">
+              <h2>Deck-go local settings</h2>
+              <p class="settings-note">Only local preferences are saved through PUT /settings.</p>
+            </div>
+            <div class="settings-card__body">
+              <section class="settings-surface">
+                <h3>Settings file</h3>
+                <p class="settings-meta">/tmp/deck-go.json</p>
+                <p class="settings-note">runtime mode: remote | configured: true</p>
+              </section>
+              <section class="settings-surface">
+                <h3>Deck access token</h3>
+                <div class="settings-actions">
+                  <span class="settings-status settings-status--ok">configured</span>
+                  <span class="settings-status">set via .env</span>
+                </div>
+              </section>
+              <section class="settings-surface">
+                <h3>Appearance</h3>
+                <p class="settings-note">Theme and language are local to this Deck UI shell.</p>
+                <div class="settings-actions">
+                  <button class="settings-button" type="button">Dark</button>
+                  <button class="settings-button settings-button--primary" type="button">Light</button>
+                  <button class="settings-button" type="button">System</button>
+                  <button class="settings-button settings-button--primary" type="button">English</button>
+                  <button class="settings-button" type="button">中文</button>
+                </div>
+              </section>
+            </div>
+          </article>
+        </div>
+
+        <div class="settings-column">
+          <article class="settings-card">
+            <div class="settings-card__header">
+              <h2>Settings summary</h2>
+              <p class="settings-note">Version diagnostics and contract-visible state.</p>
+            </div>
+            <div class="settings-card__body">
+              <section class="settings-surface">
+                <p>accessToken configured: yes</p>
+                <p>runtime mode: remote</p>
+                <p>runtime url: http://remote-gateway:18789</p>
+                <p>deck version: deck-v1</p>
+                <p>gateway version: gateway-v1</p>
+                <p>cli version: cli-v1</p>
+              </section>
+              <div class="settings-actions">
+                <button class="settings-button" type="button">Open docs</button>
+                <button class="settings-button" type="button">Open GitHub</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="settings-card">
+            <div class="settings-card__header">
+              <h2>Notifications</h2>
+              <p class="settings-note">Visible for parity; persistence is not contracted yet.</p>
+            </div>
+            <div class="settings-card__body">
+              <section class="settings-surface">
+                <strong>Approval Requests</strong>
+                <p class="settings-note">Get notified when an approval request needs your attention</p>
+              </section>
+              <section class="settings-surface">
+                <strong>Budget Alerts</strong>
+                <p class="settings-note">Get notified when usage approaches budget limits</p>
+              </section>
+            </div>
+          </article>
+
+          <article class="settings-card">
+            <div class="settings-card__header">
+              <div class="settings-section-heading">
+                <div>
+                  <h2>Paired devices</h2>
+                  <p class="settings-note">Approve pairing and manage device tokens.</p>
+                </div>
+                <span class="settings-status settings-status--ok">Devices ready</span>
+              </div>
+            </div>
+            <div class="settings-card__body">
+              <div class="settings-actions">
+                <span class="settings-status settings-status--warn">1 pending</span>
+                <span class="settings-status">2 paired</span>
+                <button class="settings-button" type="button">Refresh devices</button>
+              </div>
+              <ul class="settings-list">
+                <li class="settings-device-row">
+                  <div class="settings-row__top">
+                    <strong>Pending Mac</strong>
+                    <span class="settings-status settings-status--warn">operator</span>
+                  </div>
+                  <p class="settings-meta">request req-1 | pending-1</p>
+                  <div class="settings-actions">
+                    <button class="settings-button settings-button--primary" type="button">Approve request</button>
+                    <button class="settings-button settings-button--danger" type="button">Reject request</button>
+                  </div>
+                </li>
+                <li class="settings-device-row">
+                  <div class="settings-row__top">
+                    <strong>This Mac (this device)</strong>
+                    <span class="settings-status settings-status--ok">self protected</span>
+                  </div>
+                  <p class="settings-meta">device self-1 | roles operator | platform darwin</p>
+                  <section class="settings-surface">
+                    <strong>operator token (active)</strong>
+                    <p class="settings-note">scopes: operator</p>
+                    <div class="settings-actions">
+                      <button class="settings-button" type="button">Rotate token</button>
+                      <button class="settings-button" disabled type="button">Revoke token</button>
+                    </div>
+                  </section>
+                </li>
+                <li class="settings-device-row">
+                  <div class="settings-row__top">
+                    <strong>Other Mac</strong>
+                    <span class="settings-status">10.0.0.2</span>
+                  </div>
+                  <p class="settings-meta">device dev-1 | roles operator | platform darwin</p>
+                  <section class="settings-surface">
+                    <strong>operator token (active)</strong>
+                    <p class="settings-note">scopes: operator</p>
+                    <div class="settings-actions">
+                      <button class="settings-button" type="button">Rotate token</button>
+                      <button class="settings-button settings-button--danger" type="button">Revoke token</button>
+                      <button class="settings-button settings-button--danger" type="button">Remove device</button>
+                    </div>
+                  </section>
+                </li>
+              </ul>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

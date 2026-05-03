@@ -1,54 +1,154 @@
-# settings - interactions
+# settings — interactions (v2)
 
 ## Pointer
 
-- Save settings calls `saveSettings(buildSettingsSavePayload(settings))`.
-- Refresh settings calls `fetchSettings`.
-- Refresh runtime calls `refreshRuntimeSummary`.
-- Endpoint save/test delegates to `EndpointSection` only when the endpoint is
-  mutable; immutable bundled endpoints render read-only state without a test
-  action.
-- Theme controls call `setThemeMode("dark" | "light" | "system")`.
-- Locale controls call `setLocale("en" | "zh")`.
-- Refresh devices calls `fetchDevices` and `fetchSelfDevice`.
-- Approve/reject/remove/rotate/revoke open confirmation before API calls.
-- Copy token writes the one-time rotated token to clipboard when available.
+- **SettingsNav item click** → switches `activeSection`, scrolls main pane
+  to top. Section title + description update synchronously.
+- **Field control change** (input / select / toggle / segmented) → live
+  updates draftSettings or draftEndpoint; per-section dirty count + topbar
+  pill update in real time.
+- **Identity "Reveal" / "Hide"** → toggles masked vs styled-masked render.
+  Even on Reveal, the actual token never leaves a stylized form
+  (`"openclaw_at_••••3a91"`).
+- **Identity "Rotate"** → opens `RotateTokenDialog` (only when source = json).
+- **Runtime "Test connection"** → opens `TestConnectionDialog` (remote-only).
+- **Device "Unpair"** → opens `UnpairDeviceDialog`.
+- **Footer "Reset"** → drops all draftSettings + draftEndpoint changes.
+  No confirmation dialog (lower-stakes than apply config).
+- **Footer "Save"** → opens `SaveDialog`.
+- **Modal backdrop click** → closes the dialog (except `running` phase).
 
 ## Keyboard
 
-- All buttons are reachable by Tab and use canonical focus styles.
-- Editable endpoint inputs use native input behavior.
-- TLS verify uses native checkbox or canonical toggle semantics.
-- Confirmation and token dialogs use `role="dialog"` and `aria-modal="true"`.
-- Dialog close/cancel buttons are first-class actions.
+| Key                 | Context                  | Behavior                                   |
+| ------------------- | ------------------------ | ------------------------------------------ |
+| `⌘K` / `Ctrl K`     | anywhere                 | Focus the section-nav search input.        |
+| `Esc`               | open dialog              | Close dialog (except `running` phase).     |
+| `Enter` / `Space`   | focused segmented option | Select that option.                        |
+| `Tab` / `Shift Tab` | inside group             | Cycle through field controls in DOM order. |
 
-## Hover and focus
+The dialog wizards are **non-cancellable** during the `running` phase —
+both Esc and backdrop click are no-ops while the simulated 720ms timer
+is in flight. Production must mirror this — server has likely already
+mutated state by the time we'd want to "cancel".
 
-- Device rows may strengthen border/background on hover.
-- Focus-visible outlines must use `--ds-accent`.
-- Destructive actions use danger styling.
+## Hover
 
-## Loading
+- **SettingsNav item** — bg lifts to `--ds-bg-hover`. Active item keeps
+  accent inset shadow + brighter text.
+- **Setting row controls** — input/select focus uses `--ds-accent-1`
+  border + 2px accent-bg ring.
+- **Segmented option** — text brightens; selected stays bg-0 with accent
+  inset border.
+- **Buttons (`ds-btn`)** — bg-2 → bg-hover; primary inverts to filled
+  accent on hover; warn keeps warn-bg / warn-1.
+- **Bundled callout** — no hover state (decorative info banner).
+- **Locked setting rows** — no hover; cursor stays default. The
+  `readOnly` inputs surface a `cursor: default` instead of text caret.
 
-- Keep previous settings/devices visible while refresh is loading.
-- Use small status badges/spinners; do not block the whole panel.
+## Density
 
-## Empty
+`compact` (default):
 
-- No pending devices: omit the pending request surface or show a compact empty
-  row.
-- No paired devices: show the existing localized empty copy.
-- No version field: show `notAvailable`.
+- Setting row padding `12px 14px`.
+- SettingsNav item padding `10px 10px`.
+- Inputs `6px 9px`.
 
-## Error
+`cozy`:
 
-- Settings load/save errors render in the local settings area.
-- Endpoint errors render inside endpoint card.
-- Device action/load errors render inside devices card or confirmation dialog.
+- Setting row padding `16px 16px` + 8px gap.
+- SettingsNav item padding `12px 12px`.
+- Inputs `8px 11px`.
 
-## Responsive
+The Tweaks panel toggles between the two via `data-density` on the root.
 
-- Desktop: top metrics, endpoint/local settings left, diagnostics/notifications/
-  devices right.
-- Mid-width: cards stack into one column.
-- Narrow: control strips wrap; device rows and code seams remain scrollable.
+## Empty / loading / error
+
+| Scenario                         | UI                                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `dirtyTotal === 0`               | Footer Save + Reset buttons disabled.                                                                                                                                                 |
+| Bundled mode, all runtime fields | Each setting row shows a `read-only` StatusPill + locked styling.                                                                                                                     |
+| Bundled mode banner              | Info-tone callout below runtime rows: "All runtime fields are managed by .env. To rotate the token, change the bind interface, or disable auto-start, edit .env and restart deck-go." |
+| Section search zero results      | SettingsNav: "No sections match." inline empty row                                                                                                                                    |
+| Test connection running          | Dialog footer hidden; "Connecting…" phase pill shown                                                                                                                                  |
+| Test connection done (success)   | Footer offers Test again / Done; phase shows OK + latency + version                                                                                                                   |
+| Test connection error            | Footer offers Test again / Done; phase shows red error message                                                                                                                        |
+| Save running                     | Dialog footer hidden; "Saving…" phase pill shown                                                                                                                                      |
+| Save done                        | Green check + "Saved. Closing…" then closes                                                                                                                                           |
+| Token rotate running             | Dialog footer hidden; "Rotating…" pill shown                                                                                                                                          |
+| Empty paired devices             | Devices group: "No devices paired." EmptyState (production target — prototype seeds 3)                                                                                                |
+| Token source = "missing"         | Identity row "(not configured)" placeholder + error SourcePill                                                                                                                        |
+
+## Focus
+
+- After SettingsNav item click → focus jumps to group `<h2>` (so Tab
+  descends into fields immediately).
+- After dialog dismiss → focus returns to the trigger button.
+- After Save → focus stays on the Save button (now disabled).
+- After Reset → focus returns to SettingsNav search input.
+- After expanding a `details` element via keyboard (if any are added
+  later) → focus stays on summary.
+- Focus-visible outline on form controls uses accent ring (browser default).
+
+## A11y semantics
+
+- SettingsNav: `<aside>` with `aria-label`. Items use `role="tab"` +
+  `aria-selected`.
+- SettingGroup: `<article>` with descriptive heading hierarchy
+  (h1 page → h2 section).
+- Setting row: `<label>` for the field; `aria-describedby` points at hint
+  paragraph; locked rows use the visible "read-only" pill rather than
+  `aria-readonly` so SR users hear the state explicitly.
+- Modal: `role="dialog" aria-modal="true"` + close button has
+  `aria-label="Close"`.
+- Status pills: text content names the state (no color-only signal).
+- Health dot: `aria-label="Health: healthy"` on the wrapper span (the dot
+  itself is decorative).
+- Mode badge: text label `BUNDLED` / `REMOTE` is part of accessible name.
+- Source pill: text + icon both used; SR users hear "from .env" / "from
+  JSON" / "missing".
+- Bundled callout: information-tone icon + paragraph; not a `role="alert"`
+  (it's persistent state, not a transient announcement).
+
+## Tweaks-driven exploration
+
+Design-time only. Tweaks panel exposes:
+
+- `theme` ∈ `dark | light`
+- `density` ∈ `compact | cozy`
+- `runtimeMode` ∈ `bundled | remote` — switches the runtime fixture so
+  reviewers can see both lock states without code changes.
+
+Production translation drops the panel entirely; equivalent state arrives
+from `/api/bootstrap/status` (mode comes from server, not from a UI
+toggle).
+
+## Mutation behavior
+
+- **Save** is idempotent — re-saving the same draft is a no-op on the
+  server but records a save event regardless. UI silently de-dups when
+  `dirtyTotal === 0`.
+- **Reset** is non-destructive in spirit: it discards the draft, but the
+  server-side state (the last applied snapshot) is unchanged. There is
+  no undo for the discard itself; users would need to re-edit.
+- **Rotate token** is destructive — the previous token is revoked and any
+  paired devices using it are disconnected. The new token must be copied
+  before the dialog closes (production should let users copy once via a
+  one-time reveal that disappears on next page load).
+- **Unpair device** is hard delete locally + server-side. To restore, the
+  device must re-pair from scratch.
+- **Test connection** is read-only; it does not mutate any state. Safe
+  to spam.
+- **Endpoint PUT** is idempotent on success; on 409 (concurrent edit), the
+  UI must refetch and present the conflict.
+
+## Cross-section coupling
+
+- **Identity ↔ Devices**: rotating the token disconnects every paired
+  device. The DeviceGroup shows them as `stale` until they re-pair.
+- **Runtime ↔ Version**: when `bootstrap.runtime.gatewayVersion`
+  diverges from `version.gateway` (BFF reported), the VersionGroup
+  surfaces a drift pill on the Gateway row.
+- **Bundled mode ↔ Topbar**: bundled-mode topbar subtitle hardcodes
+  the path to the `.env` file (`bootstrap.settings.path` + ".env hint")
+  so operators know exactly where to edit.

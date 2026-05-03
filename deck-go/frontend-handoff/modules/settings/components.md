@@ -1,147 +1,203 @@
-# settings - components
+# settings — components (v2)
 
 ## Tree
 
-```txt
-SettingsPanel
-├─ SettingsHeader
-│  ├─ title / contract subtitle
-│  ├─ settings Badge
-│  ├─ gateway/runtime Badge
-│  ├─ refresh actions
-│  └─ save settings Button
-├─ SettingsMetrics
-│  └─ MetricTile x5
-├─ SettingsWorkbench
-│  ├─ RuntimeEndpointCard
-│  │  ├─ source/token/TLS status row
-│  │  ├─ immutable SecureReadOnlyField row OR editable endpoint form
-│  │  ├─ save/test actions
-│  │  └─ endpoint test result seam
-│  ├─ LocalSettingsCard
-│  │  ├─ settings path surface
-│  │  ├─ access token configured surface
-│  │  ├─ appearance controls
-│  │  └─ locale controls
-│  ├─ DiagnosticsCard
-│  │  ├─ version summary
-│  │  └─ docs/GitHub links
-│  ├─ NotificationsCard
-│  │  └─ notification scope rows
-│  └─ DevicesCard
-│     ├─ pending request list
-│     ├─ paired device list
-│     ├─ token action strips
-│     └─ action result seam
-├─ ConfirmDeviceActionDialog
-└─ RotatedTokenDialog
+```
+SettingsApp                                       [app.jsx]
+├─ Topbar
+│  ├─ eyebrow / title / subtitle (settings file path)
+│  ├─ unsaved/saved StatusPill
+│  └─ ⌘K kbd hint
+├─ SettingsNav (left rail)                        [settings-nav.jsx]
+│  ├─ search input
+│  └─ section item × 6 (icon + label + description + dirty badge)
+└─ Main column                                    [app.jsx]
+   ├─ Per-section group (mounted by activeSection)
+   │  ├─ IdentityGroup       — token + source pill + reveal/rotate
+   │  ├─ RuntimeGroup        — mode badge + summary + read-only callout (bundled) or editable + Test (remote)
+   │  ├─ AppearanceGroup     — theme + density segmented + font size + reduced motion
+   │  ├─ NotificationsGroup  — desktop + sound + quiet hours pair
+   │  ├─ DevicesGroup        — paired device list + last-seen + Unpair
+   │  └─ VersionGroup        — KV grid (Deck / Gateway / CLI / capability snapshot / schema version)
+   └─ Footer (Reset / Save)
 ```
 
-## Production ownership
+## Dialogs
 
-The production panel can remain a single bounded `SettingsPanel.tsx` during this
-pass if helper functions remain readable. `EndpointSection` and `ReadOnlyField`
-are settings-owned helpers today and may be restyled in place. A local
-`settings-panel.css` should own the visual shell instead of extending broad
-`theme.css` selectors.
+| Component              | Trigger                      | Body                                                        |
+| ---------------------- | ---------------------------- | ----------------------------------------------------------- | ------- |
+| `TestConnectionDialog` | Runtime "Test connection"    | URL/TLS/token KV + 3-phase wizard (idle → running → done    | error). |
+| `RotateTokenDialog`    | Identity "Rotate" (json src) | New-token preview + 2-phase wizard (idle → running → done). |
+| `UnpairDeviceDialog`   | Device row "Unpair"          | KV with IP/platform/version + warn-tone confirm.            |
+| `SaveDialog`           | Footer "Save"                | Per-section dirty list + 2-phase wizard.                    |
+
+All dialogs share `ModalShell` (Esc + backdrop click to close, focus trap on
+mount). The wizard's `running` phase is non-cancellable.
 
 ## Local molecules
 
-### MetricTile
+### SectionIcon
 
-Small `label + value + optional hint` tile. This repeats previous modules and is
-a promotion candidate, but remains local in this module change.
+`<SectionIcon icon={name} />` resolves one of `IconKey` / `IconRuntime` /
+`IconAppearance` / `IconBell` / `IconDevices` / `IconVersion`. Defaults
+to `IconKey`.
 
-### SecureReadOnlyField
+### StatusPill
 
-Renders `label + read-only value + optional security badge`.
+5 tones (`iron` / `accent` / `success` / `warn` / `error`), inline
+icon-or-not, used everywhere a one-line status fits.
 
-Rules:
+### HealthDot
 
-- Used for configured-token state and immutable endpoint values.
-- Must not render raw token values.
-- Can use a badge/icon but does not require a new atom.
+Tiny colored dot for runtime health: success (green) / error (red) /
+iron (gray). Wraps with a 4px halo from `--ds-success-bg` / `--ds-error-bg`.
 
-### EndpointStatusSurface
+### ModeBadge
 
-Renders endpoint source, token configured state, TLS state, and mutability.
+`<ModeBadge mode="bundled" | "remote" />` — uppercase 10.5px badge
+distinguishing bundled (success-toned) from remote (accent-toned).
+Strong promotion candidate to design system; GatewayPanel + runtime
+dashboards need the same visual cue.
 
-Rules:
+### SourcePill
 
-- Editable form appears only when `capabilities.endpointMutable` is true.
-- Empty token input preserves the unchanged-token sentinel.
-- Endpoint test result is secondary JSON evidence.
+`<SourcePill source="env" | "json" | "missing" />` — annotates where the
+access token comes from. `env` shows lock icon + accent tone; `json` is
+default neutral; `missing` is error tone with alert icon.
 
-### PreferenceStrip
+### GroupShell
 
-Compact local controls for theme and locale.
+Layout primitive used by every per-section renderer. `<GroupShell title
+description badge children footer />`. Keeps the section padding,
+eyebrow/title/hint stack, and trailing badge consistent.
 
-Rules:
+### FieldRow (settings-flavor)
 
-- Theme buttons call `setThemeMode`.
-- Locale buttons call `setLocale`.
-- Copy must make local-only persistence clear.
+Differs from config's `FieldRow` — settings rows are **curated**, not
+schema-driven. Props: `label`, `hint`, `locked`, `error`, `children`.
+`locked` adds `setting-row--locked` (bg-2 + opacity 0.92) and renders a
+small "read-only" status pill. `error` adds `setting-row--error` border +
+inline error paragraph.
 
-### DeviceRequestRow
+## Per-section renderers
 
-Renders pending device pairing request and approve/reject actions.
+### IdentityGroup
 
-Rules:
+- Source pill in header.
+- Token field with reveal/hide button (masks unless toggled).
+- Rotate CTA appears only when `accessTokenSource === "json"`.
 
-- Actions open confirmation dialog.
-- Long device IDs wrap without resizing the card.
+### RuntimeGroup
 
-### PairedDeviceRow
+- Mode badge + health dot in header.
+- 3-cell summary strip: status / latency p50 / startedAt-or-lastConnectedAt.
+- URL / token / TLS-verify rows — all `locked` when bundled.
+- Bundled callout (info-tone) explaining `.env` ownership.
+- Remote-only "Test connection" CTA → `TestConnectionDialog`.
+- Bundled-only "Auto-start" status pill (read-only).
 
-Renders paired device identity, role/scope/network metadata, token summaries, and
-device actions.
+### AppearanceGroup
 
-Rules:
+- 4 rows: theme (segmented), density (segmented), font size (number),
+  reduced motion (toggle).
+- All free-form keys under `settings.appearance`.
 
-- Self-device destructive actions are disabled.
-- Revoked tokens disable rotate/revoke actions.
+### NotificationsGroup
 
-### TokenActionStrip
+- 3 toggles + conditional time-pair when quiet hours enabled.
+- Free-form keys under `settings.notifications`.
 
-Renders rotate/revoke actions for each token summary.
+### DevicesGroup
 
-Rules:
+- Device list with stale variant when `now - lastSeen > 5min`.
+- Per-device meta grid (IP / platform / version / last seen).
+- Unpair CTA per device → `UnpairDeviceDialog`.
 
-- Rotate may open a one-time token dialog after confirmation.
-- Revoke requires confirmation.
+### VersionGroup
 
-### OneTimeTokenDialog
+- 5-row KV grid: Deck / Gateway / CLI / capability snapshot / schema version.
+- Optional drift pill if `bootstrap.runtime.gatewayVersion` !== `version.gateway`.
 
-Renders returned rotate token with copy and close actions.
+## Props (production target)
 
-Rules:
+```ts
+type SettingsAppProps = {}; // self-contained orchestrator
 
-- This is the only UI location where token values may be displayed.
-- Closing clears token state.
+type SettingsNavProps = {
+  sections: { id: string; label: string; icon: string; description: string }[];
+  activeSection: string;
+  onSelect: (id: string) => void;
+  dirtyBySection: Record<string, number>;
+  query: string;
+  onQueryChange: (q: string) => void;
+};
 
-## Atom mapping
+type IdentityGroupProps = {
+  settings: DeckGoSettings;
+  onChange: (edit: { kind: "rotate-token" }) => void;
+  locked: boolean;
+};
 
-- Use canonical `Badge`, `Button`, `Card`, `Code`, `Input`, `Select`,
-  `SegmentedControl`, `Spinner`, `Toggle`, and `Modal` where they fit.
-- Keep `MetricTile`, `SecureReadOnlyField`, `EndpointStatusSurface`,
-  `DeviceRequestRow`, `PairedDeviceRow`, and `TokenActionStrip` local.
-- Do not introduce new canonical atoms or tokens in this change.
+type RuntimeGroupProps = {
+  runtime: DeckGoRuntimeGatewayStatus;
+  endpoint: DeckGoRuntimeEndpointResponse;
+  onTestEndpoint: () => void;
+  onChangeEndpoint: (path: string, value: unknown) => void;
+  dirty: boolean;
+  locked: boolean;
+};
+
+type AppearanceGroupProps = {
+  settings: DeckGoSettings;
+  onChange: (edit: { kind: "appearance"; path: string; value: unknown }) => void;
+  locked: boolean;
+};
+
+type NotificationsGroupProps = {
+  settings: DeckGoSettings;
+  onChange: (edit: { kind: "notifications"; path: string; value: unknown }) => void;
+  locked: boolean;
+};
+
+type DevicesGroupProps = {
+  settings: DeckGoSettings;
+  now: number;
+  onUnpair: (deviceId: string) => void;
+  locked: boolean;
+};
+
+type VersionGroupProps = {
+  version: DeckGoSettingsVersionResponse;
+  gatewayVersion?: string;
+  capabilitySnapshotAvailable: boolean;
+  schemaVersion?: string;
+};
+```
 
 ## Class-name intent
 
-Production CSS should preserve these semantic regions:
-
-- `.settings-panel`
-- `.settings-panel__header`
-- `.settings-panel__metrics`
-- `.settings-workbench`
-- `.settings-endpoint-card`
-- `.settings-local-card`
-- `.settings-diagnostics-card`
-- `.settings-notifications-card`
-- `.settings-devices-card`
-- `.settings-surface`
-- `.settings-field`
-- `.settings-device-row`
-- `.settings-token-row`
-- `.settings-modal`
+| Class                             | Purpose                               |
+| --------------------------------- | ------------------------------------- |
+| `.settings-app`                   | Top-level grid                        |
+| `.settings-app__topbar`           | Header bar                            |
+| `.settings-app__layout`           | Two-column workspace                  |
+| `.settings-app__main`             | Right pane container                  |
+| `.settings-app__footer`           | Sticky Reset/Save bar                 |
+| `.settings-nav`                   | Left rail container                   |
+| `.settings-nav__item--on`         | Active section                        |
+| `.settings-nav__dirty`            | Per-section dirty count badge         |
+| `.setting-group`                  | Per-section card                      |
+| `.setting-row`                    | Curated field row                     |
+| `.setting-row--locked`            | Read-only variant (bundled mode)      |
+| `.setting-row--error`             | Error variant                         |
+| `.runtime-summary`                | 3-cell status strip                   |
+| `.runtime-bundled-callout`        | Info banner explaining .env ownership |
+| `.mode-badge--bundled/remote`     | Runtime mode badge variants           |
+| `.source-pill--env/json/missing`  | Token source provenance variants      |
+| `.health-dot--success/error/iron` | Health indicator variants             |
+| `.device-row`                     | Paired device row                     |
+| `.device-row--stale`              | Last-seen > 5m variant                |
+| `.version-grid`                   | KV grid for VersionGroup              |
+| `.token-field` / `.token-preview` | Identity-section token controls       |
+| `.modal-backdrop` / `.modal`      | Modal shell                           |
+| `.phase--running/done/error`      | Mutation wizard phase rows            |
