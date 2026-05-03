@@ -26,8 +26,8 @@
 | `src/design-system/tokens/index.css` | Claude Code | 单一真相源。设计 agent 在 `../frontend-handoff/` **提议** 改动，Claude Code 应用。 |
 | `src/design-system/atoms/` | Claude Code | 36 atoms（扁平：`Badge.tsx` + `badge.css` 同目录）+ `index.ts` barrel + `__tests__/`。设计 agent 读为参考。 |
 | `src/design-system/hooks/` | Claude Code | 5 hooks（`use-click-outside` / `use-escape-close` / `use-focus-trap` / `use-keyboard-nav` / `use-popover`）+ barrel + 测试 |
-| `src/design-system/patterns/` | Claude Code | 6 跨模块 shell（扁平：`PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`）+ barrel + 测试。新增 pattern 走 `frontend-handoff/design-system/proposals/` 提案 + ≥2 模块复用门槛。 |
-| `src/design-system/icons/` | Claude Code | canonical SVG icon 集合（24 个，按 deck-go 域语义命名，重导出自 `lucide-react ^1.14.0`）+ barrel + README 映射表 + 测试。面板/pattern 不许直接 import lucide。 |
+| `src/design-system/patterns/` | Claude Code | 跨模块布局 shell（扁平：`<Pattern>.tsx + <pattern>.css`）+ barrel + 测试。新增 pattern 走 `frontend-handoff/design-system/proposals/` 提案 + ≥2 模块复用门槛。 |
+| `src/design-system/icons/` | Claude Code | canonical SVG icon 集合（按 deck-go 域语义命名 `IconX`，重导出自 `lucide-react`）+ barrel + README 映射表 + 测试。面板/pattern 不许直接 `import "lucide-react"`。 |
 | `src/design-system/dev/Gallery` | Claude Code | 设计系统活样张，运行时 `?dsGallery=1` lazy import 进入 |
 | `src/components/panels/<module>/` | Claude Code | 业务模块，每个 panel 一目录。设计 agent 不写在这里。 |
 | `src/{stores,api,hooks,lib,generated,i18n}/` | Claude Code | 数据 + 逻辑。**具体库**见 stack-decisions。 |

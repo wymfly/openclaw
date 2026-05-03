@@ -183,10 +183,6 @@ deck-go 采用双 Agent 协作：
 - ✅ tokens 完成（44 个 `--ds-*` 变量，dark/light，老 `frontend/src/design-system/tokens/index.css`）
 - ✅ 36 atoms 完成（扁平结构 `Badge.tsx + badge.css`，不是三件套）
 - ✅ 5 hooks 完成（use-click-outside / use-escape-close / use-focus-trap / use-keyboard-nav / use-popover）
-- ✅ **6 patterns 完成**（OpenSpec change `deck-go-frontend-foundation-readiness`）：`PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`，扁平结构 + barrel + a11y 测试 + Gallery 接入
-- ✅ **24 canonical icons 完成**（同上 change）：`lucide-react ^1.14.0` 重导出，按 deck-go 域语义命名（`IconAgent` / `IconStream` 等）；面板/pattern 不许直接 import lucide
-- ✅ **原型字符串规则约定完成**（同上 change）：原型 hardcoded literal 文本，禁止 `t()` / `useTranslations` / `next-intl`；工程实施时 Claude Code 一次性抽 i18n
 - ✅ 视觉光谱锚点确立（3 张参考卡）
-- ⏳ **下一步**：24 个 legacy panel 高保真原型量产（pattern 1：`channels` 推荐——list/detail 同形态可复用 agents pilot 词汇）
-- ⏳ chat 模块工程代码协议化重做（已运行但未对齐 patterns/icons 词汇；单独 change 处理）
-- ⏳ molecules / review canvas / README / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)
+- ⏳ **下一步**：24 个 legacy panel 协议化重做（agents / models / channels / sessions / logs / settings / etc.）—— 等 chat pilot 验证协议在真实复杂度下可执行后逐个开
+- ⏳ molecules / review canvas / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)

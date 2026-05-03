@@ -79,9 +79,9 @@ deck-go/
   ```
 
 - **Hooks**: 5 个（`use-click-outside` `use-escape-close` `use-focus-trap` `use-keyboard-nav` `use-popover`）
-- **Patterns**: 6 个跨模块布局壳 — `PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`（位于 `frontend-new/src/design-system/patterns/`，扁平结构 + barrel + a11y 测试）
-- **Icons**: 24 个 canonical SVG，按 deck-go 域语义命名（`IconAgent` `IconStream` `IconBolt` 等），重导出自 `lucide-react ^1.14.0`（`frontend-new/src/design-system/icons/`）；面板/pattern 不许直接 import lucide
-- **Gallery**: 设计系统活样张，运行时按 `?dsGallery=1` URL 参数走 lazy import；展示 36 atoms + 6 patterns + 24 icons
+- **Patterns**: 跨模块布局 shell（`PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`），位于 `frontend-new/src/design-system/patterns/`，扁平结构。新增 pattern 走 `frontend-handoff/design-system/proposals/` + ≥2 模块复用门槛
+- **Icons**: canonical icon 集合在 `frontend-new/src/design-system/icons/`，按 deck-go 域语义命名（`IconAgent` `IconStream` 等），重导出自 `lucide-react`。面板/pattern 不许直接 `import "lucide-react"`
+- **Gallery**: 设计系统活样张，运行时按 `?dsGallery=1` URL 参数走 lazy import；展示全部 atoms + patterns + icons
 - **Dependency**: 字体走 `@fontsource/{inter,jetbrains-mono}` self-hosted（main.tsx 7 行 side-effect import）
 
 ### Chat 模块（pilot — 待协议化迁移）
