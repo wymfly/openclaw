@@ -2,7 +2,7 @@
 
 > 这份文件解耦"协议"和"具体技术栈"。`frontend-handoff/CLAUDE.md` 和 `frontend-new/CLAUDE.md` 协议条款只描述契约（"server state 与 UI state 分桶"等），不绑定具体库。具体当前用什么库、哪些项还没决议——全部记在这里。
 
-**Last reviewed:** 2026-05-01
+**Last reviewed:** 2026-05-04
 **Owner:** Claude Code（在 deck-go 仓库内的实施者）
 **Linked from:** `docs/CLAUDE.md` · `frontend-new/CLAUDE.md` · `frontend-handoff/CLAUDE.md`
 
@@ -20,21 +20,24 @@
 
 ## Locked（已锁定，协议落定即生效）
 
-| 决策                | 选择                                                | 来源/版本                                    | 备注                                                                                                     |
-| ------------------- | --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 构建器              | Vite                                                | 7.1.x                                        | `frontend/package.json`                                                                                  |
-| UI 框架             | React                                               | 19.2.x                                       | 使用 `<StrictMode>`                                                                                      |
-| 类型系统            | TypeScript strict                                   | 5.9.x                                        | `tsconfig.json` 已配 `strict: true`                                                                      |
-| 单测框架            | Vitest                                              | （由 `scripts/run-vitest.mjs` wrapper 调起） |                                                                                                          |
-| a11y 测试           | vitest-axe                                          | 0.1.x                                        | atoms 单测 + module 覆盖                                                                                 |
-| 字体                | `@fontsource/inter` + `@fontsource/jetbrains-mono`  | 5.2.x（self-hosted woff2）                   | `main.tsx` side-effect import；离线/受限网络可用                                                         |
-| 设计 token 命名空间 | `--ds-*`                                            | —                                            | 与遗留 `theme.css` 共存而不撞名                                                                          |
-| 主题选择器          | `data-theme="dark"\|"light"` on `<html>`            | —                                            | 默认 dark                                                                                                |
-| 密度选择器          | `data-density="comfortable"\|"compact"` on `<html>` | —                                            | 默认 comfortable                                                                                         |
-| Token 单一来源      | `frontend/src/design-system/tokens/index.css`       | —                                            | `frontend-handoff/design-system/tokens.css` 是 mirror，drift 检测见 `scripts/check-tokens-drift.sh`      |
-| Atom 物理结构       | 扁平 — `Badge.tsx` + `badge.css` 同目录             | —                                            | 而非三件套 `<Atom>/<Atom>.tsx + .module.css + index.ts`                                                  |
-| Hook 物理结构       | `use-*.ts` 平铺 + `index.ts` barrel                 | —                                            | 当前 5 个 hook：`use-click-outside` `use-escape-close` `use-focus-trap` `use-keyboard-nav` `use-popover` |
-| 路径别名            | `@/` → `frontend/src/`                              | tsconfig + vite.config                       |                                                                                                          |
+| 决策                 | 选择                                                     | 来源/版本                                    | 备注                                                                                                                                                              |
+| -------------------- | -------------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 构建器               | Vite                                                     | 7.1.x                                        | `frontend/package.json`                                                                                                                                           |
+| UI 框架              | React                                                    | 19.2.x                                       | 使用 `<StrictMode>`                                                                                                                                               |
+| 类型系统             | TypeScript strict                                        | 5.9.x                                        | `tsconfig.json` 已配 `strict: true`                                                                                                                               |
+| 单测框架             | Vitest                                                   | （由 `scripts/run-vitest.mjs` wrapper 调起） |                                                                                                                                                                   |
+| a11y 测试            | vitest-axe                                               | 0.1.x                                        | atoms 单测 + module 覆盖                                                                                                                                          |
+| 字体                 | `@fontsource/inter` + `@fontsource/jetbrains-mono`       | 5.2.x（self-hosted woff2）                   | `main.tsx` side-effect import；离线/受限网络可用                                                                                                                  |
+| 设计 token 命名空间  | `--ds-*`                                                 | —                                            | 与遗留 `theme.css` 共存而不撞名                                                                                                                                   |
+| 主题选择器           | `data-theme="dark"\|"light"` on `<html>`                 | —                                            | 默认 dark                                                                                                                                                         |
+| 密度选择器           | `data-density="comfortable"\|"compact"` on `<html>`      | —                                            | 默认 comfortable                                                                                                                                                  |
+| Token 单一来源       | `frontend/src/design-system/tokens/index.css`            | —                                            | `frontend-handoff/design-system/tokens.css` 是 mirror，drift 检测见 `scripts/check-tokens-drift.sh`                                                               |
+| Atom 物理结构        | 扁平 — `Badge.tsx` + `badge.css` 同目录                  | —                                            | 而非三件套 `<Atom>/<Atom>.tsx + .module.css + index.ts`                                                                                                           |
+| Hook 物理结构        | `use-*.ts` 平铺 + `index.ts` barrel                      | —                                            | 当前 5 个 hook：`use-click-outside` `use-escape-close` `use-focus-trap` `use-keyboard-nav` `use-popover`                                                          |
+| 路径别名             | `@/` → `frontend/src/`                                   | tsconfig + vite.config                       |                                                                                                                                                                   |
+| Pattern 物理结构     | `<Pattern>.tsx + <pattern>.css` 平铺 + `index.ts` barrel | —                                            | 当前 6 个 pattern：`PageShell` `NavRail` `TopBar` `EmptyState` `KbdHint` `SectionHeader`（cross-module shells）                                                   |
+| Icon 库              | `lucide-react`                                           | ^1.14.0                                      | 重导出在 `frontend-new/src/design-system/icons/index.ts`，按 deck-go 域语义重命名（`User → IconAgent` 等）；面板/pattern 不许直接 import lucide                   |
+| Prototype 字符串规则 | hardcoded literal text                                   | —                                            | 原型 (`frontend-handoff/modules/<x>/`) 直接写显示文本；禁止 `t()` / `useTranslations` / `next-intl` import；工程实施时 Claude Code 一次性抽到 `i18n/{en,zh}.json` |
 
 ## Defaulting（暂用，可能换）
 
@@ -47,13 +50,12 @@
 
 ## Pending（尚未决议）
 
-| 维度                                   | 何时需要决议                                      | 默认决议方法                                                     |
-| -------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------- |
-| Form 库（react-hook-form vs 自研）     | 第一个有复杂 form 的 panel（settings / channels） | 走 brainstorming skill；产出小 spec                              |
-| Data table 库                          | 出现需要排序/虚拟滚动/列拖拽的 panel              | 同上                                                             |
-| Animation 库（framer-motion / motion） | 出现 motion 决策不能用 CSS transition 表达的需求  | 默认尽量 CSS-only；framer 仅在必要时引入                         |
-| Code editor（Monaco / CodeMirror）     | api-explorer / config-editor panel 进场           | brainstorming                                                    |
-| 图标库（lucide / heroicon / 自研 SVG） | 第二个 panel 需要图标超过当前 icons.tsx 范围      | 默认沿用现有 `frontend/src/deck-ui/icons.tsx`；外部库引入需 spec |
+| 维度                                   | 何时需要决议                                      | 默认决议方法                             |
+| -------------------------------------- | ------------------------------------------------- | ---------------------------------------- |
+| Form 库（react-hook-form vs 自研）     | 第一个有复杂 form 的 panel（settings / channels） | 走 brainstorming skill；产出小 spec      |
+| Data table 库                          | 出现需要排序/虚拟滚动/列拖拽的 panel              | 同上                                     |
+| Animation 库（framer-motion / motion） | 出现 motion 决策不能用 CSS transition 表达的需求  | 默认尽量 CSS-only；framer 仅在必要时引入 |
+| Code editor（Monaco / CodeMirror）     | api-explorer / config-editor panel 进场           | brainstorming                            |
 
 ---
 
@@ -71,6 +73,7 @@
 
 ## 修订历史
 
-| 日期       | 变更                                                                                           |
-| ---------- | ---------------------------------------------------------------------------------------------- |
-| 2026-05-01 | 协议 v1 落定（OpenSpec change `deck-go-frontend-protocol-v1`）：建立此文件，把栈决策从协议解耦 |
+| 日期       | 变更                                                                                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-01 | 协议 v1 落定（OpenSpec change `deck-go-frontend-protocol-v1`）：建立此文件，把栈决策从协议解耦                                                                            |
+| 2026-05-04 | OpenSpec change `deck-go-frontend-foundation-readiness`：Pattern 物理结构 + Icon 库（`lucide-react ^1.14.0`）+ Prototype 字符串规则三项进入 Locked；图标库 pending 项移除 |

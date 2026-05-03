@@ -1,0 +1,95 @@
+.ds-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-sp-5);
+  height: 48px;
+  padding: 0 var(--ds-sp-5);
+  border-bottom: 1px solid var(--ds-border-subtle);
+  background: var(--ds-bg-1);
+  flex-shrink: 0;
+}
+
+.ds-top-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ds-text-1);
+  letter-spacing: -0.005em;
+  min-width: 0;
+}
+
+.ds-top-bar__brand strong {
+  font-weight: 600;
+}
+
+.ds-top-bar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+}
+
+.ds-top-bar__command {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-3);
+  height: 30px;
+  padding: 0 var(--ds-sp-2) 0 var(--ds-sp-3);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-3);
+  font: 500 var(--ds-fs-meta) / 1 var(--ds-font-sans);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.ds-top-bar__command:hover {
+  background: var(--ds-bg-hover);
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text-1);
+}
+
+.ds-top-bar__command:focus-visible {
+  outline: none;
+  border-color: var(--ds-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ds-accent) 18%, transparent);
+}
+
+.ds-top-bar__command-text {
+  font-family: var(--ds-font-sans);
+}
+
+.ds-top-bar__kbd {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.ds-top-bar__kbd kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+  color: var(--ds-text-3);
+  font: 500 10px / 1 var(--ds-font-mono);
+}
+
+.ds-top-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-sp-2);
+}
+
+@media (max-width: 760px) {
+  .ds-top-bar__command-text {
+    display: none;
+  }
+}

@@ -1,0 +1,62 @@
+.ds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-sp-3);
+  padding: var(--ds-sp-8) var(--ds-sp-6);
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-1);
+  text-align: center;
+}
+
+.ds-empty-state__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-3);
+  margin-bottom: var(--ds-sp-1);
+}
+
+.ds-empty-state__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-text-1);
+  letter-spacing: -0.005em;
+}
+
+.ds-empty-state__description {
+  margin: 0;
+  max-width: 360px;
+  color: var(--ds-text-3);
+  font-size: var(--ds-fs-body);
+  line-height: var(--ds-line);
+}
+
+.ds-empty-state__action {
+  margin-top: var(--ds-sp-2);
+}
+
+.ds-empty-state--search .ds-empty-state__icon {
+  background: var(--ds-accent-bg);
+  color: var(--ds-accent);
+}
+
+.ds-empty-state--error {
+  border-color: color-mix(in srgb, var(--ds-error) 35%, var(--ds-border));
+  background: var(--ds-error-bg);
+}
+
+.ds-empty-state--error .ds-empty-state__icon {
+  background: color-mix(in srgb, var(--ds-error-bg) 50%, var(--ds-bg-1));
+  color: var(--ds-error);
+}
+
+.ds-empty-state--error .ds-empty-state__title {
+  color: var(--ds-text-1);
+}

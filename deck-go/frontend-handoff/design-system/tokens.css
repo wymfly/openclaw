@@ -1,25 +1,18 @@
 /**
- * deck-go design tokens — design source mirror
+ * deck-go frontend design system — tokens
  *
- * Canonical file: ../../frontend/src/design-system/tokens/index.css
- * (将随 change `deck-go-frontend-new-scaffold` 改为 ../../frontend-new/src/design-system/tokens/index.css)
+ * Source: Claude Design pilot bundle (docs/design-bundles/2026-04-29-claude-design-chat-pilot/project/tokens.css)
  *
- * This file MUST stay byte-identical to the canonical file from `:root` onwards.
- * Drift detection: `scripts/check-tokens-drift.sh` (exit 0 = ok, exit 1 = drift).
+ * Naming strategy: ALL tokens prefixed with `--ds-*` to coexist with existing
+ * theme.css tokens without value collision. Existing panels keep their
+ * `--accent` (purple) / `--bg` / `--text-soft` etc.; design-system atoms read
+ * `var(--ds-accent)` (blue) / `var(--ds-bg-1)` / `var(--ds-text-2)`.
  *
- * 编辑流程：
- *   1) 设计 agent 在本文件提议变更 + 在 design-system/proposals/YYYY-MM-DD-*.md 写说明
- *   2) Claude Code 审查 → 决定是否同步到 canonical file
- *   3) 同步落定后，drift 脚本必须再次返回 0
+ * Theme: `data-theme="dark"` (default) or `"light"` on <html> or <body>.
+ * Density: `data-density="comfortable"` (default) or `"compact"`.
  *
- * 命名空间：所有 token 用 `--ds-*` 前缀，与遗留 `theme.css` 的 `--accent` / `--bg` / `--text-soft` 等不冲突。
- * 主题选择器：<html data-theme="dark"> (默认) 或 "light"。
- * 密度选择器：<html data-density="comfortable"> (默认) 或 "compact"。
- *
- * 参考：
- *   docs/superpowers/specs/2026-04-29-chat-gateway-capability-map.md §10
- *   openspec/changes/frontend-design-system-via-chat/design.md Decision 7
- *   openspec/changes/deck-go-frontend-protocol-v1/specs/frontend-handoff-protocol/spec.md
+ * See: docs/superpowers/specs/2026-04-29-chat-gateway-capability-map.md §10
+ *      openspec/changes/frontend-design-system-via-chat/design.md Decision 7
  */
 
 /* Webfont families (Inter + JetBrains Mono) are loaded via @fontsource
@@ -77,7 +70,7 @@
 
   --ds-text-1: #e6e8ec;
   --ds-text-2: #a8aeba;
-  --ds-text-3: #6e7585;
+  --ds-text-3: #8992a3;
   --ds-text-4: #4a5160;
 
   --ds-border-subtle: #1f2530;
@@ -119,7 +112,7 @@
 
   --ds-text-1: #15171a;
   --ds-text-2: #555a64;
-  --ds-text-3: #898f99;
+  --ds-text-3: #6c7280;
   --ds-text-4: #b7bcc4;
 
   --ds-border-subtle: #e8eae4;

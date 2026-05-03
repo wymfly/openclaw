@@ -182,11 +182,12 @@ frontend-handoff/
 |---|---|---|
 | `<script type="text/babel">` inline JSX | `.tsx` 文件 | — |
 | Inline `<style>` with `--ds-*` | 同名 kebab-case `.css`（如 `chat-panel.css`），与组件同目录 | 不强制 CSS Module（atoms 是平铺）；module 级看模块自己决定 |
-| 硬编码字符串 | i18n 调用 | see stack-decisions（**当前 i18n 处于 broken/pending 状态**，临时方案：内联字符串） |
+| Hardcoded literal text | i18n 调用 | 见 **Prototype string rule** 子段；缩短时一次性抽到 `i18n/{en,zh}.json` |
 | `useState` 全包大揽 | 本地组件状态 vs 跨组件状态分桶 | 本地 `useState` / 跨组件 see stack-decisions |
 | Mock `setTimeout` async | 真实 server-state 库（fetch + cache + invalidation） | see stack-decisions |
 | `fetch('/api/...')` mock | `src/api/<module>.ts` real client + 上层钩子 | see stack-decisions |
-| Inline SVG icons | 单次用：保留内联；多模块复用：移到 `src/design-system/icons/` | — |
+| 跨模块 shell（`PageShell` / `EmptyState` 等） | `@/design-system/patterns` 引用 | 见 **Sourcing patterns and icons** 子段；不在 panel 内重新发明 |
+| Icon | `@/design-system/icons` 引用（按域语义命名，背后是 lucide-react） | 见 **Sourcing patterns and icons** 子段 |
 | `localStorage` 直接访问 | typed `lib/storage.ts` helper | — |
 
 **翻译时不能丢的事（设计决策，不是实现细节）：**
@@ -194,6 +195,49 @@ frontend-handoff/
 - **Token 引用**：每个 `var(--ds-*)` 必须在 canonical tokens 文件存在；不存在先走 tokens-proposal
 - **交互细节**：动画时长 / 缓动 / hover 延迟 / 快捷键
 - **视觉层级**：12px 配 14px 不能擅自换成 16px 配 16px
+
+### Prototype string rule
+
+**一句话：原型 hardcode 显示字符串；工程实施时一次性抽 i18n。**
+
+- prototype 文件 (`frontend-handoff/modules/<x>/*`) 直接写显示文本（中文 / 英文均可），**禁止** 调 `t()` / `useTranslations` / `import` 任何 `next-intl` / 自研 i18n shim
+- prototype 不允许写"看起来像 i18n key 的死字符串"伪装（例如 `"agents.title"` 当文本）
+- Claude Code 翻译时，从 prototype 提取所有 literal 文本，进 `frontend-new/src/i18n/{en,zh}.json`，组件代码改用 `useTranslations("...")`
+- 提取在工程实施期一次性完成，**不**在原型阶段渐进抽取
+
+举例：
+
+```jsx
+// ✅ Prototype 写法
+<h1>Agents</h1>
+<p>Configure agent identity and runtime policy.</p>
+
+// ❌ 禁止 — 假装调 t()
+<h1>{t("agents.title")}</h1>
+const t = (k) => k;  // mock 工厂禁止
+
+// ❌ 禁止 — 写死 i18n key 当文本
+<h1>agents.title</h1>
+```
+
+完整规范见 `openspec/specs/frontend-prototype-strings-convention/spec.md`。
+
+### Sourcing patterns and icons
+
+跨模块共用的 shell（`PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`）和 icon 一律从 design system 引用：
+
+- patterns：`@/design-system/patterns`（barrel）
+- icons：`@/design-system/icons`（barrel；按 deck-go 域语义命名 `IconAgent` / `IconStream` 等，背后 lucide-react）
+
+模块 `components.md` MUST 列：
+- `## Depends on canonical patterns` 段，列具体 pattern 名
+- `## Depends on canonical icons` 段，列具体 icon 名
+
+如果某模块需要新 pattern / icon：
+- pattern：必须 ≥2 模块同形态 + reuse 分析（见 `design-system/patterns/README.md`），走 `design-system/proposals/` 提案，等批准后落到 design system
+- icon：直接到 `design-system/icons/index.ts` 加新 lucide 重导出（README 表格同步），走 PR 评审；非 lucide 的特殊 SVG 走 `_custom/` 子目录
+
+prototype **禁止** 在自己的 `<style>` 或 `.css` 里重新发明 PageShell 类等价的 layout 词汇——必走 `@/design-system/patterns`。
 
 ---
 

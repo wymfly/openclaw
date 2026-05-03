@@ -2,7 +2,7 @@
 
 > 这份文件给第一次落地的 agent 一个 5 分钟看完即可上手的项目快照。**它不是状态记录系统、不是 journal、不是 changelog**——目录树才是真相。本文件按需手工更新，过期一两个版本不算 bug。
 
-**Snapshot date:** 2026-05-01
+**Snapshot date:** 2026-05-04
 **Authoritative state lives in:** 真实代码树本身。当本文件与代码冲突，**信代码**。
 **Update cadence:** 每 1-2 月，或大变动后
 
@@ -79,7 +79,9 @@ deck-go/
   ```
 
 - **Hooks**: 5 个（`use-click-outside` `use-escape-close` `use-focus-trap` `use-keyboard-nav` `use-popover`）
-- **Gallery**: 设计系统活样张，运行时按 `?dsGallery=1` URL 参数走 lazy import
+- **Patterns**: 6 个跨模块布局壳 — `PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`（位于 `frontend-new/src/design-system/patterns/`，扁平结构 + barrel + a11y 测试）
+- **Icons**: 24 个 canonical SVG，按 deck-go 域语义命名（`IconAgent` `IconStream` `IconBolt` 等），重导出自 `lucide-react ^1.14.0`（`frontend-new/src/design-system/icons/`）；面板/pattern 不许直接 import lucide
+- **Gallery**: 设计系统活样张，运行时按 `?dsGallery=1` URL 参数走 lazy import；展示 36 atoms + 6 patterns + 24 icons
 - **Dependency**: 字体走 `@fontsource/{inter,jetbrains-mono}` self-hosted（main.tsx 7 行 side-effect import）
 
 ### Chat 模块（pilot — 待协议化迁移）
@@ -115,12 +117,13 @@ skills / subagents / threads / usage / webhooks
 
 ## 当前进行中的 OpenSpec change（本目录范围内）
 
-| change                                | 状态   | 含义                                                                                                                                           |
-| ------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deck-go-frontend-protocol-v1`        | 实施中 | 协议层 + 反向同步 tokens + drift 脚本                                                                                                          |
-| `deck-go-frontend-new-scaffold`       | 待批准 | 建 `frontend-new/` 物理树（cp design system / 工程基础）                                                                                       |
-| `deck-go-chat-protocol-pilot`         | 待批准 | chat 6 件套反推 + 物理迁移到 `frontend-new/`                                                                                                   |
-| `deck-go-chat-agents-contract-typing` | 实施完 | chat / agents 契约面收齐（TranscriptBlock union / activeApproval typed / 2 SSE event / 11 write DTO / codegen pointer 支持）；浏览器烟测待用户 |
+| change                                  | 状态   | 含义                                                                                                                                           |
+| --------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deck-go-frontend-protocol-v1`          | 实施中 | 协议层 + 反向同步 tokens + drift 脚本                                                                                                          |
+| `deck-go-frontend-new-scaffold`         | 待批准 | 建 `frontend-new/` 物理树（cp design system / 工程基础）                                                                                       |
+| `deck-go-chat-protocol-pilot`           | 待批准 | chat 6 件套反推 + 物理迁移到 `frontend-new/`                                                                                                   |
+| `deck-go-chat-agents-contract-typing`   | 实施完 | chat / agents 契约面收齐（TranscriptBlock union / activeApproval typed / 2 SSE event / 11 write DTO / codegen pointer 支持）；浏览器烟测待用户 |
+| `deck-go-frontend-foundation-readiness` | 实施完 | patterns × 6 + icons (lucide-react) + 原型字符串规则 + agents pilot 反哺候选记录；24 panel 高保真原型量产前的 Phase 0                          |
 
 可用 `openspec list` 看完整队列。
 

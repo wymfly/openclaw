@@ -37,6 +37,8 @@ import {
   Tooltip,
   WaitingDots,
 } from "../atoms";
+import * as icons from "../icons";
+import { EmptyState, KbdHint, NavRail, PageShell, SectionHeader, TopBar } from "../patterns";
 
 /**
  * Dev-only smoke gallery — renders one sample of every atom against the
@@ -213,6 +215,131 @@ export function DesignSystemGallery() {
             right-click here
           </div>
         </ContextMenu>
+      </Section>
+
+      <Banner variant="info">design-system gallery — Patterns</Banner>
+
+      <Section label="PageShell · NavRail · TopBar (composed shell)">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "64px 1fr",
+            border: "1px solid var(--ds-border-subtle)",
+            borderRadius: 6,
+            overflow: "hidden",
+            width: "100%",
+            height: 280,
+          }}
+        >
+          <NavRail
+            brand={<>D</>}
+            items={[
+              { id: "a", icon: <icons.IconAgent size={18} />, label: "Agents", onClick: () => {} },
+              {
+                id: "s",
+                icon: <icons.IconStream size={18} />,
+                label: "Streams",
+                onClick: () => {},
+              },
+              { id: "k", icon: <icons.IconBolt size={18} />, label: "Skills", onClick: () => {} },
+            ]}
+            activeId="a"
+          />
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <TopBar
+              brand="OpenClaw Deck"
+              actions={<Button>New</Button>}
+              onCommandPaletteOpen={() => {}}
+            />
+            <PageShell maxWidth="none">
+              <p style={{ color: "var(--ds-text-3)" }}>Page content rendered inside PageShell.</p>
+            </PageShell>
+          </div>
+        </div>
+      </Section>
+
+      <Section label="EmptyState (3 tones)">
+        <EmptyState
+          icon={<icons.IconAgent size={28} />}
+          title="No agents yet"
+          description="Create the first agent to get started."
+          action={<Button>Create agent</Button>}
+        />
+        <EmptyState
+          icon={<icons.IconSearch size={28} />}
+          title="No matches"
+          description='No agents match "ops" with current filters.'
+          action={<Button variant="secondary">Clear filters</Button>}
+          tone="search"
+        />
+        <EmptyState
+          icon={<icons.IconAlert size={28} />}
+          title="Failed to load"
+          description="The Gateway agents.list request timed out after 5 seconds."
+          action={<Button variant="secondary">Retry</Button>}
+          tone="error"
+        />
+      </Section>
+
+      <Section label="KbdHint (sm + md)">
+        <KbdHint keys={["⌘", "K"]} />
+        <KbdHint keys={["⌘", "S"]} size="md" />
+        <KbdHint keys={["Esc"]} />
+        <KbdHint keys={["Shift", "↵"]} aria-label="Shift Enter — send" />
+      </Section>
+
+      <Section label="SectionHeader">
+        <div style={{ width: "100%" }}>
+          <SectionHeader
+            title="Identity"
+            description="Backend-supported fields. Mirror of the Gateway AgentsUpdateParams contract."
+            hint="3 of 5 fields"
+            actions={<Button>Save changes</Button>}
+          />
+        </div>
+        <div style={{ width: "100%" }}>
+          <SectionHeader title="Skills" hint="whitelist · 3 of 8 enabled" />
+        </div>
+      </Section>
+
+      <Banner variant="info">design-system gallery — Icons (lucide-react)</Banner>
+
+      <Section
+        label={`Icons (${Object.keys(icons).filter((k) => k.startsWith("Icon")).length} canonical)`}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
+            gap: 8,
+            width: "100%",
+          }}
+        >
+          {Object.entries(icons)
+            .filter(([name]) => name.startsWith("Icon"))
+            .toSorted(([a], [b]) => a.localeCompare(b))
+            .map(([name, IconComponent]) => {
+              const Comp = IconComponent as React.ComponentType<{ size?: number }>;
+              return (
+                <div
+                  key={name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 10px",
+                    border: "1px solid var(--ds-border-subtle)",
+                    borderRadius: 6,
+                    background: "var(--ds-bg-1)",
+                    color: "var(--ds-text-2)",
+                  }}
+                >
+                  <Comp size={16} />
+                  <span style={{ fontFamily: "var(--ds-font-mono)", fontSize: 11 }}>{name}</span>
+                </div>
+              );
+            })}
+        </div>
       </Section>
     </div>
   );

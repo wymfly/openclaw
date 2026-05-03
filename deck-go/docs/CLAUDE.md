@@ -100,6 +100,7 @@ docs/
 | [`project/stack-decisions.md`](./project/stack-decisions.md) | ⭐ 当前技术栈决策（locked / defaulting / pending）。协议层不绑库——具体库选择记在这里。任何 agent 想知道"现在用什么 routing / state / i18n"先读这份。 |
 | [`project/current-state.md`](./project/current-state.md) | ⭐ 项目代码现状人类可读快照——5 分钟入门读物。chat pilot done、36 atoms canonical、tokens 实际内容、24 legacy panel 列表。**它是快照，不是 journal**——过期 1-2 个版本不算 bug。 |
 | [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md) | deck-go design-system 工程化方案——建 molecules、review canvas、README、收敛旧 token。可直接喂给 Claude Code 在仓库本地执行。 |
+| [`project/codex-prototype-quality-assessment.md`](./project/codex-prototype-quality-assessment.md) | Codex agents 原型质量评估——问题定位 + 正确做法指南 + 质量检查清单。任何 agent 做 handoff 原型前必读。 |
 
 > 以后这个目录会增加：`design-system-audit.md`（现状审计）、`api-contract.md`（API 契约）、各模块的设计 brief 和决策记录等。
 
@@ -182,8 +183,10 @@ deck-go 采用双 Agent 协作：
 - ✅ tokens 完成（44 个 `--ds-*` 变量，dark/light，老 `frontend/src/design-system/tokens/index.css`）
 - ✅ 36 atoms 完成（扁平结构 `Badge.tsx + badge.css`，不是三件套）
 - ✅ 5 hooks 完成（use-click-outside / use-escape-close / use-focus-trap / use-keyboard-nav / use-popover）
+- ✅ **6 patterns 完成**（OpenSpec change `deck-go-frontend-foundation-readiness`）：`PageShell` / `NavRail` / `TopBar` / `EmptyState` / `KbdHint` / `SectionHeader`，扁平结构 + barrel + a11y 测试 + Gallery 接入
+- ✅ **24 canonical icons 完成**（同上 change）：`lucide-react ^1.14.0` 重导出，按 deck-go 域语义命名（`IconAgent` / `IconStream` 等）；面板/pattern 不许直接 import lucide
+- ✅ **原型字符串规则约定完成**（同上 change）：原型 hardcoded literal 文本，禁止 `t()` / `useTranslations` / `next-intl`；工程实施时 Claude Code 一次性抽 i18n
 - ✅ 视觉光谱锚点确立（3 张参考卡）
-- ⏳ **下一步**：建 `frontend-new/` 物理工程树（OpenSpec change `deck-go-frontend-new-scaffold`）→ 把 design system canonical 整体迁过去
-- ⏳ **之后**：chat 模块协议化迁移（OpenSpec change `deck-go-chat-protocol-pilot`）→ 6 件套反推 + 物理迁移到 `frontend-new/src/components/panels/chat/`
-- ⏳ **再之后**：24 个 legacy panel 协议化重做（agents / models / channels / sessions / logs / settings / etc.）—— 等 chat pilot 验证协议在真实复杂度下可执行后逐个开
-- ⏳ molecules / patterns / review canvas / README / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)
+- ⏳ **下一步**：24 个 legacy panel 高保真原型量产（pattern 1：`channels` 推荐——list/detail 同形态可复用 agents pilot 词汇）
+- ⏳ chat 模块工程代码协议化重做（已运行但未对齐 patterns/icons 词汇；单独 change 处理）
+- ⏳ molecules / review canvas / README / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)
