@@ -165,27 +165,27 @@ export function RuleForm(props: {
   };
 
   return (
-    <form className="deck-ui-control-form deck-ui-budget-form" onSubmit={handleSubmit}>
-      <h3 className="deck-ui-control-section-title">{props.rule ? t("editRule") : t("addRule")}</h3>
+    <form className="budget-panel__form" onSubmit={handleSubmit}>
+      <h3 className="budget-panel__card-title">{props.rule ? t("editRule") : t("addRule")}</h3>
 
-      <label className="deck-ui-control-field">
+      <label className="budget-panel__field">
         <span>{t("name")}</span>
         <input
           aria-label="budget rule name"
-          className="deckgo-input deck-ui-budget-input"
+          className="budget-panel__input"
           value={draft.name}
           onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
         />
       </label>
 
-      <div className="deck-ui-control-field">
+      <div className="budget-panel__field">
         <span>{t("scope")}</span>
-        <div className="deck-ui-control-segmented">
+        <div className="budget-panel__segments">
           {SCOPES.map((scope) => (
             <button
               key={scope}
               type="button"
-              className={draft.scope === scope ? "is-selected" : ""}
+              className={`budget-panel__segment ${draft.scope === scope ? "is-selected" : ""}`}
               aria-pressed={draft.scope === scope}
               onClick={() => updateScope(scope)}
             >
@@ -196,11 +196,11 @@ export function RuleForm(props: {
       </div>
 
       {draft.scope === "agent" ? (
-        <label className="deck-ui-control-field">
+        <label className="budget-panel__field">
           <span>{t("agentId")}</span>
           <input
             aria-label="budget agent id"
-            className="deckgo-input deck-ui-budget-input"
+            className="budget-panel__input"
             value={draft.agentId}
             onChange={(event) =>
               setDraft((current) => ({ ...current, agentId: event.target.value }))
@@ -210,11 +210,11 @@ export function RuleForm(props: {
       ) : null}
 
       {draft.scope === "task" ? (
-        <label className="deck-ui-control-field">
+        <label className="budget-panel__field">
           <span>{t("taskId")}</span>
           <input
             aria-label="budget task id"
-            className="deckgo-input deck-ui-budget-input"
+            className="budget-panel__input"
             value={draft.taskId}
             onChange={(event) =>
               setDraft((current) => ({ ...current, taskId: event.target.value }))
@@ -223,14 +223,16 @@ export function RuleForm(props: {
         </label>
       ) : null}
 
-      <div className="deck-ui-control-field">
+      <div className="budget-panel__field">
         <span>{t("dimension")}</span>
-        <div className="deck-ui-control-segmented deck-ui-control-segmented-wrap">
+        <div className="budget-panel__segments">
           {DIMENSIONS.map((dimension) => (
             <button
               key={dimension}
               type="button"
-              className={draft.dimension === dimension ? "is-selected" : ""}
+              className={`budget-panel__segment ${
+                draft.dimension === dimension ? "is-selected" : ""
+              }`}
               aria-pressed={draft.dimension === dimension}
               onClick={() => setDraft((current) => ({ ...current, dimension }))}
             >
@@ -240,12 +242,12 @@ export function RuleForm(props: {
         </div>
       </div>
 
-      <div className="deck-ui-control-form-grid">
-        <label className="deck-ui-control-field">
+      <div className="budget-panel__field-grid">
+        <label className="budget-panel__field">
           <span>{t("warnThreshold")}</span>
           <input
             aria-label="budget warn threshold"
-            className="deckgo-input deck-ui-budget-input"
+            className="budget-panel__input"
             min="0"
             step="any"
             type="number"
@@ -255,11 +257,11 @@ export function RuleForm(props: {
             }
           />
         </label>
-        <label className="deck-ui-control-field">
+        <label className="budget-panel__field">
           <span>{t("overThreshold")}</span>
           <input
             aria-label="budget over threshold"
-            className="deckgo-input deck-ui-budget-input"
+            className="budget-panel__input"
             min="0"
             step="any"
             type="number"
@@ -271,14 +273,14 @@ export function RuleForm(props: {
         </label>
       </div>
 
-      <div className="deck-ui-control-field">
+      <div className="budget-panel__field">
         <span>{t("period")}</span>
-        <div className="deck-ui-control-segmented">
+        <div className="budget-panel__segments">
           {PERIODS.map((period) => (
             <button
               key={period}
               type="button"
-              className={draft.period === period ? "is-selected" : ""}
+              className={`budget-panel__segment ${draft.period === period ? "is-selected" : ""}`}
               aria-pressed={draft.period === period}
               onClick={() => setDraft((current) => ({ ...current, period }))}
             >
@@ -290,32 +292,24 @@ export function RuleForm(props: {
 
       <button
         type="button"
-        className={`deck-ui-control-switch ${draft.enabled ? "is-on" : ""}`}
+        className={`budget-panel__switch ${draft.enabled ? "is-on" : ""}`}
         role="switch"
         aria-checked={draft.enabled}
         onClick={() => setDraft((current) => ({ ...current, enabled: !current.enabled }))}
       >
         <span>{t("enabledToggle")}</span>
-        <span className="deck-ui-control-switch-track" aria-hidden="true">
-          <span className="deck-ui-control-switch-thumb" />
+        <span className="budget-panel__switch-track" aria-hidden="true">
+          <span className="budget-panel__switch-thumb" />
         </span>
       </button>
 
-      {validationMessage ? <p className="deck-ui-control-error">{validationMessage}</p> : null}
+      {validationMessage ? <p className="budget-panel__error">{validationMessage}</p> : null}
 
-      <div className="deckgo-actions deck-ui-budget-actions">
-        <button
-          className="deckgo-button is-primary deck-ui-budget-button"
-          disabled={props.saving}
-          type="submit"
-        >
+      <div className="budget-panel__actions">
+        <button className="budget-panel__button is-primary" disabled={props.saving} type="submit">
           {props.saving ? tc("saving") : tc("save")}
         </button>
-        <button
-          className="deckgo-button deck-ui-budget-button"
-          type="button"
-          onClick={props.onCancel}
-        >
+        <button className="budget-panel__button" type="button" onClick={props.onCancel}>
           {tc("cancel")}
         </button>
       </div>

@@ -1,17 +1,21 @@
 import type { DeckGoBudgetEvaluation, DeckGoBudgetRule } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
 
-function statusPillClass(status: DeckGoBudgetEvaluation["status"]) {
+export function budgetStatusTone(status: DeckGoBudgetEvaluation["status"]) {
   if (status === "over") {
-    return "is-danger";
+    return "danger";
   }
   if (status === "warn") {
-    return "is-warning";
+    return "warning";
   }
-  return "is-positive";
+  return "positive";
 }
 
-function formatBudgetValue(
+export function budgetStatusClass(status: DeckGoBudgetEvaluation["status"]) {
+  return `is-${budgetStatusTone(status)}`;
+}
+
+export function formatBudgetValue(
   value: number | null | undefined,
   dimension: DeckGoBudgetRule["dimension"],
 ) {
@@ -30,7 +34,7 @@ function formatBudgetValue(
   return String(value);
 }
 
-function budgetProgressPercent(evaluation: DeckGoBudgetEvaluation) {
+export function budgetProgressPercent(evaluation: DeckGoBudgetEvaluation) {
   const threshold = evaluation.overThreshold ?? evaluation.warnThreshold ?? 0;
   if (threshold <= 0) {
     return 0;
@@ -46,26 +50,36 @@ export function BudgetStatus(props: { evaluations: DeckGoBudgetEvaluation[] }) {
   }
 
   return (
-    <section className="deck-ui-control-stack deck-ui-budget-status">
-      <h3 className="deck-ui-control-section-title">{t("status")}</h3>
-      <div className="deck-ui-control-status-list">
+    <section className="budget-panel__surface" aria-label={t("status")}>
+      <div className="budget-panel__card-head">
+        <h3 className="budget-panel__card-title">{t("status")}</h3>
+      </div>
+      <div className="budget-panel__body budget-panel__status-list">
         {props.evaluations.map((evaluation) => (
-          <article className="deck-ui-control-status-card" key={evaluation.ruleId}>
-            <div className="deck-ui-control-status-header">
+          <article className="budget-panel__status-card" key={evaluation.ruleId}>
+            <div className="budget-panel__status-head">
               <strong>{evaluation.ruleName}</strong>
-              <span className={`deckgo-pill ${statusPillClass(evaluation.status)}`}>
+              <span className={`budget-panel__pill ${budgetStatusClass(evaluation.status)}`}>
                 {t(evaluation.status)}
               </span>
             </div>
-            <div className="deck-ui-control-progress-track">
-              <div
-                className={`deck-ui-control-progress-bar ${statusPillClass(evaluation.status)}`}
-                style={{ width: `${budgetProgressPercent(evaluation)}%` }}
-              />
-            </div>
-            <div className="deck-ui-control-status-meta">
+            <progress
+              className={`budget-panel__progress ${budgetStatusClass(evaluation.status)}`}
+              max={100}
+              value={budgetProgressPercent(evaluation)}
+              aria-label={t("progressLabel", { name: evaluation.ruleName })}
+            />
+            <div className="budget-panel__status-meta">
               <span>
                 {t("current")}: {formatBudgetValue(evaluation.current, evaluation.dimension)}
+              </span>
+              <span>
+                {evaluation.warnThreshold != null
+                  ? `${t("warnThreshold")}: ${formatBudgetValue(
+                      evaluation.warnThreshold,
+                      evaluation.dimension,
+                    )}`
+                  : t("notAvailable")}
               </span>
               <span>
                 {evaluation.overThreshold != null
@@ -73,12 +87,7 @@ export function BudgetStatus(props: { evaluations: DeckGoBudgetEvaluation[] }) {
                       evaluation.overThreshold,
                       evaluation.dimension,
                     )}`
-                  : evaluation.warnThreshold != null
-                    ? `${t("warnThreshold")}: ${formatBudgetValue(
-                        evaluation.warnThreshold,
-                        evaluation.dimension,
-                      )}`
-                    : ""}
+                  : t("notAvailable")}
               </span>
             </div>
           </article>

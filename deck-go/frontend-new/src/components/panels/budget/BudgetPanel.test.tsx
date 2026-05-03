@@ -108,19 +108,19 @@ describe("BudgetPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads budget rules into the old split sidebar and status workspace", async () => {
+  it("loads budget rules into the budget governance workbench", async () => {
     renderBudget();
 
     await waitFor(() => expect(apiMocks.fetchBudgetRules).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Budget ready"));
 
-    expect(container.querySelector(".deck-ui-control-shell.deck-ui-budget")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-sidebar")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-control-detail")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-budget-status")).toBeTruthy();
+    expect(container.querySelector(".budget-panel")).toBeTruthy();
+    expect(container.querySelector(".budget-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".budget-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".budget-panel__status-list")).toBeTruthy();
     expect(apiMocks.evaluateBudgetRules).toHaveBeenCalledTimes(1);
+    expect(container.textContent).toContain("Spend and token guardrails");
     expect(container.textContent).toContain("2 rules");
-    expect(container.textContent).toContain("1 evaluations");
     expect(container.textContent).toContain("Budget Status");
     expect(container.textContent).toContain("Cost cap");
     expect(container.textContent).toContain("Token cap");
@@ -196,6 +196,9 @@ describe("BudgetPanel", () => {
     await act(async () => {
       fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
     });
+    await act(async () => {
+      fireEvent.click(buttonWithText("Edit") as HTMLButtonElement);
+    });
 
     expect(container.textContent).toContain("Edit Rule");
     const nameInput = container.querySelector<HTMLInputElement>(
@@ -230,6 +233,9 @@ describe("BudgetPanel", () => {
 
     await act(async () => {
       fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonWithText("Edit") as HTMLButtonElement);
     });
     await act(async () => {
       fireEvent.click(buttonWithText("Delete") as HTMLButtonElement);

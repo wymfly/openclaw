@@ -177,14 +177,7 @@ func registerBudgetRoutes(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"error": "Failed to fetch usage data"})
 			return
 		}
-		record, _ := payload.(map[string]any)
-		totals, _ := record["totals"].(map[string]any)
-		values := map[string]float64{
-			"tokensIn":    coerce.Number(totals["input"]),
-			"tokensOut":   coerce.Number(totals["output"]),
-			"totalTokens": coerce.Number(totals["totalTokens"]),
-			"cost":        coerce.Number(totals["totalCost"]),
-		}
+		values := budgetUsageValues(payload)
 		evaluations := make([]map[string]any, 0, len(enabledRules))
 		for _, rule := range enabledRules {
 			currentValue := values[rule.Dimension]
@@ -211,6 +204,23 @@ func registerBudgetRoutes(mux interface {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"evaluations": evaluations})
 	})
+}
+
+func budgetUsageValues(payload any) map[string]float64 {
+	record, _ := payload.(map[string]any)
+	if record == nil && payload != nil {
+		raw, err := json.Marshal(payload)
+		if err == nil {
+			_ = json.Unmarshal(raw, &record)
+		}
+	}
+	totals, _ := record["totals"].(map[string]any)
+	return map[string]float64{
+		"tokensIn":    coerce.Number(totals["input"]),
+		"tokensOut":   coerce.Number(totals["output"]),
+		"totalTokens": coerce.Number(totals["totalTokens"]),
+		"cost":        coerce.Number(totals["totalCost"]),
+	}
 }
 
 func defaultString(value string, fallback string) string {

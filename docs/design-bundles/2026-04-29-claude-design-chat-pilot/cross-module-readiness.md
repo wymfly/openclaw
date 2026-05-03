@@ -444,6 +444,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/skills-visual.spec.ts` covers the ready skill operations workbench, config save result, ClawHub detail/install state, and agent matrix toggle against the bundled mock Gateway. This is mock/local visual coverage, not real Gateway/LLM, real ClawHub marketplace, or production install safety evidence.
 
+### Budget panel
+
+**Status:** in progress under OpenSpec change `frontend-budget-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The Budget high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, status, and compact card tokens. No canonical atom/token was introduced.
+
+**Local molecules retained:** budget metric tile, rule inventory row, selected-rule hero, threshold progress surface, scoped rule form, inline destructive confirmation, and evaluation status card.
+
+**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, status/action seam, and local form sections. Budget validates these patterns for Control policy governance, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+
+**Budget-specific molecules:** threshold progress surfaces, scoped budget rule forms, and guardrail evaluation status cards are candidates for a later Control policy pattern only after alerts/config/identity validate the same API shape. Real billing accuracy, usage aggregation precision, quota enforcement, and production assurance remain outside this mock/local visual pass.
+
+**Mock visual evidence:** `deck-go/test/e2e/budget-visual.spec.ts` covers the ready budget governance workbench, validation state, and create mutation state through public Deck BFF routes with mock Gateway usage totals. This is mock/local visual coverage, not real Gateway/LLM, billing accuracy, usage enforcement, or production quota assurance.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -476,3 +490,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — Webhooks hifi redesign (`frontend-webhooks-hifi-contract-redesign`)**: Webhooks moves receiver inventory, selected receiver evidence, event subscriptions, delivery history, and manual test delivery into a module-local receiver operations workbench. No canonical atom/token changes were introduced; existing BFF/localstore routes were sufficient for deterministic mock/local visual seeding, while real external receiver delivery assurance remains handoff follow-up.
 - **2026-05-03 — Approvals hifi redesign (`frontend-approvals-hifi-contract-redesign`)**: Approvals moves exec decisions, plugin approval requests, policy defaults, per-agent overrides, allowlist paths, stream updates, and raw policy/action evidence into a module-local security operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for approval resolve, policy set, and plugin approval coverage, while real upstream approval-list schemas remain handoff follow-up.
 - **2026-05-03 — Skills hifi redesign (`frontend-skills-hifi-contract-redesign`)**: Skills moves installed inventory, missing requirement evidence, selected skill config, install options, ClawHub search/detail/install/update, and agent skill matrix assignment into a module-local skill operations workbench. No canonical atom/token changes were introduced; deterministic mock Gateway drift was fixed for `skills.*` and `deck.agents.skills.*` visual coverage, while real ClawHub marketplace/trust/install safety remains handoff follow-up.
+- **2026-05-03 — Budget hifi redesign (`frontend-budget-hifi-contract-redesign`)**: Budget moves local budget policy rules, threshold evaluations, scoped create/edit/delete flows, validation, and usage-total evidence into a module-local budget governance workbench. No canonical atom/token changes were introduced; deterministic mock/local visual coverage seeds budget rules through public BFF routes and relies on mock Gateway `usage.cost` totals, while billing accuracy, usage enforcement, and production quota assurance remain handoff follow-up.

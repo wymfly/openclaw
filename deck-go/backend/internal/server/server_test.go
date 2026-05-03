@@ -1176,6 +1176,18 @@ func TestBudgetRoutes_CRUDAndEvaluate(t *testing.T) {
 	if evalRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected evaluate status: %d", evalRes.StatusCode)
 	}
+	var evaluated struct {
+		Evaluations []struct {
+			CurrentValue float64 `json:"currentValue"`
+			Status       string  `json:"status"`
+		} `json:"evaluations"`
+	}
+	if err := json.NewDecoder(evalRes.Body).Decode(&evaluated); err != nil {
+		t.Fatal(err)
+	}
+	if len(evaluated.Evaluations) != 1 || evaluated.Evaluations[0].CurrentValue != 12 || evaluated.Evaluations[0].Status != "warn" {
+		t.Fatalf("unexpected budget evaluation payload: %#v", evaluated.Evaluations)
+	}
 
 	patchReq, err := http.NewRequest(http.MethodPatch, srv.URL+"/api/usage/budget/"+ruleID, strings.NewReader(`{"enabled":false}`))
 	if err != nil {

@@ -149,14 +149,7 @@ func (m *ManagedRuntime) EvaluateBudgetRules(ctx context.Context) (any, int, err
 	if err != nil {
 		return map[string]any{"error": "Failed to fetch usage data"}, http.StatusBadGateway, nil
 	}
-	record, _ := payload.(map[string]any)
-	totals, _ := record["totals"].(map[string]any)
-	values := map[string]float64{
-		"tokensIn":    runtimecoerce.Number(totals["input"]),
-		"tokensOut":   runtimecoerce.Number(totals["output"]),
-		"totalTokens": runtimecoerce.Number(totals["totalTokens"]),
-		"cost":        runtimecoerce.Number(totals["totalCost"]),
-	}
+	values := budgetUsageValues(payload)
 	evaluations := make([]map[string]any, 0, len(enabledRules))
 	for _, rule := range enabledRules {
 		currentValue := values[rule.Dimension]
@@ -182,6 +175,23 @@ func (m *ManagedRuntime) EvaluateBudgetRules(ctx context.Context) (any, int, err
 		evaluations = append(evaluations, evaluation)
 	}
 	return map[string]any{"evaluations": evaluations}, http.StatusOK, nil
+}
+
+func budgetUsageValues(payload any) map[string]float64 {
+	record, _ := payload.(map[string]any)
+	if record == nil && payload != nil {
+		raw, err := json.Marshal(payload)
+		if err == nil {
+			_ = json.Unmarshal(raw, &record)
+		}
+	}
+	totals, _ := record["totals"].(map[string]any)
+	return map[string]float64{
+		"tokensIn":    runtimecoerce.Number(totals["input"]),
+		"tokensOut":   runtimecoerce.Number(totals["output"]),
+		"totalTokens": runtimecoerce.Number(totals["totalTokens"]),
+		"cost":        runtimecoerce.Number(totals["totalCost"]),
+	}
 }
 
 func budgetRuleToMap(rule localstore.BudgetRule) map[string]any {

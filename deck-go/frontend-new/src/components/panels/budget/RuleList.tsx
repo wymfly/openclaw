@@ -1,15 +1,6 @@
 import type { DeckGoBudgetEvaluation, DeckGoBudgetRule } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-
-function statusPillClass(status: DeckGoBudgetEvaluation["status"]) {
-  if (status === "over") {
-    return "is-danger";
-  }
-  if (status === "warn") {
-    return "is-warning";
-  }
-  return "is-positive";
-}
+import { budgetStatusClass, formatBudgetValue } from "./BudgetStatus";
 
 function scopeLabelKey(rule: DeckGoBudgetRule) {
   if (rule.scope === "agent" || rule.scope === "perAgent" || rule.agentId) {
@@ -31,11 +22,11 @@ export function RuleList(props: {
   const evaluationByRuleId = new Map(props.evaluations.map((item) => [item.ruleId, item]));
 
   if (props.rules.length === 0) {
-    return <p className="deck-ui-control-empty">{t("noRules")}</p>;
+    return <p className="budget-panel__empty">{t("noRules")}</p>;
   }
 
   return (
-    <div className="deck-ui-control-list deck-ui-budget-list">
+    <div className="budget-panel__catalog">
       {props.rules.map((rule) => {
         const evaluation = evaluationByRuleId.get(rule.id);
         const status = evaluation?.status ?? (rule.enabled ? "ok" : undefined);
@@ -43,24 +34,30 @@ export function RuleList(props: {
           <button
             key={rule.id}
             type="button"
-            className={`deck-ui-control-row deck-ui-budget-row ${
-              props.selectedRuleId === rule.id ? "is-selected" : ""
-            }`}
+            className={`budget-panel__row ${props.selectedRuleId === rule.id ? "is-selected" : ""}`}
+            aria-pressed={props.selectedRuleId === rule.id}
             onClick={() => props.onSelect(rule)}
           >
-            <span className="deck-ui-control-row-header">
+            <span className="budget-panel__row-head">
               <strong>{rule.name}</strong>
-              <span className="deck-ui-control-row-pills">
+              <span className="budget-panel__pill-row">
                 {status ? (
-                  <span className={`deckgo-pill ${statusPillClass(status)}`}>{t(status)}</span>
+                  <span className={`budget-panel__pill ${budgetStatusClass(status)}`}>
+                    {t(status)}
+                  </span>
                 ) : null}
                 {!rule.enabled ? (
-                  <span className="deckgo-pill is-muted">{t("disabled")}</span>
+                  <span className="budget-panel__pill is-muted">{t("disabled")}</span>
                 ) : null}
               </span>
             </span>
-            <span className="deckgo-meta">
+            <span className="budget-panel__meta">
               {t(rule.dimension)} · {t(rule.period)} · {t(scopeLabelKey(rule))}
+            </span>
+            <span className="budget-panel__meta">
+              {evaluation
+                ? `${t("current")}: ${formatBudgetValue(evaluation.current, evaluation.dimension)}`
+                : t("notEvaluated")}
             </span>
           </button>
         );
