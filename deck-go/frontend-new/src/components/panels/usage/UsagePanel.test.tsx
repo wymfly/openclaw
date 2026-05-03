@@ -258,8 +258,11 @@ describe("UsagePanel", () => {
       startDate: expect.any(String),
     });
     expect(container.textContent).toContain("Usage ready");
-    expect(container.querySelector(".deck-ui-usage")).not.toBeNull();
-    expect(container.querySelectorAll(".deck-ui-usage-card")).toHaveLength(2);
+    expect(container.querySelector(".usage-panel")).not.toBeNull();
+    expect(container.querySelector(".usage-panel__header")).not.toBeNull();
+    expect(container.querySelector(".usage-panel__workbench")).not.toBeNull();
+    expect(container.querySelectorAll(".usage-panel__metric")).toHaveLength(6);
+    expect(container.querySelectorAll(".usage-panel__card").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-usage-surface").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-usage-input")).toHaveLength(2);
     expect(container.querySelectorAll(".deck-ui-usage-chart-row").length).toBeGreaterThanOrEqual(2);

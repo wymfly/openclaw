@@ -2067,6 +2067,22 @@
     "providersCount": "{count} providers",
     "totalCostLower": "total cost",
     "usageReadyDescription": "Cost and provider quota overview uses current model and session usage data.",
+    "panel": {
+      "aggregatesTitle": "Aggregate attribution",
+      "behaviorTitle": "Behavior signals",
+      "eyebrow": "observe / usage",
+      "latestCost": "latest {cost}",
+      "metrics": {
+        "pressure": "Provider pressure",
+        "window": "Window"
+      },
+      "providerTitle": "Quota pressure",
+      "rangeTitle": "Window controls",
+      "sessionsTitle": "Session usage drilldown",
+      "trendTitle": "Spend and token movement",
+      "workbenchDescription": "Cost, provider pressure, session usage, context weight, and behavior evidence share one contract-led workspace.",
+      "workbenchTitle": "Usage operations cockpit"
+    },
     "refreshUsageRange": "Refresh usage range",
     "rangeShortcuts": "Usage range shortcuts",
     "refreshUsage": "Refresh usage",

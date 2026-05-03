@@ -29,11 +29,12 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 | ------------ | --------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------- |
 | **Settings** | `panels/settings/SettingsPanel.tsx`                                                     | 64 lines            | Manages workspace settings, runtime config, gateway tokens, confirm dialogs           |
 | **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | removed             | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
+| **Usage**    | `panels/usage/UsagePanel.tsx` + 7 sub-components                                        | removed             | Cost cockpit, provider quota pressure, session drilldown, trend chart, context weight |
 | **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | removed             | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
 | **Sessions** | `panels/sessions/SessionsPanel.tsx` + 3 sub-components                                  | 80 lines            | Session list, detail shell, compaction history, subagent tree, usage breakdown        |
 | **Logs**     | `panels/logs/LogsPanel.tsx`                                                             | 41 lines            | Log tape view, level filters, controls strip, sidecar event details                   |
 
-**Shared shell footprint** (used across all 5 panels): `deckgo-card` (58 refs in theme.css), `deckgo-selectable-card` (86 refs), `deckgo-shell-list` (12 refs), `deckgo-panel-workspace`, `deckgo-panel-hero-strip`, `deckgo-actions`, `deckgo-pill-row`, `deckgo-form-grid`, `deckgo-grid`, `deckgo-grid-2`, `deckgo-grid-3`, `deckgo-meta`, `deckgo-note`, `deckgo-kicker`, `deckgo-label`, `deckgo-input`, `deckgo-textarea`, `deckgo-button`, `deckgo-pill`, `deckgo-surface-label`, `deckgo-surface-tile`, `deckgo-checkbox-row`, `deckgo-dividerless`.
+**Shared shell footprint** (used across target panels before migration): `deckgo-card` (58 refs in theme.css), `deckgo-selectable-card` (86 refs), `deckgo-shell-list` (12 refs), `deckgo-panel-workspace`, `deckgo-panel-hero-strip`, `deckgo-actions`, `deckgo-pill-row`, `deckgo-form-grid`, `deckgo-grid`, `deckgo-grid-2`, `deckgo-grid-3`, `deckgo-meta`, `deckgo-note`, `deckgo-kicker`, `deckgo-label`, `deckgo-input`, `deckgo-textarea`, `deckgo-button`, `deckgo-pill`, `deckgo-surface-label`, `deckgo-surface-tile`, `deckgo-checkbox-row`, `deckgo-dividerless`.
 
 ---
 
@@ -43,16 +44,16 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Missing atoms — must ship as new atom-introduction changes
 
-| Atom             | Scope (panels)                   | Effort | One-line justification                                                                                                                                                                                         |
-| ---------------- | -------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DataTable`      | Models, Sessions, Logs           | L      | Sortable columns + row hover + empty state + per-cell renderers; current `TableView` is text-only and read-only. Bundle has no equivalent (chat doesn't need it), so this is panel-driven.                     |
-| `TreeView`       | Models                           | M      | Provider tree (group → provider → model nesting) needs collapsible/expandable rows with focus mgmt. `SidebarRow` is single-level.                                                                              |
-| `KpiCard`        | Channels, Models, Sessions, Logs | S      | Stats blocks (deckgo-card variant for `title + big-value + delta + sparkline-slot`). Could be implemented as `Card variant="kpi"` extension instead of a new atom — see Card row below.                        |
-| `SparklineChart` | Models, Channels, Logs           | M      | Inline 60×16 bar/line micro-chart for usage trends. Currently 30+ lines of raw CSS in deckgo-usage-chart-\*. Distinct atom because it has its own a11y semantics (role="img" + aria-label + numeric fallback). |
-| `HeroStrip`      | All 5 panels                     | S      | Every panel uses `deckgo-panel-hero-strip` for the top status/title/cta row. Promote to atom.                                                                                                                  |
-| `EmptyState`     | Channels, Models, Sessions, Logs | S      | Illustration + title + description + action slot pattern repeated across panels. Chat already has `EmptyState.tsx` (chat-widgets) — this proposal promotes it to an atom in §10.                               |
-| `PaginationBar`  | Sessions, Logs                   | S      | First/prev/next/last + page-size + count. Pure new atom.                                                                                                                                                       |
-| `KeyValueList`   | Settings, Sessions               | S      | `<dt>/<dd>` pairs styled as "label: value" with copy button on value. Currently inline tables.                                                                                                                 |
+| Atom             | Scope (panels)                          | Effort | One-line justification                                                                                                                                                                                |
+| ---------------- | --------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DataTable`      | Models, Usage, Sessions, Logs           | L      | Sortable columns + row hover + empty state + per-cell renderers; current `TableView` is text-only and read-only. Bundle has no equivalent (chat doesn't need it), so this is panel-driven.            |
+| `TreeView`       | Models                                  | M      | Provider tree (group → provider → model nesting) needs collapsible/expandable rows with focus mgmt. `SidebarRow` is single-level.                                                                     |
+| `KpiCard`        | Channels, Models, Usage, Sessions, Logs | S      | Stats blocks (deckgo-card variant for `title + big-value + delta + sparkline-slot`). Could be implemented as `Card variant="kpi"` extension instead of a new atom — see Card row below.               |
+| `SparklineChart` | Models, Usage, Channels, Logs           | M      | Inline bar/line micro-chart for usage trends. Current Usage keeps progress-based chart rows module-local; a canonical atom needs its own a11y semantics (role="img" + aria-label + numeric fallback). |
+| `HeroStrip`      | All 5 panels                            | S      | Every panel uses `deckgo-panel-hero-strip` for the top status/title/cta row. Promote to atom.                                                                                                         |
+| `EmptyState`     | Channels, Models, Sessions, Logs        | S      | Illustration + title + description + action slot pattern repeated across panels. Chat already has `EmptyState.tsx` (chat-widgets) — this proposal promotes it to an atom in §10.                      |
+| `PaginationBar`  | Sessions, Logs                          | S      | First/prev/next/last + page-size + count. Pure new atom.                                                                                                                                              |
+| `KeyValueList`   | Settings, Sessions                      | S      | `<dt>/<dd>` pairs styled as "label: value" with copy button on value. Currently inline tables.                                                                                                        |
 
 ### Existing atoms needing additive variants (`extend`)
 
@@ -170,6 +171,12 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 **Migration readiness:** Completed under OpenSpec change `frontend-models-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept model table/tree/quota/chart/config/fallback/allowlist surfaces as module-local molecules while preserving the no-breaking-change promise.
 
 **Footnote — deprecated patterns:** The old `deck-ui-models` global block has been removed. Models now uses `models-panel.css` with `--ds-*` tokens. `DataTable`, `TreeView`, `KpiCard`, `SparklineChart`, fallback chain, provider config, and allowlist molecules remain promotion candidates for a dedicated design-system proposal rather than being silently canonicalized in the Models rewrite.
+
+### Usage panel
+
+**Migration readiness:** Completed under OpenSpec change `frontend-usage-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept usage KPI, trend, quota, session detail, aggregate, behavior, and context-pressure surfaces as module-local molecules while preserving the no-breaking-change promise.
+
+**Footnote — deprecated patterns:** The old `deck-ui-usage` global block has been removed. Usage now uses `usage-panel.css` with `--ds-*` tokens. Cost trend rows, provider quota cards, session drilldown rows, aggregate rows, and context-pressure summaries remain promotion candidates for a dedicated design-system proposal rather than being silently canonicalized in the Usage rewrite.
 
 ### Channels panel
 
@@ -317,6 +324,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/models-visual.spec.ts` covers the ready model operations workbench, provider config state, fallback state, and usage pressure state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Usage panel
+
+**Status:** in progress under OpenSpec change `frontend-usage-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The usage high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, input, segmented-control, status, and code/json atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** usage metric tile, cost/token trend chart row, provider pressure rail, quota window card, session usage row, session detail drawer, context pressure summary, aggregate breakdown row, and behavior signal row.
+
+**Repeated from prior modules:** metric tile, compact workbench header, sidecar rail, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, and action/result seams. Usage validates that the Models quota/trend patterns can repeat, but the implementation keeps them local until a dedicated design-system proposal defines shared chart/KPI/quota/session-detail APIs.
+
+**Usage-specific molecules:** cost/token trend rows are SparklineChart candidates, metric tiles are KpiCard candidates, session/aggregate rows are DataTable candidates, and context pressure is a shared candidate for Usage/Sessions/Chat. These remain local because the current change is a module rewrite.
+
+**Mock visual evidence:** `deck-go/test/e2e/usage-visual.spec.ts` covers the ready usage operations cockpit, by-model trend state, selected provider quota state, and session drilldown state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -341,3 +362,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — channels hifi redesign (`frontend-channels-hifi-contract-redesign`)**: Channels moves the channel operations workbench to module-local `--ds-*` styling and adds contract-shaped mock coverage for channel status, probe, config patch, WeCom access, and routing handoff. No canonical atom/token changes were introduced; channel diagnostics/settings/access molecules stay local pending a separate design-system proposal.
 - **2026-05-03 — gateway hifi redesign (`frontend-gateway-hifi-contract-redesign`)**: Gateway moves runtime diagnostics, Gateway health/status, activity evidence, monitor history, and timeline detail into a module-local diagnostics workbench. No canonical atom/token changes were introduced; deterministic Gateway DTO/mock drift was fixed for mock visual coverage, while uncertain real Gateway monitor/event semantics remain handoff follow-up.
 - **2026-05-03 — models hifi redesign (`frontend-models-hifi-contract-redesign`)**: Models moves runtime inventory, provider auth, catalog discovery, provider config, fallback chains, allowlist controls, and usage pressure into a module-local operations workbench. No canonical atom/token changes were introduced; deterministic model/auth/catalog/schema mock drift was fixed for mock visual coverage, while uncertain real Gateway model/auth/catalog semantics remain handoff follow-up.
+- **2026-05-03 — usage hifi redesign (`frontend-usage-hifi-contract-redesign`)**: Usage moves cost, quota, trend, session drilldown, context weight, aggregate, and behavior signals into a module-local operations cockpit. No canonical atom/token changes were introduced; deterministic usage/session/provider/context mock drift was fixed for mock visual coverage, while uncertain real Gateway billing/quota/context aggregation semantics remain handoff follow-up.

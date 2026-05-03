@@ -2067,6 +2067,22 @@
     "providersCount": "{count} 个供应商",
     "totalCostLower": "总费用",
     "usageReadyDescription": "费用和供应商配额概览来自当前模型与会话用量数据。",
+    "panel": {
+      "aggregatesTitle": "聚合归因",
+      "behaviorTitle": "行为信号",
+      "eyebrow": "observe / usage",
+      "latestCost": "最新 {cost}",
+      "metrics": {
+        "pressure": "供应商压力",
+        "window": "窗口"
+      },
+      "providerTitle": "配额压力",
+      "rangeTitle": "窗口控制",
+      "sessionsTitle": "会话用量钻取",
+      "trendTitle": "费用和 token 趋势",
+      "workbenchDescription": "费用、供应商压力、会话用量、上下文权重和行为证据共享同一个契约化工作台。",
+      "workbenchTitle": "用量运营驾驶舱"
+    },
     "refreshUsageRange": "刷新用量范围",
     "rangeShortcuts": "用量范围快捷项",
     "refreshUsage": "刷新用量",

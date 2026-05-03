@@ -32,6 +32,7 @@ import {
 } from "./usage-format";
 import { buildUsageModelTrendRows, buildUsageTrendRows } from "./usage-trend";
 import { UsageTrendChart } from "./UsageTrendChart";
+import "./usage-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 
@@ -202,40 +203,64 @@ export function UsagePanel() {
   );
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-usage">
-      <div className="deckgo-column deck-ui-usage-column">
-        <article className="deckgo-card is-float deck-ui-usage-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("usageReadyDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-usage-body">
-            <SummaryCards
-              costEntries={costEntries}
-              loadState={loadState}
-              providers={providers}
-              sessionsUsage={sessionsUsage}
-              totalCost={totalCost}
-            />
-            <DateRangePicker days={days} onDaysChange={setDays} onRefresh={refreshUsageRange} />
-            {error ? <p className="deckgo-note deck-ui-usage-error">{error}</p> : null}
-            <UsageTrendChart dailyRows={trendRows} modelRows={modelTrendRows} />
-            <SessionUsageList
-              entries={sessionEntries}
-              expandedSessionKey={expandedSessionKey}
-              filteredEntries={filteredSessionEntries}
-              loading={sessionLogsLoading}
-              onOpenAgent={(agentId) => navigateToAgent(ui, agentId)}
-              onOpenSession={(sessionKey) => navigateToSession(ui, sessionKey)}
-              onSearchChange={setSessionSearch}
-              onToggleSession={(entry) => void toggleSessionLogs(entry)}
-              search={sessionSearch}
-              sessionContextWeights={sessionContextWeights}
-              sessionLogs={sessionLogs}
-              sessionTimeseries={sessionTimeseries}
-              totalSessionCost={totalSessionCost}
-              totalSessionTokens={totalSessionTokens}
-            />
+    <section className="usage-panel deck-ui-usage" data-testid="usage-panel">
+      <header className="usage-panel__header">
+        <div className="usage-panel__title-stack">
+          <p className="usage-panel__eyebrow">{t("panel.eyebrow")}</p>
+          <h2 className="usage-panel__title">{t("panel.workbenchTitle")}</h2>
+          <p className="usage-panel__description">{t("panel.workbenchDescription")}</p>
+        </div>
+        <div className="usage-panel__header-actions">
+          <span className={`usage-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
+            {t("status", { state: t(loadState) })}
+          </span>
+          <span className="usage-panel__pill">
+            {t("daysCount", { count: parseUsageDays(days) ?? 14 })}
+          </span>
+          <button
+            className="usage-panel__button is-primary"
+            type="button"
+            onClick={() => refreshUsageRange(days)}
+          >
+            {t("refresh")}
+          </button>
+        </div>
+      </header>
+
+      {error ? (
+        <div className="usage-panel__banner deck-ui-usage-error" role="status">
+          {error}
+        </div>
+      ) : null}
+
+      <SummaryCards
+        costEntries={costEntries}
+        providers={providers}
+        sessionsUsage={sessionsUsage}
+        totalCost={totalCost}
+      />
+
+      <section className="usage-panel__workbench">
+        <div className="usage-panel__main">
+          <DateRangePicker days={days} onDaysChange={setDays} onRefresh={refreshUsageRange} />
+          <UsageTrendChart dailyRows={trendRows} modelRows={modelTrendRows} />
+          <SessionUsageList
+            entries={sessionEntries}
+            expandedSessionKey={expandedSessionKey}
+            filteredEntries={filteredSessionEntries}
+            loading={sessionLogsLoading}
+            onOpenAgent={(agentId) => navigateToAgent(ui, agentId)}
+            onOpenSession={(sessionKey) => navigateToSession(ui, sessionKey)}
+            onSearchChange={setSessionSearch}
+            onToggleSession={(entry) => void toggleSessionLogs(entry)}
+            search={sessionSearch}
+            sessionContextWeights={sessionContextWeights}
+            sessionLogs={sessionLogs}
+            sessionTimeseries={sessionTimeseries}
+            totalSessionCost={totalSessionCost}
+            totalSessionTokens={totalSessionTokens}
+          />
+          <div className="usage-panel__evidence-grid">
             <BreakdownTable rows={sessionAggregateRows} />
             <LatencyCard
               dailySignals={dailySignals}
@@ -243,17 +268,17 @@ export function UsagePanel() {
               topTools={topTools}
             />
           </div>
-        </article>
-      </div>
+        </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-usage-column deck-ui-usage-detail-column">
-        <ProviderQuotaPanel
-          hottestWindow={hottestWindow}
-          providers={providers}
-          selectedProvider={selectedProvider}
-          onSelectProvider={setSelectedProviderId}
-        />
-      </div>
+        <aside className="usage-panel__sidecar">
+          <ProviderQuotaPanel
+            hottestWindow={hottestWindow}
+            providers={providers}
+            selectedProvider={selectedProvider}
+            onSelectProvider={setSelectedProviderId}
+          />
+        </aside>
+      </section>
     </section>
   );
 }

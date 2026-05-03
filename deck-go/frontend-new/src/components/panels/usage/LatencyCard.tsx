@@ -14,13 +14,16 @@ export function LatencyCard({ dailySignals, sessionsUsage, topTools }: LatencyCa
   const usageSignals = sessionsUsage?.aggregates ?? null;
 
   return (
-    <div className="deckgo-surface-tile deck-ui-usage-surface">
-      <p className="deckgo-surface-label">{t("usageBehaviorSignals")}</p>
+    <article className="usage-panel__card deck-ui-usage-surface">
+      <div>
+        <p className="usage-panel__label">{t("usageBehaviorSignals")}</p>
+        <h3 className="usage-panel__card-title">{t("panel.behaviorTitle")}</h3>
+      </div>
       {!usageSignals?.messages && !usageSignals?.tools && !usageSignals?.latency ? (
-        <p className="deckgo-note deck-ui-usage-empty">{t("noBehaviorSignals")}</p>
+        <p className="usage-panel__empty deck-ui-usage-empty">{t("noBehaviorSignals")}</p>
       ) : (
         <>
-          <div className="deckgo-grid deckgo-grid-3 deck-ui-usage-stats">
+          <div className="usage-panel__mini-metrics deck-ui-usage-stats">
             <ShellStat label={t("messages")} value={usageSignals.messages?.total ?? 0} />
             <ShellStat label={t("toolCallsLower")} value={usageSignals.tools?.totalCalls ?? 0} />
             <ShellStat
@@ -29,12 +32,12 @@ export function LatencyCard({ dailySignals, sessionsUsage, topTools }: LatencyCa
             />
           </div>
           {topTools.length > 0 ? (
-            <ul className="deckgo-shell-list deck-ui-usage-list">
+            <ul className="usage-panel__list deck-ui-usage-list">
               {topTools.map((tool) => (
                 <li key={tool.name}>
-                  <div className="deckgo-selectable-card deck-ui-usage-row">
+                  <div className="usage-panel__row deck-ui-usage-row">
                     <strong>{tool.name}</strong>
-                    <div className="deckgo-meta deck-ui-usage-meta">
+                    <div className="usage-panel__meta deck-ui-usage-meta">
                       {t("callsValue", { count: tool.count })}
                     </div>
                   </div>
@@ -43,12 +46,12 @@ export function LatencyCard({ dailySignals, sessionsUsage, topTools }: LatencyCa
             </ul>
           ) : null}
           {dailySignals.length > 0 ? (
-            <ul className="deckgo-shell-list deck-ui-usage-list">
+            <ul className="usage-panel__list deck-ui-usage-list">
               {dailySignals.map((entry) => (
                 <li key={entry.date}>
-                  <div className="deckgo-selectable-card deck-ui-usage-row">
+                  <div className="usage-panel__row deck-ui-usage-row">
                     <strong>{entry.date}</strong>
-                    <div className="deckgo-meta deck-ui-usage-meta">
+                    <div className="usage-panel__meta deck-ui-usage-meta">
                       {t("dailySignal", {
                         cost: formatCurrency(entry.cost),
                         messages: entry.messages,
@@ -57,7 +60,7 @@ export function LatencyCard({ dailySignals, sessionsUsage, topTools }: LatencyCa
                       })}
                     </div>
                     {entry.errors > 0 ? (
-                      <div className="deckgo-meta deck-ui-usage-meta">
+                      <div className="usage-panel__meta deck-ui-usage-meta">
                         {t("errorsValue", { count: entry.errors })}
                       </div>
                     ) : null}
@@ -68,6 +71,6 @@ export function LatencyCard({ dailySignals, sessionsUsage, topTools }: LatencyCa
           ) : null}
         </>
       )}
-    </div>
+    </article>
   );
 }

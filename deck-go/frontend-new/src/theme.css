@@ -1502,215 +1502,6 @@ details summary:focus-visible {
   }
 }
 
-.deck-ui-usage {
-  grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1.08fr);
-  gap: 12px;
-  max-width: none;
-  margin: 0;
-}
-
-.deck-ui-usage-column {
-  gap: 12px;
-}
-
-.deck-ui-usage-card {
-  border-color: var(--border);
-  box-shadow: none;
-}
-
-.deck-ui-usage-card .deckgo-card-header {
-  padding: 14px 16px 0;
-}
-
-.deck-ui-usage-card .deckgo-card-subtitle {
-  margin: 6px 16px 0;
-  font-size: 0.82rem;
-}
-
-.deck-ui-usage-body {
-  gap: 12px;
-  padding: 14px 16px 16px;
-}
-
-.deck-ui-usage-body > *,
-.deck-ui-usage-controls,
-.deck-ui-usage-actions,
-.deck-ui-usage-input,
-.deck-ui-usage-list,
-.deck-ui-usage-row,
-.deck-ui-usage-surface,
-.deck-ui-usage-chart,
-.deck-ui-usage-chart-row,
-.deck-ui-usage-hero {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-usage-status-row,
-.deck-ui-usage-actions {
-  gap: 6px;
-}
-
-.deck-ui-usage-status-row .deckgo-pill {
-  min-height: 26px;
-  padding: 4px 8px;
-  font-size: 0.74rem;
-}
-
-.deck-ui-usage-controls {
-  display: grid;
-  grid-template-columns: minmax(80px, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.deck-ui-usage-input {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--border);
-  padding: 7px 9px;
-  background: var(--input-bg);
-  box-shadow: none;
-}
-
-.deck-ui-usage-input:focus {
-  outline: 2px solid color-mix(in srgb, var(--primary) 42%, transparent);
-  outline-offset: 1px;
-  box-shadow: none;
-}
-
-.deck-ui-usage-button {
-  min-height: 32px;
-  padding: 6px 9px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-}
-
-.deck-ui-usage-stats {
-  max-width: none;
-  margin: 0;
-  gap: 8px;
-}
-
-.deck-ui-usage .deckgo-stat {
-  min-width: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-usage .deckgo-stat-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-usage .deckgo-stat-value {
-  margin-top: 6px;
-  overflow: hidden;
-  font-size: 1.02rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deck-ui-usage-surface {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-usage-surface .deckgo-surface-label {
-  color: var(--text-faint);
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-}
-
-.deck-ui-usage-section-head {
-  align-items: center;
-  gap: 10px;
-}
-
-.deck-ui-usage-list {
-  gap: 8px;
-}
-
-.deck-ui-usage-list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.deck-ui-usage-row {
-  border: 1px solid var(--border);
-  padding: 10px 12px;
-  background: var(--surface-elevated);
-  box-shadow: none;
-}
-
-.deck-ui-usage-row strong,
-.deck-ui-usage-meta,
-.deck-ui-usage-chart-detail {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-usage-row:hover {
-  transform: none;
-  border-color: color-mix(in srgb, var(--primary) 34%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: none;
-}
-
-.deck-ui-usage-row.is-selected {
-  border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
-  background: var(--primary-muted);
-  box-shadow: inset 2px 0 0 var(--primary);
-}
-
-.deck-ui-usage-detail {
-  margin-top: 8px;
-}
-
-.deck-ui-usage-hero {
-  margin: 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface-elevated);
-}
-
-.deck-ui-usage-error {
-  color: var(--danger);
-  overflow-wrap: anywhere;
-}
-
-.deck-ui-usage-empty {
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 1180px) {
-  .deck-ui-usage {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 760px) {
-  .deck-ui-usage-controls,
-  .deck-ui-usage-stats {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .deck-ui-usage-section-head,
-  .deck-ui-usage-actions {
-    align-items: stretch;
-  }
-}
-
 .deckgo-doc-card-row {
   display: flex;
   align-items: center;
@@ -1887,7 +1678,6 @@ details summary:focus-visible {
   .deck-ui-cron-detail-column,
   .deck-ui-memory-detail-column,
   .deck-ui-threads-detail-column,
-  .deck-ui-usage-detail-column,
   .deck-ui-webhooks-detail-column
 ) {
   min-width: 0;
@@ -1902,11 +1692,6 @@ details summary:focus-visible {
 .deck-ui-config-field-list {
   display: grid;
   gap: 8px;
-}
-
-.deck-ui-usage-trend {
-  min-width: 0;
-  overflow: hidden;
 }
 
 .deck-ui-memory-tab {
@@ -2033,30 +1818,6 @@ details summary:focus-visible {
 .deckgo-usage-chart-detail {
   grid-column: 2 / -1;
   margin-top: -4px;
-}
-
-.deck-ui-usage-chart {
-  gap: 8px;
-}
-
-.deck-ui-usage-chart-row {
-  grid-template-columns: minmax(90px, 0.7fr) minmax(120px, 1.4fr) minmax(90px, 0.7fr);
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.deck-ui-usage-chart-row:last-child {
-  border-bottom: 0;
-}
-
-.deck-ui-usage-chart-bar {
-  box-shadow: none;
-}
-
-@media (max-width: 760px) {
-  .deck-ui-usage-chart-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
 
 .deck-ui-api-explorer {

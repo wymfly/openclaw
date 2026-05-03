@@ -4,12 +4,10 @@ import type {
   DeckGoUsageSessionsResponse,
 } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-import { ShellStat } from "../../shared/ShellComponents";
-import { formatCurrency, formatDurationMs } from "./usage-format";
+import { costEntryTotal, formatCurrency, formatDurationMs } from "./usage-format";
 
 type SummaryCardsProps = {
   costEntries: DeckGoUsageCostEntry[];
-  loadState: "idle" | "loading" | "ready";
   providers: DeckGoUsageProviderStatus[];
   sessionsUsage: DeckGoUsageSessionsResponse | null;
   totalCost: number;
@@ -17,31 +15,61 @@ type SummaryCardsProps = {
 
 export function SummaryCards({
   costEntries,
-  loadState,
   providers,
   sessionsUsage,
   totalCost,
 }: SummaryCardsProps) {
   const t = useTranslations("usage");
   const usageSignals = sessionsUsage?.aggregates ?? null;
+  const latestCost = costEntryTotal(costEntries.at(-1) ?? { date: "", totalCost: 0 });
+  const hottestWindow =
+    providers
+      .flatMap((provider) =>
+        provider.windows.map((window) => ({
+          label: `${provider.displayName || provider.provider} ${window.label}`,
+          usedPercent: window.usedPercent,
+        })),
+      )
+      .toSorted((left, right) => right.usedPercent - left.usedPercent)[0] ?? null;
 
   return (
-    <>
-      <div className="deckgo-pill-row deck-ui-usage-status-row">
-        <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-          {t("status", { state: t(loadState) })}
-        </span>
-        <span className="deckgo-pill">{t("daysCount", { count: costEntries.length })}</span>
-        <span className="deckgo-pill">{t("providersCount", { count: providers.length })}</span>
+    <div className="usage-panel__metrics deck-ui-usage-stats" data-testid="usage-summary-metrics">
+      <div className="usage-panel__metric">
+        <span>{t("panel.metrics.window")}</span>
+        <strong>{t("daysCount", { count: costEntries.length })}</strong>
+        <small>{t("providersCount", { count: providers.length })}</small>
       </div>
-      <div className="deckgo-grid deckgo-grid-3 deck-ui-usage-stats">
-        <ShellStat label={t("days")} value={costEntries.length} />
-        <ShellStat label={t("providers")} value={providers.length} />
-        <ShellStat label={t("totalCostLower")} value={formatCurrency(totalCost)} />
-        <ShellStat label={t("totalTokens")} value={sessionsUsage?.totals?.totalTokens ?? 0} />
-        <ShellStat label={t("messages")} value={usageSignals?.messages?.total ?? 0} />
-        <ShellStat label={t("latencyP95")} value={formatDurationMs(usageSignals?.latency?.p95Ms)} />
+      <div className="usage-panel__metric">
+        <span>{t("totalCost")}</span>
+        <strong>{formatCurrency(totalCost)}</strong>
+        <small>{t("panel.latestCost", { cost: formatCurrency(latestCost) })}</small>
       </div>
-    </>
+      <div className="usage-panel__metric">
+        <span>{t("totalTokens")}</span>
+        <strong>{sessionsUsage?.totals?.totalTokens ?? 0}</strong>
+        <small>
+          {t("tokensIn")} / {t("tokensOut")}
+        </small>
+      </div>
+      <div className="usage-panel__metric">
+        <span>{t("messages")}</span>
+        <strong>{usageSignals?.messages?.total ?? 0}</strong>
+        <small>{t("callsValue", { count: usageSignals?.tools?.totalCalls ?? 0 })}</small>
+      </div>
+      <div className="usage-panel__metric">
+        <span>{t("latencyP95")}</span>
+        <strong>{formatDurationMs(usageSignals?.latency?.p95Ms)}</strong>
+        <small>
+          {t("avgLatency")}: {formatDurationMs(usageSignals?.latency?.avgMs)}
+        </small>
+      </div>
+      <div className="usage-panel__metric">
+        <span>{t("panel.metrics.pressure")}</span>
+        <strong>
+          {hottestWindow ? t("usedPercent", { percent: hottestWindow.usedPercent }) : t("na")}
+        </strong>
+        <small>{hottestWindow?.label ?? t("noProviderUsage")}</small>
+      </div>
+    </div>
   );
 }

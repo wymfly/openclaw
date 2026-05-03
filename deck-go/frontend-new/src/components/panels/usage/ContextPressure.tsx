@@ -19,23 +19,23 @@ export function ContextPressure({
 
   return (
     <>
-      <p className="deckgo-surface-label">{t("contextWeight")}</p>
+      <p className="usage-panel__label">{t("contextWeight")}</p>
       {loading && !hasContextWeight ? (
-        <p className="deckgo-note deck-ui-usage-empty">{t("loadingContextWeight")}</p>
+        <p className="usage-panel__empty deck-ui-usage-empty">{t("loadingContextWeight")}</p>
       ) : !contextWeight || !contextSummary ? (
-        <p className="deckgo-note deck-ui-usage-empty">{t("noContextWeight")}</p>
+        <p className="usage-panel__empty deck-ui-usage-empty">{t("noContextWeight")}</p>
       ) : (
         <>
-          <div className="deckgo-grid deckgo-grid-3 deck-ui-usage-stats">
+          <div className="usage-panel__mini-metrics deck-ui-usage-stats">
             <ShellStat label={t("contextTotal")} value={formatChars(contextSummary.total)} />
             <ShellStat label={t("source")} value={contextWeight.source} />
             <ShellStat label={t("generated")} value={formatTimestamp(contextWeight.generatedAt)} />
           </div>
-          <ul className="deckgo-shell-list deck-ui-usage-list">
+          <ul className="usage-panel__list deck-ui-usage-list">
             <li>
-              <div className="deckgo-selectable-card deck-ui-usage-row">
+              <div className="usage-panel__row deck-ui-usage-row">
                 <strong>{t("systemPrompt")}</strong>
-                <div className="deckgo-meta deck-ui-usage-meta">
+                <div className="usage-panel__meta deck-ui-usage-meta">
                   {t("contextSystemDetail", {
                     chars: formatChars(contextSummary.system),
                     project: formatChars(contextWeight.systemPrompt.projectContextChars),
@@ -44,9 +44,9 @@ export function ContextPressure({
               </div>
             </li>
             <li>
-              <div className="deckgo-selectable-card deck-ui-usage-row">
+              <div className="usage-panel__row deck-ui-usage-row">
                 <strong>{t("toolsLower")}</strong>
-                <div className="deckgo-meta deck-ui-usage-meta">
+                <div className="usage-panel__meta deck-ui-usage-meta">
                   {t("contextEntryDetail", {
                     chars: formatChars(contextSummary.tools),
                     count: contextWeight.tools.entries.length,
@@ -55,9 +55,9 @@ export function ContextPressure({
               </div>
             </li>
             <li>
-              <div className="deckgo-selectable-card deck-ui-usage-row">
+              <div className="usage-panel__row deck-ui-usage-row">
                 <strong>{t("skillsLower")}</strong>
-                <div className="deckgo-meta deck-ui-usage-meta">
+                <div className="usage-panel__meta deck-ui-usage-meta">
                   {t("contextEntryDetail", {
                     chars: formatChars(contextSummary.skills),
                     count: contextWeight.skills.entries.length,
@@ -66,9 +66,9 @@ export function ContextPressure({
               </div>
             </li>
             <li>
-              <div className="deckgo-selectable-card deck-ui-usage-row">
+              <div className="usage-panel__row deck-ui-usage-row">
                 <strong>{t("filesLower")}</strong>
-                <div className="deckgo-meta deck-ui-usage-meta">
+                <div className="usage-panel__meta deck-ui-usage-meta">
                   {t("contextEntryDetail", {
                     chars: formatChars(contextSummary.files),
                     count: contextWeight.injectedWorkspaceFiles.length,

@@ -14,19 +14,22 @@ export function BreakdownTable({ rows }: BreakdownTableProps) {
     t(`unknown${kind[0].toUpperCase()}${kind.slice(1)}`);
 
   return (
-    <div className="deckgo-surface-tile deck-ui-usage-surface">
-      <p className="deckgo-surface-label">{t("usageAggregates")}</p>
+    <article className="usage-panel__card deck-ui-usage-surface">
+      <div>
+        <p className="usage-panel__label">{t("usageAggregates")}</p>
+        <h3 className="usage-panel__card-title">{t("panel.aggregatesTitle")}</h3>
+      </div>
       {rows.length === 0 ? (
-        <p className="deckgo-note deck-ui-usage-empty">{t("noUsageAggregates")}</p>
+        <p className="usage-panel__empty deck-ui-usage-empty">{t("noUsageAggregates")}</p>
       ) : (
-        <ul className="deckgo-shell-list deck-ui-usage-list">
+        <ul className="usage-panel__list deck-ui-usage-list">
           {rows.map((entry) => (
             <li key={`${entry.kind}-${entry.label}`}>
-              <div className="deckgo-selectable-card deck-ui-usage-row">
+              <div className="usage-panel__row deck-ui-usage-row">
                 <strong>
                   {kindLabel(entry.kind)}: {entry.label || fallbackLabel(entry.kind)}
                 </strong>
-                <div className="deckgo-meta deck-ui-usage-meta">
+                <div className="usage-panel__meta deck-ui-usage-meta">
                   {t("tokensValue", { count: entry.totals.totalTokens ?? 0 })} |{" "}
                   {formatCurrency(entry.totals.totalCost ?? 0)}
                 </div>
@@ -35,6 +38,6 @@ export function BreakdownTable({ rows }: BreakdownTableProps) {
           ))}
         </ul>
       )}
-    </div>
+    </article>
   );
 }

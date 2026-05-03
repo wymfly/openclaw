@@ -19,50 +19,51 @@ export function ProviderQuotaPanel({
   const t = useTranslations("usage");
 
   return (
-    <article className="deckgo-card is-float deck-ui-usage-card">
-      <div className="deckgo-card-header">
-        <h2 className="deckgo-card-title">{t("providerQuotas")}</h2>
+    <article className="usage-panel__card usage-panel__provider deck-ui-usage-card">
+      <div>
+        <p className="usage-panel__label">{t("providerQuotas")}</p>
+        <h3 className="usage-panel__card-title">{t("panel.providerTitle")}</h3>
+        <p className="usage-panel__description">{t("providerQuotasDescription")}</p>
       </div>
-      <p className="deckgo-card-subtitle">{t("providerQuotasDescription")}</p>
-      <div className="deckgo-card-body deckgo-dividerless deck-ui-usage-body">
+      <div className="usage-panel__body deck-ui-usage-body">
         {hottestWindow ? (
-          <div className="deckgo-panel-hero-strip deck-ui-usage-hero">
+          <div className="usage-panel__hero deck-ui-usage-hero">
             <div>
-              <p className="deckgo-kicker">{t("highestPressureWindow")}</p>
+              <p className="usage-panel__label">{t("highestPressureWindow")}</p>
               <strong>{hottestWindow.provider}</strong>
-              <p className="deckgo-note">{hottestWindow.window.label}</p>
+              <p className="usage-panel__note">{hottestWindow.window.label}</p>
             </div>
-            <div className="deckgo-pill-row deck-ui-usage-status-row">
-              <span className="deckgo-pill">
+            <div className="usage-panel__pill-row deck-ui-usage-status-row">
+              <span className="usage-panel__pill">
                 {t("usedPercent", { percent: hottestWindow.window.usedPercent })}
               </span>
-              <span className="deckgo-pill">
+              <span className="usage-panel__pill">
                 {t("resetsIn", { duration: formatReset(hottestWindow.window.resetAt) })}
               </span>
             </div>
           </div>
         ) : null}
         {providers.length === 0 ? (
-          <p className="deckgo-note deck-ui-usage-empty">{t("noProviderUsage")}</p>
+          <p className="usage-panel__empty deck-ui-usage-empty">{t("noProviderUsage")}</p>
         ) : (
           <>
-            <ul className="deckgo-shell-list deck-ui-usage-list">
+            <ul className="usage-panel__list deck-ui-usage-list">
               {providers.map((provider) => (
                 <li key={provider.provider}>
                   <button
                     type="button"
-                    className={`deckgo-selectable-card deck-ui-usage-row ${selectedProvider?.provider === provider.provider ? "is-selected" : ""}`}
+                    className={`usage-panel__row deck-ui-usage-row ${selectedProvider?.provider === provider.provider ? "is-selected" : ""}`}
                     onClick={() => onSelectProvider(provider.provider)}
                   >
                     <strong>{provider.displayName || provider.provider}</strong>
-                    <div className="deckgo-meta deck-ui-usage-meta">
+                    <div className="usage-panel__meta deck-ui-usage-meta">
                       {t("providerPlanWindows", {
                         count: provider.windows.length,
                         plan: provider.plan || t("na"),
                       })}
                     </div>
                     {provider.error ? (
-                      <div className="deckgo-meta deck-ui-usage-meta">{provider.error}</div>
+                      <div className="usage-panel__meta deck-ui-usage-meta">{provider.error}</div>
                     ) : null}
                   </button>
                 </li>
@@ -70,19 +71,19 @@ export function ProviderQuotaPanel({
             </ul>
             {selectedProvider ? (
               <>
-                <div className="deckgo-grid deckgo-grid-2 deck-ui-usage-stats">
+                <div className="usage-panel__mini-metrics deck-ui-usage-stats">
                   <ShellStat label={t("provider")} value={selectedProvider.provider} />
                   <ShellStat label={t("windows")} value={selectedProvider.windows.length} />
                 </div>
-                <ul className="deckgo-shell-list deck-ui-usage-list">
+                <ul className="usage-panel__list deck-ui-usage-list">
                   {selectedProvider.windows.map((window) => (
                     <li key={`${selectedProvider.provider}-${window.label}`}>
-                      <div className="deckgo-selectable-card deck-ui-usage-row">
+                      <div className="usage-panel__row deck-ui-usage-row">
                         <strong>{window.label}</strong>
-                        <div className="deckgo-meta deck-ui-usage-meta">
+                        <div className="usage-panel__meta deck-ui-usage-meta">
                           {t("usedPercent", { percent: window.usedPercent })}
                         </div>
-                        <div className="deckgo-meta deck-ui-usage-meta">
+                        <div className="usage-panel__meta deck-ui-usage-meta">
                           {t("resetsIn", { duration: formatReset(window.resetAt) })}
                         </div>
                       </div>

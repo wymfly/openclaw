@@ -46,19 +46,22 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
   );
 
   return (
-    <div className="deckgo-surface-tile deck-ui-usage-surface deck-ui-usage-trend">
-      <div className="deckgo-section-head deck-ui-usage-section-head">
-        <p className="deckgo-surface-label">{t("usageTrend")}</p>
-        <div className="deckgo-pill-row deck-ui-usage-actions">
+    <article className="usage-panel__card usage-panel__trend deck-ui-usage-surface deck-ui-usage-trend">
+      <div className="usage-panel__card-head deck-ui-usage-section-head">
+        <div>
+          <p className="usage-panel__label">{t("usageTrend")}</p>
+          <h3 className="usage-panel__card-title">{t("panel.trendTitle")}</h3>
+        </div>
+        <div className="usage-panel__segments deck-ui-usage-actions">
           <button
-            className={`deckgo-button deckgo-button-compact deck-ui-usage-button ${activeView === "tokens" ? "is-primary" : ""}`}
+            className={`usage-panel__button deck-ui-usage-button ${activeView === "tokens" ? "is-primary" : ""}`}
             type="button"
             onClick={() => setView("tokens")}
           >
             {t("chartTokensShort")}
           </button>
           <button
-            className={`deckgo-button deckgo-button-compact deck-ui-usage-button ${activeView === "cost" ? "is-primary" : ""}`}
+            className={`usage-panel__button deck-ui-usage-button ${activeView === "cost" ? "is-primary" : ""}`}
             type="button"
             onClick={() => setView("cost")}
           >
@@ -66,7 +69,7 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
           </button>
           {modelRows.length > 0 ? (
             <button
-              className={`deckgo-button deckgo-button-compact deck-ui-usage-button ${activeView === "byModel" ? "is-primary" : ""}`}
+              className={`usage-panel__button deck-ui-usage-button ${activeView === "byModel" ? "is-primary" : ""}`}
               type="button"
               onClick={() => setView("byModel")}
             >
@@ -76,9 +79,9 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
         </div>
       </div>
       {rows.length === 0 ? (
-        <p className="deckgo-note deck-ui-usage-empty">{t("usageTrendEmpty")}</p>
+        <p className="usage-panel__empty deck-ui-usage-empty">{t("usageTrendEmpty")}</p>
       ) : (
-        <div className="deckgo-usage-chart deck-ui-usage-chart" data-testid="usage-trend-chart">
+        <div className="usage-panel__chart deck-ui-usage-chart" data-testid="usage-trend-chart">
           {rows.map((row) => {
             const value = metricValue(row, activeView);
             const width = Math.max(4, Math.round((value / maxValue) * 100));
@@ -88,17 +91,17 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
                 className="deckgo-usage-chart-row deck-ui-usage-chart-row"
                 key={`${activeView}-${label}`}
               >
-                <span className="deckgo-usage-chart-label">{label}</span>
-                <span className="deckgo-usage-chart-track" aria-hidden="true">
+                <span className="usage-panel__chart-label">{label}</span>
+                <span className="usage-panel__chart-track" aria-hidden="true">
                   <progress
                     className={`deckgo-usage-chart-bar deck-ui-usage-chart-bar ${activeView === "cost" ? "is-cost" : activeView === "byModel" ? "is-model" : ""}`}
                     max={100}
                     value={width}
                   />
                 </span>
-                <span className="deckgo-usage-chart-value">{metricLabel(row, activeView, t)}</span>
+                <span className="usage-panel__chart-value">{metricLabel(row, activeView, t)}</span>
                 {"date" in row && row.source === "sessions" ? (
-                  <span className="deckgo-meta deckgo-usage-chart-detail">
+                  <span className="usage-panel__meta deckgo-usage-chart-detail">
                     {row.errors > 0
                       ? t("dailyChartDetailWithErrors", {
                           errors: row.errors,
@@ -112,7 +115,7 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
                   </span>
                 ) : null}
                 {"count" in row ? (
-                  <span className="deckgo-meta deckgo-usage-chart-detail">
+                  <span className="usage-panel__meta deckgo-usage-chart-detail">
                     {t("modelChartDetail", {
                       cost: formatCurrency(row.cost),
                       count: row.count,
@@ -124,6 +127,6 @@ export function UsageTrendChart({ dailyRows, modelRows }: UsageTrendChartProps) 
           })}
         </div>
       )}
-    </div>
+    </article>
   );
 }

@@ -17,16 +17,19 @@ export function DateRangePicker({ days, onDaysChange, onRefresh }: DateRangePick
   const t = useTranslations("usage");
 
   return (
-    <div className="deckgo-surface-tile deck-ui-usage-surface">
-      <p className="deckgo-surface-label">{t("refreshUsageRange")}</p>
+    <div className="usage-panel__card usage-panel__range deck-ui-usage-surface">
+      <div>
+        <p className="usage-panel__label">{t("refreshUsageRange")}</p>
+        <h3 className="usage-panel__card-title">{t("panel.rangeTitle")}</h3>
+      </div>
       <div
-        className="deckgo-actions deck-ui-usage-actions"
+        className="usage-panel__segments deck-ui-usage-actions"
         role="group"
         aria-label={t("rangeShortcuts")}
       >
         {USAGE_RANGE_SHORTCUTS.map((shortcut) => (
           <button
-            className={`deckgo-button deckgo-button-compact deck-ui-usage-button ${
+            className={`usage-panel__button deck-ui-usage-button ${
               days === shortcut.days ? "is-primary" : ""
             }`}
             data-usage-range={shortcut.days}
@@ -41,16 +44,16 @@ export function DateRangePicker({ days, onDaysChange, onRefresh }: DateRangePick
           </button>
         ))}
       </div>
-      <div className="deckgo-actions deck-ui-usage-controls">
+      <div className="usage-panel__range-controls deck-ui-usage-controls">
         <input
           aria-label={t("days")}
-          className="deckgo-input deck-ui-usage-input"
+          className="usage-panel__input deck-ui-usage-input"
           value={days}
           onChange={(event) => onDaysChange(event.target.value)}
           placeholder={t("days")}
         />
         <button
-          className="deckgo-button deck-ui-usage-button"
+          className="usage-panel__button deck-ui-usage-button"
           type="button"
           onClick={() => onRefresh(days)}
         >
