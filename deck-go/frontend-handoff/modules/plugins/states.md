@@ -1,59 +1,100 @@
-# Plugins States
+# plugins — states
 
-## Load States
+> View routing, list states, per-tab states, focus management, a11y semantics.
 
-- `idle`: no inventory loaded yet or load failed before a ready response.
-- `loading`: plugin inventory request is in progress.
-- `ready`: current inventory came from `fetchPluginsWithCapability`.
+## View routing
 
-## Capability Scope
+Two top-level views, page-transition (no split panel):
 
-- `channel`: default inventory scope for channel-capable plugins.
-- `all`: full plugin inventory when the operator selects "All plugins".
+- `view = "list"` → `PluginsListView`
+- `view = "detail"` → `PluginsDetailView`
 
-Changing scope reloads plugin inventory and preserves the selected plugin when
-the next payload still contains it.
+Routing is local component state (prototype) → `useRoute()` / store hook in production. Selected
+plugin id and active tab persist across `list↔detail` transitions so going back keeps your scroll
+position and previously-open tab.
 
-## Selection State
+## List states
 
-The selected plugin is:
+| State     | Trigger                              | Renders                                          |
+| --------- | ------------------------------------ | ------------------------------------------------ |
+| `ready`   | inventory fetch resolved with rows   | Toolbar + KPI strip + filtered row list          |
+| `loading` | first fetch or manual refresh        | Spinner + "Loading plugin inventory…"            |
+| `error`   | BFF returned 5xx / network fail      | Error icon + retry button                        |
+| `empty`   | inventory resolved but no rows match | Empty illustration + "Try clearing search…" hint |
 
-1. the `pluginId` URL navigation target when present in the payload,
-2. the previous selected plugin when it still exists,
-3. otherwise the first plugin in the payload.
+The `empty` state is reached via two paths: 0 inventory entries from BFF, or filters reduce the
+list to zero. Both render the same component; copy adapts in production via a `cause` prop.
 
-## Empty State
+### Filters that compose
 
-When `plugins.length === 0`, show the inventory empty message and selected
-detail hint. Do not fabricate plugin rows.
+- `searchQuery` (string, free text on id + name + capability + channel + tool + provider)
+- `filter` (capability segmented: `all | channel | tool | agent | provider`)
+- `origin` (segmented: `all | bundled | extension`)
+- `scope` (segmented: `all | channel`) — emulates the BFF API: scope=channel calls the default
+  `GET /api/deck/plugins`, scope=all calls `GET /api/deck/plugins?capability=all`. Switching this
+  in production should re-fetch.
 
-## Error State
+All four are independent and AND-combined.
 
-Errors are displayed inline above the workspace. Current inventory may remain
-visible if already loaded.
+## Detail states
 
-## Related Channel State
+| State     | Trigger                               | Renders                                                                 |
+| --------- | ------------------------------------- | ----------------------------------------------------------------------- |
+| `ready`   | plugin found in inventory             | Hero + tabs + active tab body                                           |
+| `loading` | refetch initiated                     | Hero (cached) + spinner panel below tabs                                |
+| `error`   | manifest / timeline projection failed | Hero (cached) + inline error panel; tab content from inventory still ok |
 
-- Visible channel IDs get Channels/Routing handoff buttons.
-- WeCom visible channel IDs also get Access handoff buttons.
-- Hidden channel IDs are labeled as not visible in Channels.
+A missing plugin id (e.g., user navigates back after the row was removed by a refresh) renders
+the `ListView` again as a fallback — it does not show a 404 page.
 
-## Diagnostic State
+## Per-tab state
 
-Diagnostics render as level/message rows. Missing diagnostics render a no
-diagnostics message.
+| Tab            | Source                                 | Empty fallback                              |
+| -------------- | -------------------------------------- | ------------------------------------------- |
+| `overview`     | inventory entry only                   | n/a (overview always renders)               |
+| `capabilities` | inventory entry only                   | per-section empty blocks                    |
+| `diagnostics`  | `plugin.diagnostics`                   | "No diagnostics reported" success block     |
+| `activation`   | inventory + activation chain heuristic | n/a                                         |
+| `manifest`     | BFF projection + inventory fallback    | "No projected manifest" muted banner        |
+| `audit`        | BFF activation timeline                | "No activation audit projected" empty block |
 
-## Lifecycle Limitation State
+## Tweaks panel
 
-Always show that lifecycle controls are deferred. Do not add install, uninstall,
-enable, disable, reload, trust, marketplace, or package-signature controls.
+Design-time only. Exposes:
 
-## Mock/Local Visual States
+- `theme` ∈ `dark | light`
+- `density` ∈ `comfortable | compact`
+- `view` ∈ `list | detail`
+- `listState` ∈ `ready | loading | error | empty`
+- `scope` ∈ `all | channel`
+- `origin` ∈ `all | bundled | extension`
+- `selectedPlugin` (any plugin id from MOCK)
+- `activeTab` ∈ all 6 plugin tabs
+- `detailState` ∈ `ready | loading | error`
+- `diagnosticOpen` / `manifestOpen` / `rawOpen` ∈ booleans
 
-The visual E2E should cover:
+This panel is dropped at production translation; it is design-time tooling only.
 
-- ready workbench with seeded plugins
-- selected plugin detail
-- hidden channel warning
-- handoff message or scope switch
-- raw payload disclosure
+## Focus
+
+- List view first focusable: search input.
+- After selecting a row, focus moves to the back button in the detail hero.
+- After dismissing a dialog (Esc / backdrop / Close button), focus returns to the trigger.
+- Esc:
+  - In a dialog → close dialog (handled per-dialog).
+  - On detail view, no dialog open → return to list.
+  - On list view → no-op (do not eat Esc; let global handlers see it).
+
+## A11y semantics
+
+- `role="tablist"` / `role="tab"` / `aria-selected` on:
+  - Capability segmented control
+  - Origin segmented control
+  - Scope segmented control
+  - Detail tab strip
+- `role="button"` + `tabIndex={0}` on inventory rows; Enter/Space activates.
+- `role="dialog"` + `aria-modal="true"` + `aria-label` on each dialog. Focus trap inside dialog.
+- Status, capability, origin, and diagnostic pills always include text — color is decoration only.
+- Activation chain nodes carry both icon (✓ / number) and label, never relying on color alone.
+- Empty / error / loading states use polite live regions (`aria-live="polite"`) so refresh
+  transitions are announced.
