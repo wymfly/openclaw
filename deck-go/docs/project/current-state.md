@@ -115,17 +115,9 @@ skills / subagents / threads / usage / webhooks
 - 契约：deck-go 自有链路（`contracts/source/deck-api.contract.ts` → `contracts/generated/`）
 - 不与上一代 `dashboard/src/types/gateway-*.generated.ts` 共流水线
 
-## 当前进行中的 OpenSpec change（本目录范围内）
+## 当前进行中的 OpenSpec change
 
-| change                                  | 状态   | 含义                                                                                                                                           |
-| --------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `deck-go-frontend-protocol-v1`          | 实施中 | 协议层 + 反向同步 tokens + drift 脚本                                                                                                          |
-| `deck-go-frontend-new-scaffold`         | 待批准 | 建 `frontend-new/` 物理树（cp design system / 工程基础）                                                                                       |
-| `deck-go-chat-protocol-pilot`           | 待批准 | chat 6 件套反推 + 物理迁移到 `frontend-new/`                                                                                                   |
-| `deck-go-chat-agents-contract-typing`   | 实施完 | chat / agents 契约面收齐（TranscriptBlock union / activeApproval typed / 2 SSE event / 11 write DTO / codegen pointer 支持）；浏览器烟测待用户 |
-| `deck-go-frontend-foundation-readiness` | 实施完 | patterns × 6 + icons (lucide-react) + 原型字符串规则 + agents pilot 反哺候选记录；24 panel 高保真原型量产前的 Phase 0                          |
-
-可用 `openspec list` 看完整队列。
+活跃 change 列表请直接 `openspec list` 看真相源；本节不再维护，避免与 OpenSpec 漂移。
 
 ## 不再扩展的 legacy
 

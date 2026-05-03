@@ -73,7 +73,5 @@
 
 ## 修订历史
 
-| 日期       | 变更                                                                                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-05-01 | 协议 v1 落定（OpenSpec change `deck-go-frontend-protocol-v1`）：建立此文件，把栈决策从协议解耦                                                                            |
-| 2026-05-04 | OpenSpec change `deck-go-frontend-foundation-readiness`：Pattern 物理结构 + Icon 库（`lucide-react ^1.14.0`）+ Prototype 字符串规则三项进入 Locked；图标库 pending 项移除 |
+> 决策的"何时进 Locked / 怎么进 Locked"从 git log 和对应 OpenSpec change 即可获悉，不在此处复述。
+> 顶部 `Last reviewed` 时间戳跟着实质变更走即可。
