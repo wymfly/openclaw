@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deck Identity Workbench Prototype</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #08090b;
+        --panel: #111318;
+        --panel-2: #151922;
+        --line: #272d38;
+        --line-strong: #3a4352;
+        --text: #f4f6f8;
+        --muted: #a9b0bb;
+        --faint: #727b88;
+        --accent: #7fb7ff;
+        --success: #71d69a;
+        --warn: #f3c96b;
+        --danger: #ff8d8d;
+        --radius: 8px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        display: grid;
+        gap: 14px;
+        width: min(1180px, calc(100vw - 40px));
+        margin: 24px auto;
+      }
+
+      header,
+      .metrics,
+      .workspace,
+      .row,
+      .hero,
+      .peer {
+        display: grid;
+        gap: 10px;
+      }
+
+      header {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+      }
+
+      .eyebrow,
+      .label {
+        margin: 0;
+        color: var(--faint);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 22px;
+        line-height: 1.12;
+      }
+
+      h2 {
+        font-size: 16px;
+      }
+
+      h3 {
+        font-size: 14px;
+      }
+
+      p,
+      .meta {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .actions,
+      .pills,
+      .peer-head {
+        display: flex;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      button,
+      .pill {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--panel-2);
+        color: var(--text);
+        font: inherit;
+      }
+
+      button {
+        min-height: 32px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      button.primary {
+        border-color: color-mix(in srgb, var(--accent) 52%, var(--line));
+        color: var(--accent);
+      }
+
+      .pill {
+        padding: 4px 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pill.ok {
+        border-color: color-mix(in srgb, var(--success) 42%, var(--line));
+        color: var(--success);
+      }
+
+      .pill.warn {
+        border-color: color-mix(in srgb, var(--warn) 42%, var(--line));
+        color: var(--warn);
+      }
+
+      .metrics {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .metric,
+      .card,
+      .row,
+      .hero,
+      .peer,
+      .guard,
+      details {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+      }
+
+      .metric {
+        padding: 11px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 6px;
+        overflow: hidden;
+        font-size: 18px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .workspace {
+        grid-template-columns: minmax(340px, 0.8fr) minmax(560px, 1.2fr);
+        align-items: start;
+      }
+
+      .card {
+        overflow: hidden;
+      }
+
+      .card-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 16px 0;
+      }
+
+      .card-body {
+        display: grid;
+        gap: 10px;
+        padding: 14px 16px 16px;
+      }
+
+      .row {
+        padding: 11px;
+        cursor: pointer;
+      }
+
+      .row.selected {
+        border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+        background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      .row-title,
+      .peer-head {
+        justify-content: space-between;
+      }
+
+      code {
+        overflow-wrap: anywhere;
+        color: var(--text);
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .hero {
+        padding: 13px;
+        background: var(--panel-2);
+      }
+
+      .guard {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 11px;
+        background: color-mix(in srgb, var(--success) 8%, var(--panel));
+      }
+
+      .peer {
+        padding: 11px;
+      }
+
+      details {
+        padding: 11px;
+      }
+
+      summary {
+        cursor: pointer;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      pre {
+        max-height: 260px;
+        overflow: auto;
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .modal {
+        display: grid;
+        gap: 10px;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius);
+        padding: 14px;
+        background: #10141c;
+      }
+
+      input {
+        min-height: 34px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 7px 9px;
+        background: #0b0d12;
+        color: var(--text);
+        font: inherit;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      @media (max-width: 980px) {
+        header,
+        .workspace,
+        .metrics,
+        .form-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Observe / relationship mapping</p>
+          <h1>Identities</h1>
+          <p>Canonical identities, channel peers, and base-hash guarded relationship mutations.</p>
+          <p class="meta">Contract: GET/POST /api/deck/identity via Deck BFF</p>
+        </div>
+        <div class="actions">
+          <button>Refresh</button>
+          <button class="primary">Link identity</button>
+        </div>
+      </header>
+
+      <section class="metrics">
+        <div class="metric"><p class="label">Canonicals</p><strong>3</strong></div>
+        <div class="metric"><p class="label">Peers</p><strong>5</strong></div>
+        <div class="metric"><p class="label">Channels</p><strong>telegram, discord, slack</strong></div>
+        <div class="metric"><p class="label">Hash state</p><strong>ready</strong></div>
+      </section>
+
+      <section class="workspace">
+        <aside class="card">
+          <div class="card-head">
+            <div>
+              <h2>Canonical inventory</h2>
+              <p class="meta">Identity ready</p>
+            </div>
+            <span class="pill ok">hash ready</span>
+          </div>
+          <div class="card-body">
+            <article class="row selected">
+              <div class="row-title actions">
+                <strong>main</strong>
+                <span class="pill">3 peers</span>
+              </div>
+              <div class="pills">
+                <span class="pill">telegram</span><span class="pill">discord</span
+                ><span class="pill">wecom</span>
+              </div>
+            </article>
+            <article class="row">
+              <div class="row-title actions">
+                <strong>builder</strong>
+                <span class="pill">1 peer</span>
+              </div>
+              <div class="pills"><span class="pill">slack</span></div>
+            </article>
+            <article class="row">
+              <div class="row-title actions">
+                <strong>empty-review-slot</strong>
+                <span class="pill warn">no peers</span>
+              </div>
+              <p class="meta">Ready for a guarded peer mapping.</p>
+            </article>
+          </div>
+        </aside>
+
+        <section class="card">
+          <div class="card-head">
+            <div>
+              <h2>Selected identity</h2>
+              <p class="meta">Inspect linked channel peers and guarded mutations.</p>
+            </div>
+            <span class="pill">main</span>
+          </div>
+          <div class="card-body">
+            <div class="hero">
+              <p class="label">Canonical</p>
+              <h2>main</h2>
+              <div class="pills">
+                <span class="pill ok">3 peers</span>
+                <span class="pill ok">baseHash identity-hash-visual-1</span>
+              </div>
+            </div>
+
+            <div class="guard">
+              <div>
+                <strong>Mutation safety</strong>
+                <p class="meta">Link and unlink submit the current config hash as baseHash.</p>
+              </div>
+              <span class="pill ok">ready</span>
+            </div>
+
+            <article class="peer">
+              <div class="peer-head">
+                <strong>telegram</strong>
+                <button>Unlink peer</button>
+              </div>
+              <p class="meta">Peer ID <code>tg-main</code></p>
+            </article>
+            <article class="peer">
+              <div class="peer-head">
+                <strong>discord</strong>
+                <button>Unlink peer</button>
+              </div>
+              <p class="meta">Peer ID <code>disc-main</code></p>
+            </article>
+
+            <section class="modal">
+              <div class="actions">
+                <div>
+                  <h3>Link Identity</h3>
+                  <p class="meta">Map a channel peer to a canonical identity.</p>
+                </div>
+                <span class="pill">dialog state</span>
+              </div>
+              <div class="form-grid">
+                <input value="reviewer" aria-label="canonical" />
+                <input value="telegram" aria-label="channel" />
+                <input value="tg-reviewer" aria-label="peer id" />
+              </div>
+              <div class="actions">
+                <button>Cancel</button>
+                <button class="primary">Save</button>
+              </div>
+            </section>
+
+            <details>
+              <summary>Identity payload</summary>
+              <pre>{
+  "configHash": "identity-hash-visual-1",
+  "selected": {
+    "canonical": "main",
+    "peers": [
+      { "channel": "telegram", "peerId": "tg-main" },
+      { "channel": "discord", "peerId": "disc-main" }
+    ]
+  }
+}</pre>
+            </details>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
