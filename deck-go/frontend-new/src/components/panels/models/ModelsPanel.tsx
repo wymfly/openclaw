@@ -27,6 +27,7 @@ import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import { ProviderModelsEditor } from "./ProviderModelsEditor";
 import { StringRecordEditor } from "./StringRecordEditor";
+import "./models-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
 type ModelsTab = "catalog" | "provider-config" | "fallbacks" | "usage";
@@ -1201,77 +1202,134 @@ export function ModelsPanel() {
   };
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-models">
-      <div className="deckgo-column deck-ui-models-column">
-        <article className="deckgo-card is-float deck-ui-models-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("title")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("panel.configDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-models-body">
-            <div className="deckgo-pill-row deck-ui-models-status-row">
-              <span className={`deckgo-pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}>
-                {t("status.modelsState", { state: t(`states.${loadState}`) })}
-              </span>
-              <span className="deckgo-pill">
-                {t("status.providersCount", { count: providerEntries.length })}
-              </span>
-              <span className="deckgo-pill">
-                {t("status.configuredModelsCount", { count: configuredModels.length })}
-              </span>
-              <span className="deckgo-pill">
-                {t("status.authProvidersCount", { count: authProviders.length })}
-              </span>
-              <span className="deckgo-pill">
-                {t("status.catalogProvidersCount", { count: catalogProviderEntries.length })}
-              </span>
-              <span className="deckgo-pill">
-                {t("status.hash", { hash: baseHash || t("common.notAvailable") })}
-              </span>
-            </div>
-            <div className="deckgo-grid deckgo-grid-3 deck-ui-models-stats">
-              <ShellStat label={t("status.providers")} value={providerEntries.length} />
-              <ShellStat label={t("status.configured")} value={configuredModels.length} />
-              <ShellStat label={t("status.schemaPath")} value={schemaPath} />
-            </div>
-            <div className="deckgo-actions deck-ui-models-actions">
-              <button
-                className="deckgo-button deck-ui-models-button"
-                type="button"
-                onClick={() => void refresh()}
-              >
-                {t("panel.refreshModels")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-models-button is-primary"
-                type="button"
-                onClick={() => void saveAction()}
-                disabled={actionState !== "idle"}
-              >
-                {actionState === "saving" ? t("panel.saving") : t("panel.saveConfig")}
-              </button>
-            </div>
-            {error ? <p className="deckgo-note deck-ui-models-error">{error}</p> : null}
-            <label className="deckgo-label deck-ui-models-label">
-              <span>{t("panel.modelsConfig")}</span>
-              <textarea
-                className="deckgo-textarea deck-ui-models-textarea deck-ui-models-raw-textarea"
-                rows={20}
-                value={rawConfig}
-                onChange={(event) => setRawConfig(event.target.value)}
-              />
-            </label>
-          </div>
-        </article>
+    <section className="models-panel deck-ui-models" data-testid="models-panel">
+      <header className="models-panel__header">
+        <div>
+          <p className="models-panel__eyebrow">{t("panel.eyebrow")}</p>
+          <h2>{t("panel.workbenchTitle")}</h2>
+          <p>{t("panel.workbenchDescription")}</p>
+        </div>
+        <div className="models-panel__header-actions">
+          <span className={`models-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
+            {t("status.modelsState", { state: t(`states.${loadState}`) })}
+          </span>
+          <span className="models-panel__pill">
+            {t("status.hash", { hash: baseHash || t("common.notAvailable") })}
+          </span>
+          <button className="models-panel__button" type="button" onClick={() => void refresh()}>
+            {t("panel.refreshModels")}
+          </button>
+          <button
+            className="models-panel__button is-primary"
+            type="button"
+            onClick={() => void saveAction()}
+            disabled={actionState !== "idle"}
+          >
+            {actionState === "saving" ? t("panel.saving") : t("panel.saveConfig")}
+          </button>
+        </div>
+      </header>
+
+      {error ? <p className="models-panel__error">{error}</p> : null}
+
+      <div className="models-panel__metrics" aria-label={t("panel.metrics")}>
+        <div className="models-panel__metric">
+          <span>{t("status.providers")}</span>
+          <strong>{providerEntries.length}</strong>
+          <small>{t("status.configuredCount", { count: providerEntries.length })}</small>
+        </div>
+        <div className="models-panel__metric">
+          <span>{t("status.configured")}</span>
+          <strong>{configuredModels.length}</strong>
+          <small>{t("catalog.visibleRuntimeModels", { count: configuredModels.length })}</small>
+        </div>
+        <div className="models-panel__metric">
+          <span>{t("status.auth")}</span>
+          <strong>{authProviders.length}</strong>
+          <small>{t("status.authProvidersCount", { count: authProviders.length })}</small>
+        </div>
+        <div className="models-panel__metric">
+          <span>{t("status.catalog")}</span>
+          <strong>{catalogProviderEntries.length}</strong>
+          <small>
+            {t("status.catalogProvidersCount", { count: catalogProviderEntries.length })}
+          </small>
+        </div>
+        <div className="models-panel__metric">
+          <span>{t("usage.latestCost")}</span>
+          <strong>{formatUsageCost(latestUsageCost)}</strong>
+          <small>{t("usage.windowTotal", { total: formatUsageCost(usageWindowCost) })}</small>
+        </div>
       </div>
 
-      <div className="deckgo-column deckgo-panel-main deck-ui-models-column">
-        <article className="deckgo-card is-float deck-ui-models-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("detailTitle")}</h2>
+      <div className="models-panel__workbench">
+        <aside className="models-panel__sidecar" aria-label={t("panel.sidecar")}>
+          <section className="models-panel__side-section">
+            <div className="models-panel__section-heading">
+              <strong>{t("catalog.runtimeModelCatalog")}</strong>
+              <span>{t("catalog.visibleRuntimeModels", { count: configuredModels.length })}</span>
+            </div>
+            <div className="models-panel__side-list">
+              {runtimeProviderGroups.slice(0, 4).map(([provider, models]) => (
+                <button
+                  className={`models-panel__side-row ${
+                    provider === activeCatalogProvider ? "is-selected" : ""
+                  }`}
+                  key={`side-${provider}`}
+                  type="button"
+                  onClick={() => setCatalogSelection({ type: "provider", provider })}
+                >
+                  <span>{provider}</span>
+                  <strong>{t("status.modelsCount", { count: models.length })}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="models-panel__side-section">
+            <div className="models-panel__section-heading">
+              <strong>{t("catalog.providerOverview")}</strong>
+              <span>{t("status.authProvidersCount", { count: authProviders.length })}</span>
+            </div>
+            <div className="models-panel__side-list">
+              {authProviders.slice(0, 4).map((provider) => (
+                <button
+                  className="models-panel__side-row"
+                  key={`auth-${provider.provider}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedProviderId(provider.provider);
+                    setActiveTab("provider-config");
+                  }}
+                >
+                  <span>{provider.provider}</span>
+                  <strong>{provider.status}</strong>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <details className="models-panel__raw-config">
+            <summary>{t("panel.modelsConfig")}</summary>
+            <p>{t("panel.rawConfigHint")}</p>
+            <textarea
+              aria-label={t("panel.modelsConfig")}
+              className="models-panel__raw-textarea"
+              rows={16}
+              value={rawConfig}
+              onChange={(event) => setRawConfig(event.target.value)}
+            />
+          </details>
+        </aside>
+
+        <article className="models-panel__main">
+          <div className="models-panel__main-header">
+            <div>
+              <p className="models-panel__eyebrow">{t("detailTitle")}</p>
+              <h3>{t("panel.detailDescription")}</h3>
+            </div>
           </div>
-          <p className="deckgo-card-subtitle">{t("panel.detailDescription")}</p>
-          <div className="deckgo-card-body deckgo-dividerless deck-ui-models-body">
+          <div className="deck-ui-models-body">
             <div className="deck-ui-models-tabs deck-ui-tab-strip" role="tablist">
               {MODEL_TABS.map((tab) => (
                 <button

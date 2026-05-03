@@ -309,20 +309,25 @@ describe("ModelsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Models ready"));
 
     expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("models.providers");
-    expect(container.querySelector(".deck-ui-models")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-models-card")).toHaveLength(2);
-    expect(container.querySelectorAll(".deck-ui-models-body")).toHaveLength(2);
-    expect(container.querySelector(".deck-ui-models-status-row")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-models-stats").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelector(".models-panel")).toBeTruthy();
+    expect(container.querySelector(".models-panel__header")).toBeTruthy();
+    expect(container.querySelector(".models-panel__metrics")).toBeTruthy();
+    expect(container.querySelectorAll(".models-panel__metric")).toHaveLength(5);
+    expect(container.querySelector(".models-panel__workbench")).toBeTruthy();
+    expect(container.querySelector(".models-panel__sidecar")).toBeTruthy();
+    expect(container.querySelector(".models-panel__main")).toBeTruthy();
+    expect(container.querySelectorAll(".deck-ui-models-stats").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".deck-ui-models-surface").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelectorAll(".deck-ui-models-hero").length).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".deck-ui-models-row").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelectorAll(".deck-ui-models-input").length).toBeGreaterThanOrEqual(10);
-    expect(container.querySelectorAll(".deck-ui-models-textarea").length).toBeGreaterThanOrEqual(3);
+    expect(
+      container.querySelectorAll(".deck-ui-models-textarea, .models-panel__raw-textarea").length,
+    ).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".deck-ui-models-button").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelector("[style]")).toBeNull();
     expect(container.textContent).toContain("2 providers");
-    expect(container.textContent).toContain("3 configured models");
+    expect(container.textContent).toContain("3 visible runtime models");
     expect(container.textContent).toContain("2 auth providers");
     expect(container.textContent).toContain("2 catalog providers");
     expect(container.textContent).toContain("GPT-5.4");

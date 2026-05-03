@@ -28,7 +28,7 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 | Panel        | Path                                                                                    | theme.css footprint | What it does today                                                                    |
 | ------------ | --------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------- |
 | **Settings** | `panels/settings/SettingsPanel.tsx`                                                     | 64 lines            | Manages workspace settings, runtime config, gateway tokens, confirm dialogs           |
-| **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | 145 lines           | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
+| **Models**   | `panels/models/ModelsPanel.tsx` + `ProviderModelsEditor.tsx` + `StringRecordEditor.tsx` | removed             | Provider/model catalog, fallback chain editor, quota cards, usage bars, tabbed config |
 | **Channels** | `panels/channels/ChannelsPanel.tsx` + 4 sub-components                                  | removed             | Channel account cards, WeCom routing/access controls, usage charts, form grids        |
 | **Sessions** | `panels/sessions/SessionsPanel.tsx` + 3 sub-components                                  | 80 lines            | Session list, detail shell, compaction history, subagent tree, usage breakdown        |
 | **Logs**     | `panels/logs/LogsPanel.tsx`                                                             | 41 lines            | Log tape view, level filters, controls strip, sidecar event details                   |
@@ -167,9 +167,9 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Models panel
 
-**Migration readiness:** Low — most complex panel. Blocking new atoms: `DataTable` (provider model list), `TreeView` (provider tree), `SparklineChart` (usage bars), `KpiCard` (quota cards). Without these, attempting migration will force re-architecting `Card` or `SidebarRow`, which the no-breaking-change promise prohibits.
+**Migration readiness:** Completed under OpenSpec change `frontend-models-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept model table/tree/quota/chart/config/fallback/allowlist surfaces as module-local molecules while preserving the no-breaking-change promise.
 
-**Footnote — deprecated patterns:** `deck-ui-models-fallback-chains` + `deck-ui-models-chain-card` use a custom flow-chart-like layout that may need a `FlowChart` atom or could be deferred and rendered with raw CSS. Decision deferred to ModelsPanel migration proposal.
+**Footnote — deprecated patterns:** The old `deck-ui-models` global block has been removed. Models now uses `models-panel.css` with `--ds-*` tokens. `DataTable`, `TreeView`, `KpiCard`, `SparklineChart`, fallback chain, provider config, and allowlist molecules remain promotion candidates for a dedicated design-system proposal rather than being silently canonicalized in the Models rewrite.
 
 ### Channels panel
 
@@ -303,6 +303,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 **Mock visual evidence:** `deck-go/test/e2e/gateway-visual.spec.ts` covers the ready runtime diagnostics workbench, monitor history, and selected timeline state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
 
+### Models panel
+
+**Status:** in progress under OpenSpec change `frontend-models-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The models high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, chip, code, input, select, segmented-control, spinner, tag, textarea, and status atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** model metric tile, runtime provider rail, model inventory table row, provider auth evidence row, catalog provider card, provider config field cluster, fallback chain card, allowlist row, usage cost bar, provider quota card, and raw config sidecar.
+
+**Repeated from prior modules:** metric tile, compact workbench header, sidecar rail, section heading, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, and action/result seams. These remain local until a dedicated design-system proposal defines shared APIs across enough modules.
+
+**Models-specific molecules:** model inventory rows are DataTable candidates, runtime provider rail is a TreeView candidate, usage cost bars are SparklineChart candidates, and provider quota cards are KpiCard candidates. The implementation keeps them local because a module rewrite is not the right place to change canonical atom APIs.
+
+**Mock visual evidence:** `deck-go/test/e2e/models-visual.spec.ts` covers the ready model operations workbench, provider config state, fallback state, and usage pressure state against the bundled mock Gateway. This is mock visual coverage, not real Gateway/LLM evidence.
+
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 
 ---
@@ -326,3 +340,4 @@ The current state above reflects audit on 2026-04-30. Subsequent atom or panel a
 - **2026-05-03 — logs hifi redesign (`frontend-logs-hifi-contract-redesign`)**: Logs provides the first code-heavy observability panel in the contract-led rollout. This pass introduces no canonical atom/token changes. The shared metric/header/section patterns now have four module data points; log rows, live tape rows, and payload seams stay local until another observability module confirms reuse.
 - **2026-05-03 — channels hifi redesign (`frontend-channels-hifi-contract-redesign`)**: Channels moves the channel operations workbench to module-local `--ds-*` styling and adds contract-shaped mock coverage for channel status, probe, config patch, WeCom access, and routing handoff. No canonical atom/token changes were introduced; channel diagnostics/settings/access molecules stay local pending a separate design-system proposal.
 - **2026-05-03 — gateway hifi redesign (`frontend-gateway-hifi-contract-redesign`)**: Gateway moves runtime diagnostics, Gateway health/status, activity evidence, monitor history, and timeline detail into a module-local diagnostics workbench. No canonical atom/token changes were introduced; deterministic Gateway DTO/mock drift was fixed for mock visual coverage, while uncertain real Gateway monitor/event semantics remain handoff follow-up.
+- **2026-05-03 — models hifi redesign (`frontend-models-hifi-contract-redesign`)**: Models moves runtime inventory, provider auth, catalog discovery, provider config, fallback chains, allowlist controls, and usage pressure into a module-local operations workbench. No canonical atom/token changes were introduced; deterministic model/auth/catalog/schema mock drift was fixed for mock visual coverage, while uncertain real Gateway model/auth/catalog semantics remain handoff follow-up.
