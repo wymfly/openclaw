@@ -71,7 +71,7 @@
 - [x] 8.1 更新 `deck-go/docs/project/current-state.md`：Snapshot date → 2026-05-04；Design system canonical 段加 Patterns + Icons 行；OpenSpec change 表格加本 change 条目
 - [x] 8.2 更新 `deck-go/docs/CLAUDE.md` Status 段：patterns + icons + 原型字符串规则三条 ✅；下一步指向 24 panel 量产
 - [x] 8.3 验证 `openspec status --change deck-go-frontend-foundation-readiness` 4/4 artifacts complete + `openspec validate` 通过
-- [ ] 8.4 用 `scripts/committer` 单 commit："deck-go: foundation-readiness — patterns × 6 + icons (lucide-react) + prototype string rule"
+- [x] 8.4 两个 commit 落地：`490caa24cd` (agents prototype + Codex assessment) + `3399898dfd` (foundation-readiness)
 
 ## 9. 收尾
 
