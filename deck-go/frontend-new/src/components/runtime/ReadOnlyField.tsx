@@ -1,4 +1,5 @@
 import { ShieldCheckIcon } from "../../deck-ui/icons";
+import { Badge, Input } from "../../design-system/atoms";
 
 type ReadOnlyFieldProps = {
   badge?: string;
@@ -8,16 +9,16 @@ type ReadOnlyFieldProps = {
 
 export function ReadOnlyField({ badge, label, value }: ReadOnlyFieldProps) {
   return (
-    <label className="deckgo-label">
-      <span>
+    <label className="settings-label settings-readonly-field">
+      <span className="settings-label__text">
         {label}{" "}
         {badge ? (
-          <span className="deckgo-pill">
+          <Badge className="settings-secure-badge">
             <ShieldCheckIcon /> {badge}
-          </span>
+          </Badge>
         ) : null}
       </span>
-      <input className="deckgo-input" readOnly value={value} />
+      <Input className="settings-input" readOnly value={value} />
     </label>
   );
 }

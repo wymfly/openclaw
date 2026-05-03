@@ -161,9 +161,9 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Settings panel
 
-**Migration readiness:** Medium — needs `Card variant="selectable"` extension + `Modal size="lg"` confirm + new atoms `KeyValueList` + optional `TokenInput` wrapper. Heavy use of confirm dialogs and token management modals — the bundle's `right-panel.jsx` doesn't have a parallel for token UI, so this is panel-driven design.
+**Migration readiness:** Completed under OpenSpec change `frontend-settings-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it used local settings/security molecules on top of the settled DS atom set.
 
-**Footnote — deprecated patterns:** None. Settings uses the canonical shared shell (`deckgo-panel-workspace` etc.) which is part of the cross-panel shell-token migration covered separately.
+**Footnote — deprecated patterns:** The old `deck-ui-settings` global block has been removed. Settings now uses module-local `settings-*` classes and `--ds-*` tokens.
 
 ### Models panel
 
@@ -248,6 +248,20 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 **Repeated from agents/routing/subagents:** metric tile, compact workbench header, section heading, and two-column workbench rhythm. Logs also validates a code-heavy observability sidecar, but log rows and event tape rows remain local because no second observability module has confirmed their API.
 
 **Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, and `SectionHeading` now have four module data points and should move to a separate design-system proposal when the rollout pauses for pattern consolidation. `LogLineRow`, `LiveTapeRow`, and `PayloadSeam` stay local/follow-up.
+
+### Settings panel
+
+**Status:** in progress under OpenSpec change `frontend-settings-hifi-contract-redesign`.
+
+**Readiness verdict:** High after implementation. The settings high-fidelity pass reused canonical typography, color, spacing, radius, badge, button, card, input, toggle, spinner, code, and modal atoms/tokens. No canonical atom or token was introduced.
+
+**Local molecules retained:** settings metric tile, secure read-only field, endpoint status surface, preference action strip, pending device row, paired device row, token action strip, confirmation dialog content, and one-time token content.
+
+**Repeated from prior modules:** metric tile, compact workbench header, section heading, two-column workbench rhythm, and action/result seams. These remain local until a dedicated design-system proposal defines API boundaries.
+
+**Configuration/security molecules:** `SecureReadOnlyField` and token action strips are promotion candidates, but they need at least one more security/configuration module before canonicalization. The endpoint test correction is contract behavior, not a design-system pattern: bundled immutable endpoints hide testing because the BFF returns `endpoint_not_mutable`.
+
+**Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, `SectionHeading`, and `ActionResultSeam` now have five module data points. `SecureReadOnlyField` and `TokenActionStrip` are watch items for the next configuration-heavy module.
 
 As panels migrate, their rows move here with a link to the archived OpenSpec change.
 

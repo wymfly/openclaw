@@ -210,21 +210,15 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Language changes are local");
     expect(container.textContent).toContain("English");
     expect(container.textContent).toContain("中文");
-    expect(container.querySelector(".deck-ui-settings")).toBeTruthy();
-    expect(container.querySelectorAll(".deck-ui-settings-card").length).toBeGreaterThanOrEqual(5);
-    expect(
-      container.querySelectorAll(".deck-ui-settings-status-row").length,
-    ).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".deck-ui-settings-form-row")).toHaveLength(1);
-    expect(container.querySelectorAll(".deck-ui-settings-input")).toHaveLength(0);
-    expect(container.querySelectorAll(".deck-ui-settings-textarea")).toHaveLength(0);
-    expect(container.querySelectorAll(".deck-ui-settings-surface").length).toBeGreaterThanOrEqual(
-      5,
-    );
-    expect(container.querySelectorAll(".deck-ui-settings-row")).toHaveLength(3);
-    expect(container.querySelectorAll(".deck-ui-settings-actions").length).toBeGreaterThanOrEqual(
-      6,
-    );
+    expect(container.querySelector(".settings-panel")).toBeTruthy();
+    expect(container.querySelectorAll(".settings-card").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".settings-status-row").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".settings-form-grid")).toHaveLength(1);
+    expect(container.querySelectorAll(".settings-input")).toHaveLength(4);
+    expect(container.querySelectorAll("textarea")).toHaveLength(0);
+    expect(container.querySelectorAll(".settings-surface").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".settings-device-row")).toHaveLength(3);
+    expect(container.querySelectorAll(".settings-actions").length).toBeGreaterThanOrEqual(6);
     expect(container.querySelector("[style]")).toBeNull();
     expect(
       container.querySelector<HTMLAnchorElement>('a[href="https://docs.openclaw.ai"]'),
@@ -435,7 +429,7 @@ describe("SettingsPanel", () => {
     );
   });
 
-  it("tests the configured runtime endpoint and renders the result", async () => {
+  it("does not expose endpoint testing when the bundled endpoint is immutable", async () => {
     act(() => {
       root = createRoot(container);
       root.render(renderSettingsPanel());
@@ -443,15 +437,12 @@ describe("SettingsPanel", () => {
 
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test endpoint")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() => expect(apiMocks.testEndpoint).toHaveBeenCalledWith(undefined));
-    expect(container.textContent).toContain("Endpoint test result");
-    expect(container.textContent).toContain('"ok": true');
+    expect(
+      Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent === "Test endpoint",
+      ),
+    ).toBeUndefined();
+    expect(apiMocks.testEndpoint).not.toHaveBeenCalled();
   });
 
   it("loads devices and runs confirmed device actions through the device facade", async () => {
@@ -478,8 +469,7 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Approve device pairing request req-1?");
     await act(async () => {
       Array.from(
-        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
-          [],
+        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
       )
         .find((button) => button.textContent === "Approve request")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -498,8 +488,7 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Rotate operator token for dev-1?");
     await act(async () => {
       Array.from(
-        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
-          [],
+        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
       )
         .find((button) => button.textContent === "Rotate token")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -511,7 +500,7 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("rotated-token");
     await act(async () => {
       Array.from(
-        container.querySelector(".deck-ui-settings-token-dialog")?.querySelectorAll("button") ?? [],
+        container.querySelector(".settings-token-dialog")?.querySelectorAll("button") ?? [],
       )
         .find((button) => button.textContent === "Close")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -525,8 +514,7 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Revoke operator token for dev-1?");
     await act(async () => {
       Array.from(
-        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
-          [],
+        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
       )
         .find((button) => button.textContent === "Revoke token")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -543,8 +531,7 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("Remove paired device dev-1?");
     await act(async () => {
       Array.from(
-        container.querySelector(".deck-ui-settings-confirm-dialog")?.querySelectorAll("button") ??
-          [],
+        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
       )
         .find((button) => button.textContent === "Remove device")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));

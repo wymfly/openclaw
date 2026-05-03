@@ -27,12 +27,14 @@ import {
   updateEndpoint,
 } from "../../../api";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { Badge, Button, Card, Code, Modal, Spinner } from "../../../design-system/atoms";
 import { useCapabilities } from "../../../hooks/useCapabilities";
 import type { Locale } from "../../../i18n/config";
 import { useLocale, useSetLocale, useTranslations } from "../../../i18n/provider";
 import { EndpointSection } from "../../runtime/EndpointSection";
 import { ReadOnlyField } from "../../runtime/ReadOnlyField";
 import { JsonDetails } from "../../shared/ShellComponents";
+import "./settings-panel.css";
 
 type PairedDevice = LocalPairedDevice;
 type PendingDeviceRequest = LocalPendingDeviceRequest;
@@ -102,6 +104,24 @@ function readRotatedToken(result: unknown) {
     return result.token;
   }
   return "";
+}
+
+function readyVariant(loading: boolean) {
+  return loading ? "running" : "ok";
+}
+
+function connectionVariant(connected: boolean | undefined) {
+  return connected ? "ok" : "neutral";
+}
+
+function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+  return (
+    <article className="settings-metric">
+      <span>{props.label}</span>
+      <strong>{props.value}</strong>
+      {props.hint ? <small>{props.hint}</small> : null}
+    </article>
+  );
 }
 
 function deviceStreamLabel(
@@ -315,546 +335,590 @@ export function SettingsPanel() {
   const activeRuntimeUrl = runtime?.runtime.gatewayUrl || endpoint?.url || t("notResolved");
 
   return (
-    <section className="deckgo-panel-workspace deck-ui-settings">
-      <div className="deckgo-column deckgo-panel-main deck-ui-settings-column">
-        <article className="deckgo-card is-float deck-ui-settings-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("localSettingsTitle")}</h2>
-          </div>
-          <p className="deckgo-card-subtitle">{t("localSettingsDescription")}</p>
-          <div className="deckgo-card-body deckgo-form-grid deck-ui-settings-body">
-            <div className="deckgo-pill-row deck-ui-settings-status-row">
-              <span className={`deckgo-pill ${loading ? "is-muted" : "is-positive"}`}>
-                {t("settingsStatus", { status: loading ? t("loading") : t("ready") })}
-              </span>
-              <span
-                className={`deckgo-pill ${bootstrap?.gateway.connected ? "is-positive" : "is-muted"}`}
-              >
-                {t("gatewayStatus", {
-                  status: bootstrap?.gateway.connected ? t("linked") : t("pending"),
-                })}
-              </span>
-              <span className="deckgo-pill">
-                {t("runtimeStatus", { status: runtime?.runtime.status || t("idle") })}
-              </span>
-              {capabilities ? (
-                <span className="deckgo-pill">{t("runtimeMode", { mode: capabilities.mode })}</span>
-              ) : null}
-            </div>
-
-            {capabilities && endpoint ? (
-              <EndpointSection
-                capabilities={capabilities}
-                value={endpoint}
-                onSave={saveEndpoint}
-                onTest={testRuntimeEndpoint}
-              />
-            ) : (
-              <div className="deckgo-surface-tile deck-ui-settings-surface">
-                <p className="deckgo-surface-label">{t("endpointTitle")}</p>
-                <p className="deckgo-note">
-                  {endpointLoading || capabilitiesLoading
-                    ? t("loading")
-                    : endpointError || t("notLoadedYet")}
-                </p>
-              </div>
-            )}
-
-            <ReadOnlyField
-              badge={t("setViaEnv")}
-              label={t("deckAccessToken")}
-              value={settings.accessTokenConfigured ? t("configured") : t("notConfigured")}
-            />
-
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <button
-                className="deckgo-button deck-ui-settings-button is-primary"
-                type="button"
-                disabled={saving}
-                onClick={() => void onSave()}
-              >
-                {saving ? t("savingSettings") : t("saveSettings")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => void refreshSettings()}
-              >
-                {t("refreshSettings")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => void refreshRuntimeSummary()}
-              >
-                {t("refreshRuntime")}
-              </button>
-            </div>
-
-            <div className="deckgo-surface-tile deck-ui-settings-surface">
-              <p className="deckgo-surface-label">{t("settingsFile")}</p>
-              <strong>{settingsPath || t("notLoadedYet")}</strong>
-              <p className="deckgo-note">
-                {t("runtimeSettingsSummary", {
-                  configured: capabilities?.configured ? "true" : "false",
-                  mode: capabilities?.mode || t("notAvailable"),
-                })}
-              </p>
-            </div>
-
-            {error ? <p className="deckgo-note deck-ui-settings-error">{error}</p> : null}
-          </div>
-        </article>
+    <section className="settings-panel" data-testid="settings-panel">
+      <div className="settings-panel__header">
+        <div>
+          <p className="settings-panel__eyebrow">control plane / settings</p>
+          <h2>{t("title")}</h2>
+          <p>{t("localSettingsDescription")}</p>
+        </div>
+        <div className="settings-panel__header-actions">
+          <Badge variant={readyVariant(loading)}>
+            {t("settingsStatus", { status: loading ? t("loading") : t("ready") })}
+          </Badge>
+          <Badge variant={connectionVariant(bootstrap?.gateway.connected)}>
+            {t("gatewayStatus", {
+              status: bootstrap?.gateway.connected ? t("linked") : t("pending"),
+            })}
+          </Badge>
+          <Badge>{t("runtimeStatus", { status: runtime?.runtime.status || t("idle") })}</Badge>
+          {loading || devicesLoading ? <Spinner aria-label={t("loading")} size="sm" /> : null}
+          <Button size="sm" onClick={() => void refreshRuntimeSummary()}>
+            {t("refreshRuntime")}
+          </Button>
+          <Button size="sm" variant="primary" disabled={saving} onClick={() => void onSave()}>
+            {saving ? t("savingSettings") : t("saveSettings")}
+          </Button>
+        </div>
       </div>
 
-      <aside className="deckgo-column deck-ui-settings-column">
-        <article className="deckgo-card deck-ui-settings-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("appearance")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-settings-body deck-ui-settings-side-body">
-            <p className="deckgo-note">{t("themeLocalDescription")}</p>
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <button
-                className={`deckgo-button deck-ui-settings-button ${themeMode === "dark" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setThemeMode("dark")}
-              >
-                {t("themeDark")}
-              </button>
-              <button
-                className={`deckgo-button deck-ui-settings-button ${themeMode === "light" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setThemeMode("light")}
-              >
-                {t("themeLight")}
-              </button>
-              <button
-                className={`deckgo-button deck-ui-settings-button ${themeMode === "system" ? "is-primary" : ""}`}
-                type="button"
-                onClick={() => setThemeMode("system")}
-              >
-                {t("themeSystem")}
-              </button>
+      {error ? (
+        <div className="settings-panel__banner" role="status">
+          <Badge variant="err">{t("saveSettingsFailed")}</Badge>
+          <span>{error}</span>
+        </div>
+      ) : null}
+
+      <div className="settings-panel__metrics">
+        <MetricTile
+          label={t("runtimeMode", { mode: capabilities?.mode || t("notAvailable") })}
+          value={capabilities?.mode || t("notAvailable")}
+          hint={t("summaryEndpointConfigured", {
+            value: capabilities?.configured ? t("yes") : t("no"),
+          })}
+        />
+        <MetricTile
+          label={t("deckAccessToken")}
+          value={settings.accessTokenConfigured ? t("configured") : t("notConfigured")}
+          hint={settings.accessTokenSource || t("setViaEnv")}
+        />
+        <MetricTile
+          label={t("pendingRequests")}
+          value={pendingDevices.length}
+          hint={t("pendingDevicesCount", { count: pendingDevices.length })}
+        />
+        <MetricTile
+          label={t("pairedDevices")}
+          value={pairedDevices.length}
+          hint={t("pairedDevicesCount", { count: pairedDevices.length })}
+        />
+        <MetricTile
+          label={t("settingsSummary")}
+          value={[versionInfo.deck, versionInfo.gateway, versionInfo.cli].filter(Boolean).length}
+          hint={t("summaryRuntimeUrl", { value: activeRuntimeUrl })}
+        />
+      </div>
+
+      <div className="settings-workbench">
+        <div className="settings-column">
+          <Card className="settings-card settings-endpoint-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("endpointTitle")}</h3>
+                <p>{t("endpointDescription")}</p>
+              </div>
+              {capabilities ? <Badge>{t("runtimeMode", { mode: capabilities.mode })}</Badge> : null}
             </div>
-            <p className="deckgo-note">{t("languageLocalDescription")}</p>
-            <div className="deckgo-actions deck-ui-settings-actions">
-              {LANGUAGE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  className={`deckgo-button deck-ui-settings-button ${locale === option.value ? "is-primary" : ""}`}
-                  type="button"
-                  onClick={() => setLocale(option.value)}
+            <div className="settings-card__body">
+              {capabilities && endpoint ? (
+                <EndpointSection
+                  capabilities={capabilities}
+                  value={endpoint}
+                  onSave={saveEndpoint}
+                  onTest={testRuntimeEndpoint}
+                />
+              ) : (
+                <div className="settings-surface">
+                  <h3>{t("endpointTitle")}</h3>
+                  <p>
+                    {endpointLoading || capabilitiesLoading
+                      ? t("loading")
+                      : endpointError || t("notLoadedYet")}
+                  </p>
+                </div>
+              )}
+            </div>
+          </Card>
+
+          <Card className="settings-card settings-local-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("localSettingsTitle")}</h3>
+                <p>{t("localSettingsDescription")}</p>
+              </div>
+              <Badge variant={readyVariant(loading)}>{loading ? t("loading") : t("ready")}</Badge>
+            </div>
+            <div className="settings-card__body">
+              <div className="settings-surface">
+                <div className="settings-section-heading">
+                  <div>
+                    <h3>{t("settingsFile")}</h3>
+                    <p>{settingsPath || t("notLoadedYet")}</p>
+                  </div>
+                  <Badge>{t("setViaEnv")}</Badge>
+                </div>
+                <p>
+                  {t("runtimeSettingsSummary", {
+                    configured: capabilities?.configured ? "true" : "false",
+                    mode: capabilities?.mode || t("notAvailable"),
+                  })}
+                </p>
+              </div>
+
+              <ReadOnlyField
+                badge={t("setViaEnv")}
+                label={t("deckAccessToken")}
+                value={settings.accessTokenConfigured ? t("configured") : t("notConfigured")}
+              />
+
+              <div className="settings-actions">
+                <Button size="sm" variant="primary" disabled={saving} onClick={() => void onSave()}>
+                  {saving ? t("savingSettings") : t("saveSettings")}
+                </Button>
+                <Button size="sm" onClick={() => void refreshSettings()}>
+                  {t("refreshSettings")}
+                </Button>
+                <Button size="sm" onClick={() => void refreshRuntimeSummary()}>
+                  {t("refreshRuntime")}
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="settings-card settings-appearance-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("appearance")}</h3>
+                <p>{t("themeLocalDescription")}</p>
+              </div>
+              <Badge>{themeMode}</Badge>
+            </div>
+            <div className="settings-card__body">
+              <div className="settings-actions">
+                <Button
+                  size="sm"
+                  variant={themeMode === "dark" ? "primary" : "secondary"}
+                  onClick={() => setThemeMode("dark")}
                 >
-                  {option.label}
-                </button>
+                  {t("themeDark")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={themeMode === "light" ? "primary" : "secondary"}
+                  onClick={() => setThemeMode("light")}
+                >
+                  {t("themeLight")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant={themeMode === "system" ? "primary" : "secondary"}
+                  onClick={() => setThemeMode("system")}
+                >
+                  {t("themeSystem")}
+                </Button>
+              </div>
+              <p>{t("languageLocalDescription")}</p>
+              <div className="settings-actions">
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    size="sm"
+                    variant={locale === option.value ? "primary" : "secondary"}
+                    onClick={() => setLocale(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <aside className="settings-column">
+          <Card className="settings-card settings-notifications-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("notifications")}</h3>
+                <p>{t("notificationPreferencesUnavailable")}</p>
+              </div>
+            </div>
+            <div className="settings-card__body">
+              {[
+                [t("notifyApprovals"), t("notifyApprovalsDesc")],
+                [t("notifyBudget"), t("notifyBudgetDesc")],
+                [t("notifyAlerts"), t("notifyAlertsDesc")],
+              ].map(([title, description]) => (
+                <section className="settings-surface" key={title}>
+                  <Badge>{t("notificationScope")}</Badge>
+                  <strong>{title}</strong>
+                  <p>{description}</p>
+                </section>
               ))}
             </div>
-          </div>
-        </article>
+          </Card>
 
-        <article className="deckgo-card deck-ui-settings-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("notifications")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-settings-body deck-ui-settings-side-body">
-            <p className="deckgo-note">{t("notificationPreferencesUnavailable")}</p>
-            <div className="deckgo-surface-tile deck-ui-settings-surface">
-              <p className="deckgo-surface-label">{t("notificationScope")}</p>
-              <strong>{t("notifyApprovals")}</strong>
-              <p className="deckgo-note">{t("notifyApprovalsDesc")}</p>
-            </div>
-            <div className="deckgo-surface-tile deck-ui-settings-surface">
-              <p className="deckgo-surface-label">{t("notificationScope")}</p>
-              <strong>{t("notifyBudget")}</strong>
-              <p className="deckgo-note">{t("notifyBudgetDesc")}</p>
-            </div>
-            <div className="deckgo-surface-tile deck-ui-settings-surface">
-              <p className="deckgo-surface-label">{t("notificationScope")}</p>
-              <strong>{t("notifyAlerts")}</strong>
-              <p className="deckgo-note">{t("notifyAlertsDesc")}</p>
-            </div>
-          </div>
-        </article>
-
-        <article className="deckgo-card deck-ui-settings-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("settingsSummary")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-settings-body deck-ui-settings-side-body">
-            <p className="deckgo-note">
-              {t("summaryAccessTokenConfigured", {
-                value: settings.accessTokenConfigured ? t("yes") : t("no"),
-              })}
-            </p>
-            <p className="deckgo-note">
-              {t("summaryRuntimeMode", {
-                value: capabilities?.mode || t("notAvailable"),
-              })}
-            </p>
-            <p className="deckgo-note">
-              {t("summaryEndpointConfigured", {
-                value: capabilities?.configured ? t("yes") : t("no"),
-              })}
-            </p>
-            <p className="deckgo-note">{t("summaryRuntimeUrl", { value: activeRuntimeUrl })}</p>
-            <p className="deckgo-note">
-              {t("summaryDeckVersion", { value: versionInfo.deck || t("notAvailable") })}
-            </p>
-            <p className="deckgo-note">
-              {t("summaryGatewayVersion", { value: versionInfo.gateway || t("notAvailable") })}
-            </p>
-            <p className="deckgo-note">
-              {t("summaryCliVersion", { value: versionInfo.cli || t("notAvailable") })}
-            </p>
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <a
-                className="deckgo-button deck-ui-settings-button"
-                href="https://docs.openclaw.ai"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {t("openDocs")}
-              </a>
-              <a
-                className="deckgo-button deck-ui-settings-button"
-                href="https://github.com/openclaw/openclaw"
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {t("openGitHub")}
-              </a>
-            </div>
-          </div>
-        </article>
-
-        {lastSaved ? (
-          <article className="deckgo-card deck-ui-settings-card">
-            <div className="deckgo-card-header">
-              <h2 className="deckgo-card-title">{t("lastSaveResult")}</h2>
-            </div>
-            <div className="deckgo-card-body deck-ui-settings-body">
-              <JsonDetails title={t("settingsSaveResult")} payload={lastSaved} />
-            </div>
-          </article>
-        ) : null}
-
-        <article className="deckgo-card deck-ui-settings-card">
-          <div className="deckgo-card-header">
-            <h2 className="deckgo-card-title">{t("pairedDevices")}</h2>
-          </div>
-          <div className="deckgo-card-body deck-ui-settings-body">
-            <div className="deckgo-pill-row deck-ui-settings-status-row">
-              <span className={`deckgo-pill ${devicesLoading ? "is-muted" : "is-positive"}`}>
-                {t("devicesStatus", { status: devicesLoading ? t("loading") : t("ready") })}
-              </span>
-              <span className="deckgo-pill">
-                {t("pendingDevicesCount", { count: pendingDevices.length })}
-              </span>
-              <span className="deckgo-pill">
-                {t("pairedDevicesCount", { count: pairedDevices.length })}
-              </span>
-            </div>
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => void refreshDevices()}
-                disabled={devicesLoading}
-              >
-                {t("refreshDevices")}
-              </button>
-            </div>
-            {lastDeviceStreamEvent ? (
-              <p className="deckgo-note">
-                {t("lastDeviceStreamEvent", { event: lastDeviceStreamEvent })}
-              </p>
-            ) : null}
-            {devicesError ? (
-              <p className="deckgo-note deck-ui-settings-error">{devicesError}</p>
-            ) : null}
-
-            {pendingDevices.length ? (
-              <div className="deckgo-surface-tile deck-ui-settings-surface">
-                <p className="deckgo-surface-label">{t("pendingRequests")}</p>
-                <ul className="deckgo-shell-list deck-ui-settings-list">
-                  {pendingDevices.map((request) => (
-                    <li key={request.requestId}>
-                      <div className="deckgo-selectable-card deck-ui-settings-row">
-                        <strong>{deviceName(request)}</strong>
-                        <div className="deckgo-meta">
-                          {t("pendingRequestMeta", {
-                            requestId: request.requestId,
-                            deviceId: request.deviceId,
-                            roles: deviceRoles(request).join(", "),
-                          })}
-                        </div>
-                        <div className="deckgo-actions deck-ui-settings-actions">
-                          <button
-                            className="deckgo-button deck-ui-settings-button is-primary"
-                            type="button"
-                            onClick={() =>
-                              requestDeviceAction({
-                                title: t("approveRequest"),
-                                description: t("confirmApproveDevice", {
-                                  requestId: request.requestId,
-                                }),
-                                confirmLabel: t("approveRequest"),
-                                variant: "default",
-                                actionName: "approving",
-                                action: () => approveDeviceRequest(request.requestId),
-                              })
-                            }
-                            disabled={deviceActionState !== "idle"}
-                          >
-                            {t("approveRequest")}
-                          </button>
-                          <button
-                            className="deckgo-button deck-ui-settings-button is-danger"
-                            type="button"
-                            onClick={() =>
-                              requestDeviceAction({
-                                title: t("rejectRequest"),
-                                description: t("confirmRejectDevice", {
-                                  requestId: request.requestId,
-                                }),
-                                confirmLabel: t("rejectRequest"),
-                                variant: "danger",
-                                actionName: "rejecting",
-                                action: () => rejectDeviceRequest(request.requestId),
-                              })
-                            }
-                            disabled={deviceActionState !== "idle"}
-                          >
-                            {t("rejectRequest")}
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+          <Card className="settings-card settings-diagnostics-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("settingsSummary")}</h3>
+                <p>{t("summaryRuntimeUrl", { value: activeRuntimeUrl })}</p>
               </div>
-            ) : null}
+            </div>
+            <div className="settings-card__body">
+              <div className="settings-surface">
+                <p>
+                  {t("summaryAccessTokenConfigured", {
+                    value: settings.accessTokenConfigured ? t("yes") : t("no"),
+                  })}
+                </p>
+                <p>{t("summaryRuntimeMode", { value: capabilities?.mode || t("notAvailable") })}</p>
+                <p>
+                  {t("summaryEndpointConfigured", {
+                    value: capabilities?.configured ? t("yes") : t("no"),
+                  })}
+                </p>
+                <p>{t("summaryRuntimeUrl", { value: activeRuntimeUrl })}</p>
+                <p>{t("summaryDeckVersion", { value: versionInfo.deck || t("notAvailable") })}</p>
+                <p>
+                  {t("summaryGatewayVersion", {
+                    value: versionInfo.gateway || t("notAvailable"),
+                  })}
+                </p>
+                <p>{t("summaryCliVersion", { value: versionInfo.cli || t("notAvailable") })}</p>
+              </div>
+              <div className="settings-actions">
+                <a
+                  className="settings-link-button"
+                  href="https://docs.openclaw.ai"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {t("openDocs")}
+                </a>
+                <a
+                  className="settings-link-button"
+                  href="https://github.com/openclaw/openclaw"
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {t("openGitHub")}
+                </a>
+              </div>
+            </div>
+          </Card>
 
-            {pairedDevices.length ? (
-              <ul className="deckgo-shell-list deck-ui-settings-list">
-                {pairedDevices.map((device) => {
-                  const isSelf = device.deviceId === selfDeviceId;
-                  const tokens = device.tokens ?? [];
-                  return (
-                    <li key={device.deviceId}>
-                      <div className="deckgo-selectable-card deck-ui-settings-row">
-                        <strong>
-                          {deviceName(device)}
-                          {isSelf ? ` ${t("thisDeviceSuffix")}` : ""}
-                        </strong>
-                        <div className="deckgo-meta">
-                          {t("pairedDeviceMeta", {
-                            deviceId: device.deviceId,
-                            roles: deviceRoles(device).join(", "),
-                          })}
-                        </div>
-                        <div className="deckgo-meta">
-                          {t("pairedDeviceNetworkMeta", {
-                            platform: device.platform ?? t("notAvailable"),
-                            ip: device.remoteIp ?? t("notAvailable"),
-                          })}
-                        </div>
-                        {tokens.length ? (
-                          <ul className="deckgo-shell-list deck-ui-settings-list deck-ui-settings-token-list">
-                            {tokens.map((token) => {
-                              const revoked = token.revokedAtMs != null;
-                              return (
-                                <li key={`${device.deviceId}-${token.role}`}>
-                                  <div className="deckgo-surface-tile deck-ui-settings-surface">
-                                    <p className="deckgo-surface-label">
-                                      {t("tokenStatus", {
-                                        role: token.role,
-                                        status: revoked ? t("revoked") : t("active"),
-                                      })}
-                                    </p>
-                                    <p className="deckgo-note">
-                                      {t("tokenScopes", {
-                                        scopes:
-                                          (token.scopes ?? []).join(", ") || t("notAvailable"),
-                                      })}
-                                    </p>
-                                    <div className="deckgo-actions deck-ui-settings-actions">
-                                      <button
-                                        className="deckgo-button deck-ui-settings-button"
-                                        type="button"
-                                        onClick={() =>
-                                          requestDeviceAction({
-                                            title: t("rotateToken"),
-                                            description: t("confirmRotateToken", {
-                                              role: token.role,
-                                              deviceId: device.deviceId,
-                                            }),
-                                            confirmLabel: t("rotateToken"),
-                                            variant: "default",
-                                            actionName: "rotating",
-                                            showToken: true,
-                                            action: () =>
-                                              rotateDeviceToken(device.deviceId, token.role),
-                                          })
-                                        }
-                                        disabled={deviceActionState !== "idle" || revoked}
-                                      >
-                                        {t("rotateToken")}
-                                      </button>
-                                      <button
-                                        className="deckgo-button deck-ui-settings-button is-danger"
-                                        type="button"
-                                        onClick={() =>
-                                          requestDeviceAction({
-                                            title: t("revokeToken"),
-                                            description: t("confirmRevokeToken", {
-                                              role: token.role,
-                                              deviceId: device.deviceId,
-                                            }),
-                                            confirmLabel: t("revokeToken"),
-                                            variant: "danger",
-                                            actionName: "revoking",
-                                            action: () =>
-                                              revokeDeviceToken(device.deviceId, token.role),
-                                          })
-                                        }
-                                        disabled={deviceActionState !== "idle" || revoked || isSelf}
-                                      >
-                                        {t("revokeToken")}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </li>
-                              );
+          {lastSaved ? (
+            <Card className="settings-card settings-result-card" padded={false}>
+              <div className="settings-card__header">
+                <h3>{t("lastSaveResult")}</h3>
+              </div>
+              <div className="settings-card__body">
+                <JsonDetails title={t("settingsSaveResult")} payload={lastSaved} />
+              </div>
+            </Card>
+          ) : null}
+
+          <Card className="settings-card settings-devices-card" padded={false}>
+            <div className="settings-card__header">
+              <div>
+                <h3>{t("pairedDevices")}</h3>
+                <p>{t("devicesStatus", { status: devicesLoading ? t("loading") : t("ready") })}</p>
+              </div>
+              <Badge variant={readyVariant(devicesLoading)}>
+                {t("devicesStatus", { status: devicesLoading ? t("loading") : t("ready") })}
+              </Badge>
+            </div>
+            <div className="settings-card__body">
+              <div className="settings-status-row">
+                <Badge>{t("pendingDevicesCount", { count: pendingDevices.length })}</Badge>
+                <Badge>{t("pairedDevicesCount", { count: pairedDevices.length })}</Badge>
+                <Button size="sm" onClick={() => void refreshDevices()} disabled={devicesLoading}>
+                  {t("refreshDevices")}
+                </Button>
+              </div>
+              {lastDeviceStreamEvent ? (
+                <p>{t("lastDeviceStreamEvent", { event: lastDeviceStreamEvent })}</p>
+              ) : null}
+              {devicesError ? <p className="settings-panel__error">{devicesError}</p> : null}
+
+              {pendingDevices.length ? (
+                <section className="settings-surface">
+                  <div className="settings-section-heading">
+                    <h3>{t("pendingRequests")}</h3>
+                    <Badge variant="warn">{pendingDevices.length}</Badge>
+                  </div>
+                  <ul className="settings-list">
+                    {pendingDevices.map((request) => (
+                      <li key={request.requestId}>
+                        <article className="settings-device-row">
+                          <div className="settings-row__top">
+                            <strong>{deviceName(request)}</strong>
+                            <Badge variant="warn">{deviceRoles(request).join(", ")}</Badge>
+                          </div>
+                          <p>
+                            {t("pendingRequestMeta", {
+                              requestId: request.requestId,
+                              deviceId: request.deviceId,
+                              roles: deviceRoles(request).join(", "),
                             })}
-                          </ul>
-                        ) : null}
-                        <div className="deckgo-actions deck-ui-settings-actions">
-                          <button
-                            className="deckgo-button deck-ui-settings-button is-danger"
-                            type="button"
-                            onClick={() =>
-                              requestDeviceAction({
-                                title: t("removeDevice"),
-                                description: t("confirmRemoveDevice", {
-                                  deviceId: device.deviceId,
-                                }),
-                                confirmLabel: t("removeDevice"),
-                                variant: "danger",
-                                actionName: "removing",
-                                action: () => removeDevice(device.deviceId),
-                              })
-                            }
-                            disabled={deviceActionState !== "idle" || isSelf}
-                          >
-                            {t("removeDevice")}
-                          </button>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : !devicesLoading ? (
-              <p className="deckgo-note deck-ui-settings-empty">{t("noPairedDevices")}</p>
-            ) : null}
+                          </p>
+                          <div className="settings-actions">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() =>
+                                requestDeviceAction({
+                                  title: t("approveRequest"),
+                                  description: t("confirmApproveDevice", {
+                                    requestId: request.requestId,
+                                  }),
+                                  confirmLabel: t("approveRequest"),
+                                  variant: "default",
+                                  actionName: "approving",
+                                  action: () => approveDeviceRequest(request.requestId),
+                                })
+                              }
+                              disabled={deviceActionState !== "idle"}
+                            >
+                              {t("approveRequest")}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() =>
+                                requestDeviceAction({
+                                  title: t("rejectRequest"),
+                                  description: t("confirmRejectDevice", {
+                                    requestId: request.requestId,
+                                  }),
+                                  confirmLabel: t("rejectRequest"),
+                                  variant: "danger",
+                                  actionName: "rejecting",
+                                  action: () => rejectDeviceRequest(request.requestId),
+                                })
+                              }
+                              disabled={deviceActionState !== "idle"}
+                            >
+                              {t("rejectRequest")}
+                            </Button>
+                          </div>
+                        </article>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
-            {deviceActionResult ? (
-              <JsonDetails title={t("lastDeviceAction")} payload={deviceActionResult} />
-            ) : null}
-          </div>
-        </article>
-      </aside>
+              {pairedDevices.length ? (
+                <ul className="settings-list">
+                  {pairedDevices.map((device) => {
+                    const isSelf = device.deviceId === selfDeviceId;
+                    const tokens = device.tokens ?? [];
+                    return (
+                      <li key={device.deviceId}>
+                        <article className="settings-device-row">
+                          <div className="settings-row__top">
+                            <strong>
+                              {deviceName(device)}
+                              {isSelf ? ` ${t("thisDeviceSuffix")}` : ""}
+                            </strong>
+                            {isSelf ? <Badge variant="ok">{t("thisDeviceSuffix")}</Badge> : null}
+                          </div>
+                          <p>
+                            {t("pairedDeviceMeta", {
+                              deviceId: device.deviceId,
+                              roles: deviceRoles(device).join(", "),
+                            })}
+                          </p>
+                          <p>
+                            {t("pairedDeviceNetworkMeta", {
+                              platform: device.platform ?? t("notAvailable"),
+                              ip: device.remoteIp ?? t("notAvailable"),
+                            })}
+                          </p>
+                          {tokens.length ? (
+                            <ul className="settings-list settings-token-list">
+                              {tokens.map((token) => {
+                                const revoked = token.revokedAtMs != null;
+                                return (
+                                  <li key={`${device.deviceId}-${token.role}`}>
+                                    <section className="settings-surface settings-token-row">
+                                      <div className="settings-row__top">
+                                        <strong>
+                                          {t("tokenStatus", {
+                                            role: token.role,
+                                            status: revoked ? t("revoked") : t("active"),
+                                          })}
+                                        </strong>
+                                        <Badge variant={revoked ? "neutral" : "ok"}>
+                                          {revoked ? t("revoked") : t("active")}
+                                        </Badge>
+                                      </div>
+                                      <p>
+                                        {t("tokenScopes", {
+                                          scopes:
+                                            (token.scopes ?? []).join(", ") || t("notAvailable"),
+                                        })}
+                                      </p>
+                                      <div className="settings-actions">
+                                        <Button
+                                          size="sm"
+                                          onClick={() =>
+                                            requestDeviceAction({
+                                              title: t("rotateToken"),
+                                              description: t("confirmRotateToken", {
+                                                role: token.role,
+                                                deviceId: device.deviceId,
+                                              }),
+                                              confirmLabel: t("rotateToken"),
+                                              variant: "default",
+                                              actionName: "rotating",
+                                              showToken: true,
+                                              action: () =>
+                                                rotateDeviceToken(device.deviceId, token.role),
+                                            })
+                                          }
+                                          disabled={deviceActionState !== "idle" || revoked}
+                                        >
+                                          {t("rotateToken")}
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="danger"
+                                          onClick={() =>
+                                            requestDeviceAction({
+                                              title: t("revokeToken"),
+                                              description: t("confirmRevokeToken", {
+                                                role: token.role,
+                                                deviceId: device.deviceId,
+                                              }),
+                                              confirmLabel: t("revokeToken"),
+                                              variant: "danger",
+                                              actionName: "revoking",
+                                              action: () =>
+                                                revokeDeviceToken(device.deviceId, token.role),
+                                            })
+                                          }
+                                          disabled={
+                                            deviceActionState !== "idle" || revoked || isSelf
+                                          }
+                                        >
+                                          {t("revokeToken")}
+                                        </Button>
+                                      </div>
+                                    </section>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : null}
+                          <div className="settings-actions">
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() =>
+                                requestDeviceAction({
+                                  title: t("removeDevice"),
+                                  description: t("confirmRemoveDevice", {
+                                    deviceId: device.deviceId,
+                                  }),
+                                  confirmLabel: t("removeDevice"),
+                                  variant: "danger",
+                                  actionName: "removing",
+                                  action: () => removeDevice(device.deviceId),
+                                })
+                              }
+                              disabled={deviceActionState !== "idle" || isSelf}
+                            >
+                              {t("removeDevice")}
+                            </Button>
+                          </div>
+                        </article>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : !devicesLoading ? (
+                <p className="settings-panel__empty">{t("noPairedDevices")}</p>
+              ) : null}
 
-      {pendingDeviceAction ? (
-        <div
-          aria-modal="true"
-          className="deck-ui-settings-modal-backdrop"
-          role="dialog"
-          aria-labelledby="deck-ui-settings-confirm-title"
-        >
-          <article className="deck-ui-settings-modal deck-ui-settings-confirm-dialog">
-            <header className="deck-ui-settings-modal-header">
-              <h2 id="deck-ui-settings-confirm-title">{pendingDeviceAction.title}</h2>
-              <button
+              {deviceActionResult ? (
+                <JsonDetails title={t("lastDeviceAction")} payload={deviceActionResult} />
+              ) : null}
+            </div>
+          </Card>
+        </aside>
+      </div>
+
+      <Modal
+        aria-labelledby="settings-confirm-title"
+        className="settings-modal settings-confirm-dialog"
+        dismissOnScrimClick={!confirmingDeviceAction}
+        open={pendingDeviceAction !== null}
+        onClose={() => {
+          if (!confirmingDeviceAction) {
+            setPendingDeviceAction(null);
+          }
+        }}
+        size="md"
+      >
+        {pendingDeviceAction ? (
+          <>
+            <header className="settings-modal__header">
+              <h2 id="settings-confirm-title">{pendingDeviceAction.title}</h2>
+              <Button
                 aria-label={t("closeDialog")}
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
+                size="sm"
                 disabled={confirmingDeviceAction}
                 onClick={() => setPendingDeviceAction(null)}
               >
                 {t("close")}
-              </button>
+              </Button>
             </header>
-            <p className="deckgo-note">{pendingDeviceAction.description}</p>
+            <p>{pendingDeviceAction.description}</p>
             {deviceActionError ? (
-              <p className="deckgo-note deck-ui-settings-error">{deviceActionError}</p>
+              <p className="settings-panel__error">{deviceActionError}</p>
             ) : null}
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
+            <div className="settings-actions">
+              <Button
+                size="sm"
                 disabled={confirmingDeviceAction}
                 onClick={() => setPendingDeviceAction(null)}
               >
                 {t("cancel")}
-              </button>
-              <button
-                className={`deckgo-button deck-ui-settings-button ${
-                  pendingDeviceAction.variant === "danger" ? "is-danger" : "is-primary"
-                }`}
-                type="button"
+              </Button>
+              <Button
+                size="sm"
+                variant={pendingDeviceAction.variant === "danger" ? "danger" : "primary"}
                 disabled={confirmingDeviceAction}
                 onClick={() => void confirmDeviceAction()}
               >
                 {confirmingDeviceAction ? t("working") : pendingDeviceAction.confirmLabel}
-              </button>
+              </Button>
             </div>
-          </article>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </Modal>
 
-      {rotatedToken ? (
-        <div
-          aria-modal="true"
-          className="deck-ui-settings-modal-backdrop"
-          role="dialog"
-          aria-labelledby="deck-ui-settings-token-title"
-        >
-          <article className="deck-ui-settings-modal deck-ui-settings-token-dialog">
-            <header className="deck-ui-settings-modal-header">
-              <h2 id="deck-ui-settings-token-title">{t("tokenGenerated")}</h2>
-              <button
-                aria-label={t("closeDialog")}
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => setRotatedToken("")}
-              >
-                {t("close")}
-              </button>
-            </header>
-            <p className="deckgo-note">{t("tokenWarning")}</p>
-            <pre className="deckgo-code deck-ui-settings-token-value">{rotatedToken}</pre>
-            <div className="deckgo-actions deck-ui-settings-actions">
-              <button
-                className="deckgo-button deck-ui-settings-button"
-                type="button"
-                onClick={() => void navigator.clipboard?.writeText(rotatedToken)}
-              >
-                {t("copyToken")}
-              </button>
-              <button
-                className="deckgo-button deck-ui-settings-button is-primary"
-                type="button"
-                onClick={() => setRotatedToken("")}
-              >
-                {t("close")}
-              </button>
-            </div>
-          </article>
+      <Modal
+        aria-labelledby="settings-token-title"
+        className="settings-modal settings-token-dialog"
+        open={Boolean(rotatedToken)}
+        onClose={() => setRotatedToken("")}
+        size="md"
+      >
+        <header className="settings-modal__header">
+          <h2 id="settings-token-title">{t("tokenGenerated")}</h2>
+          <Button aria-label={t("closeDialog")} size="sm" onClick={() => setRotatedToken("")}>
+            {t("close")}
+          </Button>
+        </header>
+        <p>{t("tokenWarning")}</p>
+        <Code
+          aria-label={t("tokenGenerated")}
+          className="settings-token-value"
+          content={rotatedToken}
+          language="text"
+        />
+        <div className="settings-actions">
+          <Button size="sm" onClick={() => void navigator.clipboard?.writeText(rotatedToken)}>
+            {t("copyToken")}
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => setRotatedToken("")}>
+            {t("close")}
+          </Button>
         </div>
-      ) : null}
+      </Modal>
     </section>
   );
 }

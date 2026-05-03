@@ -469,6 +469,92 @@ function defaultMethods() {
         { tier: "channel", matched: false, checked: false },
       ],
     }),
+    "device.pair.list": () => ({
+      pending: [
+        {
+          requestId: "req-visual-1",
+          deviceId: "pending-mac-visual",
+          displayName: "Ops laptop",
+          platform: "darwin",
+          deviceFamily: "desktop",
+          role: "operator",
+          roles: ["operator"],
+          scopes: ["operator", "settings.write"],
+          remoteIp: "10.20.0.42",
+          ts: now - 125_000,
+        },
+      ],
+      paired: [
+        {
+          deviceId: "visual-self-device",
+          displayName: "Control room Mac",
+          platform: "darwin",
+          deviceFamily: "desktop",
+          clientMode: "browser",
+          role: "operator",
+          roles: ["operator"],
+          scopes: ["operator", "settings.read"],
+          remoteIp: "127.0.0.1",
+          tokens: [
+            {
+              role: "operator",
+              scopes: ["operator", "settings.read"],
+              createdAtMs: now - 720_000,
+              lastUsedAtMs: now - 60_000,
+            },
+          ],
+          createdAtMs: now - 900_000,
+          approvedAtMs: now - 840_000,
+        },
+        {
+          deviceId: "visual-ops-tablet",
+          displayName: "Ops tablet",
+          platform: "ios",
+          deviceFamily: "mobile",
+          clientMode: "browser",
+          role: "viewer",
+          roles: ["viewer"],
+          scopes: ["settings.read"],
+          remoteIp: "10.20.0.65",
+          tokens: [
+            {
+              role: "viewer",
+              scopes: ["settings.read"],
+              createdAtMs: now - 540_000,
+            },
+          ],
+          createdAtMs: now - 610_000,
+          approvedAtMs: now - 600_000,
+        },
+      ],
+    }),
+    "device.pair.approve": (params) => ({
+      ok: true,
+      requestId: params?.requestId ?? "req-visual-1",
+      approved: true,
+    }),
+    "device.pair.reject": (params) => ({
+      ok: true,
+      requestId: params?.requestId ?? "req-visual-1",
+      rejected: true,
+    }),
+    "device.pair.remove": (params) => ({
+      ok: true,
+      deviceId: params?.deviceId ?? "visual-ops-tablet",
+      removed: true,
+    }),
+    "device.token.rotate": (params) => ({
+      ok: true,
+      deviceId: params?.deviceId ?? "visual-ops-tablet",
+      role: params?.role ?? "viewer",
+      token: "visual-rotated-device-token",
+    }),
+    "device.token.revoke": (params) => ({
+      ok: true,
+      deviceId: params?.deviceId ?? "visual-ops-tablet",
+      role: params?.role ?? "viewer",
+      revoked: true,
+    }),
     "deck.commands.discover": () => ({
       commands: [
         {

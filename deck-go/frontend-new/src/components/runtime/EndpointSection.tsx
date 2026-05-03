@@ -6,6 +6,7 @@ import type {
   DeckGoRuntimeEndpointTestRequest,
   DeckGoRuntimeEndpointTestResponse,
 } from "../../../../contracts/generated/ts/deck-api.generated";
+import { Badge, Button, Input, Toggle } from "../../design-system/atoms";
 import { useTranslations } from "../../i18n/provider";
 import { JsonDetails } from "../shared/ShellComponents";
 import { ReadOnlyField } from "./ReadOnlyField";
@@ -86,26 +87,29 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
 
   return (
     <section
-      className="deckgo-surface-tile deck-ui-settings-surface"
+      className="settings-surface settings-endpoint-section"
       data-testid="endpoint-section"
       aria-expanded={capabilities.endpointMutable && !capabilities.configured ? "true" : "false"}
     >
-      <p className="deckgo-surface-label">{t("endpointTitle")}</p>
-      <p className="deckgo-note">{t("endpointDescription")}</p>
-      <div className="deckgo-pill-row deck-ui-settings-status-row">
-        <span className="deckgo-pill">
-          {t("endpointSource", { source: value.source || t("notAvailable") })}
-        </span>
-        <span className={`deckgo-pill ${value.tokenConfigured ? "is-positive" : "is-muted"}`}>
+      <div className="settings-section-heading">
+        <div>
+          <h3>{t("endpointTitle")}</h3>
+          <p>{t("endpointDescription")}</p>
+        </div>
+        <Badge>{t("endpointSource", { source: value.source || t("notAvailable") })}</Badge>
+      </div>
+      <div className="settings-status-row">
+        <Badge variant={value.tokenConfigured ? "ok" : "neutral"}>
           {t("endpointTokenConfigured", {
             value: formatBool(value.tokenConfigured, { yes: t("yes"), no: t("no") }),
           })}
-        </span>
-        {locked ? <span className="deckgo-pill">{t("setViaEnv")}</span> : null}
+        </Badge>
+        <Badge>{t("endpointTLSVerify")}</Badge>
+        {locked ? <Badge>{t("setViaEnv")}</Badge> : null}
       </div>
 
       {locked ? (
-        <div className="deckgo-form-row deck-ui-settings-form-row">
+        <div className="settings-form-grid">
           <ReadOnlyField badge={t("setViaEnv")} label={t("endpointUrl")} value={value.url} />
           <ReadOnlyField
             badge={t("setViaEnv")}
@@ -120,19 +124,19 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
         </div>
       ) : (
         <>
-          <div className="deckgo-form-row deck-ui-settings-form-row">
-            <label className="deckgo-label deck-ui-settings-label">
-              <span>{t("endpointUrl")}</span>
-              <input
-                className="deckgo-input deck-ui-settings-input"
+          <div className="settings-form-grid">
+            <label className="settings-label">
+              <span className="settings-label__text">{t("endpointUrl")}</span>
+              <Input
+                className="settings-input"
                 value={url}
                 onChange={(event) => setUrl(event.target.value)}
               />
             </label>
-            <label className="deckgo-label deck-ui-settings-label">
-              <span>{t("endpointToken")}</span>
-              <input
-                className="deckgo-input deck-ui-settings-input"
+            <label className="settings-label">
+              <span className="settings-label__text">{t("endpointToken")}</span>
+              <Input
+                className="settings-input"
                 type="password"
                 autoComplete="new-password"
                 value={token}
@@ -143,39 +147,29 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
               />
             </label>
           </div>
-          <label className="deckgo-checkbox-row deck-ui-settings-check">
-            <input
-              type="checkbox"
+          <label className="settings-toggle-field">
+            <Toggle
+              aria-label={t("endpointTLSVerify")}
               checked={tlsVerify}
-              onChange={(event) => setTLSVerify(event.target.checked)}
+              onCheckedChange={setTLSVerify}
             />
             <span>{t("endpointTLSVerify")}</span>
           </label>
         </>
       )}
 
-      <div className="deckgo-actions deck-ui-settings-actions">
-        {capabilities.endpointMutable ? (
-          <button
-            className="deckgo-button deck-ui-settings-button is-primary"
-            type="button"
-            disabled={saving}
-            onClick={() => void runSave()}
-          >
+      {capabilities.endpointMutable ? (
+        <div className="settings-actions">
+          <Button variant="primary" size="sm" disabled={saving} onClick={() => void runSave()}>
             {saving ? t("savingSettings") : t("saveEndpoint")}
-          </button>
-        ) : null}
-        <button
-          className="deckgo-button deck-ui-settings-button"
-          type="button"
-          disabled={testing}
-          onClick={() => void runTest()}
-        >
-          {testing ? t("testingConnection") : t("testEndpoint")}
-        </button>
-      </div>
+          </Button>
+          <Button size="sm" disabled={testing} onClick={() => void runTest()}>
+            {testing ? t("testingConnection") : t("testEndpoint")}
+          </Button>
+        </div>
+      ) : null}
 
-      {error ? <p className="deckgo-note deck-ui-settings-error">{error}</p> : null}
+      {error ? <p className="settings-panel__error">{error}</p> : null}
       {testResult ? (
         <JsonDetails title={t("endpointTestResult")} payload={{ url, ...testResult }} />
       ) : null}
