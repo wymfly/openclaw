@@ -1,38 +1,215 @@
-# Cron Jobs
+# cron — high-fidelity handoff (v2)
 
-**Status**: implemented-awaiting-archive
-**Design completed**: 2026-05-03
-**Designer**: Codex single-agent replacement workflow
-**Depends on atoms**: Button, Input, Select, Toggle/Checkbox, Badge/Pill, Card, Code/Json detail, Status, Spinner
-**New atoms needed**: none
-**New tokens needed**: none
-**Backend endpoints used**: see `api-usage.md`
+**Status:** `revised v2 — pending implementation`
+**Protocol version:** `protocol-v1`
+**Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
+**V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
 
-## What this module does
+`cron/` is the deck-go **scheduled job control panel** — operators inspect
+all cron-style jobs, see live countdowns to next run, drill into per-job
+history, run-now, enable/disable, edit, or delete. New jobs are composed
+through the 3-mode CronBuilder (cron expression / every-interval / one-shot).
 
-Cron Jobs is the Automate workspace for scheduler inventory and job operations. It lets an operator inspect whether the scheduler is running, review upcoming jobs, create or edit schedule payloads, manually trigger a selected job, inspect run history, and see heartbeat availability.
+## File inventory
 
-This package is a high-fidelity handoff for `deck-go/frontend-new/src/components/panels/cron/`. It is based on the current deck-go contract chain and production behavior. Code and contracts remain the source of truth; this prototype is an implementation guide.
+| File                      | Purpose                                                                                                                                                                                    |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `prototype.html`          | ~22-line shell loading React + Babel + 6 jsx + 2 css.                                                                                                                                      |
+| `data.js`                 | Mock fixture: 9 jobs spanning 3 schedule kinds + 26 run entries + status + KPI stats + bootstrap.                                                                                          |
+| `icons.jsx`               | 17 SVG icons + `ScheduleBadge` (3 kinds) + `ScheduleSummary` + `RunStatusBadge` (3 tones) + `CountdownTimer` (live ticking, **promoted from approvals**) + `EnabledToggle` + 3 formatters. |
+| `jobs-list.jsx`           | Left pane: filters (enabled seg / search / sort) + 7-col table (job / schedule / next-run / last-run / target / state / chev).                                                             |
+| `job-detail.jsx`          | Right pane: hero + actions row (Run now / Disable / Edit / Delete) + 4 tabs (Overview / Schedule / History / Payload) + Delete confirm modal.                                              |
+| `cron-builder.jsx`        | Modal for `DeckGoCronJobInput`: identity + 3-tab schedule kind builder + target/wake + payload + behavior toggles.                                                                         |
+| `app.jsx`                 | `CronApp` orchestrator + topbar (4-cell KPI + scheduler state pill + New + Refresh) + 2-pane main + builder modal.                                                                         |
+| `styles.css`              | ~620 lines control-plane dashboard + 7-col grid + countdown + run table + builder modal + density variants + light theme stub.                                                             |
+| `tokens.css`              | Mirror of canonical `--ds-*` tokens.                                                                                                                                                       |
+| `tweaks-panel.jsx`        | Design-time state knobs (theme/density).                                                                                                                                                   |
+| `prototype-v1-codex.html` | Original Codex single-file prototype (482 lines).                                                                                                                                          |
 
 ## Contract truth
 
-- Frontend wrappers: `fetchCronJobs`, `fetchCronStatus`, `fetchCronRuns`, `createCronJob`, `updateCronJob`, `runCronJob`, and `deleteCronJob`.
-- BFF endpoints: `GET /api/cron`, `GET /api/cron/status`, `GET /api/cron/{jobId}/runs`, `POST /api/cron`, `PATCH /api/cron/{jobId}`, `POST /api/cron/{jobId}/run`, and `DELETE /api/cron/{jobId}`.
-- Backend source: Go BFF inventory routes -> managed runtime Gateway queries -> typed Gateway methods `cron.list`, `cron.status`, `cron.runs`, `cron.add`, `cron.update`, `cron.run`, and `cron.remove`.
-- DTO authority: `DeckGoCronSchedule`, `DeckGoCronJob`, `DeckGoCronJobInput`, `DeckGoCronRunEntry`, `DeckGoCronStatus`, `DeckGoCronJobsResponse`, `DeckGoCronRunsResponse`, and related params types.
-- Browser code must continue to call the Go BFF wrappers only; it must not call Gateway directly.
+```ts
+// from deck-go/contracts/source/deck-api.contract.ts (lines 1374-1457)
+
+export type DeckGoCronSchedule = {
+  kind: "at" | "every" | "cron";
+  at?: string;
+  everyMs?: number;
+  anchorMs?: number;
+  expr?: string;
+  tz?: string;
+  staggerMs?: number;
+};
+
+export type DeckGoCronJob = {
+  id: string;
+  name: string;
+  schedule: DeckGoCronSchedule;
+  sessionTarget?: string;
+  wakeMode?: string;
+  payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
+  delivery?: unknown;
+  failureAlert?: boolean;
+  agentId?: string;
+  description?: string;
+  enabled: boolean;
+  deleteAfterRun?: boolean;
+  nextRunAtMs?: number;
+  updatedAtMs?: number;
+  createdAtMs?: number;
+};
+
+export type DeckGoCronJobInput = {
+  name: string;
+  schedule: DeckGoCronSchedule;
+  sessionTarget: string;
+  wakeMode: string;
+  payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
+  agentId?: string;
+  description?: string;
+  enabled?: boolean;
+};
+
+export type DeckGoCronRunEntry = {
+  id: string;
+  jobId: string;
+  status: "ok" | "error" | "skipped";
+  ts: number;
+  runAtMs?: number;
+  durationMs?: number;
+  delivery?: unknown;
+  error?: string;
+};
+
+export type DeckGoCronStatus = {
+  running: boolean;
+  jobCount?: number;
+  nextRunAtMs?: number;
+};
+
+export type DeckGoCronJobsResponse = { jobs?: DeckGoCronJob[] };
+export type DeckGoCronRunsResponse = { entries?: DeckGoCronRunEntry[] };
+```
+
+Endpoints (read + 4 mutations):
+
+- `GET    /api/cron/status` → `DeckGoCronStatus`
+- `GET    /api/cron/jobs` → `DeckGoCronJobsResponse` (with `DeckGoCronJobsParams` filters)
+- `POST   /api/cron/jobs` → create (body: `DeckGoCronJobInput`)
+- `PUT    /api/cron/jobs/:id` → update (body: partial `DeckGoCronJobInput`)
+- `DELETE /api/cron/jobs/:id` → delete
+- `POST   /api/cron/jobs/:id/run` → trigger now (body: `DeckGoCronRunParams` `{ mode: "due" | "force" }`)
+- `GET    /api/cron/runs` → `DeckGoCronRunsResponse` (with `DeckGoCronRunsParams` filters)
+
+## Section model
+
+```
+┌─ Topbar (sticky)
+│  ├─ Brand (eyebrow + title + scheduler state + runtime version + global next-run countdown)
+│  ├─ KPI strip (Total jobs / Enabled / Runs 1h / Errors 1h)
+│  └─ New job + Refresh
+├─ Main 2-pane
+│  ├─ JobsList (left ~560-620px)
+│  │  ├─ Filters (enabled seg + search + sort)
+│  │  └─ 7-col table (job / schedule / next-run / last-run / target / state / chev)
+│  └─ JobDetail (right)
+│     ├─ Hero (ScheduleBadge + id + EnabledToggle + alerts pill + title + desc + 4 meta cells)
+│     ├─ Actions (Run now / Disable/Enable / Edit / Delete)
+│     ├─ Tabs (Overview / Schedule / History / Payload)
+│     └─ Delete confirm modal
+└─ CronBuilder modal (New job / Edit)
+   ├─ Identity (name + description)
+   ├─ Schedule (3-tab kind builder)
+   ├─ Target & wake
+   ├─ Payload (kind + topic-or-prompt)
+   └─ Behavior (3 toggles)
+```
+
+## Decision-critical mutations
+
+This panel exposes 4 mutation surfaces:
+
+| Surface            | Mutation                                                |
+| ------------------ | ------------------------------------------------------- |
+| New job button     | `POST /api/cron/jobs` with `DeckGoCronJobInput`.        |
+| Edit (CronBuilder) | `PUT /api/cron/jobs/:id` with partial input.            |
+| Run now            | `POST /api/cron/jobs/:id/run` with `{ mode: "force" }`. |
+| Disable / Enable   | `PUT /api/cron/jobs/:id` with `{ enabled }`.            |
+| Delete             | `DELETE /api/cron/jobs/:id`.                            |
+
+Delete is gated by an explicit confirm dialog. Run-now disabled when the
+job is disabled.
+
+## Depends on canonical patterns / icons
+
+`@/design-system/patterns`: `PageShell`, `EmptyState`, `KbdHint`, `SectionHeader`, `ConfirmDialog`.
+
+`@/design-system/icons`:
+
+- `IconClock`, `IconRefresh`, `IconPlus`, `IconClose`, `IconCheck`, `IconAlert`,
+  `IconPlay`, `IconPause`, `IconEdit`, `IconTrash`, `IconChevronR`, `IconChevronD`,
+  `IconSearch`, `IconCalendar`, `IconRotate`, `IconBolt`, `IconLayers`, `IconAt`.
+
+`CountdownTimer` was promoted from approvals (US-016) — it's now usable
+across cron next-runs, webhook retry windows (US-018), session expiry
+banners. Stays in `frontend-new/src/components/molecules/` once
+production-ized (not domain-bound to cron).
+
+`ScheduleBadge` / `ScheduleSummary` / `RunStatusBadge` / `EnabledToggle`
+stay local to cron (highly domain-specific).
 
 ## How to implement
 
-1. Open `prototype.html` and inspect the scheduler workbench layout, job catalog, create/edit form, selected job detail, run history, heartbeat tab, and last action detail.
-2. Read `components.md` for module-local component structure and data boundaries.
-3. Read `states.md` for loading, ready, empty, error, selected-job, run-history, heartbeat, and action states.
-4. Read `interactions.md` for selection, tabs, templates, form editing, manual run, refresh, and guarded delete behavior.
-5. Read `api-usage.md` and preserve the current BFF path and mutation envelopes.
-6. Read `implementation-notes.md` for the production migration notes and verified mock visual coverage.
+1. Open `prototype.html` in a static server. Click jobs in the table. Run
+   one. Disable one. Edit one. Create a new job through the builder.
+2. Translate to `frontend-new/src/components/panels/cron/` keeping
+   class-name shape (`cron-app__*`, `jobs-row__*`, `job-detail__*`,
+   `builder-*`).
+3. Wire real fetcher in `frontend-new/src/api/cron.ts`:
+   - `fetchCronStatus()` → `GET /api/cron/status`
+   - `fetchCronJobs(params)` → `GET /api/cron/jobs`
+   - `createCronJob(input)` → `POST /api/cron/jobs`
+   - `updateCronJob(id, input)` → `PUT /api/cron/jobs/:id`
+   - `deleteCronJob(id)` → `DELETE /api/cron/jobs/:id`
+   - `runCronJob(id, mode)` → `POST /api/cron/jobs/:id/run`
+   - `fetchCronRuns(params)` → `GET /api/cron/runs`
+4. Hardcoded literal strings get extracted to
+   `frontend-new/src/i18n/{en,zh}.json`.
+5. CronBuilder cron-expression input: production should add a humanized
+   "next 5 fires" preview using a cron parser (e.g., `cron-parser`). Not
+   in prototype — flagged in stack-decisions punted.
 
-## Open questions for implementation
+## Stack decisions punted from this panel
 
-- The real Gateway generated cron result contains richer `state`, delivery, and usage fields than the current Deck-facing DTO consumes. This pass only normalizes known `state.nextRunAtMs` and `nextWakeAtMs` fields into the existing Deck DTO shape.
-- Schedule grammar validation stays out of scope. A full recurrence builder or timezone planner needs a separate proposal.
-- Mock visual coverage is available through `deck-go/test/e2e/cron-visual.spec.ts`; it is not real Gateway/LLM scheduler completeness evidence.
+- **Cron expression validator** — prototype trusts the operator's input.
+  Production needs `cron-parser` or equivalent to validate + show "next
+  5 fires" preview.
+- **Live countdown granularity** — prototype uses 1s setInterval. For sub-1s
+  resolution use requestAnimationFrame; for >1m resolution use setTimeout
+  chained on actual `nextRunAtMs`.
+- **Run history pagination** — prototype shows last 20 per job. Production
+  needs offset-based pagination via `DeckGoCronRunsParams.offset`.
+- **Bulk actions** — prototype is one-at-a-time. Bulk enable/disable/delete
+  is a real ops need; not in current contract.
+
+## Unsupported claims
+
+- Do not claim `nextRunAtMs` is real-time — the server computes it from
+  schedule; UI countdown is best-effort against local clock.
+- Do not claim deletion is reversible — it isn't. Confirm dialog is the
+  only safety rail.
+- Do not claim `delivery` field shape is stable — it's untyped in the
+  contract (`unknown`); each job kind defines its own.
+
+## Open questions for follow-up
+
+1. **Cron expression preview** — should the contract publish a typed
+   `cron.preview(expr)` RPC returning next-N-fires?
+2. **Pagination shape** — `DeckGoCronRunsParams` has limit/offset. Should
+   it also support cursor-based for infinite-scroll history?
+3. **Stagger semantics** — `staggerMs` on `every` schedules: random jitter
+   or fixed offset? Contract is silent.
+4. **Run-now modes** — `due` vs `force`: force overrides currently-running
+   instance? Contract doesn't specify isolation.
+5. **Job-history relationship** — should there be a `cron.history.subscribe`
+   stream so the UI can push new run entries without polling?
