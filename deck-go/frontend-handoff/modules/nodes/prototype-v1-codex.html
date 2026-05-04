@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nodes Operations Workbench</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-0: #07090d;
+        --bg-1: #0d1117;
+        --bg-2: #11161e;
+        --border: #273142;
+        --text-1: #f3f5f8;
+        --text-2: #aeb7c6;
+        --text-3: #7f8a9b;
+        --accent: #7ca7ff;
+        --success: #6fca95;
+        --warn: #e4b45f;
+        --danger: #ef8f8f;
+        --radius: 6px;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg-0);
+        color: var(--text-1);
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: minmax(360px, 0.82fr) minmax(560px, 1.18fr);
+        gap: 12px;
+        align-items: start;
+        padding: 24px;
+      }
+
+      article,
+      .surface,
+      .row,
+      .hero,
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg-1);
+      }
+
+      article {
+        display: grid;
+        gap: 14px;
+        padding: 16px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      strong {
+        font-weight: 750;
+        letter-spacing: 0;
+      }
+
+      .muted,
+      .meta {
+        color: var(--text-2);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .label {
+        color: var(--text-3);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0;
+        text-transform: uppercase;
+      }
+
+      .pills,
+      .actions,
+      .stats {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
+
+      .pill,
+      button,
+      input,
+      select,
+      textarea {
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--bg-2);
+        color: var(--text-1);
+        font: inherit;
+      }
+
+      .pill {
+        display: inline-flex;
+        min-height: 24px;
+        align-items: center;
+        padding: 4px 8px;
+        color: var(--text-2);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pill.good {
+        border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+      }
+
+      .pill.warn {
+        border-color: color-mix(in srgb, var(--warn) 45%, var(--border));
+      }
+
+      button {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      button.primary {
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+        background: color-mix(in srgb, var(--accent) 15%, transparent);
+        color: var(--accent);
+      }
+
+      button.danger {
+        border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+        color: var(--danger);
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 34px;
+        padding: 7px 9px;
+        background: var(--bg-0);
+      }
+
+      textarea {
+        min-height: 96px;
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat,
+      .surface,
+      .hero,
+      .row {
+        padding: 11px;
+      }
+
+      .value {
+        margin-top: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .list {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .row {
+        display: grid;
+        gap: 6px;
+      }
+
+      .row.selected {
+        border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+        background: color-mix(in srgb, var(--accent) 10%, var(--bg-1));
+        box-shadow: inset 2px 0 0 var(--accent);
+      }
+
+      .hero {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .surface {
+        display: grid;
+        gap: 9px;
+        background: var(--bg-2);
+      }
+
+      code,
+      pre,
+      .meta {
+        overflow-wrap: anywhere;
+      }
+
+      @media (max-width: 1040px) {
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article>
+        <div>
+          <h1>Nodes</h1>
+          <p class="muted">Device trust, pairing, and dynamic remote-control actions through Deck BFF.</p>
+        </div>
+        <div class="pills">
+          <span class="pill good">nodes ready</span>
+          <span class="pill">3 nodes</span>
+          <span class="pill warn">1 pending</span>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <p class="label">Connected</p>
+            <p class="value">2</p>
+          </div>
+          <div class="stat">
+            <p class="label">Pending repair</p>
+            <p class="value">1</p>
+          </div>
+        </div>
+        <button>Refresh nodes</button>
+        <section class="surface">
+          <p class="label">Pending pairing</p>
+          <div class="row selected">
+            <strong>Repair requested: Beta Field Node</strong>
+            <p class="meta">request pair-beta-repair | node node-beta | linux</p>
+            <div class="pills">
+              <span class="pill warn">repair</span>
+              <span class="pill">unpaired</span>
+            </div>
+          </div>
+        </section>
+        <ul class="list">
+          <li class="row">
+            <strong>Alpha Control Mac</strong>
+            <p class="meta">darwin | connected yes | paired yes</p>
+            <div class="pills">
+              <span class="pill good">chat</span>
+              <span class="pill">system.notify</span>
+            </div>
+          </li>
+          <li class="row selected">
+            <strong>Beta Field Node</strong>
+            <p class="meta">linux | connected no | paired no</p>
+            <div class="pills">
+              <span class="pill warn">repair pending</span>
+              <span class="pill">status.request</span>
+            </div>
+          </li>
+          <li class="row">
+            <strong>Ops Tablet</strong>
+            <p class="meta">android | connected yes | paired yes</p>
+          </li>
+        </ul>
+      </article>
+
+      <article>
+        <div>
+          <h2>Selected node</h2>
+          <p class="muted">Lifecycle evidence and guarded dynamic actions stay grounded in the node contract.</p>
+        </div>
+        <section class="hero">
+          <div>
+            <p class="label">Node</p>
+            <strong>Beta Field Node</strong>
+            <p class="meta">node-beta | linux | 10.20.0.42</p>
+          </div>
+          <div class="pills">
+            <span class="pill warn">repair requested</span>
+            <span class="pill">offline</span>
+          </div>
+        </section>
+        <div class="grid">
+          <div class="stat">
+            <p class="label">Version</p>
+            <p class="value">2.1.0</p>
+          </div>
+          <div class="stat">
+            <p class="label">Path</p>
+            <p class="value">/usr/local/bin:/usr/bin</p>
+          </div>
+          <div class="stat">
+            <p class="label">Commands</p>
+            <p class="value">2</p>
+          </div>
+          <div class="stat">
+            <p class="label">Permissions</p>
+            <p class="value">shell denied</p>
+          </div>
+        </div>
+        <section class="surface">
+          <p class="label">Pairing action</p>
+          <p class="muted">Review the repair request and approve only if the device is trusted.</p>
+          <div class="actions">
+            <button class="primary">Approve pairing</button>
+            <button class="danger">Reject pairing</button>
+          </div>
+        </section>
+        <section class="surface">
+          <p class="label">Dynamic command envelope</p>
+          <div class="grid">
+            <select>
+              <option>system.notify</option>
+              <option>status.request</option>
+            </select>
+            <input value="15000" />
+          </div>
+          <textarea>{"message":"Run mock visual probe"}</textarea>
+          <button class="primary">Invoke command</button>
+        </section>
+        <section class="surface">
+          <p class="label">Pending work</p>
+          <div class="grid">
+            <select>
+              <option>status.request</option>
+              <option>location.request</option>
+            </select>
+            <select>
+              <option>high</option>
+              <option>normal</option>
+            </select>
+          </div>
+          <button>Queue pending work</button>
+        </section>
+      </article>
+    </main>
+  </body>
+</html>
