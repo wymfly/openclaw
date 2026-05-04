@@ -1,65 +1,162 @@
-# Approvals Interactions
+# approvals — interactions (v2)
 
-## Select Exec Approval
+## Pointer
 
-1. Operator chooses a pending exec approval row.
-2. UI sets `selectedApprovalId`.
-3. Detail column shows command, agent/session/run, timestamps, navigation actions, and raw payload.
+- **Topbar Refresh click** → spinner animates 720ms; production refetches
+  pending exec + plugin + policy.
+- **Topbar Policy click** → opens PolicyEditor modal.
+- **Queue row click** → selects entry; right pane shows detail.
+- **Queue row Enter / Space** → identical to click (focused row).
+- **Kind filter button click** → updates `kindFilter`; queue rows refilter.
+- **Search input change** → live filter on command + subtitle + id.
+- **Detail tab click** → switches active tab. No refetch.
+- **DecisionBar Deny click** → enters `submitting` phase; ~480ms; appends
+  decision to recent strip; clears selection or moves to next.
+- **DecisionBar Allow once click** → identical to Deny but with `allow_once`.
+- **DecisionBar Allow always click** → identical to Deny but with `allow_always`.
+  Production: also appends command to allowlist.
+- **DecisionBar reason input** → typed text recorded in audit on submit.
+- **PolicyEditor PolicyField select change** → updates draft.
+- **PolicyEditor agent remove click** → removes agent key from draft.
+- **PolicyEditor allowlist add click / Enter** → appends to draft allowlist.
+- **PolicyEditor allowlist remove click** → removes path from draft.
+- **PolicyEditor Save click** → enters `saving` phase; ~600ms; closes modal.
+- **PolicyEditor Cancel / backdrop click** → closes modal without save.
 
-## Select Plugin Approval
+## Keyboard
 
-1. Operator switches to Plugin approvals.
-2. Operator chooses a plugin approval row.
-3. UI sets `selectedPluginApprovalId`.
-4. Detail column shows plugin status, decision, timestamps, description, and raw payload.
+| Key                 | Context                                 | Behavior                                                                                       |
+| ------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Enter` / `Space`   | focused queue row                       | Select entry.                                                                                  |
+| `Tab` / `Shift Tab` | within page                             | Cycle: filter seg → search → queue rows → detail tabs → reason → 3 actions → Refresh → Policy. |
+| `Esc`               | PolicyEditor modal open                 | Close modal (except `saving` phase).                                                           |
+| `Enter`             | PolicyEditor allowlist add input        | Add path (if non-empty).                                                                       |
+| `Tab` / `Shift Tab` | within PolicyEditor modal               | Cycle through default fields → agent fields → allowlist controls → footer buttons.             |
+| `A`                 | (production target) detail pane focused | Allow once.                                                                                    |
+| `D`                 | (production target) detail pane focused | Deny.                                                                                          |
+| `Shift+A`           | (production target) detail pane focused | Allow always.                                                                                  |
 
-## Refresh
+The PolicyEditor's `saving` phase is **non-cancellable** — Esc + backdrop
+no-op while the simulated 600ms timer is in flight. Same for DecisionBar's
+`submitting` phase (~480ms).
 
-1. Operator clicks refresh.
-2. UI calls `fetchApprovalsPolicy`, `fetchPendingApprovals`, and `fetchPluginApprovals`.
-3. UI preserves selected exec/plugin approvals if they still exist.
+## Hover
 
-## Decide Exec Approval
+- **Topbar KPI cells** — no hover (informational only).
+- **Topbar Refresh button** — bg lifts; spinner animates while refreshing.
+- **Topbar Policy button** — bg lifts.
+- **Kind filter button** — bg lifts; active keeps accent inset shadow.
+- **Search input** — no hover (focus only).
+- **Queue row** — bg lifts; active keeps accent border + inset shadow.
+- **Detail tab** — color shifts to fg-1; active keeps accent border.
+- **DecisionBar Deny** — red tint bg.
+- **DecisionBar Allow once** — green tint bg.
+- **DecisionBar Allow always** — filtered brightness 1.1 (filled state).
+- **PolicyEditor remove buttons** — bg lifts; hover red tint for destructive.
+- **Recent decision row** — no hover (informational only).
 
-1. Operator selects an exec approval.
-2. Operator clicks Allow once, Allow always, or Deny.
-3. UI calls `resolveApproval(selectedId, decision)`.
-4. UI refreshes data, preserves preferred selection when still available, and shows last action raw detail.
+## Density
 
-## Decide Plugin Approval
+`compact` (default):
 
-1. Operator selects an unresolved and unexpired plugin approval.
-2. Operator clicks Allow once, Allow always, or Deny.
-3. UI calls `resolvePluginApproval(selectedId, decision)`.
-4. UI refreshes plugin data and shows last action raw detail.
+- Topbar padding `18px 28px`.
+- Main row gap `18px`; row padding `18px 20px`.
+- Queue row padding `12px 14px`.
+- Queue list width `360px`.
 
-## Open Agent / Session
+`cozy`:
 
-1. Operator clicks Open approval agent or Open approval session.
-2. UI calls the existing shared deck navigation helpers.
-3. No approval decision is made by navigation.
+- Topbar padding `22px 32px`.
+- Main row gap `22px`; row padding `22px 24px`.
+- Queue row padding `14px 16px`.
+- Queue list width `400px`.
 
-## Edit Policy Defaults
+The Tweaks panel toggles between the two via `data-density` on the root.
 
-1. Operator changes global or per-agent security/ask/fallback/auto-allow controls.
-2. UI updates the structured policy draft and raw JSON textarea.
-3. Save calls `updateApprovalsPolicy` with the current base hash.
+## Empty / loading / error
 
-## Manage Agent Overrides
+| Scenario                                | UI                                                                                                       |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `pending = []` and `pluginPending = []` | Queue empty card "No pending approvals match." Detail empty card with shield icon.                       |
+| Search filters all out                  | Empty card "No pending approvals match."                                                                 |
+| `selectedId = null`                     | Detail pane shows shield icon + "Pick a pending approval from the queue."                                |
+| `recentDecisions = []`                  | Strip head still shows; row grid empty.                                                                  |
+| Decision phase = `submitting`           | All 3 action buttons + reason input disabled. Phase strip "Submitting decision…" with `role="status"`.   |
+| Decision phase = `done`                 | Green check + "Decision recorded." for 600ms.                                                            |
+| Policy phase = `saving`                 | Save + Cancel disabled. Foot phase strip "Saving policy…" with `role="status"`.                          |
+| Stream disconnect (production)          | Topbar pill flips warn tone "Stream offline — Refresh to refetch."                                       |
+| Bootstrap not ready                     | Subtitle shows "runtime v—".                                                                             |
+| Countdown reaches 0                     | Pulsing red chip; production auto-removes entry on `approval.resolved` event with `decision: "expired"`. |
 
-1. Operator enters an agent id and adds an override.
-2. UI creates an empty per-agent defaults object if it does not already exist.
-3. Operator can remove the override without affecting global defaults.
+## Focus
 
-## Manage Allowlist Paths
+- After tab click → focus stays on the tab.
+- After Refresh → focus stays on Refresh.
+- After Policy open → focus jumps to first PolicyField select (production target — focus trap on mount).
+- After Policy close → focus returns to the Policy trigger.
+- After queue row click → focus stays on the row.
+- After decision recorded → focus moves to next queue row (production target).
+- After PolicyEditor save → focus returns to Policy trigger.
 
-1. Operator enters a path and adds it to allowlist.
-2. UI ignores empty or duplicate paths.
-3. Operator can remove a path from the draft before saving.
+## A11y semantics
 
-## Stream Update
+- **Topbar**: KPI cells have implicit role from elements; no overrides.
+- **KPI cells** with warn/err tone: production should add `aria-label`
+  describing the value + tone.
+- **QueueList**:
+  - List wrapped in `role="region" aria-label="Pending approvals"`.
+  - Filter seg uses `role="tablist"` + per-button `role="tab"` + `aria-selected`.
+  - Per-row uses `role="listitem"` (rendered inside `role="list"`).
+- **ApprovalDetail**:
+  - Tab strip uses `role="tablist"` + `role="tab"` + `aria-selected`.
+- **DecisionBar**:
+  - Phase strip running uses `role="status"`.
+  - Phase strip done is decorative (visual only).
+  - Reason input has implicit role from `<input type="text">`.
+- **PolicyEditor modal**:
+  - `role="dialog" aria-modal="true" aria-label="Approval policy editor"`.
+  - Close button has `aria-label="Close policy editor"`.
+  - Phase strip saving uses `role="status"`.
+- **CountdownTimer**: production should expose remaining time via
+  `aria-live="polite"` on a hidden span (current visual text doesn't suffice).
+- **Recent decisions**: rows are decorative; production should pair the
+  decision badge text with `aria-label` for screen readers.
 
-1. UI receives `approval.pending`.
-2. UI appends the pending approval if valid and unexpired.
-3. UI receives `approval.resolved`.
-4. UI removes the matching pending approval and clears selection if needed.
+## Tweaks-driven exploration
+
+Design-time only. Tweaks panel exposes:
+
+- `theme` ∈ `dark | light`
+- `density` ∈ `compact | cozy`
+
+Production translation drops the panel entirely.
+
+## Decision-critical safety rails
+
+This is a **mutation-heavy** panel. Every action records audit:
+
+- Decisions: `POST /api/approvals` (or `/plugins`) emits `approval.resolved` event.
+- Policy save: `PUT /api/approvals/policy` mutates the file + bumps hash.
+- Allowlist add / remove: subset of policy save.
+
+No silent side effects: every change is visible in either the queue
+disappearing (decided) or the recent-decisions strip (newly resolved).
+
+The 60-second countdown is a soft guarantee — server-side `expiresAtMs`
+is authoritative. UI displays remaining time computed from local clock.
+
+## Cross-section coupling
+
+- **Approvals ↔ Activity** (US-006): every decision emits an `approval.resolved`
+  event that the activity panel surfaces in its full audit feed.
+- **Approvals ↔ Settings** (US-011): the policy file is also editable in
+  settings panel — both edit the same `approvals.json`. Policy hash is
+  the optimistic-concurrency token.
+- **Approvals ↔ Agents** (`agents` panel): per-agent overrides reference
+  agent IDs from the agents panel; production should validate agent
+  existence on save.
+- **Approvals ↔ Plugins** (US-003): plugin approvals reference plugin IDs
+  from the plugins panel; pluginName is the display field.
+- **Approvals ↔ Gateway** (US-015): describe lists `exec.approval.*` and
+  `plugin.approval.*` methods; gateway is the canonical source for
+  approval RPC truth.
