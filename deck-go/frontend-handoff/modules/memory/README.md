@@ -1,129 +1,54 @@
-# memory - high-fidelity handoff
+# Memory
 
-**Status:** `implemented`
-**Protocol version:** `protocol-v1`
-**Active visual target:** [`./prototype.html`](./prototype.html)
-**OpenSpec change:** `frontend-memory-hifi-contract-redesign`
-
-This package defines the visual and interaction target for the `memory/` module
-rewrite in `frontend-new`. The current panel already reaches the memory contract
-chain, but its layout is still an old two-card browser shell. Code and
-contracts remain the final authority when this handoff drifts.
+**Status**: ready-for-implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (multi-file React rebuild — v2)
+**Depends on atoms**: Button, Input, Tag, Code, Badge
+**New atoms needed**: none (all local molecules — see components.md)
+**New tokens needed**: none
+**Backend endpoints used**: `GET /api/memory/browse`, `POST /api/memory/search`, `GET /api/memory/health`, `POST /api/memory/dreams` — see `api-usage.md`
+**Stack decisions**: in-house markdown renderer (prototype) + react-markdown for production; LanceDB embedding-backed semantic search
 
 ## What this module does
 
-`memory/` is the operations workspace for agent-scoped memory files, recall
-search, path relationship inspection, memory health diagnostics, and dream-diary
-maintenance. Operators use it to answer: which agent memory is visible, which
-file or directory is selected, whether recall/search is available, what the
-health lane says, and which maintenance action recently ran.
+The Memory panel is the deck-go **memory store control plane**. It lets operators inspect, search, diagnose, and maintain the embedding-backed memory used by every agent.
 
-The design keeps agent selection, lane selection, current path, counts, and
-selected detail in the first viewport. Search, graph, health, and dream actions
-are presented as distinct lanes because the contract chain has two different
-sources: Deck BFF browse/search endpoints and Gateway `doctor.memory.*` methods.
+The panel must answer four questions:
+
+1. **What's in memory?** — Browse tab: file-system tree (`global/`, `agents/<id>/`, `session-corpus/`) + content viewer
+2. **Where is X?** — Search tab: semantic search over the entire memory store with relevance + tier + scope + decay metadata
+3. **Is the embedding pipeline healthy?** — Health tab: per-agent embedding-provider status (ok / error / unknown) + LanceDB enabled flag
+4. **Can I run a maintenance cycle?** — Dreams tab: per-agent dream-diary viewer + 6 maintenance actions (`read` / `backfill` / `dedupe` / `repair` / `resetShortTerm` / `reset`)
+
+Layout is a **single-page tabbed workspace** (4 tabs at the topbar), with the Browse tab using a 2-pane (tree + viewer) and the Dreams tab using a 2-pane (agent picker + diary content).
 
 ## Contract truth
 
-Production and mocks must use the current Deck-facing and Gateway DTOs:
-
-- `DeckGoMemoryFileNode`
-- `DeckGoMemoryBrowseResponse`
-- `DeckGoMemoryHealthEntry`
-- `DeckGoMemoryHealthResponse`
-- `DeckGoMemorySearchScope`
-- `DeckGoMemorySearchResult`
-- `DeckGoMemorySearchResponse`
-- `DeckGoMemoryDreamAction`
-- `DeckGoMemoryDreamDiaryResult`
-- `DeckGoMemoryDreamActionResult`
-- `DeckGoMemoryDreamsResult`
-- `AgentsFilesListResult`
-- `DoctorMemoryStatusResult`
-- `DoctorMemoryDreamDiaryResult`
-- `DoctorMemoryBackfillDreamDiaryResult`
-- `DoctorMemoryDedupeDreamDiaryResult`
-- `DoctorMemoryRepairDreamingArtifactsResult`
-- `DoctorMemoryResetDreamDiaryResult`
-- `DoctorMemoryResetGroundedShortTermResult`
-
-Endpoint/RPC truth:
-
-- `GET /memory/browse` -> Deck BFF, workspace path resolved from `agents.files.list`
-- `GET /memory/search` -> Deck BFF search lane, currently returns LanceDB-unavailable fallback when not implemented
-- `GET /memory/health` -> `doctor.memory.status`
-- `POST /memory/dreams` -> `doctor.memory.dreamDiary` and maintenance methods
-
-Browser code must continue through `frontend-new/src/api.ts` wrappers and the
-Deck backend:
-
-- `fetchAgentsList`
-- `browseMemory`
-- `readMemoryFile`
-- `searchMemory`
-- `fetchMemoryHealth`
-- `runMemoryDreams`
-
-It must not call Gateway RPC directly.
-
-## Workflow constraints
-
-- Visual convergence is the goal of this module pass: mock + frontend should
-  become stable against the contract and design system.
-- Code truth wins over this handoff when the two disagree.
-- Deterministic fixture/API drift may be fixed in this change. Uncertain real
-  Gateway memory storage, LanceDB recall quality, search result ranking, dream
-  diary repair semantics, and reset side effects must be recorded as follow-up
-  instead of invented in the UI.
-- Directory clicks must browse; file clicks must read.
-- Repair, reset, and reset short-term dream actions must keep confirmation
-  guards.
-- No new Gateway endpoints, new dependencies, or canonical atom promotion are
-  part of this handoff.
-
-## Depends on canonical atoms
-
-`Badge`, `Button`, `Card`, `Chip`, `Code`, `Input`, `SegmentedControl`,
-`Select`, `Spinner`, `Tag`, and `JsonTree` can be used where production fit is
-straightforward.
-
-No canonical atom or token is required by this handoff. Local molecules:
-
-- memory metric tile
-- lane switcher
-- file/path row
-- graph relation row
-- search result row
-- health diagnostic row
-- dream action strip
-- detail sidecar
-- raw payload disclosure
-- mock visual evidence banner
+- BFF endpoints (live):
+  - `GET /api/memory/browse?path={path}` returns `DeckGoMemoryBrowseResponse { files?, content?, path? }` — set `path=` to a directory to list entries; set `path=` to a file to fetch its content
+  - `POST /api/memory/search` with `{ query, scope?, agentId? }` returns `DeckGoMemorySearchResponse { results?, unavailableReason?, lanceDbEnabled? }`
+  - `GET /api/memory/health` returns `DeckGoMemoryHealthResponse { entries?, lanceDbEnabled?, ... }`
+  - `POST /api/memory/dreams` with `{ agentId, action }` (action: `DeckGoMemoryDreamAction`) returns `DeckGoMemoryDreamsResult` (a discriminated union of diary-result and action-result)
+- DTO authority: `DeckGoMemoryFileNode`, `DeckGoMemoryHealthEntry`, `DeckGoMemoryBrowseResponse`, `DeckGoMemoryHealthResponse`, `DeckGoMemorySearchScope`, `DeckGoMemorySearchResult`, `DeckGoMemorySearchResponse`, `DeckGoMemoryDreamAction`, `DeckGoMemoryDreamDiaryResult`, `DeckGoMemoryDreamActionResult`, `DeckGoMemoryDreamsResult` (`deck-go/contracts/source/deck-api.contract.ts:1623-1705`)
+- Body format: GitHub-flavored markdown (GFM) for memory file content
+- Browser code calls the Go BFF wrappers only — never reach into LanceDB or the memory filesystem directly
 
 ## How to implement
 
-1. Open `prototype.html` and inspect ready, file-read, search-unavailable,
-   graph, health, dreams, destructive-confirmation, empty, loading, and error
-   states.
-2. Read `api-usage.md` before touching mocks, API wrappers, or backend
-   behavior.
-3. Translate the prototype into `frontend-new/src/components/panels/memory/`,
-   preserving API wrappers, agent selection, directory navigation, file read,
-   search fallback, health loading, dream diary refresh, destructive
-   confirmations, and detail sidecar behavior.
-4. Move Memory styling out of global `theme.css` into module-local CSS.
-5. Add mock visual E2E with contract-shaped data and label evidence as mock
-   visual coverage.
+1. Open `prototype.html` (Babel-standalone). Click each of the 4 tabs (Browse / Search / Health / Dreams). In Browse, expand `agents/main/` and click `core.md` — read the markdown. In Search, type "runtime mode" or "test strategy" and watch the relevance bars. In Health, note the spec-writer error row. In Dreams, pick `main`, then click `Read` for a no-op confirmation, click `Reset all` to see the dangerous-action confirm.
+2. Read `components.md` — component tree, props contract, local molecules (TierBadge, ScopeBadge, RelevanceBar, DecayBar, AgentDot, MarkdownView)
+3. Read `states.md` — initial-load / ready / search lifecycle / dreams action lifecycle / per-tab state machines
+4. Read `interactions.md` — keyboard, hover/focus, animations, tab navigation, file-tree expand, scope toggle, dream-action confirms
+5. Read `api-usage.md` — endpoints, payload shapes, scope, drift gate
+6. Hardcoded literal strings come straight out of the prototype; once translated, lift them into `frontend-new/src/i18n/{en,zh}.json` per the prototype-string convention
 
-## Open questions for follow-up
+## Open questions for implementation
 
-- Whether real `GET /memory/search` will stay a Deck-local LanceDB extension or
-  move behind a typed Gateway RPC.
-- Whether real search relevance is normalized `0..1` or may use a provider- or
-  vector-store-specific score range.
-- Whether `doctor.memory.status` will remain single-agent shaped or grow a
-  stable multi-entry response.
-- Which dream maintenance actions are safe enough for inline execution versus a
-  future queued/background operation surface.
-- Whether file-tree, graph row, and diagnostics rows should become canonical
-  design-system atoms after Memory, Files, Logs, and Sessions converge.
+- **File tree depth lazy load** — prototype loads all directory entries up-front. Production should fetch on directory expand (`GET /api/memory/browse?path=/agents/main`).
+- **Search history** — should recently-run queries persist? Local + per-operator? Defer to v2.
+- **Search highlighting** — prototype emits the snippet verbatim from the BFF; should we client-side highlight query terms inside the snippet? Production `react-markdown` plugin path is plausible.
+- **Dream action progress** — `reset`/`backfill` can take >5s. Production should stream progress via SSE or polled status; prototype mocks 600ms.
+- **Audit trail** — destructive dream actions (`reset`/`resetShortTerm`) should appear in the Activity feed. Confirm with backend team.
+- **Direct edit** — current scope is read-only on file content. Editing memory files in the panel raises questions (markdown editor? frontmatter validator? scope gating?) — defer to v2.
+- **LanceDB toggle** — when `lanceDbEnabled=false`, search falls back to keyword-only. UI surfaces this; should there be a "force keyword mode" toggle for testing? Defer.
+- **Dreams diary write-back** — currently the diary is read-only in the UI; should operators add notes? Out of scope.
