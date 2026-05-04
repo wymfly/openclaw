@@ -25,6 +25,7 @@ Endpoint classification lives in:
 - `fetchCapabilities()` through `useCapabilities()`
 - `fetchGatewayHealth()`
 - `fetchGatewayStatus()`
+- `fetchGatewayDescribe()`
 - `fetchActivityEvents(limit)`
 - `fetchMonitorRuns(params)`
 - `fetchMonitorStats()`
@@ -33,16 +34,29 @@ Endpoint classification lives in:
 
 ## Backend routes
 
-| UI need                   | Frontend wrapper                              | Deck route                                      | Notes                                       |
-| ------------------------- | --------------------------------------------- | ----------------------------------------------- | ------------------------------------------- |
-| bootstrap/runtime summary | `useDeckUI()` / `fetchRuntimeGatewayStatus()` | `GET /bootstrap/status`, `GET /runtime/gateway` | Runtime facade truth.                       |
-| runtime mode capabilities | `useCapabilities()`                           | `GET /runtime/capabilities`                     | Determines bundled vs remote field set.     |
-| Gateway health            | `fetchGatewayHealth()`                        | `GET /gateway/health`                           | BFF diagnostic route over Gateway `health`. |
-| Gateway status            | `fetchGatewayStatus()`                        | `GET /gateway/status`                           | BFF diagnostic route over Gateway `status`. |
-| activity evidence         | `fetchActivityEvents(20)`                     | `GET /activity?limit=20`                        | Backend projection over event bus.          |
-| monitor runs              | `fetchMonitorRuns({ limit: 20 })`             | `GET /monitor/runs?limit=20`                    | Backend projection over event bus.          |
-| monitor stats             | `fetchMonitorStats()`                         | `GET /monitor/stats`                            | Backend projection over aggregated runs.    |
-| timeline detail           | `fetchMonitorRunDetail(runId)`                | `GET /monitor/runs/{runId}`                     | Backend projection over event bus.          |
+| UI need                   | Frontend wrapper                              | Deck route                                              | Notes                                                                 |
+| ------------------------- | --------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------- |
+| bootstrap/runtime summary | `useDeckUI()` / `fetchRuntimeGatewayStatus()` | `GET /api/bootstrap/status`, `GET /api/runtime/gateway` | Runtime facade truth.                                                 |
+| runtime mode capabilities | `useCapabilities()`                           | `GET /api/runtime/capabilities`                         | Determines bundled vs remote field set.                               |
+| Gateway health            | `fetchGatewayHealth()`                        | `GET /api/gateway/health`                               | BFF diagnostic route over Gateway `health`.                           |
+| Gateway status            | `fetchGatewayStatus()`                        | `GET /api/gateway/status`                               | BFF diagnostic route over Gateway `status`.                           |
+| Gateway describe          | `fetchGatewayDescribe()`                      | `GET /api/gateway/describe`                             | BFF diagnostic route over Gateway `gateway.describe`, read-only.      |
+| activity evidence         | `fetchActivityEvents(20)`                     | `GET /api/activity?limit=20`                            | Deck backend projection over event bus.                               |
+| monitor runs              | `fetchMonitorRuns({ limit: 20 })`             | `GET /api/monitor/runs?limit=20`                        | Deck backend projection over event bus.                               |
+| monitor stats             | `fetchMonitorStats()`                         | `GET /api/monitor/stats`                                | Deck backend projection over aggregated runs.                         |
+| timeline detail           | `fetchMonitorRunDetail(runId)`                | `GET /api/monitor/runs/{runId}`                         | Deck backend projection over event bus; 404 is valid for missing run. |
+
+## Prototype-only notes
+
+The refreshed v2 prototype contains a searchable describe explorer and a batch
+console. The read-only describe evidence is contract-backed and can be surfaced
+in production through `fetchGatewayDescribe()`.
+
+The batch console is not active production behavior in this module pass. A
+typed batch transport exists under the runtime API surface, but exposing a
+composer in the Gateway workbench is a write-capable operator workflow and
+requires a separate safety/product proposal. The current prototype's composer
+uses synthetic dry-run results and must not be documented as real behavior.
 
 ## Mock fixture notes
 
