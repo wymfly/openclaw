@@ -1,39 +1,50 @@
 # API Explorer
 
 **Status**: ready-for-implementation
-**Design completed**: 2026-05-03
-**Designer**: Codex single-agent replacement workflow
-**Depends on atoms**: Button, Input, Select/Segmented control, Badge/Pill, Card, Code/Json detail, Status, Spinner
-**New atoms needed**: none
+**Design completed**: 2026-05-04
+**Designer**: design agent (multi-file React rebuild — v2)
+**Depends on atoms**: Button, Input, Select, Textarea, Badge, Tag, Code, ScopeBadge, KindBadge, StatusPill, JsonViewer
+**New atoms needed**: none (all local molecules — see components.md)
 **New tokens needed**: none
 **Backend endpoints used**: see `api-usage.md`
+**Stack decisions**: code editor library locked to **CodeMirror 6** (see `implementation-notes.md` § Stack decisions)
 
 ## What this module does
 
-API Explorer is a read-only contract catalog for the live Gateway `gateway.describe` payload. It lets an operator inspect method domains, scopes, params/result schemas, event payload schemas, and untyped method gaps without leaving the Deck operations UI.
+The API Explorer panel is the deck-go developer surface for **interactively exploring the Gateway method registry**. It mirrors the kind of thing operators do today via `gateway describe` + curl: list namespaces, drill into a method, build a typed request payload, hit Run, inspect the response. Everything in one pane, no terminal context-switch.
 
-This package is a high-fidelity handoff for `deck-go/frontend-new/src/components/panels/api-explorer/`. It is based on the current deck-go contract chain and production behavior. Code and contracts remain the source of truth; this prototype is an implementation guide.
+The panel must answer four developer questions:
+
+1. **What can the gateway do?** — namespace tree on the left with kind + scope badges per leaf
+2. **What does this method want?** — schema-driven form with required/optional + types, plus raw JSON fallback
+3. **What did it return?** — status code + body (highlighted) + headers + trace, with copy buttons
+4. **What did I do recently?** — collapsible right rail with last 50 requests, click to re-load
+
+Layout is the **3-pane workspace + right rail** (~280px tree / center builder / right response / 320px history rail).
 
 ## Contract truth
 
-- Frontend wrapper: `fetchGatewayDescribe()`.
-- BFF endpoint: `GET /api/gateway/describe`.
-- Backend source: managed runtime `Describe(ctx, true)` -> upstream Gateway `gateway.describe`.
-- DTO authority: `DeckGoGatewayDescribeResponse`.
-- Fields used: `methods`, `events`, `untyped`, method `scope`, `params`, `result`, `since`, event `payload`, `since`.
-- Browser code must continue to call the Go BFF wrapper only; it must not call Gateway directly.
+- BFF endpoints: every Gateway method is reachable through `POST /api/gateway/invoke` with `{ method, params }` envelope
+- Description endpoint: `POST /api/gateway/invoke { method: "deck.gateway.describe" }` returns the live method registry
+- DTO authority: `DeckGoGatewayDescribeResponse` for the catalog; per-method DTOs are referenced by name in each entry's `result` field (see `data.js`)
+- Schema source: each method entry includes a JSON-Schema-shaped `params` object (`{ type, properties, required, enum?, ... }`) — the form generator consumes this directly
+- Browser code must call the BFF wrapper only — never reach into the Gateway WS connection directly
 
 ## How to implement
 
-1. Open `prototype.html` and inspect the contract catalog layout, schema tree density, selected method detail, event tab, and untyped visibility.
-2. Read `components.md` for module-local component structure and data boundaries.
-3. Read `states.md` for loading, empty, not-configured, error, and no-schema states.
-4. Read `interactions.md` for method search, tab switching, selection, schema collapse/expand, and refresh behavior.
-5. Read `api-usage.md` and preserve the current read-only BFF path.
-6. Translate prototype classes into `ApiExplorerPanel.tsx` + `api-explorer-panel.css`, keeping strings in i18n and behavior covered by tests.
+1. Open `prototype.html` (Babel-standalone). Try the search box, drill into `deck.agents.detail`, switch to Body tab, edit the raw JSON, click Run, inspect the response (Body / Headers / Trace), open the history rail and re-load a previous request.
+2. Read `components.md` — component tree, props contract, local molecules (KindBadge, ScopeBadge, StatusCodeBadge, HighlightedJson, ParamRow)
+3. Read `states.md` — running / response / error / unknown method / hash deep link state machines
+4. Read `interactions.md` — keyboard, modal-free flow (no modal in this panel), body mode toggle, copy flow, history pick
+5. Read `api-usage.md` — `gateway.describe` / `gateway.invoke` envelope contract; how the BFF rewrites paths to RPC method names
+6. Read `implementation-notes.md` — stack decisions for production: CodeMirror 6 (locked), JSON tokenizer fallback for prototype, schema-driven form generator
+7. Hardcoded literal strings come straight out of the prototype; once translated, lift them into `frontend-new/src/i18n/{en,zh}.json` per the prototype-string convention
 
 ## Open questions for implementation
 
-- Some upstream Gateway methods may intentionally lack schemas. These must remain visible as no-schema or untyped evidence rather than hidden.
-- This module is not an RPC execution surface. Any request console needs a separate security/governance proposal.
-- Recursive schema rendering is intentionally bounded; deeper schemas should stay inspectable through raw contract payloads in a future dedicated enhancement if needed.
+- **Live `gateway.describe` vs static catalog** — production should call describe on mount, then cache. Should we surface "registry version mismatch" UI when the cached catalog has been superseded? Prototype assumes the catalog is fresh on every load.
+- **Streaming methods** — `kind: "stream"` is in the schema enum but no method in the catalog uses it yet. The UI doesn't render a streaming response area; that's a follow-up when the first streaming RPC lands.
+- **Auth headers** — prototype shows headers as read-only reference. In production, the BFF injects `Authorization` from the session cookie; the Explorer never prompts for tokens.
+- **History persistence** — prototype keeps history in memory. Production should persist to `localStorage` (per-environment) and survive reload.
+- **Run cancellation** — prototype's "running" state has no cancel button (the `setTimeout` would be discarded by re-clicking Run). Production should cancel via `AbortController`.
+- **Diff between two responses** — out of scope this iteration; flagged in `implementation-notes.md` as future enhancement.
