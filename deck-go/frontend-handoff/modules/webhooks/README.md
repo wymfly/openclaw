@@ -1,38 +1,46 @@
 # Webhooks
 
-**Status**: implemented-awaiting-archive
-**Design completed**: 2026-05-03
-**Designer**: Codex single-agent replacement workflow
-**Depends on atoms**: Button, Input, Toggle/Checkbox, Badge/Pill, Card, Code/Json detail, Status, Spinner
-**New atoms needed**: none
+**Status**: ready-for-implementation
+**Design completed**: 2026-05-04
+**Designer**: design agent (multi-file React rebuild — v2)
+**Depends on atoms**: Button, Input, Toggle, Badge, Tag, Code, StatusPill, Spinner, ConfirmDialog
+**New atoms needed**: none (all local molecules — see components.md)
 **New tokens needed**: none
 **Backend endpoints used**: see `api-usage.md`
 
 ## What this module does
 
-Webhooks is the Automate workspace for receiver configuration and delivery evidence. It lets an operator inspect configured endpoints, subscribed events, failure state, last delivery status, delivery history, and run a manual test delivery.
+The Webhooks panel is the deck-go automation surface for **outbound event delivery**. Operators register HTTP receivers (Slack, PagerDuty, GitHub, internal QA bridges, monitoring backends), subscribe each one to a curated set of event types, and watch live evidence of every delivery — successful, failed, or retried — without leaving the deck.
 
-This package is a high-fidelity handoff for `deck-go/frontend-new/src/components/panels/webhooks/`. It is based on the current deck-go contract chain and production behavior. Code and contracts remain the source of truth; this prototype is an implementation guide.
+The panel must answer four operator questions in a single glance:
+
+1. **Are my receivers healthy?** — health badge per row, top-bar "failing" KPI cell, consecutive-failure counter
+2. **What did my last delivery do?** — last-fired relative time + last HTTP status code per row
+3. **Why did this delivery fail?** — click any delivery → expand to payload, response body, error string, retry tree
+4. **Can I get this thing working without leaving the deck?** — Test delivery button right next to Edit/Disable/Delete, with idle → running → done/error inline phases
+
+Layout is the **2-pane CRUD workspace** (matches cron US-017): filterable list on the left (~620px), tabbed detail on the right; topbar carries 4 KPI cells; create/edit goes through a modal builder; delete is a confirm dialog.
 
 ## Contract truth
 
-- Frontend wrappers: `fetchWebhooks`, `fetchWebhookDeliveries`, `createWebhook`, `updateWebhook`, `deleteWebhook`, and `testWebhook`.
-- BFF endpoints: `GET /api/webhooks`, `POST /api/webhooks`, `PATCH /api/webhooks/{id}`, `DELETE /api/webhooks/{id}`, `GET /api/webhooks/{id}/deliveries`, and `POST /api/webhooks/{id}/test`.
-- Backend source: Go admin routes -> `webhookAdapter` -> `localstore.Webhook` and `localstore.WebhookDelivery`.
-- DTO authority: `DeckGoWebhook`, `DeckGoWebhookDelivery`, `DeckGoWebhooksResponse`, and `DeckGoWebhookDeliveriesResponse`.
-- Browser code must continue to call the Go BFF wrappers only; it must not call Gateway or localstore directly.
+- BFF endpoints: `GET /api/webhooks`, `POST /api/webhooks`, `PATCH /api/webhooks/{id}`, `DELETE /api/webhooks/{id}`, `GET /api/webhooks/{id}/deliveries`, `POST /api/webhooks/{id}/test`
+- DTO authority: `DeckGoWebhook`, `DeckGoWebhookDelivery`, `DeckGoWebhooksResponse`, `DeckGoWebhookDeliveriesResponse`
+- BFF projections (frontend-only state, **not** in DTO): KPI strip aggregates, available-event catalog, retry tree (parent/child grouping)
+- Browser code must call the Go BFF wrappers only — never reach into Gateway or localstore directly
 
 ## How to implement
 
-1. Open `prototype.html` and inspect the receiver workbench layout, inventory, selected receiver detail, event controls, delivery history, form, and last action detail.
-2. Read `components.md` for module-local component structure and data boundaries.
-3. Read `states.md` for loading, ready, empty, error, selected-webhook, form, delivery, delete, and test-delivery states.
-4. Read `interactions.md` for selection, event toggles, create/edit, test delivery, refresh, and guarded delete behavior.
-5. Read `api-usage.md` and preserve the current BFF path and mutation envelopes.
-6. Read `implementation-notes.md` for the production migration notes and verified mock/local visual coverage.
+1. Open `prototype.html` (Babel-standalone). Try the 4 row filters, click 4 different webhook types (healthy / degraded / failing / disabled), expand a delivery row to see payload + response, click "Test delivery" to see the running/done phases, click "New webhook" to walk the builder modal, click "Delete" to see the confirm pattern.
+2. Read `components.md` — component tree, props contract, local molecules (StatusCodeBadge, DeliveryStatusBadge, WebhookHealthBadge, EnabledToggle, EventTag, SecretReveal, CountdownTimer)
+3. Read `states.md` — loading / ready / empty / selected / test-running / test-error / saving / saved / deleting / retry-pending state machines
+4. Read `interactions.md` — keyboard, modal lifecycle (backdrop+Esc), test-delivery phase ladder, delete confirm pattern, delivery row expand, retry button, search-events query
+5. Read `api-usage.md` — endpoint table + mutation envelopes + WS/SSE contract for live `webhook.delivery` event
+6. Hardcoded literal strings come straight out of the prototype; once translated, lift them into `frontend-new/src/i18n/{en,zh}.json` per the prototype-string convention
+7. CountdownTimer reused from approvals US-016 + cron US-017; SecretReveal new but minimal — both promotion candidates documented in `implementation-notes.md`
 
 ## Open questions for implementation
 
-- Mock visual E2E should seed data through the normal Deck routes. If a delivery success state is needed, use a temporary local receiver inside the test rather than adding production-only seed code.
-- Real external receiver availability, retry behavior, and signature validation are not fully proven by mock/local visual tests.
-- A full event schema explorer, retry policy editor, or delivery replay queue is out of scope for this pass.
+- **Live `webhook.delivery` event over WS** — is the Go backend pushing per-delivery events, or does the frontend poll `/api/webhooks/{id}/deliveries`? Current prototype assumes ad-hoc refresh; `api-usage.md` calls out the WS contract that would unlock real-time updates if the backend supports it.
+- **Retry queue visibility** — `nextRetryAt` lives on the failed delivery DTO. Is there a separate retry queue surface, or do we render upcoming retries inline on the row that triggered them? Prototype goes inline.
+- **Signature header** — prototype assumes the secret produces an `X-Deck-Signature` HMAC-SHA256. If the actual header name differs, surface that in `implementation-notes.md` (it shows up in builder hint copy + audit timeline).
+- **Available event types** — prototype lists 19 hardcoded events (`approval.*`, `cron.*`, `channel.*`, etc). The real catalog should come from a backend introspection endpoint (`GET /api/events/catalog` or similar). Until that exists, hardcode and flag in `api-discrepancy.md`.
