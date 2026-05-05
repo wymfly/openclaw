@@ -21,7 +21,6 @@ import {
   fetchAgentToolPolicyPreview,
   normalizeAgentSubagentPermissionOptions,
   saveAgentFile,
-  streamEvents,
   updateAgent,
   updateAgentEventStreams,
   updateAgentSkills,
@@ -35,6 +34,7 @@ import {
   type DeckGoAgentSystemPromptPreviewResponse,
   type DeckGoAgentToolPolicyPreviewResponse,
 } from "@/api";
+import type { DeckGoServerEvent } from "@/api-types";
 import {
   Badge,
   Banner,
@@ -48,6 +48,7 @@ import {
   Textarea,
   Toggle,
 } from "@/design-system/atoms";
+import { useLiveProjectionSubscription } from "@/hooks/useLiveProjectionSubscription";
 import { useAgentsStore, type Agent } from "@/stores/agents";
 import {
   AGENT_SECTIONS,
@@ -118,8 +119,8 @@ function matchesFilter(agent: Agent, filter: AgentsFilter): boolean {
   if (filter === "busy") {
     return agent.status === "busy";
   }
-  if (filter === "default") {
-    return Boolean(agent.isDefault);
+  if (filter === "idle") {
+    return agent.status === "idle";
   }
   return true;
 }
@@ -152,12 +153,20 @@ export function AgentsPanel() {
   const selectAgent = useAgentsStore((state) => state.selectAgent);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<AgentsFilter>("all");
-  const [sort, setSort] = useState<AgentsSort>("name");
-  const [streamStatus, setStreamStatus] = useState("connecting");
+  const [sort, setSort] = useState<AgentsSort>("recent");
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const rowRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const handleServerEvent = useCallback((event: DeckGoServerEvent) => {
+    useAgentsStore.getState().applyServerEvent(event);
+  }, []);
+  const liveProjection = useLiveProjectionSubscription({
+    projectionId: "agent-status",
+    onEvent: handleServerEvent,
+    retryDelayMs: 2_000,
+  });
+  const streamStatus = liveProjection.status;
 
   useEffect(() => {
     if (status === "idle") {
@@ -174,21 +183,6 @@ export function AgentsPanel() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [selectAgent]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void streamEvents({
-      signal: controller.signal,
-      onEvent: (event) => useAgentsStore.getState().applyServerEvent(event),
-      onStatusChange: setStreamStatus,
-      retryDelayMs: 2000,
-    }).catch(() => {
-      if (!controller.signal.aborted) {
-        setStreamStatus("error");
-      }
-    });
-    return () => controller.abort();
-  }, []);
 
   const visibleAgents = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -259,7 +253,7 @@ export function AgentsPanel() {
       }
       if (!selectedAgent && !isTextInput && ["1", "2", "3"].includes(event.key)) {
         event.preventDefault();
-        setFilter((["all", "busy", "default"] as AgentsFilter[])[Number(event.key) - 1] ?? "all");
+        setFilter((["all", "busy", "idle"] as AgentsFilter[])[Number(event.key) - 1] ?? "all");
       }
       if (selectedAgent && event.key === "Escape" && !createOpen && !deleteTarget) {
         event.preventDefault();
@@ -275,7 +269,7 @@ export function AgentsPanel() {
     rowRefs.current[clamped]?.focus();
   };
 
-  const handleRowKeyDown = (event: KeyboardEvent<HTMLDivElement>, index: number) => {
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     if (event.key === "ArrowDown") {
       event.preventDefault();
       focusRow(index + 1);
@@ -295,58 +289,63 @@ export function AgentsPanel() {
     <section className="agents-panel" aria-label={t("title")} data-agents-workbench="true">
       <div className="agents-panel__toolbar">
         <div>
-          <p className="agents-panel__eyebrow">{t("eyebrow")}</p>
-          <h2>{t("title")}</h2>
+          <h1>{t("title")}</h1>
           <p>{t("subtitle")}</p>
         </div>
         <div className="agents-panel__toolbar-actions">
-          <Badge variant={streamStatus === "connected" ? "ok" : "neutral"}>
-            {t(`stream.${streamStatus}`)}
-          </Badge>
+          {!selectedAgent ? (
+            <div className="agents-search">
+              <Input
+                ref={searchRef}
+                value={search}
+                aria-label={t("searchLabel")}
+                placeholder={t("searchPlaceholder")}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+              />
+              <span className="agents-keyhint">⌘K</span>
+            </div>
+          ) : null}
           <Button variant="primary" onClick={() => setCreateOpen(true)}>
             {t("create.open")}
           </Button>
         </div>
       </div>
 
-      <div className="agents-panel__metrics" aria-label={t("metrics.label")}>
-        <MetricTile label={t("metrics.total")} value={String(metrics.total)} />
-        <MetricTile label={t("metrics.busy")} value={String(metrics.busy)} />
-        <MetricTile label={t("metrics.default")} value={metrics.defaultAgent} />
-        <MetricTile label={t("metrics.sessions")} value={String(metrics.sessions)} />
-        <MetricTile label={t("metrics.bindings")} value={String(metrics.bindings)} />
-      </div>
-
-      <div className="agents-workbench">
-        <Card className="agents-panel__list-card agents-list-card" padded={false}>
+      {selectedAgent ? (
+        <AgentDetailView
+          agent={selectedAgent}
+          onBack={returnToList}
+          onDelete={() => setDeleteTarget(selectedAgent)}
+        />
+      ) : (
+        <div className="agents-list-view">
           <div className="agents-panel__filters">
-            <Input
-              ref={searchRef}
-              value={search}
-              aria-label={t("searchLabel")}
-              placeholder={t("searchPlaceholder")}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-            />
-            <SegmentedControl<AgentsFilter>
-              aria-label={t("filterLabel")}
-              value={filter}
-              onChange={setFilter}
-              items={[
-                { value: "all", label: t("filters.all") },
-                { value: "busy", label: t("filters.busy") },
-                { value: "default", label: t("filters.default") },
-              ]}
-            />
-            <SegmentedControl<AgentsSort>
-              aria-label={t("sortLabel")}
-              value={sort}
-              onChange={setSort}
-              items={[
-                { value: "name", label: t("sort.name") },
-                { value: "recent", label: t("sort.recent") },
-                { value: "sessions", label: t("sort.sessions") },
-              ]}
-            />
+            <span>
+              {visibleAgents.length} of {list.length}{" "}
+              {list.length === 1 ? t("count.agent") : t("count.agents")}
+            </span>
+            <div className="agents-panel__filter-groups">
+              <SegmentedControl<AgentsFilter>
+                aria-label={t("filterLabel")}
+                value={filter}
+                onChange={setFilter}
+                items={[
+                  { value: "all", label: t("filters.all") },
+                  { value: "busy", label: t("filters.busy") },
+                  { value: "idle", label: t("filters.idle") },
+                ]}
+              />
+              <SegmentedControl<AgentsSort>
+                aria-label={t("sortLabel")}
+                value={sort}
+                onChange={setSort}
+                items={[
+                  { value: "name", label: t("sort.name") },
+                  { value: "recent", label: t("sort.recent") },
+                  { value: "sessions", label: t("sort.sessions") },
+                ]}
+              />
+            </div>
           </div>
 
           {status === "loading" ? <LoadingRows label={t("loading")} /> : null}
@@ -374,67 +373,67 @@ export function AgentsPanel() {
           ) : null}
 
           {visibleAgents.length > 0 ? (
-            <div className="agents-table" role="table" aria-label={t("tableLabel")}>
-              <div className="agents-table__head" role="row">
-                <span role="columnheader">{t("columns.agent")}</span>
-                <span role="columnheader">{t("columns.status")}</span>
-                <span role="columnheader">{t("columns.sessions")}</span>
-                <span role="columnheader">{t("columns.bindings")}</span>
-              </div>
+            <div className="agents-list" role="list" aria-label={t("tableLabel")}>
               {visibleAgents.map((agent, index) => (
-                <div
-                  key={agent.id}
-                  ref={(node) => {
-                    rowRefs.current[index] = node;
-                  }}
-                  role="row"
-                  tabIndex={0}
-                  className={
-                    selectedAgentId === agent.id
-                      ? "agents-table__row agents-table__row--selected"
-                      : "agents-table__row"
-                  }
-                  aria-selected={selectedAgentId === agent.id}
-                  onClick={() => openAgent(agent.id)}
-                  onKeyDown={(event) => handleRowKeyDown(event, index)}
-                >
-                  <span className="agent-cell" role="cell">
-                    <span className="agent-avatar" aria-hidden="true">
+                <div key={agent.id} role="listitem">
+                  <button
+                    ref={(node) => {
+                      rowRefs.current[index] = node;
+                    }}
+                    type="button"
+                    className="agents-list__row"
+                    onClick={() => openAgent(agent.id)}
+                    onKeyDown={(event) => handleRowKeyDown(event, index)}
+                  >
+                    <span
+                      className={
+                        agent.isDefault ? "agent-avatar agent-avatar--accent" : "agent-avatar"
+                      }
+                      aria-hidden="true"
+                    >
                       {agentInitial(agent)}
                     </span>
-                    <span>
-                      <strong>{agent.name}</strong>
-                      <small>
-                        {agent.id}
-                        {agent.workspace ? ` / ${agent.workspace}` : ""}
-                      </small>
+                    <span className="agents-list__main">
+                      <span className="agents-list__name">
+                        <strong>{agent.name}</strong>
+                        {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+                      </span>
+                      <span className="agents-list__meta">
+                        <span>{agent.id}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{agent.model || t("missingModel")}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{agent.workspace || t("missingWorkspace")}</span>
+                      </span>
                     </span>
-                    {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
-                  </span>
-                  <span role="cell">
-                    <StatusBadge agent={agent} />
-                  </span>
-                  <span role="cell">{formatMaybeCount(agent.sessionCount)}</span>
-                  <span role="cell">{formatMaybeCount(agent.bindingCount)}</span>
+                    <span className="agents-list__status">
+                      <span className="agents-list__counts">
+                        <span>
+                          <strong>{formatMaybeCount(agent.sessionCount)}</strong>
+                          {t("columns.sessions").toLowerCase()}
+                        </span>
+                        <span>
+                          <strong>{formatMaybeCount(agent.bindingCount)}</strong>
+                          {t("columns.bindings").toLowerCase()}
+                        </span>
+                      </span>
+                      <StatusBadge agent={agent} />
+                    </span>
+                  </button>
                 </div>
               ))}
             </div>
           ) : null}
-        </Card>
 
-        {selectedAgent ? (
-          <AgentDetailView
-            agent={selectedAgent}
-            onBack={returnToList}
-            onDelete={() => setDeleteTarget(selectedAgent)}
-          />
-        ) : (
-          <div className="agents-detail-placeholder" role="status">
-            <h3>{t("detailPlaceholder.title")}</h3>
-            <p>{t("detailPlaceholder.body")}</p>
-          </div>
-        )}
-      </div>
+          <footer className="agents-list-footer">
+            <span>{t("footer.summary", { total: list.length, busy: metrics.busy })}</span>
+            <span>
+              <span className={`agent-status-dot agent-status-dot--${streamStatus}`} />
+              {t(`stream.${streamStatus}`)}
+            </span>
+          </footer>
+        </div>
+      )}
 
       <CreateAgentWizard
         open={createOpen}
@@ -454,15 +453,6 @@ export function AgentsPanel() {
         }}
       />
     </section>
-  );
-}
-
-function MetricTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="agent-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   );
 }
 
@@ -880,63 +870,98 @@ function AgentDetailView({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [changeSection, saveFile, saveOverview, saveSkills, saveStreams, saveSubagents, section]);
 
+  const detailModel = detail?.model ?? agent.model ?? t("missingModel");
+  const detailWorkspace = detail?.workspace ?? agent.workspace ?? "/";
+  const skillCount =
+    detail && Array.isArray(detail.effectiveSkills)
+      ? `${detail.effectiveSkills.length}/${detail.totalAvailableSkills}`
+      : null;
+
   return (
     <section className="agents-detail" aria-label={t("detailLabel", { name: agent.name })}>
-      <aside className="agents-detail__nav" aria-label={t("sectionNavLabel")}>
-        <Button size="sm" variant="ghost" onClick={onBack}>
-          {t("backToList")}
-        </Button>
+      <Button className="agents-detail__back" size="sm" variant="ghost" onClick={onBack}>
+        {t("backToList")}
+      </Button>
+
+      <header className="agents-detail__hero">
         <div className="agents-detail__identity">
-          <span className="agent-avatar agent-avatar--large" aria-hidden="true">
+          <span
+            className={
+              agent.isDefault
+                ? "agent-avatar agent-avatar--large agent-avatar--accent"
+                : "agent-avatar agent-avatar--large"
+            }
+            aria-hidden="true"
+          >
             {agentInitial(agent)}
           </span>
-          <div>
-            <h2>{agent.name}</h2>
-            <p>{agent.id}</p>
+          <div className="agents-detail__identity-main">
+            <h2>
+              {agent.name}
+              {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+              <StatusBadge agent={agent} />
+            </h2>
+            <p>
+              {agent.id} <span aria-hidden="true">·</span> {detailModel}{" "}
+              <span aria-hidden="true">·</span> {detailWorkspace}
+            </p>
+            <div className="agent-meta-strip">
+              <Chip>{t("meta.sessions", { count: formatMaybeCount(agent.sessionCount) })}</Chip>
+              <Chip>{t("meta.bindings", { count: formatMaybeCount(agent.bindingCount) })}</Chip>
+              {detail ? (
+                <Chip>{t("meta.activeSubagents", { count: detail.activeSubagentCount })}</Chip>
+              ) : null}
+              {skillCount ? <Chip>{t("meta.skills", { count: skillCount })}</Chip> : null}
+            </div>
           </div>
-          <StatusBadge agent={agent} />
         </div>
-        <nav className="agents-detail__sections" aria-label={t("sectionNavLabel")}>
-          {AGENT_SECTIONS.map((entry, index) => (
-            <button
-              key={entry.id}
-              type="button"
-              role="link"
-              aria-current={entry.id === section ? "page" : undefined}
-              className={
-                entry.id === section
-                  ? "agents-detail__section agents-detail__section--active"
-                  : "agents-detail__section"
-              }
-              onClick={() => changeSection(entry.id)}
-            >
-              <span>{t(entry.labelKey)}</span>
-              <small>{index + 1}</small>
-            </button>
-          ))}
-        </nav>
-      </aside>
+        <div className="agents-detail__actions">
+          <Button variant="danger" onClick={onDelete}>
+            {t("delete.open")}
+          </Button>
+        </div>
+      </header>
+
+      {dirtySections.length > 0 ? (
+        <Banner variant="info">{t("dirtyBanner", { sections: dirtySections.join(", ") })}</Banner>
+      ) : null}
+      {detailLoading ? (
+        <Banner>
+          <Spinner size="sm" aria-label={t("loading")} />
+          {t("loading")}
+        </Banner>
+      ) : null}
+      {detailError ? (
+        <Banner variant="error">
+          <strong>{t("errors.detailTitle")}</strong>
+          <span>{detailError}</span>
+          <Button size="sm" onClick={() => void loadDetail()}>
+            {t("retry")}
+          </Button>
+        </Banner>
+      ) : null}
+
+      <nav className="agents-detail__tabs" role="tablist" aria-label={t("sectionNavLabel")}>
+        {AGENT_SECTIONS.map((entry, index) => (
+          <button
+            key={entry.id}
+            type="button"
+            role="tab"
+            aria-selected={entry.id === section}
+            className={
+              entry.id === section
+                ? "agents-detail__tab agents-detail__tab--active"
+                : "agents-detail__tab"
+            }
+            onClick={() => changeSection(entry.id)}
+          >
+            <span className="agents-detail__tab-index">{index + 1}</span>
+            {t(entry.labelKey)}
+          </button>
+        ))}
+      </nav>
 
       <main className="agents-detail__main">
-        {dirtySections.length > 0 ? (
-          <Banner variant="info">{t("dirtyBanner", { sections: dirtySections.join(", ") })}</Banner>
-        ) : null}
-        {detailLoading ? (
-          <Banner>
-            <Spinner size="sm" aria-label={t("loading")} />
-            {t("loading")}
-          </Banner>
-        ) : null}
-        {detailError ? (
-          <Banner variant="error">
-            <strong>{t("errors.detailTitle")}</strong>
-            <span>{detailError}</span>
-            <Button size="sm" onClick={() => void loadDetail()}>
-              {t("retry")}
-            </Button>
-          </Banner>
-        ) : null}
-
         {section === "overview" ? (
           <OverviewSection
             agent={agent}
@@ -947,7 +972,6 @@ function AgentDetailView({
             error={overviewError}
             onDraftChange={setOverviewDraft}
             onSave={saveOverview}
-            onDelete={onDelete}
           />
         ) : null}
         {section === "skills" ? (
@@ -1059,7 +1083,6 @@ function OverviewSection({
   error,
   onDraftChange,
   onSave,
-  onDelete,
 }: {
   agent: Agent;
   detail: DeckGoAgentDetailResponse | null;
@@ -1069,7 +1092,6 @@ function OverviewSection({
   error: string | null;
   onDraftChange: (draft: OverviewDraft) => void;
   onSave: () => Promise<void>;
-  onDelete: () => void;
 }) {
   const t = useTranslations("agentsPanel");
   const update = (patch: Partial<OverviewDraft>) => onDraftChange({ ...draft, ...patch });
@@ -1113,9 +1135,6 @@ function OverviewSection({
         ) : null}
       </div>
       <footer className="agent-section__actions">
-        <Button variant="danger" onClick={onDelete}>
-          {t("delete.open")}
-        </Button>
         <Button variant="primary" disabled={!dirty || saving} onClick={() => void onSave()}>
           {saving ? t("saving") : t("saveChanges")}
         </Button>

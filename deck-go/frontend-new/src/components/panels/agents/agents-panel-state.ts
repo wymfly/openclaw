@@ -1,7 +1,7 @@
 import type { DeckGoAgentCreateRequest, DeckGoAgentPatchRequest } from "@/api-types";
 import type { Agent } from "@/stores/agents";
 
-export type AgentsFilter = "all" | "busy" | "default";
+export type AgentsFilter = "all" | "busy" | "idle";
 export type AgentsSort = "name" | "recent" | "sessions";
 export type AgentSectionId =
   | "overview"

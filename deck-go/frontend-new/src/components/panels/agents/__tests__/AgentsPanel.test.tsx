@@ -116,6 +116,11 @@ describe("AgentsPanel", () => {
       ],
       configHash: "skills-hash",
     });
+    api.fetchAgentEventStreams.mockResolvedValue({
+      agentId: "main",
+      eventStreams: ["lifecycle", "assistant"],
+      configHash: "streams-hash",
+    });
     api.streamEvents.mockImplementation(
       ({ onStatusChange }: { onStatusChange?: (status: string) => void }) => {
         onStatusChange?.("connected");
@@ -163,7 +168,7 @@ describe("AgentsPanel", () => {
     api.updateAgent.mockResolvedValue({ ok: true, id: "main" });
     renderPanel();
 
-    const mainRow = (await screen.findByText("Main")).closest('[role="row"]');
+    const mainRow = (await screen.findByText("Main")).closest("button");
     expect(mainRow).toBeTruthy();
     fireEvent.click(mainRow!);
     const nameInput = await screen.findByLabelText("Name");
@@ -179,10 +184,10 @@ describe("AgentsPanel", () => {
     api.updateAgentSkills.mockRejectedValue(new Error("409 conflict: stale hash"));
     renderPanel();
 
-    const mainRow = (await screen.findByText("Main")).closest('[role="row"]');
+    const mainRow = (await screen.findByText("Main")).closest("button");
     expect(mainRow).toBeTruthy();
     fireEvent.click(mainRow!);
-    fireEvent.click(await screen.findByRole("link", { name: /Skills/ }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Skills/ }));
     fireEvent.click(await screen.findByRole("switch", { name: "Toggle skill Write" }));
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Save changes" }).hasAttribute("disabled")).toBe(
@@ -202,6 +207,51 @@ describe("AgentsPanel", () => {
     expect(
       screen.getByRole("switch", { name: "Toggle skill Write" }).getAttribute("aria-checked"),
     ).toBe("true");
+  });
+
+  it("preserves real Gateway event stream names alongside declared UI options", async () => {
+    api.updateAgentEventStreams.mockResolvedValue({
+      ok: true,
+      eventStreams: ["lifecycle", "assistant", "session.message"],
+      configHash: "streams-hash-2",
+    });
+    renderPanel();
+
+    const mainRow = (await screen.findByText("Main")).closest("button");
+    expect(mainRow).toBeTruthy();
+    fireEvent.click(mainRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Event streams/i }));
+
+    expect(await screen.findByText("lifecycle")).toBeTruthy();
+    expect(screen.getByText("assistant")).toBeTruthy();
+    expect(screen.getByText("session.message")).toBeTruthy();
+    expect(
+      screen.getByRole("switch", { name: "Toggle stream lifecycle" }).getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByRole("switch", { name: "Toggle stream assistant" }).getAttribute("aria-checked"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("switch", { name: "Toggle stream session.message" }));
+    const streamSection = screen
+      .getByText("Configure declared event streams without inventing new payload types.")
+      .closest(".agent-section");
+    expect(streamSection).toBeTruthy();
+    const saveButton = within(streamSection as HTMLElement).getByRole("button", {
+      name: "Save changes",
+    });
+    await waitFor(() => {
+      expect(saveButton.hasAttribute("disabled")).toBe(false);
+    });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.updateAgentEventStreams).toHaveBeenCalledWith(
+        "main",
+        ["lifecycle", "assistant", "session.message"],
+        "streams-hash",
+      );
+    });
   });
 
   it("creates and deletes agents through backend-supported fields", async () => {
@@ -229,7 +279,7 @@ describe("AgentsPanel", () => {
       });
     });
 
-    const mainRow = screen.getByText("Main").closest('[role="row"]');
+    const mainRow = screen.getByText("Main").closest("button");
     expect(mainRow).toBeTruthy();
     fireEvent.click(mainRow!);
     fireEvent.click(await screen.findByRole("button", { name: "Delete agent" }));

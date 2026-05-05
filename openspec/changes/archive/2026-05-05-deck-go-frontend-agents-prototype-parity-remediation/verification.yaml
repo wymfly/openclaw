@@ -1,0 +1,30 @@
+scenarios:
+  active-prototype:
+    status: passed
+    evidence:
+      - "deck-go/frontend-handoff/modules/agents/README.md declares prototype.html as the active visual target; prototype-v2-codex.html is historical context."
+  mock-prototype-parity:
+    status: passed-with-exceptions
+    evidence:
+      - "pnpm exec playwright test test/e2e/agents-visual.spec.ts --config playwright.config.ts --output .local/agents-prototype-remediation-mock-visual --reporter=line -> 1 passed"
+      - "node scripts/generate-prototype-parity-report.mjs --mock-dir .local/agents-prototype-remediation-mock-visual --prototype-dir .local/prototype-gap-audit --out-dir .local/agents-prototype-remediation-parity-report -> agents ready-for-review"
+      - "deck-go/.local/agents-prototype-remediation-parity-report/verdict.json -> agents pass-with-exceptions"
+  focused-frontend:
+    status: passed
+    evidence:
+      - "npm run test:deck-ui -- src/components/panels/agents/__tests__/AgentsPanel.test.tsx -> 6 passed"
+      - "make frontend-build -> passed"
+  focused-backend-or-contract:
+    status: skipped
+    evidence:
+      - "No agents backend or contract source files were intentionally changed in this parity remediation pass."
+  real-gateway-readonly:
+    status: passed
+    evidence:
+      - "Initial real Gateway attempt hit Playwright beforeAll 120s hook timeout before scenario execution."
+      - "test/e2e/agents-real-gateway.spec.ts now sets the beforeAll startup hook timeout to 300s."
+      - "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/agents-real-gateway.spec.ts --config playwright.config.ts --output .local/agents-prototype-remediation-real-gateway --reporter=line -> 2 passed"
+  unsafe-real-mutations:
+    status: handoff-blocked
+    evidence:
+      - "Create/update/delete/save real mutations still require disposable or reversible agent state before automated execution against user configuration."

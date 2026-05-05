@@ -15,11 +15,11 @@
 
 ## 3. First Sample Module
 
-- [ ] 3.1 Create the `agents` module remediation child proposal using this head change as its governing rule set.
-- [ ] 3.2 Reconcile the active `agents` prototype with Gateway/deck-go contract truth and revise handoff artifacts only if necessary.
-- [ ] 3.3 Implement `agents` UI corrections until mock-current visually matches the active prototype or has structured accepted exceptions.
-- [ ] 3.4 Run `agents` unit/build/mock parity evidence and bounded real Gateway evidence.
-- [ ] 3.5 Validate, archive, and commit the `agents` remediation child proposal.
+- [x] 3.1 Create the `agents` module remediation child proposal using this head change as its governing rule set.
+- [x] 3.2 Reconcile the active `agents` prototype with Gateway/deck-go contract truth and revise handoff artifacts only if necessary.
+- [x] 3.3 Implement `agents` UI corrections until mock-current visually matches the active prototype or has structured accepted exceptions.
+- [x] 3.4 Run `agents` unit/build/mock parity evidence and bounded real Gateway evidence.
+- [x] 3.5 Validate, archive, and commit the `agents` remediation child proposal.
 
 ## 4. Blocking And Failing Evidence Modules
 

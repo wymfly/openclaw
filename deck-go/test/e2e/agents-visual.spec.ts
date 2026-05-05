@@ -20,7 +20,7 @@ test.describe("agents mock visual handoff alignment", () => {
 
     await openDeck(page, stack.frontendBase, "agents", stack.accessToken, {
       locale: "en",
-      nav: "expanded",
+      nav: "collapsed",
       theme: "dark",
     });
 
@@ -28,15 +28,14 @@ test.describe("agents mock visual handoff alignment", () => {
     await expect(page.getByText("Main").first()).toBeVisible();
     await expect(page.getByText("Ops Runner").first()).toBeVisible();
 
+    await page.waitForTimeout(500);
+    await page.locator('[data-agents-workbench="true"]').screenshot({
+      path: testInfo.outputPath("agents-workbench-ready.png"),
+    });
+
     await page.getByText("Main").first().click();
     await expect(page.getByLabel("Agent detail for Main")).toBeVisible();
     await expect(page.getByText("Overview").first()).toBeVisible();
-    await page.waitForTimeout(500);
-
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("agents-workbench-ready.png"),
-    });
 
     await page.getByRole("button", { name: "New agent" }).click();
     await expect(page.getByRole("dialog", { name: "Create agent" })).toBeVisible();
