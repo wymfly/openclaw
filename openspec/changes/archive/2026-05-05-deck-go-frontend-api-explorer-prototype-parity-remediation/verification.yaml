@@ -1,0 +1,27 @@
+scenarios:
+  active-prototype:
+    status: passed
+    evidence:
+      - "deck-go/frontend-handoff/modules/api-explorer/README.md identifies prototype.html as the active v2 handoff; prototype-v1-codex.html is historical context."
+      - "deck-go/frontend-handoff/modules/api-explorer/api-usage.md records current route truth: GET /api/gateway/describe and POST /api/v1/runtimes/{runtimeId}/gateway/rpc."
+  mock-prototype-parity:
+    status: passed-with-exceptions
+    evidence:
+      - "pnpm exec playwright test test/e2e/api-explorer-visual.spec.ts --config playwright.config.ts --output .local/api-explorer-prototype-remediation-mock-visual --reporter=line -> 1 passed"
+      - "node scripts/generate-prototype-parity-report.mjs --mock-dir .local/api-explorer-prototype-remediation-mock-visual --prototype-dir .local/prototype-gap-audit --out-dir .local/api-explorer-prototype-remediation-parity-report -> api-explorer ready-for-review"
+      - "deck-go/.local/api-explorer-prototype-remediation-parity-report/verdict.json -> api-explorer pass-with-exceptions"
+  focused-frontend:
+    status: passed
+    evidence:
+      - "npm run test:deck-ui -- src/components/panels/api-explorer/ApiExplorerPanel.test.tsx src/api.chat-helpers.test.ts -> 62 passed"
+      - "make frontend-build -> passed"
+  focused-backend-or-contract:
+    status: skipped
+    evidence:
+      - "No backend or contract source files were intentionally changed in this parity remediation pass."
+  real-gateway-safe-invoke:
+    status: passed
+    evidence:
+      - "Initial real Gateway attempt failed before scenario execution at shared stack health polling: /api/gateway/health stayed 502 for 180s."
+      - "Second bounded run: DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/api-explorer-real-gateway.spec.ts --config playwright.config.ts --output .local/api-explorer-prototype-remediation-real-gateway-2 --reporter=line -> 2 passed"
+      - "The real test covers gateway.describe, safe typed gateway.describe invocation, INVALID_GATEWAY_METHOD allowlist error shape, production UI rendering, and no browser direct Gateway HTTP/WS calls."

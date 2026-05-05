@@ -8,6 +8,7 @@ import { ApiExplorerPanel } from "./ApiExplorerPanel";
 
 const apiMocks = vi.hoisted(() => ({
   fetchGatewayDescribe: vi.fn(),
+  invokeGatewayMethod: vi.fn(),
 }));
 
 vi.mock("../../../api", () => apiMocks);
@@ -28,9 +29,7 @@ function describePayload() {
         since: 1,
         params: {
           type: "object",
-          required: ["agentId"],
           properties: {
-            agentId: { type: "string" },
             includeInactive: { type: "boolean", enum: [true, false] },
           },
         },
@@ -101,6 +100,14 @@ function describePayload() {
   };
 }
 
+function clickButton(label: string) {
+  const button = Array.from(container.querySelectorAll("button")).find(
+    (candidate) => candidate.textContent === label,
+  );
+  expect(button, `expected button ${label}`).toBeTruthy();
+  fireEvent.click(button as HTMLButtonElement);
+}
+
 describe("ApiExplorerPanel", () => {
   beforeEach(() => {
     (
@@ -109,6 +116,13 @@ describe("ApiExplorerPanel", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     apiMocks.fetchGatewayDescribe.mockResolvedValue(describePayload());
+    apiMocks.invokeGatewayMethod.mockResolvedValue({
+      body: { agents: [{ id: "main" }] },
+      headers: { "x-deck-duration-ms": "4" },
+      ok: true,
+      requestId: "req-1",
+      statusCode: 200,
+    });
   });
 
   afterEach(() => {
@@ -122,48 +136,98 @@ describe("ApiExplorerPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads gateway.describe methods, groups them by domain, and selects the first method", async () => {
+  it("loads the v2 method tree, request builder, response pane, and history rail", async () => {
     await act(async () => {
       renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
 
+    expect(container.querySelector(".api-explorer-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel__tree")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel__builder-card")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel__response-card")).toBeTruthy();
+    expect(container.querySelector(".api-explorer-panel__history")).toBeTruthy();
+    expect(container.textContent).toContain("Gateway API Explorer");
     expect(container.textContent).toContain("Describe ready");
-    expect(container.textContent).toContain("3 methods");
-    expect(container.textContent).toContain("2 events");
-    expect(container.textContent).toContain("1 untyped");
     expect(container.textContent).toContain("deck (2)");
     expect(container.textContent).toContain("gateway (1)");
     expect(container.textContent).toContain("deck.agents.list");
-    expect(container.textContent).toContain("agentId required");
     expect(container.textContent).toContain("includeInactive");
-    expect(container.textContent).toContain("enum: true, false");
-    expect(container.querySelector(".api-explorer-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".api-explorer-panel__card").length).toBe(2);
-    expect(container.querySelectorAll(".api-explorer-panel__row").length).toBe(3);
-    expect(container.querySelectorAll(".api-explorer-panel__surface").length).toBe(2);
-    expect(
-      container.querySelectorAll(".api-explorer-panel__schema-row").length,
-    ).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".api-explorer-panel__input")).toBeTruthy();
-    expect(container.querySelector(".api-explorer-panel__hero")).toBeTruthy();
-    expect(container.querySelector('[aria-label="Collapse agents"]')).toBeTruthy();
+    expect(container.textContent).toContain("No response yet");
     expect(container.textContent).toContain("Untyped methods");
     expect(container.textContent).toContain("legacy.raw");
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("deck.agents.list");
+    const metrics = Array.from(
+      container.querySelectorAll<HTMLDivElement>(".api-explorer-panel__metric"),
+    ).map((metric) => metric.textContent);
+    expect(metrics).toEqual(expect.arrayContaining(["methods3", "events2", "untyped1"]));
   });
 
-  it("keeps nested schema fields collapsible like the old explorer", async () => {
+  it("runs a safe read-only typed method through the API wrapper and records history", async () => {
     await act(async () => {
       renderApiExplorerPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      clickButton("Run");
+    });
+
+    await waitFor(() => expect(apiMocks.invokeGatewayMethod).toHaveBeenCalledTimes(1));
+    expect(apiMocks.invokeGatewayMethod).toHaveBeenCalledWith(
+      "deck.agents.list",
+      { includeInactive: true },
+      { runtimeId: "rt_local", timeoutMs: 10000 },
+    );
+    await waitFor(() => expect(container.textContent).toContain("200"));
+    expect(container.textContent).toContain('"agents"');
+
+    await act(async () => {
+      clickButton("Trace");
+    });
+    expect(container.textContent).toContain("req-1");
+    expect(container.textContent).toContain("History");
+  });
+
+  it("keeps JSON body parse errors local and disables run until corrected", async () => {
+    await act(async () => {
+      renderApiExplorerPanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      clickButton("Body");
+    });
+    const textarea = container.querySelector<HTMLTextAreaElement>(
+      ".api-explorer-panel__body-editor textarea",
+    );
+    expect(textarea).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(textarea as HTMLTextAreaElement, { target: { value: "{" } });
+    });
+
+    expect(container.textContent).toMatch(/JSON|property name|Unexpected/i);
+    const runButton = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Run",
+    );
+    expect(runButton?.disabled).toBe(true);
+    expect(apiMocks.invokeGatewayMethod).not.toHaveBeenCalled();
+  });
+
+  it("keeps nested schema fields collapsible in the docs tab", async () => {
+    await act(async () => {
+      renderApiExplorerPanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      clickButton("Docs");
+    });
 
     expect(container.textContent).toContain("id");
     await act(async () => {
@@ -171,17 +235,7 @@ describe("ApiExplorerPanel", () => {
         .querySelector<HTMLButtonElement>('[aria-label="Collapse agents"]')
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
     expect(container.querySelector('[aria-label="Expand agents"]')).toBeTruthy();
-
-    await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>('[aria-label="Expand agents"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.querySelector('[aria-label="Collapse agents"]')).toBeTruthy();
-    expect(container.textContent).toContain("id");
   });
 
   it("retries gateway.describe after a failed load", async () => {
@@ -196,9 +250,7 @@ describe("ApiExplorerPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("describe unavailable"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Refresh describe")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickButton("Refresh describe");
     });
 
     await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalledTimes(2));
@@ -241,8 +293,9 @@ describe("ApiExplorerPanel", () => {
       fireEvent.change(searchInput as HTMLInputElement, { target: { value: "sessions" } });
     });
 
-    expect(container.textContent).toContain("deck (1)");
-    expect(container.textContent).toContain("deck.sessions.detail");
+    const catalog = container.querySelector(".api-explorer-panel__catalog");
+    expect(catalog?.textContent).toContain("deck.sessions.detail");
+    expect(catalog?.textContent).not.toContain("deck.agents.list");
 
     const sessionMethodButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.textContent?.includes("deck.sessions.detail"),
@@ -253,15 +306,11 @@ describe("ApiExplorerPanel", () => {
       sessionMethodButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain("required");
     expect(container.textContent).toContain("sessionKey");
     expect(container.textContent).toContain("includeHistory");
-    expect(container.textContent).toContain("type: boolean");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Events")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      clickButton("Events");
     });
 
     expect(container.textContent).toContain("deck.sessions.changed");

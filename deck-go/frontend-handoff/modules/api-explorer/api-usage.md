@@ -1,194 +1,129 @@
-# API usage
+# API Usage
 
-The API Explorer is the **meta-panel** — every method it lists is itself a backend endpoint. Source of truth for the catalog: `deck.gateway.describe` (RPC over the BFF). Source of truth for individual method shapes: each method's own contract entry in `deck-go/contracts/source/deck-api.contract.ts`.
+API Explorer is a meta-panel over the Gateway method registry, but the browser never talks to the OpenClaw Gateway directly. Current code truth is the deck-go BFF contract chain below.
 
-## Endpoint table
+## Endpoint Table
 
-| Verb   | Path                    | Request                              | Response                                                                       |
-| ------ | ----------------------- | ------------------------------------ | ------------------------------------------------------------------------------ |
-| `POST` | `/api/gateway/invoke`   | `{ method: string, params: object }` | `{ ok, body, statusCode, headers, error? }`                                    |
-| `GET`  | `/api/gateway/describe` | —                                    | `DeckGoGatewayDescribeResponse` (cached projection of `deck.gateway.describe`) |
+| Verb   | Path                                       | Request                                                  | Response                                                     |
+| ------ | ------------------------------------------ | -------------------------------------------------------- | ------------------------------------------------------------ |
+| `GET`  | `/api/gateway/describe`                    | optional query handled by BFF/runtime                    | `DeckGoGatewayDescribeResponse`                              |
+| `POST` | `/api/v1/runtimes/{runtimeId}/gateway/rpc` | `{ method: string, params: object, timeoutMs?: number }` | `{ runtimeId, requestId, result }` or `{ requestId, error }` |
 
-Most browser interactions go through the single `invoke` envelope. The `describe` endpoint is a convenience GET wrapper around `invoke({ method: "deck.gateway.describe", params: {} })` — both produce the same payload.
+There is no production `POST /api/gateway/invoke` route. Older prototype text that mentions it was design drift.
 
-## Frontend wrapper signatures
+## Frontend Wrapper Signatures
 
 ```typescript
-// frontend-new/src/api/gateway.ts
-export async function describeGateway(): Promise<DeckGoGatewayDescribeResponse>;
-export async function invokeGateway<T = unknown>(
+// frontend-new/src/api.ts
+export async function fetchGatewayDescribe(): Promise<DeckGoGatewayDescribeResponse>;
+
+export async function invokeGatewayMethod(
   method: string,
   params: Record<string, unknown>,
-): Promise<{
-  statusCode: number;
-  body: T;
-  headers: Record<string, string>;
-  success: boolean;
-  error?: string;
-}>;
+  options?: { runtimeId?: string; timeoutMs?: number },
+): Promise<DeckGoGatewayInvokeResult>;
 ```
 
-The Explorer panel's Run button maps directly to `invokeGateway(method, draft)`.
+`invokeGatewayMethod()` normalizes BFF success and error envelopes into:
 
-## Catalog response shape
+```typescript
+type DeckGoGatewayInvokeResult = {
+  body: unknown;
+  error?: string;
+  headers: Record<string, string>;
+  ok: boolean;
+  requestId?: string;
+  statusCode: number;
+};
+```
+
+## Catalog Response Shape
+
+The live catalog is a map keyed by method name, not the prototype's namespace array:
 
 ```jsonc
 {
-  "namespaces": [
-    {
-      "namespace": "deck.agents",
-      "description": "Agent registry and runtime control",
-      "methods": [
-        {
-          "name": "deck.agents.detail",
-          "kind": "query",
-          "scope": "operator.read",
-          "description": "Fetch agent identity, runtime stats, and recent sessions.",
-          "params": {
-            "type": "object",
-            "properties": {
-              "agentId": { "type": "string", "description": "Stable agent id" },
-              "include": { "type": "array", "items": { "type": "string" } },
-            },
-            "required": ["agentId"],
-          },
-          "result": "DeckGoAgentDetailResponse",
-          "sample": { "agentId": "agent-fix-bug", "include": ["sessions", "policy"] },
-        },
-      ],
+  "methods": {
+    "gateway.describe": {
+      "scope": "operator.read",
+      "params": { "type": "object", "properties": {} },
+      "result": { "type": "object" },
+      "since": 1,
     },
-  ],
-  "runtimeVersion": "0.5.0",
-  "describedAt": "2026-05-04T08:14:32.103Z",
+  },
+  "events": {},
+  "untyped": [],
 }
 ```
 
-## Invocation envelope
+The production panel groups method names by prefix (`deck`, `gateway`, `agents`, etc.) for the tree UI.
+
+## Typed Invocation
 
 ### Request
 
 ```jsonc
 {
-  "method": "deck.agents.detail",
-  "params": { "agentId": "agent-fix-bug", "include": ["sessions"] },
+  "method": "gateway.describe",
+  "params": {},
+  "timeoutMs": 10000,
 }
 ```
 
-### Response (success path)
+### Success
 
 ```jsonc
 {
-  "ok": true,
-  "statusCode": 200,
-  "body": {
-    "agent": {
-      /* DeckGoAgent */
-    },
-  },
-  "headers": {
-    "content-type": "application/json",
-    "x-deck-trace": "trace-7c2f9b...",
-    "x-deck-duration-ms": "142",
+  "runtimeId": "rt_local",
+  "requestId": "req-...",
+  "result": {
+    "methods": {},
+    "events": {},
+    "untyped": [],
   },
 }
 ```
 
-### Response (error path)
+### Typed Allowlist Error
 
 ```jsonc
 {
-  "ok": false,
-  "statusCode": 403,
-  "body": null,
-  "error": "scope denied: requires operator.admin",
-  "headers": {
-    "content-type": "application/json",
-    "x-deck-trace": "trace-3f8a2d...",
+  "requestId": "req-...",
+  "error": {
+    "code": "INVALID_GATEWAY_METHOD",
+    "message": "method is not in the generated typed Gateway allowlist",
   },
 }
 ```
 
-## Method kinds
-
-| `kind`     | Semantics                                                   | UI badge tone   |
-| ---------- | ----------------------------------------------------------- | --------------- |
-| `query`    | Idempotent read — safe to retry, no audit trail             | info (blue)     |
-| `mutation` | Side-effecting — write audit row, may require admin scope   | warn (yellow)   |
-| `stream`   | Long-lived response (SSE / WS) — single Run yields N events | accent (purple) |
-
-The Explorer renders all three but the response pane treats `stream` differently in production: it appends events to a scrollable list rather than replacing a single body. **Stream rendering is out of scope this iteration.**
-
-## Required scopes
-
-Every method declares one of:
-
-- `operator.read` — read-only, no audit row written
-- `operator.write` — side-effecting, audit row written, may be approval-gated
-- `operator.admin` — sensitive (kill, delete, scope changes), always audit-logged + approval-required for some
-
-If the BFF returns 403 with body `{ error: "scope denied: requires <scope>" }`, the response pane paints err and surfaces the scope mismatch. The Explorer **does not** attempt to elevate scope — that lives in the operator's session credential, not in the panel.
+The BFF checks the generated typed method allowlist before forwarding to Gateway. API Explorer can inspect untyped or schema-missing methods from describe, but this implementation enables Run only for read-scoped typed methods and renders BFF errors without attempting arbitrary untyped execution.
 
 ## Headers
 
-The Explorer's Headers tab in the request builder is read-only because the BFF transport injects auth/trace/scope headers automatically. Browser code cannot override them.
+The request builder Headers tab is read-only. The BFF injects authentication, runtime, trace, and content headers. Browser code cannot override Gateway auth, operator scope, or trace headers from API Explorer.
 
-Standard headers (always present):
+## Current Production Behavior
 
-| Header                           | Source                       | Notes                                              |
-| -------------------------------- | ---------------------------- | -------------------------------------------------- |
-| `Authorization: Bearer <token>`  | session cookie → BFF derives | Never visible to JS code                           |
-| `X-Deck-Scope`                   | session credential           | Effective scope for this operator                  |
-| `X-Deck-Trace`                   | request middleware generates | New per-request UUID, used for distributed tracing |
-| `Content-Type: application/json` | BFF default                  | All bodies are JSON                                |
+| Workflow     | Current behavior                                                      |
+| ------------ | --------------------------------------------------------------------- |
+| Catalog load | `fetchGatewayDescribe()` on mount; refresh button reloads             |
+| Method tree  | Grouped from `methods` map by method-name prefix                      |
+| Params form  | Module-local schema form for common JSON Schema primitives            |
+| Raw body     | Textarea JSON editor with parse errors and Run disabled while invalid |
+| Run          | `invokeGatewayMethod()` against `rt_local`, `timeoutMs: 10000`        |
+| Response     | Body, headers, and trace/request-id tabs                              |
+| History      | React state only, newest first, capped at 50                          |
+| Events       | Read-only event payload schema inspection                             |
+| Untyped      | Read-only evidence block                                              |
 
-Custom headers (per-method):
+## Out Of Scope / Follow-Up
 
-| Method                     | Header                       | Purpose                                               |
-| -------------------------- | ---------------------------- | ----------------------------------------------------- |
-| `deck.gateway.batch`       | `X-Deck-Batch-Stop-On-Error` | Mirrors `options.stopOnError` for upstream visibility |
-| `deck.sessions.transcript` | `X-Deck-Cursor`              | Pagination cursor (when set)                          |
+- CodeMirror 6 editor integration
+- Schema-aware autocomplete
+- Streaming response rendering
+- Durable localStorage history
+- Response diffing
+- Trace span timeline backed by OpenTelemetry
+- Arbitrary untyped invocation
 
-## Catalog cache + invalidation
-
-- `gateway.describe` result cached in browser for 5 minutes per environment (stale-while-revalidate)
-- On environment switch → invalidate (different env's catalog may differ)
-- On runtime version mismatch (the describe response includes `runtimeVersion`) → toast: "Gateway runtime updated; refresh catalog?" with refetch button
-- Schema-driven form re-renders on catalog change because each method's params schema may have evolved
-
-## History persistence
-
-Production:
-
-- Per-environment `localStorage` key (`deck:apiExplorerHistory:<env>`)
-- Cap at 100 entries per env (50 in the prototype)
-- Expire entries older than 30 days on mount
-- Includes the full draft snapshot (not just paramsPreview) so re-loading a history entry restores the exact request
-
-Prototype: in-memory only; cleared on reload.
-
-## BFF projections (frontend-only state)
-
-| Projection                 | Source                          | Where computed                                                  |
-| -------------------------- | ------------------------------- | --------------------------------------------------------------- |
-| Response duration in trace | `headers["x-deck-duration-ms"]` | Browser parses; SYNTHETIC_SPANS used in prototype               |
-| Trace span breakdown       | OpenTelemetry tail (proposed)   | **TODO** — backend needs OT export to surface per-stage timings |
-| Method "popularity" sort   | history aggregation             | **Future** — group history by method, sort tree by frequency    |
-
-## Auth + scope
-
-All endpoints require Deck operator scope. Reading the catalog (`describe`) requires `operator.read`. Invoking each method requires that method's declared scope. Browser code never elevates scope; if the operator lacks scope for a method, that method is greyed out in the tree (production behavior; prototype always allows selection).
-
-## Error handling
-
-| Backend error           | Frontend surface                                                                                |
-| ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `400 validation_failed` | Response pane err tone, body shows server-supplied validation messages                          |
-| `403 scope_denied`      | Response pane err tone, body shows scope diff                                                   |
-| `404 method_not_found`  | Toast: `That method is no longer in the registry — refreshing catalog`; auto-`describe` refresh |
-| `429 rate_limit`        | Response pane err tone with retry-after hint                                                    |
-| `5xx server_error`      | Response pane err tone with full error body for debugging                                       |
-| Network failure         | Status row shows `—` + `Failed`; body shows transport error message                             |
-
-## Contract drift gates
-
-The catalog itself is regenerated by `cd deck-go && make protocol-update` and verified by `make protocol-check`. Any change to a method's `params` schema MUST run those gates plus the per-DTO contract gate (`make contract-gate`) for any types referenced in `result`.
+Any future contract change must start from source contracts and generated Gateway protocol artifacts, then rerun the matching deck-go contract/protocol checks.

@@ -20,7 +20,7 @@ test.describe("api explorer mock visual handoff alignment", () => {
 
     await openDeck(page, stack.frontendBase, "api-explorer", stack.accessToken, {
       locale: "en",
-      nav: "expanded",
+      nav: "collapsed",
       theme: "dark",
     });
 
@@ -48,8 +48,7 @@ test.describe("api explorer mock visual handoff alignment", () => {
     await expect(page.getByText("legacy.raw").first()).toBeVisible();
     await page.waitForTimeout(500);
 
-    await page.screenshot({
-      fullPage: false,
+    await page.getByTestId("api-explorer-panel").screenshot({
       path: testInfo.outputPath("api-explorer-workspace-ready.png"),
     });
 

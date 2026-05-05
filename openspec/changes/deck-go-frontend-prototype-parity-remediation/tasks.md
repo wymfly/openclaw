@@ -23,7 +23,7 @@
 
 ## 4. Blocking And Failing Evidence Modules
 
-- [ ] 4.1 Remediate `api-explorer` through its own child proposal.
+- [x] 4.1 Remediate `api-explorer` through its own child proposal.
 - [ ] 4.2 Remediate `approvals` through its own child proposal.
 - [ ] 4.3 Remediate `logs` through its own child proposal.
 - [ ] 4.4 Remediate `sessions` through its own child proposal, including the real-data nullable `contextWeight.*.entries` crash.

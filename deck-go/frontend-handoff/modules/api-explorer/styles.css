@@ -2,7 +2,7 @@
  * Layout pattern: topbar (env selector + actions) + 3-pane (method tree ↔
  * request builder ↔ response pane) + collapsible history rail.
  * Stack decision: prototype uses plain textarea + custom JSON tokenizer;
- * production uses CodeMirror 6 (locked, see implementation-notes.md). */
+ * production currently uses a textarea fallback; CodeMirror is a follow-up. */
 
 * {
   box-sizing: border-box;

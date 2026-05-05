@@ -1,25 +1,114 @@
 # Implementation notes
 
-Production-side decisions that wouldn't be obvious from reading the prototype, plus stack decisions triggered by this panel.
+Production-side decisions that would not be obvious from reading the prototype, plus implementation evidence from the deck-go pass.
+
+## Codex implementation closeout - 2026-05-04
+
+### Status
+
+Implemented in `frontend-new` and verified against the current deck-go BFF contract chain.
+
+### Contract-chain matrix
+
+| Workflow          | Frontend surface                                  | BFF / runtime contract                                  | Gateway dependency                                  | Classification                          |
+| ----------------- | ------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------------- | --------------------------------------- |
+| Catalog load      | `fetchGatewayDescribe()`                          | `GET /api/gateway/describe`                             | `gateway.describe` projection                       | supported                               |
+| Method tree       | `ApiExplorerPanel` groups `methods` map by prefix | `DeckGoGatewayDescribeResponse.methods`                 | live describe method map                            | supported                               |
+| Schema inspection | Params/result `SchemaViewer`                      | describe `params` / `result` JSON-schema-shaped entries | Gateway method schema metadata                      | supported                               |
+| Raw body edit     | module-local textarea + JSON parse                | wrapper sends parsed `params` only                      | selected typed method params                        | supported                               |
+| Safe Run          | `invokeGatewayMethod()`                           | `POST /api/v1/runtimes/rt_local/gateway/rpc`            | generated typed Gateway allowlist + runtime request | supported for read-scoped typed methods |
+| Error render      | non-throwing `DeckGoGatewayInvokeResult`          | BFF `{ error: { code, message }, requestId }` envelope  | allowlist/scope/runtime errors                      | supported                               |
+| Event inspection  | Events tab                                        | describe `events` map                                   | Gateway event metadata                              | supported/read-only                     |
+| Untyped methods   | `JsonDetails` evidence                            | describe `untyped` array                                | generated method coverage                           | supported/read-only                     |
+| History           | `HistoryRail` React state                         | frontend-only                                           | none                                                | degraded: in-memory only                |
+| BFF-only access   | API wrapper + Playwright direct-Gateway check     | deck-go BFF endpoints only                              | no browser Gateway HTTP/WS                          | supported                               |
+| Not configured    | `GatewayNotConfiguredEmptyState`                  | BFF not-configured errors                               | runtime endpoint config                             | supported                               |
+| Streaming         | inspect-only badge inference                      | no stream run UI                                        | future Gateway streaming methods                    | unsupported/follow-up                   |
+| CodeMirror/editor | textarea fallback                                 | no new dependency                                       | none                                                | dependency-blocked follow-up            |
+| Trace spans       | request ID + route only                           | response headers/envelope                               | no trace span endpoint                              | degraded                                |
+
+### Fixes made
+
+- Rebuilt production API Explorer into the v2 workbench: method tree, request builder, response pane, history rail, schema viewer, raw JSON error handling, safe run button, event inspection, and untyped evidence.
+- Added `invokeGatewayMethod()` in `frontend-new/src/api.ts` so the panel uses the current typed runtime RPC route instead of a non-existent `/api/gateway/invoke`.
+- Preserved boolean enum values in schema-generated params instead of converting them to strings.
+- Added focused frontend coverage for v2 layout, safe typed invocation, JSON parse failures, schema collapsing, reload, not-configured, filtering, and events.
+- Added mock visual and real Gateway E2E coverage for describe, safe typed invocation, response/history rendering, typed allowlist error shape, and no direct browser Gateway calls.
+- Corrected handoff contract docs for route truth, CodeMirror state, typed allowlist, and unsupported prototype features.
+
+### Verification evidence
+
+- Prototype smoke: `prototype.html` loaded with title `api-explorer — high-fidelity v2` and no browser console/page errors.
+- Focused frontend: `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/api-explorer/ApiExplorerPanel.test.tsx src/api.chat-helpers.test.ts` -> 55 tests passed.
+- Backend focused: `cd deck-go/backend && go test ./internal/api/http ./internal/controld -run 'TestMountRoutes|TestRemoteModeBadPersistedEndpointBlocksPassthroughUntilRepair'` -> passed.
+- L1 mock visual: `cd deck-go && pnpm exec playwright test test/e2e/api-explorer-visual.spec.ts --config playwright.config.ts` -> passed.
+- L2 real Gateway: `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/api-explorer-real-gateway.spec.ts --config playwright.config.ts` -> 2 tests passed.
+- Build: `cd deck-go && make frontend-build` -> passed.
+
+### Residual risks / follow-up
+
+- Durable history, response diffing, schema autocomplete, CodeMirror 6, run cancellation, and OpenTelemetry-backed trace spans remain out of scope.
+- Run is intentionally limited to read-scoped typed methods in the UI; mutating or untyped methods are inspect-only until product safety rules and disposable fixtures exist.
+- The catalog shape still depends on live `gateway.describe`; missing methods are environment-dependent and should be treated as contract/runtime evidence rather than static UI truth.
+
+## Prototype parity remediation closeout - 2026-05-05
+
+### Verdict
+
+`pass-with-exceptions`.
+
+The production panel preserves the active v2 handoff's product shape: method
+catalog, request builder, response pane, schema/docs tabs, untyped evidence, and
+history rail. The remaining differences are intentional contract/product-shell
+exceptions rather than deterministic implementation defects.
+
+### Accepted exceptions
+
+| Difference                                                                                                                                                                                           | Classification                      | Decision                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------- |
+| The handoff prototype screenshot is a standalone surface with lower luminance; production is captured as the module panel inside the current deck-go shell/tokens.                                   | product shell / design-system truth | Keep production contrast and shell integration.                |
+| Prototype method catalog, method count, and history are static sample data. Production follows live `gateway.describe`, generated typed method allowlist, and empty history until a safe run occurs. | contract truth                      | Do not hardcode prototype catalog or history.                  |
+| Prototype shows an environment selector and direct Gateway URL details. Production browser code uses only the deck-go BFF route.                                                                     | architecture boundary               | Keep BFF-only browser access and route display.                |
+| Prototype includes future affordances such as durable history, CodeMirror-grade editing, streaming response rendering, response diffing, and trace span breakdown.                                   | later enhancement                   | Keep out of this remediation; track as follow-up product work. |
+
+### Evidence
+
+- Active prototype: `deck-go/frontend-handoff/modules/api-explorer/prototype.html`.
+- Mock current screenshot:
+  `deck-go/.local/api-explorer-prototype-remediation-mock-visual/api-explorer-visual-api-ex-ea81f-ction-states-from-mock-data/api-explorer-workspace-ready.png`.
+- Prototype-current contact sheet:
+  `deck-go/.local/api-explorer-prototype-remediation-parity-report/sheet-1.png`.
+- Structured verdict:
+  `deck-go/.local/api-explorer-prototype-remediation-parity-report/verdict.json`.
+- Focused frontend:
+  `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/api-explorer/ApiExplorerPanel.test.tsx src/api.chat-helpers.test.ts`
+  -> 62 tests passed.
+- Mock visual:
+  `cd deck-go && pnpm exec playwright test test/e2e/api-explorer-visual.spec.ts --config playwright.config.ts --output .local/api-explorer-prototype-remediation-mock-visual --reporter=line`
+  -> 1 test passed.
+- Real Gateway:
+  `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/api-explorer-real-gateway.spec.ts --config playwright.config.ts --output .local/api-explorer-prototype-remediation-real-gateway-2 --reporter=line`
+  -> 2 tests passed.
+- Frontend build: `cd deck-go && make frontend-build` -> passed.
 
 ## Stack decisions
 
-The api-explorer is the **first deck-go panel that requires interactive code editing** (the request body editor + response viewer). Below decisions are LOCKED for production; prototype uses lightweight stubs.
+The api-explorer is the first deck-go panel that benefits from interactive code editing (the request body editor + response viewer). Current production code uses the existing dependency set and a module-local textarea/JSON viewer fallback. CodeMirror 6 is a proposed follow-up that requires explicit dependency approval.
 
-### Code editor library — **CodeMirror 6 (LOCKED)**
+### Code editor library — CodeMirror 6 proposed follow-up
 
-**Decision**: production uses CodeMirror 6 for the request body editor, response body viewer, and any future code-editing surfaces (e.g., agent instructions in US-002, plugin manifest editing in US-022).
+**Decision state**: not implemented in current production. CodeMirror 6 remains the preferred future option if the project approves a new editor dependency for request body editing, response viewing, and future code-editing surfaces.
 
-| Option                                | Pros                                                                                                                                             | Cons                                                                                      | Verdict                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **CodeMirror 6** ✓                    | Modular packages (~120 KB gzipped per language pack), tree-shakeable, mature JSON / JS / TS support, BSD license, used by Sourcegraph / Codeberg | Steeper API than Monaco; need to wire each addon                                          | **Locked**                                     |
-| Monaco                                | VS Code's editor, full IDE feel, schema-aware autocomplete via `@monaco-editor/react`                                                            | ~3 MB+ minified even after tree-shake; AMD module loader awkward in Vite; long mount time | Rejected — too heavy for non-IDE panels        |
-| Prism (read-only)                     | ~10 KB; perfect for read-only highlighting                                                                                                       | Cannot edit; would still need a different editor for the request body                     | Rejected (alone)                               |
-| Plain `<textarea>` + custom highlight | Zero deps; fastest mount                                                                                                                         | No autocomplete, no schema awareness, no folding                                          | Rejected for production; **used in prototype** |
+| Option                                | Pros                                                                                                                                             | Cons                                                                                      | Verdict                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **CodeMirror 6**                      | Modular packages (~120 KB gzipped per language pack), tree-shakeable, mature JSON / JS / TS support, BSD license, used by Sourcegraph / Codeberg | Steeper API than Monaco; need to wire each addon                                          | Preferred follow-up, dependency approval needed |
+| Monaco                                | VS Code's editor, full IDE feel, schema-aware autocomplete via `@monaco-editor/react`                                                            | ~3 MB+ minified even after tree-shake; AMD module loader awkward in Vite; long mount time | Rejected — too heavy for non-IDE panels         |
+| Prism (read-only)                     | ~10 KB; perfect for read-only highlighting                                                                                                       | Cannot edit; would still need a different editor for the request body                     | Rejected (alone)                                |
+| Plain `<textarea>` + custom highlight | Zero deps; fastest mount                                                                                                                         | No autocomplete, no schema awareness, no folding                                          | Current production fallback                     |
 
-**Rationale**: CodeMirror 6 hits the right point on the bundle / capability curve for a panel-embedded editor. We'll add JSON-schema autocomplete via `@codemirror/lang-json` + a custom completion source that reads from the method's `params` schema.
+**Future rationale**: CodeMirror 6 appears to hit the right point on the bundle / capability curve for a panel-embedded editor. If approved, JSON-schema autocomplete can be added via `@codemirror/lang-json` plus a custom completion source that reads from the method's `params` schema.
 
-**Production wiring**:
+**Possible future wiring**:
 
 - Wrap CodeMirror in a `<CodeEditor>` molecule in `frontend-new/src/design-system/patterns/CodeEditor.tsx`
 - Take `value`, `onChange`, `language`, `schema?` props

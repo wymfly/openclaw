@@ -1,13 +1,13 @@
 # API Explorer
 
-**Status**: ready-for-implementation
+**Status**: implemented - real-contract verified
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild — v2)
 **Depends on atoms**: Button, Input, Select, Textarea, Badge, Tag, Code, ScopeBadge, KindBadge, StatusPill, JsonViewer
 **New atoms needed**: none (all local molecules — see components.md)
 **New tokens needed**: none
 **Backend endpoints used**: see `api-usage.md`
-**Stack decisions**: code editor library locked to **CodeMirror 6** (see `implementation-notes.md` § Stack decisions)
+**Stack decisions**: production currently uses the existing dependency set with a module-local textarea/JSON viewer fallback. CodeMirror 6 remains a dependency-blocked follow-up, not current code truth.
 
 ## What this module does
 
@@ -24,11 +24,14 @@ Layout is the **3-pane workspace + right rail** (~280px tree / center builder / 
 
 ## Contract truth
 
-- BFF endpoints: every Gateway method is reachable through `POST /api/gateway/invoke` with `{ method, params }` envelope
-- Description endpoint: `POST /api/gateway/invoke { method: "deck.gateway.describe" }` returns the live method registry
-- DTO authority: `DeckGoGatewayDescribeResponse` for the catalog; per-method DTOs are referenced by name in each entry's `result` field (see `data.js`)
-- Schema source: each method entry includes a JSON-Schema-shaped `params` object (`{ type, properties, required, enum?, ... }`) — the form generator consumes this directly
-- Browser code must call the BFF wrapper only — never reach into the Gateway WS connection directly
+Code truth wins over this handoff. As of the Codex implementation pass on 2026-05-04:
+
+- Catalog endpoint: `GET /api/gateway/describe` via `frontend-new/src/api.ts::fetchGatewayDescribe()`
+- Typed invocation endpoint: `POST /api/v1/runtimes/{runtimeId}/gateway/rpc` via `frontend-new/src/api.ts::invokeGatewayMethod()`
+- There is no production `/api/gateway/invoke` route.
+- DTO authority: `DeckGoGatewayDescribeResponse` in `deck-go/contracts/source/deck-api.contract.ts`; generated artifacts are derived from source contracts.
+- Typed RPC authority: Go BFF route `backend/internal/api/http/runtimes.go` plus generated Gateway method allowlist. Methods outside the allowlist return `INVALID_GATEWAY_METHOD`.
+- Browser code must call deck-go BFF endpoints only — never the OpenClaw Gateway HTTP/WS endpoint directly.
 
 ## How to implement
 
@@ -36,8 +39,8 @@ Layout is the **3-pane workspace + right rail** (~280px tree / center builder / 
 2. Read `components.md` — component tree, props contract, local molecules (KindBadge, ScopeBadge, StatusCodeBadge, HighlightedJson, ParamRow)
 3. Read `states.md` — running / response / error / unknown method / hash deep link state machines
 4. Read `interactions.md` — keyboard, modal-free flow (no modal in this panel), body mode toggle, copy flow, history pick
-5. Read `api-usage.md` — `gateway.describe` / `gateway.invoke` envelope contract; how the BFF rewrites paths to RPC method names
-6. Read `implementation-notes.md` — stack decisions for production: CodeMirror 6 (locked), JSON tokenizer fallback for prototype, schema-driven form generator
+5. Read `api-usage.md` — current `fetchGatewayDescribe()` / `invokeGatewayMethod()` route truth and allowlist behavior
+6. Read `implementation-notes.md` — current implementation evidence, unsupported prototype features, and dependency-blocked CodeMirror follow-up
 7. Hardcoded literal strings come straight out of the prototype; once translated, lift them into `frontend-new/src/i18n/{en,zh}.json` per the prototype-string convention
 
 ## Open questions for implementation
@@ -45,6 +48,6 @@ Layout is the **3-pane workspace + right rail** (~280px tree / center builder / 
 - **Live `gateway.describe` vs static catalog** — production should call describe on mount, then cache. Should we surface "registry version mismatch" UI when the cached catalog has been superseded? Prototype assumes the catalog is fresh on every load.
 - **Streaming methods** — `kind: "stream"` is in the schema enum but no method in the catalog uses it yet. The UI doesn't render a streaming response area; that's a follow-up when the first streaming RPC lands.
 - **Auth headers** — prototype shows headers as read-only reference. In production, the BFF injects `Authorization` from the session cookie; the Explorer never prompts for tokens.
-- **History persistence** — prototype keeps history in memory. Production should persist to `localStorage` (per-environment) and survive reload.
+- **History persistence** — prototype and current production keep history in memory. Durable `localStorage` history is a follow-up.
 - **Run cancellation** — prototype's "running" state has no cancel button (the `setTimeout` would be discarded by re-clicking Run). Production should cancel via `AbortController`.
 - **Diff between two responses** — out of scope this iteration; flagged in `implementation-notes.md` as future enhancement.

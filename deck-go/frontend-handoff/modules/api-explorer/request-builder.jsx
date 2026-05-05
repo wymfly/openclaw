@@ -1,5 +1,5 @@
 // RequestBuilder — center pane: method hero + tabs (params / headers /
-// body / docs). Body uses plain textarea (production: CodeMirror 6 — see
+// body / docs). Body uses plain textarea (future CodeMirror follow-up — see
 // implementation-notes.md stack decision). Params tab shows schema-driven
 // form when method has typed properties.
 
