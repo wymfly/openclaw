@@ -156,6 +156,16 @@ frontend-handoff/
 7. **写测试**（atom 单测含 vitest-axe；module 单测/e2e 按 stack-decisions 决议的框架）。
 8. **更新模块 `README.md`** Status 行：`Status: implemented (sha <commit-sha>)`。
 
+**Prototype parity evidence rule**：
+
+模块实现完成不能只用 mock 页面截图或 Playwright 用例通过来证明"高保真对齐"。证据必须分三层记录：
+
+- **Mock functional**：mock-backed `frontend-new` 页面能打开，关键文案/交互/错误检查通过，并保存截图。
+- **Mock prototype parity**：active `prototype.html` 与 mock-current 页面在同一 viewport / locale / theme / nav 状态下截图，生成 side-by-side 对照和结构化 verdict。只有这一层能证明原型视觉对齐。
+- **Real Gateway evidence**：真实 Gateway/BFF 链路的功能或视觉验证；环境、凭据、seed 数据问题可以熔断，但确定性的本地代码缺陷必须在当前模块修复。
+
+如果 mock-current 和 prototype 有 material mismatch，Claude Code 要么修复，要么在 `implementation-notes.md` 或模块纠偏提案里记录 accepted exception（原型位置、生产文件位置、差异、原因、owner、分类）。单独的 `page.screenshot()` 只能算截图证据，不能算视觉签收。
+
 ### 3. Claude Code 不同意设计
 
 `../frontend-new/` 最终决策权在 Claude Code。设计选择不实际（perf / a11y / framework / security）：

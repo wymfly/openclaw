@@ -154,16 +154,15 @@ func normalizeApprovalPolicyFromSet(payload generated.ExecApprovalsSetResult) de
 }
 
 func normalizePendingApprovals(payload any) deckapi.DeckGoPendingApprovalsResponse {
-	items, ok := payload.([]any)
-	if !ok {
+	items := objectListFromAny(payload)
+	if len(items) == 0 {
 		record := objectFromAny(payload)
-		items, _ = record["pending"].([]any)
+		items = objectListFromAny(record["pending"])
 	}
 	response := deckapi.DeckGoPendingApprovalsResponse{
 		Pending: make([]deckapi.DeckGoPendingApproval, 0, len(items)),
 	}
-	for _, rawItem := range items {
-		record := objectFromAny(rawItem)
+	for _, record := range items {
 		request := objectFromAny(record["request"])
 		response.Pending = append(response.Pending, deckapi.DeckGoPendingApproval{
 			Id:          coerce.String(record["id"], ""),
@@ -176,6 +175,30 @@ func normalizePendingApprovals(payload any) deckapi.DeckGoPendingApprovalsRespon
 			CreatedAtMs: coerce.Number(record["createdAtMs"]),
 			ExpiresAtMs: coerce.Number(record["expiresAtMs"]),
 		})
+	}
+	return response
+}
+
+func normalizePluginApprovals(payload any) []deckapi.DeckGoPluginApprovalEntry {
+	items := objectListFromAny(payload)
+	if len(items) == 0 {
+		record := objectFromAny(payload)
+		items = objectListFromAny(record["entries"])
+	}
+	response := make([]deckapi.DeckGoPluginApprovalEntry, 0, len(items))
+	for _, record := range items {
+		request := objectFromAny(record["request"])
+		entry := deckapi.DeckGoPluginApprovalEntry{
+			Id:          coerce.String(record["id"], ""),
+			PluginId:    firstNonEmpty(coerce.String(record["pluginId"], ""), coerce.String(request["pluginId"], "")),
+			Command:     firstNonEmpty(coerce.String(record["command"], ""), coerce.String(request["command"], ""), coerce.String(request["title"], ""), coerce.String(request["toolName"], "")),
+			Description: firstNonEmpty(coerce.String(record["description"], ""), coerce.String(request["description"], "")),
+			CreatedAtMs: coerce.Number(record["createdAtMs"]),
+			ExpiresAtMs: coerce.Number(record["expiresAtMs"]),
+			Status:      firstNonEmpty(coerce.String(record["status"], ""), coerce.String(request["status"], ""), "pending"),
+			Decision:    coerce.String(record["decision"], ""),
+		}
+		response = append(response, entry)
 	}
 	return response
 }

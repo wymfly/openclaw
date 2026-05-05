@@ -1,0 +1,71 @@
+# Frontend Prototype Remediation Matrix
+
+**Date**: 2026-05-05
+**Governing change**:
+`openspec/changes/deck-go-frontend-prototype-parity-remediation`
+
+This matrix tracks the module-by-module remediation program that supersedes the
+old screenshot-only visual evidence. It is a working index, not code truth. Code,
+contracts, generated artifacts, current test output, and archived child
+proposals remain the authoritative evidence.
+
+## Evidence Levels
+
+| Level                 | Meaning                                                                                                                                                           | Archive use                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Mock functional       | The mock-backed page opens, expected text/interactions exist, screenshots are captured, and console/page/API unexpected errors are clean.                         | Useful, but not enough for high-fidelity visual alignment.                                  |
+| Mock prototype parity | The active prototype and mock-current page are captured under the same viewport/locale/theme/nav state, compared side-by-side, and assigned a structured verdict. | Required before a module can claim prototype alignment.                                     |
+| Real Gateway evidence | The module is exercised against the real Gateway/BFF chain. Environment or seed blockers may circuit-break with evidence.                                         | Required as functional readiness evidence, but environment-only failures may be handed off. |
+
+## Shared Gate Baseline
+
+**Child proposal**:
+`openspec/changes/deck-go-frontend-prototype-parity-gate`
+
+**Current evidence**:
+
+- Mock functional suite: `pnpm exec playwright test test/e2e/*-visual.spec.ts --config playwright.config.ts --output .local/parity-gate-mock-visual --reporter=line` -> 27/27 passed on 2026-05-05.
+- Prototype-current report: `deck-go/.local/parity-gate-prototype-report/` -> 26/26 modules have prototype and mock-current screenshots ready for structured review.
+- Verdict state: generated `verdict.json` and `verdict.md` are skeletons; every module remains `unreviewed` until a module remediation child proposal records `pass`, `needs-fix`, or an accepted exception.
+
+## Matrix
+
+| Module       | Active prototype                                               | Current implementation                                                         |                                  Initial gap | Current status                                   | Child proposal | Accepted exceptions / notes                                                                   |
+| ------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------------------------------: | ------------------------------------------------ | -------------- | --------------------------------------------------------------------------------------------- |
+| activity     | `deck-go/frontend-handoff/modules/activity/prototype.html`     | `deck-go/frontend-new/src/components/panels/activity/ActivityPanel.tsx`        |                                         High | mock functional green; parity unreviewed         | TBD            | Current mock page is grouped monitor/detail workbench; prototype is flat event timeline.      |
+| agents       | `deck-go/frontend-handoff/modules/agents/prototype.html`       | `deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx`            |                                         High | mock functional green; first remediation pending | TBD            | First module after shared parity gate.                                                        |
+| alerts       | `deck-go/frontend-handoff/modules/alerts/prototype.html`       | `deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype is table-first; current is list/detail.                                             |
+| api-explorer | `deck-go/frontend-handoff/modules/api-explorer/prototype.html` | `deck-go/frontend-new/src/components/panels/api-explorer/ApiExplorerPanel.tsx` |                                       Medium | mock functional green; parity unreviewed         | TBD            | Shared gate updated method-count evidence for current `gateway.describe` mock contract.       |
+| approvals    | `deck-go/frontend-handoff/modules/approvals/prototype.html`    | `deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.tsx`      |                                         High | mock functional green; parity unreviewed         | TBD            | Shared gate fixed plugin approval Gateway-to-Deck response normalization for mock/typed path. |
+| budget       | `deck-go/frontend-handoff/modules/budget/prototype.html`       | `deck-go/frontend-new/src/components/panels/budget/BudgetPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Threshold/rule concepts overlap, layout differs.                                              |
+| channels     | `deck-go/frontend-handoff/modules/channels/prototype.html`     | `deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.tsx`        |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Current mock has inventory/detail shell, prototype is full-width list/detail.                 |
+| chat         | `deck-go/frontend-handoff/modules/chat/prototype.html`         | `deck-go/frontend-new/src/components/panels/chat/ChatPanel.tsx`                | Low/Medium in mock; High in real empty state | mock functional green; strict parity pending     | TBD            | Likely needs evidence-first child proposal unless code changes are discovered.                |
+| config       | `deck-go/frontend-handoff/modules/config/prototype.html`       | `deck-go/frontend-new/src/components/panels/config/ConfigPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype is curated editor; current exposes raw JSON/schema.                                 |
+| cron         | `deck-go/frontend-handoff/modules/cron/prototype.html`         | `deck-go/frontend-new/src/components/panels/cron/CronPanel.tsx`                |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Same concept, different selected-detail layout.                                               |
+| docs         | `deck-go/frontend-handoff/modules/docs/prototype.html`         | `deck-go/frontend-new/src/components/panels/docs/DocsPanel.tsx`                |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype is document reader; current is doc hub/detail.                                      |
+| gateway      | `deck-go/frontend-handoff/modules/gateway/prototype.html`      | `deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.tsx`          |                                       Medium | mock functional green; strict parity pending     | TBD            | May be evidence-first if visual verdict accepts differences.                                  |
+| identity     | `deck-go/frontend-handoff/modules/identity/prototype.html`     | `deck-go/frontend-new/src/components/panels/identity/IdentityPanel.tsx`        |                                       Medium | mock functional green; parity unreviewed         | TBD            | Canonical/peer concepts overlap; hierarchy differs.                                           |
+| logs         | `deck-go/frontend-handoff/modules/logs/prototype.html`         | `deck-go/frontend-new/src/components/panels/logs/LogsPanel.tsx`                |     Unknown in current mock; Low/Medium real | mock functional green; parity unreviewed         | TBD            | Shared gate fixed `logs.tail` fixture shape to generated `lines: string[]` contract.          |
+| memory       | `deck-go/frontend-handoff/modules/memory/prototype.html`       | `deck-go/frontend-new/src/components/panels/memory/MemoryPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype opens selected document; current primary state has no selected memory.              |
+| models       | `deck-go/frontend-handoff/modules/models/prototype.html`       | `deck-go/frontend-new/src/components/panels/models/ModelsPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype is model inventory; current is provider/catalog operations.                         |
+| nodes        | `deck-go/frontend-handoff/modules/nodes/prototype.html`        | `deck-go/frontend-new/src/components/panels/nodes/NodesPanel.tsx`              |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Same domain, different operations workbench.                                                  |
+| plugins      | `deck-go/frontend-handoff/modules/plugins/prototype.html`      | `deck-go/frontend-new/src/components/panels/plugins/PluginsPanel.tsx`          |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype is dense table; current is inventory/detail.                                        |
+| routing      | `deck-go/frontend-handoff/modules/routing/prototype.html`      | `deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx`          |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Simulator and rule hierarchy differ.                                                          |
+| sessions     | `deck-go/frontend-handoff/modules/sessions/prototype.html`     | `deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx`        |      Low/Medium in mock; Critical real crash | mock functional green; real crash still pending  | TBD            | Must fix nullable `contextWeight.*.entries` real-data crash.                                  |
+| settings     | `deck-go/frontend-handoff/modules/settings/prototype.html`     | `deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx`        |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype app preferences differ from runtime/config summary.                                 |
+| skills       | `deck-go/frontend-handoff/modules/skills/prototype.html`       | `deck-go/frontend-new/src/components/panels/skills/SkillsPanel.tsx`            |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype table-first; current list/detail operations.                                        |
+| subagents    | `deck-go/frontend-handoff/modules/subagents/prototype.html`    | `deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.tsx`      |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype dense run table; current selected-run workbench.                                    |
+| threads      | `deck-go/frontend-handoff/modules/threads/prototype.html`      | `deck-go/frontend-new/src/components/panels/threads/ThreadsPanel.tsx`          |                                         High | mock functional green; parity unreviewed         | TBD            | Prototype binding table; current relationship list/detail.                                    |
+| usage        | `deck-go/frontend-handoff/modules/usage/prototype.html`        | `deck-go/frontend-new/src/components/panels/usage/UsagePanel.tsx`              |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Both are cockpits, but charts/quota hierarchy differ.                                         |
+| webhooks     | `deck-go/frontend-handoff/modules/webhooks/prototype.html`     | `deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.tsx`        |                                  Medium/High | mock functional green; parity unreviewed         | TBD            | Receiver list/detail concepts overlap, hierarchy differs.                                     |
+
+## Completion Rule
+
+This matrix is complete only when every row has either:
+
+- `pass` mock prototype parity evidence and bounded real Gateway evidence; or
+- a source-linked accepted exception that explains the remaining difference and
+  owns the follow-up.
+
+Historical OpenSpec checkboxes and screenshot-only E2E outputs are supporting
+context, not completion proof.

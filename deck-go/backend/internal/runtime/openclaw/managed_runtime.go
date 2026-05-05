@@ -174,6 +174,7 @@ type ManagedRuntimeSurface interface {
 	RunCompactionAction(context.Context, map[string]any) (any, int, error)
 	SteerSession(context.Context, string, string) (any, int, error)
 	GetUsageCost(context.Context, int) (any, error)
+	GetUsageProviders(context.Context) (any, error)
 	GetUsageSessions(context.Context, map[string]any) (any, error)
 	GetUsageSessionLogs(context.Context, map[string]any) (any, error)
 	GetUsageTimeseries(context.Context, map[string]any) (any, error)
@@ -189,7 +190,7 @@ type ManagedRuntimeSurface interface {
 	DeleteDoc(context.Context, string) (bool, error)
 	ExtractDocs(context.Context, string) (map[string]any, int, error)
 	BrowseMemory(context.Context, string, string, bool) (any, int, error)
-	SearchMemory(context.Context, string, string) (any, int, error)
+	SearchMemory(context.Context, string, string, string) (any, int, error)
 	ListBudgetRules(context.Context) (map[string]any, error)
 	CreateBudgetRule(context.Context, BudgetCreateInput) (any, int, error)
 	UpdateBudgetRule(context.Context, string, BudgetPatchInput) (any, bool, int, error)
@@ -809,7 +810,11 @@ func (m *ManagedRuntime) SetApprovalPolicy(ctx context.Context, runtimeID string
 }
 
 func (m *ManagedRuntime) ListPluginApprovals(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().PluginApprovalList(ctx)
+	payload, err := m.GatewayQueries().PluginApprovalList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return normalizePluginApprovals(payload), nil
 }
 
 func (m *ManagedRuntime) ResolvePluginApproval(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
@@ -1250,6 +1255,10 @@ func (m *ManagedRuntime) UnsubscribeSession(ctx context.Context, sessionKey stri
 
 func (m *ManagedRuntime) GetUsageCost(ctx context.Context, days int) (any, error) {
 	return m.UsageCost(ctx, map[string]any{"days": days})
+}
+
+func (m *ManagedRuntime) GetUsageProviders(ctx context.Context) (any, error) {
+	return m.UsageStatus(ctx)
 }
 
 func (m *ManagedRuntime) GetUsageSessions(ctx context.Context, params map[string]any) (any, error) {

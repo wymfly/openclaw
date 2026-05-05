@@ -47,8 +47,7 @@ test.describe("approvals mock visual handoff alignment", () => {
       path: testInfo.outputPath("approvals-workbench-ready.png"),
     });
 
-    await page.getByRole("button", { name: "Plugin approvals" }).click();
-    await expect(page.getByText("wecom").first()).toBeVisible();
+    await page.getByRole("tab", { name: /Plugin 1/ }).click();
     await expect(page.getByText("connect workspace").first()).toBeVisible();
     await expect(page.getByText("Plugin approval payload").first()).toBeVisible();
     await page.screenshot({
@@ -56,9 +55,9 @@ test.describe("approvals mock visual handoff alignment", () => {
       path: testInfo.outputPath("approvals-plugin-surface.png"),
     });
 
-    await page.getByRole("button", { name: "Exec approvals" }).click();
+    await page.getByRole("tab", { name: /Exec 2/ }).click();
     await page.getByRole("button", { name: /pnpm build/ }).click();
-    await expect(page.getByText("run: run:mock:2").first()).toBeVisible();
+    await expect(page.getByText("run:mock:2").first()).toBeVisible();
     await page.getByRole("button", { name: "Allow always" }).click();
     await waitForGatewayMethod(stack.requestLog, "exec.approval.resolve");
     await expect(page.getByText("Last approval action").first()).toBeVisible();
@@ -67,6 +66,8 @@ test.describe("approvals mock visual handoff alignment", () => {
       path: testInfo.outputPath("approvals-decision-result.png"),
     });
 
+    await page.getByRole("button", { name: "Approval policy editor" }).click();
+    await expect(page.getByRole("dialog", { name: "Approval policy editor" })).toBeVisible();
     await page.getByLabel("new approval allowlist path").fill("/tmp/openclaw-main");
     await page.getByRole("button", { name: "Add path" }).click();
     await expect(

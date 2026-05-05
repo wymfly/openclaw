@@ -28,14 +28,21 @@ test.describe("api explorer mock visual handoff alignment", () => {
     await waitForGatewayMethod(stack.requestLog, "gateway.describe");
     await expect(page.getByRole("heading", { name: "Gateway API Explorer" }).first()).toBeVisible();
     await expect(page.getByText("Describe ready").first()).toBeVisible();
-    await expect(page.getByText("3 methods").first()).toBeVisible();
-    await expect(page.getByText("2 events").first()).toBeVisible();
-    await expect(page.getByText("1 untyped").first()).toBeVisible();
+    await expect(
+      page.locator(".api-explorer-panel__metric").filter({ hasText: "methods" }),
+    ).toContainText("4");
+    await expect(
+      page.locator(".api-explorer-panel__metric").filter({ hasText: "events" }),
+    ).toContainText("2");
+    await expect(
+      page.locator(".api-explorer-panel__metric").filter({ hasText: "untyped" }),
+    ).toContainText("1");
     await expect(page.getByText("deck.agents.list").first()).toBeVisible();
     await expect(page.getByText("deck.sessions.detail").first()).toBeVisible();
+    await expect(page.getByText("gateway.batch").first()).toBeVisible();
     await expect(page.getByText("gateway.describe").first()).toBeVisible();
     await expect(page.getByText("deck (2)").first()).toBeVisible();
-    await expect(page.getByText("gateway (1)").first()).toBeVisible();
+    await expect(page.getByText("gateway (2)").first()).toBeVisible();
     await expect(page.getByText("Untyped methods").first()).toBeVisible();
     await page.getByText("Untyped methods").first().click();
     await expect(page.getByText("legacy.raw").first()).toBeVisible();
@@ -44,6 +51,16 @@ test.describe("api explorer mock visual handoff alignment", () => {
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("api-explorer-workspace-ready.png"),
+    });
+
+    await page.getByRole("treeitem", { name: /gateway\.describe/ }).click();
+    await page.getByRole("button", { name: "Run" }).click();
+    await expect(page.locator(".api-explorer-panel__response-card")).toContainText("200");
+    await expect(page.locator(".api-explorer-panel__response-card")).toContainText('"methods"');
+    await expect(page.locator(".api-explorer-panel__history")).toContainText("gateway.describe");
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("api-explorer-safe-run-response.png"),
     });
 
     await page.getByPlaceholder("method name or scope").fill("sessions");

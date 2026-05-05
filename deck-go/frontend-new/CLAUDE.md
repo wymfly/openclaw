@@ -145,6 +145,14 @@ ship
 
 **反向签收（协议 #2）**：实施完毕通知设计 agent，由它视觉对照原型 vs 真实运行，签字 / 提 revision。这是闭环最后一步。
 
+**Evidence levels for module completion**：
+
+- `mock functional`：mock-backed 页面、关键交互、console/page/API 错误检查和截图采集通过。
+- `mock prototype parity`：active `../frontend-handoff/modules/<module>/prototype.html` 与当前 `frontend-new` 页面在同一 viewport / locale / theme / nav 状态下 side-by-side 对比并记录 verdict。
+- `real Gateway evidence`：真实 Gateway/BFF 链路验证。环境或 seed 问题可按 OpenSpec 熔断记录；确定性代码缺陷不能熔断跳过。
+
+模块不能只凭 mock 截图或测试通过宣称高保真视觉对齐。若 verdict 存在 material mismatch，必须修复或记录 source-linked accepted exception。
+
 ---
 
 ## Status

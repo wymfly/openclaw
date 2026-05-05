@@ -342,7 +342,11 @@ func (s *LegacyInventorySurface) ExecApprovalsSet(ctx context.Context, body map[
 }
 
 func (s *LegacyInventorySurface) PluginApprovalList(ctx context.Context) (any, error) {
-	return s.managed.GatewayQueries().PluginApprovalList(ctx)
+	payload, err := s.managed.GatewayQueries().PluginApprovalList(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return normalizePluginApprovals(payload), nil
 }
 
 func (s *LegacyInventorySurface) PluginApprovalResolve(ctx context.Context, body map[string]any) (any, error) {

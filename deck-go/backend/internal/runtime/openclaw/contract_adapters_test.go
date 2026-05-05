@@ -153,6 +153,27 @@ func TestContractAdaptersPreserveSelectedPreMigrationJSONShape(t *testing.T) {
 	if firstPending["id"] != "approval-1" || firstPending["command"] != "npm test" || firstPending["sessionKey"] != "session-1" {
 		t.Fatalf("pending approval JSON compatibility shape changed: %#v", pendingJSON)
 	}
+
+	plugin := normalizePluginApprovals([]any{
+		map[string]any{
+			"id":          "plugin-ap-1",
+			"createdAtMs": float64(1714560400),
+			"expiresAtMs": float64(1714560500),
+			"request": map[string]any{
+				"pluginId":    "wecom",
+				"title":       "connect workspace",
+				"description": "Allow workspace connection.",
+			},
+		},
+	})
+	pluginItems := objectListFromAny(plugin)
+	if len(pluginItems) != 1 ||
+		pluginItems[0]["id"] != "plugin-ap-1" ||
+		pluginItems[0]["pluginId"] != "wecom" ||
+		pluginItems[0]["command"] != "connect workspace" ||
+		pluginItems[0]["status"] != "pending" {
+		t.Fatalf("plugin approval JSON compatibility shape changed: %#v", pluginItems)
+	}
 }
 
 func mustDecode(t *testing.T, raw string, target any) {

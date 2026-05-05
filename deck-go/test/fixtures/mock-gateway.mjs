@@ -182,22 +182,10 @@ function defaultMethods() {
   const logCursor = 4208;
   const logLines = [
     `${new Date(now - 42_000).toISOString()} [INFO] [gateway] gateway ready sessionKey=sess-main bind=127.0.0.1:18789 runtime=bundled`,
-    {
-      timestamp: new Date(now - 36_000).toISOString(),
-      level: "warn",
-      source: "agent",
-      sessionKey: "sess-build",
-      message: "tool retry scheduled sessionKey=sess-build method=deck.agents.chat.start attempt=2",
-    },
+    `${new Date(now - 36_000).toISOString()} [WARN] [agent] tool retry scheduled sessionKey=sess-build method=deck.agents.chat.start attempt=2 correlationId=trace-build-42 retryAfterMs=1200`,
     `${new Date(now - 29_000).toISOString()} [DEBUG] [channel] websocket heartbeat acknowledged sessionKey=sess-main channel=discord account=ops-bot`,
-    {
-      timestamp: new Date(now - 22_000).toISOString(),
-      level: "error",
-      source: "agent",
-      sessionKey: "sess-build",
-      message:
-        'agent handoff failed sessionKey=sess-build reason="mock upstream timeout for visual fixture"',
-    },
+    `${new Date(now - 22_000).toISOString()} [ERROR] [agent] agent handoff failed sessionKey=sess-build correlationId=trace-build-42 reason="mock upstream timeout for visual fixture" model=gpt-5.4 step=73 tokens=4124`,
+    `${new Date(now - 18_000).toISOString()} [INFO] [deck-bff] deck bff projected logs.tail payload sessionKey=sess-main correlationId=trace-bff-17 endpoint="GET /logs" latencyMs=24`,
     `${new Date(now - 12_000).toISOString()} [INFO] [gateway] logs.tail served cursor=${logCursor} sessionKey=sess-main`,
   ];
   const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -1057,6 +1045,25 @@ Operators should use this document as an implementation guide for category filte
             },
           },
         },
+        "gateway.batch": {
+          scope: "operator.read",
+          since: 3,
+          params: {
+            type: "object",
+            required: ["calls"],
+            properties: {
+              calls: { type: "array" },
+              options: { type: "object" },
+            },
+          },
+          result: {
+            type: "object",
+            required: ["results"],
+            properties: {
+              results: { type: "array" },
+            },
+          },
+        },
       },
       events: {
         "activity.event": {
@@ -1086,6 +1093,40 @@ Operators should use this document as an implementation guide for category filte
       },
       untyped: ["legacy.raw"],
     }),
+    "gateway.batch": (params) => {
+      const calls = Array.isArray(params?.calls) ? params.calls : [];
+      return {
+        results: calls.map((call, index) => {
+          const id = typeof call?.id === "string" && call.id ? call.id : `call-${index + 1}`;
+          if (call?.method === "gateway.describe") {
+            return {
+              id,
+              ok: true,
+              result: {
+                events: {
+                  "activity.event": { since: 1 },
+                  "gateway.ready": { since: 1 },
+                },
+                methods: {
+                  "gateway.batch": { scope: "operator.read", since: 3 },
+                  "gateway.describe": { scope: "operator.read", since: 1 },
+                },
+                protocol: protocolVersion,
+                untyped: ["legacy.raw"],
+              },
+            };
+          }
+          return {
+            id,
+            ok: false,
+            error: {
+              code: "method_not_found",
+              message: `mock gateway.batch does not implement child method: ${call?.method ?? ""}`,
+            },
+          };
+        }),
+      };
+    },
     health: () => ({
       ok: true,
       durationMs: 17,
@@ -1391,6 +1432,11 @@ Operators should use this document as an implementation guide for category filte
       key: params?.key ?? params?.sessionKey ?? "agent:main:visual",
     }),
     "channels.status": () => channelStatus,
+    "agent.identity.get": (params) => ({
+      agentId: params?.agentId ?? "main",
+      name: params?.agentId === "main" || !params?.agentId ? "Main" : String(params.agentId),
+      emoji: params?.agentId === "main" || !params?.agentId ? "M" : undefined,
+    }),
     "deck.plugins.list": (params) => ({
       scope: "workspace",
       plugins: clone(
@@ -1438,10 +1484,14 @@ Operators should use this document as an implementation guide for category filte
       const limit = Number.isFinite(params?.limit)
         ? Math.max(0, Number(params.limit))
         : logLines.length;
+      const lines = cursor >= logCursor ? [] : logLines.slice(-limit);
       return {
         cursor: logCursor,
-        lines: cursor >= logCursor ? [] : logLines.slice(-limit),
+        file: "/tmp/openclaw/logs/mock.log",
+        lines,
         reset: false,
+        size: lines.join("\n").length,
+        truncated: false,
       };
     },
     "sessions.create": (params) => ({
@@ -1681,7 +1731,7 @@ Operators should use this document as an implementation guide for category filte
           })),
         };
       }
-      if (path === "agents.defaults") {
+      if (path === "agents" || path === "agents.defaults") {
         return {
           path,
           schema: {
@@ -2878,29 +2928,19 @@ Operators should use this document as an implementation guide for category filte
         allowlist: [],
       },
     }),
-    "plugin.approval.list": () => ({
-      entries: [
-        {
-          id: "plugin-ap-1",
+    "plugin.approval.list": () => [
+      {
+        id: "plugin-ap-1",
+        createdAtMs: Date.now() - 2_000,
+        expiresAtMs: Date.now() + 90_000,
+        request: {
           pluginId: "wecom",
-          command: "connect workspace",
+          title: "connect workspace",
           description: "Allow the plugin to connect a workspace.",
-          createdAtMs: Date.now() - 2_000,
-          expiresAtMs: Date.now() + 90_000,
-          status: "pending",
+          toolName: "workspace.connect",
         },
-        {
-          id: "plugin-ap-resolved",
-          pluginId: "discord",
-          command: "sync channel",
-          description: "Already resolved.",
-          createdAtMs: Date.now() - 40_000,
-          expiresAtMs: Date.now() + 90_000,
-          status: "resolved",
-          decision: "allow-once",
-        },
-      ],
-    }),
+      },
+    ],
     "plugin.approval.resolve": (params) => ({
       ok: true,
       id: params.id ?? "plugin-ap-1",

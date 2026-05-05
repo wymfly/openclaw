@@ -31,7 +31,8 @@ test.describe("logs mock visual handoff alignment", () => {
     ).toBeVisible();
     await expect(page.getByText("gateway ready").first()).toBeVisible();
     await expect(page.getByText("tool retry scheduled").first()).toBeVisible();
-    await expect(page.locator(".logs-line-row").first()).toBeVisible();
+    await expect(page.locator(".log-row").filter({ hasText: "gateway ready" })).toBeVisible();
+    await expect(page.locator(".details-pane")).toBeVisible();
     await page.waitForTimeout(500);
 
     await page.screenshot({
@@ -40,8 +41,11 @@ test.describe("logs mock visual handoff alignment", () => {
     });
 
     await page.getByLabel("Log source filter").selectOption("agent");
-    await page.getByPlaceholder("session key").fill("sess-build");
+    await page.getByLabel("Log session filter").selectOption("sess-build");
     await expect(page.getByText("agent handoff failed").first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Structured fields" })).toBeVisible();
+    await page.getByRole("button", { name: /Filter by correlation/ }).click();
+    await expect(page.getByLabel("Correlation id filter")).toHaveValue("trace-build-42");
     await page.getByRole("button", { name: "Prepare export" }).click();
     await expect(page.getByText("Prepared log export")).toBeVisible();
     await expect(page.getByText("[WARN] [agent] sessionKey=sess-build").first()).toBeVisible();

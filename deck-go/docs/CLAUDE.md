@@ -15,7 +15,7 @@
 >
 > **解耦的支撑文档（CLAUDE.md 链接它们而不嵌入项目细节）：**
 > - [`./project/stack-decisions.md`](./project/stack-decisions.md) — 当前技术栈选择（locked / defaulting / pending）
-> - [`./project/current-state.md`](./project/current-state.md) — 项目代码现状人类可读快照（5 分钟入门）
+> - [`./project/current-state.md`](./project/current-state.md) — 历史快照，非代码真相；实际状态以源码、契约、生成产物和测试为准
 
 ---
 
@@ -45,8 +45,11 @@ docs/
 │
 ├── project/                      ← deck-go 项目专属的方案、记录、计划
 │   ├── stack-decisions.md          · ⭐ 当前技术栈决策（解耦自协议）
-│   ├── current-state.md            · ⭐ 项目代码现状人类可读快照（5 分钟入门）
+│   ├── current-state.md            · 历史快照，非代码真相
+│   ├── contract-chain-guide.md     · Gateway → deck-go → frontend-new 契约链条导读
 │   └── design-system-implementation-plan.md
+├── contract-chain-audit.matrix.json · 契约链审计矩阵源码，机器可校验
+├── contract-chain-audit.matrix.md   · 由 JSON 生成的人读报告
 │
 ├── skills/                       ← 内置 skill 原文 + 设计工作流方法论
 │   ├── README.md                 ← skill 清单和使用指南
@@ -98,9 +101,14 @@ docs/
 | 文件 | 用途 |
 |---|---|
 | [`project/stack-decisions.md`](./project/stack-decisions.md) | ⭐ 当前技术栈决策（locked / defaulting / pending）。协议层不绑库——具体库选择记在这里。任何 agent 想知道"现在用什么 routing / state / i18n"先读这份。 |
-| [`project/current-state.md`](./project/current-state.md) | ⭐ 项目代码现状人类可读快照——5 分钟入门读物。chat pilot done、36 atoms canonical、tokens 实际内容、24 legacy panel 列表。**它是快照，不是 journal**——过期 1-2 个版本不算 bug。 |
+| [`project/current-state.md`](./project/current-state.md) | 历史快照，非代码真相。实际状态以源码、契约源文件、生成产物和测试结果为准；不要用它替代 contract inventory 或当前代码审计。 |
+| [`project/contract-chain-guide.md`](./project/contract-chain-guide.md) | Gateway → deck-go Go BFF → contracts/source → generated artifacts → frontend-new facade → E2E 的契约链条导读。给初级程序员阅读，包含架构图、数据流图、契约类型和审计问题清单。 |
 | [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md) | deck-go design-system 工程化方案——建 molecules、review canvas、README、收敛旧 token。可直接喂给 Claude Code 在仓库本地执行。 |
 | [`project/codex-prototype-quality-assessment.md`](./project/codex-prototype-quality-assessment.md) | Codex agents 原型质量评估——问题定位 + 正确做法指南 + 质量检查清单。任何 agent 做 handoff 原型前必读。 |
+| [`project/frontend-prototype-gap-audit.md`](./project/frontend-prototype-gap-audit.md) | frontend-handoff 高保真原型与 frontend-new 真实实现的差距审计。记录 real-stack / mock visual / 流程根因，作为后续纠偏提案依据；结论以代码、契约和测试输出为准。 |
+| [`project/frontend-prototype-remediation-matrix.md`](./project/frontend-prototype-remediation-matrix.md) | frontend-new 全模块原型纠偏矩阵。受 `openspec/changes/deck-go-frontend-prototype-parity-remediation` 管理，跟踪 active prototype、当前实现、mock parity、real evidence、子提案和 accepted exceptions。 |
+| [`contract-chain-audit.matrix.json`](./contract-chain-audit.matrix.json) | 当前契约链审计矩阵源码。记录每个已审计模块能力从 Gateway/Deck source → Go BFF → contract source → generated artifacts → frontend facade → panel → E2E evidence 的链路。代码、契约源、生成产物、路由和测试优先于本文件中的手写总结。 |
+| [`contract-chain-audit.matrix.md`](./contract-chain-audit.matrix.md) | 由 `contract-chain-audit.matrix.json` 生成的人读报告。不要手改；改 JSON 后运行 `make contract-chain-audit-sync`。 |
 
 > 以后这个目录会增加：`design-system-audit.md`（现状审计）、`api-contract.md`（API 契约）、各模块的设计 brief 和决策记录等。
 
@@ -178,11 +186,8 @@ deck-go 采用双 Agent 协作：
 
 ## Status — 当前 deck-go 工作进展
 
-- ✅ **协议 v1 落定 + 经 chat 模块自我验证**（OpenSpec changes `deck-go-frontend-protocol-v1` + `deck-go-chat-protocol-pilot`）：三份 CLAUDE.md 互引、栈决策解耦到 `project/stack-decisions.md`、tokens 反向同步 + drift 防护脚本、协议加 8 条结构性增强；chat 模块作为协议第一个真实样本完成 6 件套反推 + 物理迁移到 `frontend-new/`，**协议在真模块复杂度下可执行已验证，可开放给其他模块**（agents / settings / models 等按 forward 流程依次进场）
-- ✅ chat 模块设计开发完成（6 件套在 `../frontend-handoff/modules/chat/`；工程代码已迁移到 `../frontend-new/src/components/panels/chat/`；老 `../frontend/src/components/panels/chat/` 保留可运行）
-- ✅ tokens 完成（44 个 `--ds-*` 变量，dark/light，老 `frontend/src/design-system/tokens/index.css`）
-- ✅ 36 atoms 完成（扁平结构 `Badge.tsx + badge.css`，不是三件套）
-- ✅ 5 hooks 完成（use-click-outside / use-escape-close / use-focus-trap / use-keyboard-nav / use-popover）
-- ✅ 视觉光谱锚点确立（3 张参考卡）
-- ⏳ **下一步**：24 个 legacy panel 协议化重做（agents / models / channels / sessions / logs / settings / etc.）—— 等 chat pilot 验证协议在真实复杂度下可执行后逐个开
-- ⏳ molecules / review canvas / 收敛旧 token，方案见 [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md)
+- ✅ `frontend-new/` 是当前工程入口；模块实现状态必须以源码、契约源、生成产物、路由和测试为准，不能以历史快照判断。
+- ✅ 契约链导读见 [`project/contract-chain-guide.md`](./project/contract-chain-guide.md)。
+- ✅ 模块级契约链审计矩阵见 [`contract-chain-audit.matrix.json`](./contract-chain-audit.matrix.json) 与生成报告 [`contract-chain-audit.matrix.md`](./contract-chain-audit.matrix.md)；该矩阵是后续 OpenSpec 提案矩阵的 head index。
+- ✅ 设计系统入口仍是 `../frontend-new/src/design-system/`；是否抽取 shared molecules/patterns 以当前实现和后续提案为准。
+- ⏳ 真实 Gateway E2E 以 isolated root、`cpa` + `main` seed 和 run-id scoped fixture 为收敛方向；模块级 real E2E 可按矩阵中的 `realEvidenceStatus` 逐步补齐。
