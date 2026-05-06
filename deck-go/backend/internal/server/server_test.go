@@ -1114,6 +1114,55 @@ func TestAssetRoutes_MediaCanvasAndDeckCanvas(t *testing.T) {
 	}
 }
 
+func TestAssetRoutes_CanvasUsesBundledRuntimeGatewayToken(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+	t.Setenv("DECK_GO_GATEWAY_TOKEN", "stale-config-token")
+	t.Setenv("RUNTIME_MODE", "bundled")
+	t.Setenv("RUNTIME_BUNDLED_TOKEN", "runtime-gateway-token")
+
+	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer runtime-gateway-token" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		if r.URL.Path == "/__openclaw__/a2ui/index.html" {
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte("<html><body>runtime canvas</body></html>"))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer gatewayServer.Close()
+
+	t.Setenv("RUNTIME_BUNDLED_BIND_HOST", "127.0.0.1")
+	t.Setenv("RUNTIME_BUNDLED_BIND_PORT", strconv.Itoa(mustPort(t, gatewayServer.URL)))
+
+	srv := httptest.NewServer(New())
+	defer srv.Close()
+
+	canvasReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/canvas/index.html", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	canvasReq.Header.Set("Authorization", "Bearer admin-token")
+	canvasRes, err := http.DefaultClient.Do(canvasReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer canvasRes.Body.Close()
+	if canvasRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected canvas status: %d", canvasRes.StatusCode)
+	}
+	canvasBody, err := io.ReadAll(canvasRes.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(canvasBody), "a2ui:ready") {
+		t.Fatalf("expected injected canvas bridge script, got: %s", string(canvasBody))
+	}
+}
+
 func TestGatewayCallbackProxyRoutes_BypassAuthAndForwardToGateway(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 

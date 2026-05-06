@@ -2,7 +2,7 @@
 
 > 2-pane operations workbench for device trust + remote-control. Inventory rail on the left, lifecycle + guarded actions on the right. v2 multi-file React rebuild via Babel-standalone.
 
-**Status**: implemented - real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04 (v2 rebuild from V1 codex single-file)
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Button, Input, Select, Textarea, Checkbox, IconButton, JsonView, Code
@@ -66,3 +66,19 @@ Considered three layouts:
 3. **2-pane workspace** (chosen): rail stays sticky, detail is a single scrollable column. Pairing + capabilities + actions cascade naturally. Confirm row injects above all action cards so it's always visible during the two-step flow.
 
 Same shape used by docs (tree + viewer) and memory (file tree + content). Pattern is now used by 3+ panels — strong promotion candidate for `<TwoPaneWorkspace>` (covered in implementation-notes).
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                             |
+| Reviewer                       | Codex                                                                                                                        |
+| Date                           | 2026-05-06                                                                                                                   |
+| Prototype reference            | `frontend-handoff/modules/nodes/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/nodes/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`nodes`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`nodes`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`nodes`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/nodes/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

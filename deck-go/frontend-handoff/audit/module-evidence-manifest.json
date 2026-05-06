@@ -1,0 +1,1112 @@
+{
+  "schemaVersion": 1,
+  "generatedForChange": "deck-go-frontend-verification-discipline",
+  "generatedAt": "2026-05-06",
+  "sourceCommit": "d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508",
+  "manifestContract": {
+    "levels": ["mock-functional", "mock-prototype-parity", "real-gateway"],
+    "statuses": [
+      "tracked",
+      "ready-for-review",
+      "recorded-in-implementation-notes",
+      "missing",
+      "unreviewed",
+      "degraded",
+      "skipped-safe",
+      "handoff-blocked"
+    ],
+    "note": "Large screenshots and Playwright artifacts stay under ignored .local paths; this tracked manifest records commands, artifact paths, and verdict state."
+  },
+  "modules": [
+    {
+      "module": "activity",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "accepted-with-exceptions",
+      "prototypeReference": "frontend-handoff/modules/activity/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/activity",
+      "readmePath": "frontend-handoff/modules/activity/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/activity/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/activity-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/activity-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/activity-prototype-remediation-parity-report/verdict.json",
+          "verdict": "pass-with-exceptions",
+          "runId": null,
+          "acceptedExceptions": [
+            {
+              "classification": "product-shell",
+              "prototype": "deck-go/frontend-handoff/modules/activity/prototype.html renders as a standalone design canvas",
+              "current": "deck-go/frontend-new renders inside the persistent Deck shell and sidebar",
+              "reason": "Production panels must preserve the deck-go shell/navigation chrome."
+            },
+            {
+              "classification": "viewport-data",
+              "prototype": "Prototype screenshot uses design-time fixed 1440x960 canvas and deterministic mock timestamps",
+              "current": "Mock-current screenshot uses the active Vite shell viewport and runtime-generated visual fixture timestamps",
+              "reason": "The contract-shaped fixture now matches prototype event density and type/severity coverage; exact text/times remain runtime fixture data."
+            }
+          ],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/activity-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/activity/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "agents",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "accepted-with-exceptions",
+      "prototypeReference": "frontend-handoff/modules/agents/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/agents",
+      "readmePath": "frontend-handoff/modules/agents/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/agents/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/agents-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/agents-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/agents-prototype-remediation-parity-report/verdict.json",
+          "verdict": "pass-with-exceptions",
+          "runId": null,
+          "acceptedExceptions": [
+            {
+              "classification": "product-shell",
+              "reason": "The prototype is a standalone module page while production renders inside the Deck shell. The current evidence uses the module panel screenshot to exclude shell chrome."
+            }
+          ],
+          "materialGaps": [
+            {
+              "status": "fixed",
+              "gap": "Production previously captured a selected split-pane workbench while the active prototype default state is a full-width list."
+            },
+            {
+              "status": "fixed",
+              "gap": "Production list controls used a Default filter where the prototype uses Idle."
+            }
+          ]
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/agents-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/agents/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "alerts",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/alerts/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/alerts",
+      "readmePath": "frontend-handoff/modules/alerts/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/alerts/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/alerts-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/alerts-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/alerts-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/alerts-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/alerts/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "api-explorer",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "accepted-with-exceptions",
+      "prototypeReference": "frontend-handoff/modules/api-explorer/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/api-explorer",
+      "readmePath": "frontend-handoff/modules/api-explorer/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/api-explorer/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/api-explorer-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/api-explorer-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/api-explorer-prototype-remediation-parity-report/verdict.json",
+          "verdict": "pass-with-exceptions",
+          "runId": null,
+          "acceptedExceptions": [
+            "Prototype screenshot is a standalone handoff surface with lower luminance; production keeps the current deck-go shell/tokens and captures the module panel for parity.",
+            "Prototype catalog/history examples are static; production follows live gateway.describe and generated typed RPC allowlist, so method count, grouping, and initial history can differ.",
+            "Environment selector and direct Gateway URL display are prototype-only; production browser code uses the deck-go BFF route /api/v1/runtimes/rt_local/gateway/rpc."
+          ],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/api-explorer-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/api-explorer/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "approvals",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/approvals/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/approvals",
+      "readmePath": "frontend-handoff/modules/approvals/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/approvals/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/approvals-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/approvals-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/approvals-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/approvals-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/approvals/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "budget",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/budget/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/budget",
+      "readmePath": "frontend-handoff/modules/budget/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/budget/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/budget-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/budget-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/budget-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/budget-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/budget/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "local",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "channels",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/channels/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/channels",
+      "readmePath": "frontend-handoff/modules/channels/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/channels/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/channels-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/channels-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/channels-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/channels-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/channels/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "chat",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/chat/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/chat",
+      "readmePath": "frontend-handoff/modules/chat/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/chat/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/chat-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/chat-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/chat-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/chat-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/chat/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "config",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/config/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/config",
+      "readmePath": "frontend-handoff/modules/config/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/config/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/config-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/config-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/config-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/config-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/config/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "cron",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/cron/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/cron",
+      "readmePath": "frontend-handoff/modules/cron/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/cron/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/cron-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/cron-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/cron-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/cron-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/cron/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "docs",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/docs/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/docs",
+      "readmePath": "frontend-handoff/modules/docs/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/docs/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/docs-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/docs-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/docs-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/docs-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/docs/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "gateway",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/gateway/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/gateway",
+      "readmePath": "frontend-handoff/modules/gateway/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/gateway/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/gateway-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/gateway-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/gateway-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/gateway-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/gateway/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "identity",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/identity/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/identity",
+      "readmePath": "frontend-handoff/modules/identity/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/identity/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/identity-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/identity-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/identity-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/identity-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/identity/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "logs",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "accepted-with-exceptions",
+      "prototypeReference": "frontend-handoff/modules/logs/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/logs",
+      "readmePath": "frontend-handoff/modules/logs/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/logs/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/logs-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/logs-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/logs-prototype-remediation-parity-report/verdict.json",
+          "verdict": "pass-with-exceptions",
+          "runId": null,
+          "acceptedExceptions": [
+            {
+              "classification": "product-shell",
+              "current": "frontend-new renders Logs inside the Deck shell with nav rail and header chrome.",
+              "owner": "deck-go frontend",
+              "prototype": "frontend-handoff/modules/logs/prototype.html is a standalone module prototype.",
+              "reason": "The active production surface is the enterprise Deck shell; module prototypes remain shell-less visual targets."
+            },
+            {
+              "classification": "contract-truth",
+              "current": "DeckGoLogsTailResponse.lines is currently string[]; structured fields and stack render only when a future/object-shaped row exposes them.",
+              "owner": "deck-go contracts",
+              "prototype": "Prototype fixture shows structured fields and stack metadata on selected rows.",
+              "reason": "Production must follow current typed logs.tail string-row truth while keeping raw payload and parsed local fields visible."
+            }
+          ],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/logs-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/logs/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "memory",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/memory/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/memory",
+      "readmePath": "frontend-handoff/modules/memory/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/memory/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/memory-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/memory-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/memory-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/memory-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/memory/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "models",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/models/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/models",
+      "readmePath": "frontend-handoff/modules/models/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/models/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/models-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/models-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/models-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/models-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/models/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "nodes",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/nodes/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/nodes",
+      "readmePath": "frontend-handoff/modules/nodes/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/nodes/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/nodes-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/nodes-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/nodes-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/nodes-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/nodes/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "plugins",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/plugins/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/plugins",
+      "readmePath": "frontend-handoff/modules/plugins/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/plugins/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/plugins-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/plugins-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/plugins-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/plugins-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/plugins/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "routing",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/routing/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/routing",
+      "readmePath": "frontend-handoff/modules/routing/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/routing/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/routing-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/routing-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/routing-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/routing-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/routing/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "sessions",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "accepted-with-exceptions",
+      "prototypeReference": "frontend-handoff/modules/sessions/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/sessions",
+      "readmePath": "frontend-handoff/modules/sessions/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/sessions/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/sessions-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/sessions-prototype-remediation-parity-report/verdict.json",
+          "verdict": "pass-with-exceptions",
+          "runId": null,
+          "acceptedExceptions": [
+            "Deck shell chrome is present in mock-current and absent from the standalone prototype.",
+            "Mock-current uses the canonical deck-go atom/tokens chrome and live panel header density; the module workbench structure, metric order, inventory/detail/actions layout, and evidence sections align with the prototype.",
+            "The current screenshot is captured at the active Deck shell viewport, so the right action column is slightly tighter than the standalone 1440px prototype."
+          ],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/sessions-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/sessions/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "settings",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/settings/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/settings",
+      "readmePath": "frontend-handoff/modules/settings/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/settings/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/settings-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/settings-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/settings-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/settings-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/settings/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "skills",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/skills/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/skills",
+      "readmePath": "frontend-handoff/modules/skills/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/skills/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/skills-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/skills-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/skills-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/skills-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/skills/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "subagents",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/subagents/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/subagents",
+      "readmePath": "frontend-handoff/modules/subagents/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/subagents/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/subagents-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/subagents-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/subagents-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/subagents-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/subagents/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "threads",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/threads/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/threads",
+      "readmePath": "frontend-handoff/modules/threads/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/threads/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/threads-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/threads-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/threads-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/threads-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/threads/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": null,
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "usage",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/usage/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/usage",
+      "readmePath": "frontend-handoff/modules/usage/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/usage/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/usage-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/usage-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/usage-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/usage-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/usage/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "74830-ants-and-BFF-only-transport",
+          "acceptedExceptions": []
+        }
+      ]
+    },
+    {
+      "module": "webhooks",
+      "date": "2026-05-06",
+      "reviewer": "Codex",
+      "finalSignoffStatus": "needs-revision",
+      "prototypeReference": "frontend-handoff/modules/webhooks/prototype.html",
+      "productionReference": "frontend-new/src/components/panels/webhooks",
+      "readmePath": "frontend-handoff/modules/webhooks/README.md",
+      "implementationNotesPath": "frontend-handoff/modules/webhooks/implementation-notes.md",
+      "evidence": [
+        {
+          "level": "mock-functional",
+          "status": "tracked",
+          "command": "pnpm exec playwright test test/e2e/webhooks-visual.spec.ts --config playwright.config.ts",
+          "artifactPath": ".local/webhooks-remediation-mock-visual/",
+          "verdict": "recorded-by-visual-spec",
+          "runId": null,
+          "acceptedExceptions": []
+        },
+        {
+          "level": "mock-prototype-parity",
+          "status": "ready-for-review",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
+          "artifactPath": ".local/webhooks-prototype-remediation-parity-report/verdict.json",
+          "verdict": "unreviewed",
+          "runId": null,
+          "acceptedExceptions": [],
+          "materialGaps": []
+        },
+        {
+          "level": "real-gateway",
+          "status": "recorded-in-implementation-notes",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/webhooks-real-gateway.spec.ts --config playwright.config.ts",
+          "artifactPath": "frontend-handoff/modules/webhooks/implementation-notes.md",
+          "verdict": "recorded",
+          "runId": "scoped",
+          "acceptedExceptions": []
+        }
+      ]
+    }
+  ]
+}

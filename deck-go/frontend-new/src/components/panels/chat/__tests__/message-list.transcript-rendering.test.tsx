@@ -40,6 +40,15 @@ function makeAssistantMessage(): ChatMessage {
       },
       { type: "image", data: "abc", mimeType: "image/png", fileName: "diagram.png" },
       {
+        type: "canvas",
+        kind: "canvas",
+        surface: "assistant_message",
+        render: "url",
+        url: "/__openclaw__/canvas/documents/demo/index.html",
+        title: "Demo canvas",
+        preferredHeight: 360,
+      },
+      {
         type: "unknown",
         rawType: "refusal",
         summary: { type: "refusal", reason: "provider-skew" },
@@ -87,9 +96,45 @@ describe("TranscriptBlocks", () => {
     expect(container.textContent).toContain("2.0 KB");
     expect(container.textContent).toContain("toolResult");
     expect(container.querySelector('img[alt="diagram.png"]')).toBeTruthy();
+    const canvas = container.querySelector<HTMLIFrameElement>('iframe[title="Demo canvas"]');
+    expect(canvas?.getAttribute("src")).toBe("/api/canvas/documents/demo/index.html");
+    expect(canvas?.getAttribute("height")).toBe("360");
     expect(container.textContent).toContain("Unsupported block: refusal");
     expect(container.textContent).toContain("final answer");
     expect(container.textContent).not.toContain('{"type":"text"');
+  });
+
+  it("keeps streaming tool calls collapsed and presents the tool name plus summary like the prototype", () => {
+    const message: ChatMessage = {
+      id: "msg-tool",
+      role: "assistant",
+      timestamp: 1234,
+      streaming: true,
+      content: [
+        {
+          type: "tool_use",
+          id: "tool-1",
+          name: "bash",
+          input: { command: "pnpm test -- --runInBand" },
+        },
+      ],
+    };
+
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(TranscriptBlocks, { message, isUser: false, streaming: true }));
+    });
+
+    const toolButton = container.querySelector<HTMLButtonElement>(
+      ".ds-tool-use-card .ds-block__head",
+    );
+    expect(toolButton).toBeTruthy();
+    expect(toolButton?.getAttribute("aria-expanded")).toBe("false");
+    expect(container.textContent).toContain("bash");
+    expect(container.textContent).toContain("pnpm test -- --runInBand");
+    expect(container.textContent).toContain("running");
+    expect(container.textContent).not.toContain("toolCall");
+    expect(container.textContent).not.toContain("command:");
   });
 
   it("opens and closes migrated image block previews", () => {
@@ -150,6 +195,43 @@ describe("TranscriptBlocks", () => {
     );
     expect(container.textContent).not.toContain("**bold**");
     expect(container.textContent).not.toContain("```");
+  });
+
+  it("renders OpenClaw status replies as structured status cards", () => {
+    const message: ChatMessage = {
+      id: "msg-openclaw-status",
+      role: "assistant",
+      timestamp: 1234,
+      content: [
+        {
+          type: "text",
+          text: [
+            "OpenClaw 2026.4.14 (d7ab0bb)",
+            "Model: cpa/gpt-5.4 · api-key (cpa:default)",
+            "Tokens: 15k in / 192 out · Cost: $0.0000",
+            "Context: 15k/256k (6%) · Compactions: 0",
+            "Session: agent:main:dashboard:964960d7 • updated just now",
+            "Runtime: direct · Think: high",
+            "Queue: collect (depth 0)",
+          ].join("\n"),
+        },
+      ],
+    };
+
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(TranscriptBlocks, { message, isUser: false }));
+    });
+
+    const card = container.querySelector(".deck-ui-openclaw-status-card");
+    expect(card).toBeTruthy();
+    expect(card?.textContent).toContain("OpenClaw");
+    expect(card?.textContent).toContain("2026.4.14");
+    expect(card?.textContent).toContain("d7ab0bb");
+    expect(card?.textContent).toContain("cpa/gpt-5.4");
+    expect(card?.textContent).toContain("15k/256k (6%)");
+    expect(card?.textContent).toContain("collect (depth 0)");
+    expect(container.querySelector(".deck-ui-markdown")).toBeNull();
   });
 
   it("renders assistant headings, lists, and safe links as markdown structure", () => {

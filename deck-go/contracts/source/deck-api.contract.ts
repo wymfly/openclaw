@@ -278,12 +278,21 @@ export interface DeckGoChatSessionCreateRequest {
   parentSessionKey?: string;
 }
 
+export interface DeckGoChatImageAttachment {
+  type: "image";
+  mimeType: string;
+  fileName?: string;
+  content: string;
+}
+
+export type DeckGoChatAttachment = DeckGoChatImageAttachment;
+
 export interface DeckGoChatSendRequest {
   sessionKey: string;
   message?: string;
   thinking?: string;
   idempotencyKey?: string;
-  attachments?: Array<Record<string, unknown>>;
+  attachments?: DeckGoChatAttachment[];
 }
 
 export interface DeckGoChatAbortRequest {
@@ -2358,12 +2367,9 @@ export interface DeckGoChatCompactRequest {
   sessionKey: string;
 }
 
-// 来自 deck-go/backend/internal/server/chat.go:396 (POST /chat/projection)
-// Handler is presently a noop (returns `{ok:true}` after sessionKey decode);
-// behavior fix lives in follow-up `deck-go-chat-projection-handler-fix`.
-// `a2uiState` is forwarded by current frontend call sites (chat-canvas
-// projection persistence) and dropped server-side; it stays on the DTO to
-// reflect the on-the-wire shape until the handler-fix follow-up tightens it.
+// 来自 deck-go/backend/internal/server/chat.go (POST /chat/projection)
+// Persists Deck-owned A2UI/canvas projection state in the Go BFF. Bridge-only
+// fields such as `bridgeStatus` and `treeData` are excluded from persistence.
 export interface DeckGoChatProjectionRequest {
   sessionKey: string;
   a2uiState?: Record<string, unknown> | null;

@@ -1,6 +1,6 @@
 # API Explorer
 
-**Status**: implemented - real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild — v2)
 **Depends on atoms**: Button, Input, Select, Textarea, Badge, Tag, Code, ScopeBadge, KindBadge, StatusPill, JsonViewer
@@ -51,3 +51,19 @@ Code truth wins over this handoff. As of the Codex implementation pass on 2026-0
 - **History persistence** — prototype and current production keep history in memory. Durable `localStorage` history is a follow-up.
 - **Run cancellation** — prototype's "running" state has no cancel button (the `setTimeout` would be discarded by re-clicking Run). Production should cancel via `AbortController`.
 - **Diff between two responses** — out of scope this iteration; flagged in `implementation-notes.md` as future enhancement.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `accepted-with-exceptions`                                                                                                          |
+| Reviewer                       | Codex                                                                                                                               |
+| Date                           | 2026-05-06                                                                                                                          |
+| Prototype reference            | `frontend-handoff/modules/api-explorer/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/api-explorer/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`api-explorer`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`api-explorer`, `mock-prototype-parity`, verdict: `pass-with-exceptions`)   |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`api-explorer`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/api-explorer/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

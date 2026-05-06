@@ -66,6 +66,59 @@
   margin-inline-start: auto;
 }
 
+.ds-tool-use-card__icon,
+.ds-tool-result-card__icon {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: var(--ds-text-2);
+}
+
+.ds-tool-use-card__spinner {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  border: 1.5px solid var(--ds-accent-dim);
+  border-top-color: var(--ds-accent);
+  border-radius: 999px;
+  animation: ds-tool-spin 0.9s linear infinite;
+}
+
+@keyframes ds-tool-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-tool-use-card__spinner {
+    animation: none;
+  }
+}
+
+.ds-tool-use-card__name {
+  min-width: 0;
+  color: var(--ds-accent);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-tool-use-card__status {
+  border-radius: var(--ds-radius-sm);
+  font-family: var(--ds-font-mono);
+  font-size: 10.5px;
+  line-height: 1.25;
+}
+
+.ds-tool-use-card__chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--ds-text-3);
+}
+
 /* ---- Generic tool-result-card chrome (native <details>, NOT Block atom) */
 
 .ds-tool-result-card {

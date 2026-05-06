@@ -616,6 +616,83 @@
   overflow: auto;
 }
 
+.ds-openclaw-status-card {
+  display: grid;
+  gap: 10px;
+  max-width: min(100%, 780px);
+  padding: 12px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ds-bg-elev) 70%, transparent);
+}
+
+.ds-openclaw-status-card__header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ds-openclaw-status-card__product {
+  color: var(--ds-text-1);
+  font-size: var(--ds-fs-body);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.ds-openclaw-status-card__chip {
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 7px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  color: var(--ds-text-2);
+  background: var(--ds-bg-1);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-openclaw-status-card__items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+
+.ds-openclaw-status-card__item {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-1);
+}
+
+.ds-openclaw-status-card__item dt {
+  margin: 0;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.ds-openclaw-status-card__item dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--ds-text-1);
+  font-size: var(--ds-fs-body);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 /* File-block — bundle .file-block (lines 547-554). Card atom owns
  * the outer surface chrome via `<Card surface="flat" padded={false}>`;
  * this rule supplies the inner flex row + name/size typography +

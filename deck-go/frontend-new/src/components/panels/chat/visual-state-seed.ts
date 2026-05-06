@@ -138,6 +138,76 @@ function seededMessages(now: number): ChatMessage[] {
       ],
     },
     {
+      id: "visual-assistant-rich-content",
+      role: "assistant",
+      timestamp: now - 4 * 60_000 - 30_000,
+      content: [
+        {
+          type: "tool_use",
+          id: "tool-render-structured",
+          name: "openclaw_canvas_preview",
+          input: {
+            viewId: "visual-canvas-checklist",
+            url: "/__openclaw__/canvas/documents/visual-checklist.html",
+          },
+        },
+        {
+          type: "tool_result",
+          toolUseId: "tool-render-structured",
+          content: [
+            {
+              type: "text",
+              text: "Structured content preserved from Gateway: inline canvas, image, file, and unknown fallback all stay visible.",
+            },
+            {
+              type: "canvas",
+              kind: "canvas",
+              surface: "assistant_message",
+              render: "url",
+              url: "/__openclaw__/canvas/documents/visual-checklist.html",
+              viewId: "visual-canvas-checklist",
+              title: "Gateway readiness canvas",
+              preferredHeight: 220,
+            },
+            {
+              type: "image",
+              mimeType: "image/png",
+              fileName: "gateway-status.png",
+              data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+            },
+            {
+              type: "file",
+              mimeType: "text/plain",
+              fileName: "gateway-summary.txt",
+              size: 28,
+              data: "R2F0ZXdheSBzdHJ1Y3R1cmVkIHJlc3VsdAo=",
+            },
+            {
+              type: "unknown",
+              rawType: "debug_delta",
+              summary: {
+                type: "debug_delta",
+                keys: ["phase", "durationMs", "source"],
+                phase: "canonicalization",
+              },
+            },
+          ],
+        },
+        {
+          type: "tool_use",
+          id: "tool-write-artifact",
+          name: "write_file",
+          input: { path: "/tmp/deck-go-rich-content-report.md" },
+        },
+        {
+          type: "tool_result",
+          toolUseId: "tool-write-artifact",
+          content:
+            "# Rich content report\n\n- Canvas block routed through Deck BFF\n- Unknown block preserved for review\n- Tool details collapsed by default\n",
+        },
+      ],
+    },
+    {
       id: "compaction-visual-1",
       role: "system",
       timestamp: now - 4 * 60_000,

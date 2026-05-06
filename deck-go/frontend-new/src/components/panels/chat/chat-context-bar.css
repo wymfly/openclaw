@@ -161,6 +161,33 @@
   opacity: 0.6;
 }
 
+.ds-chat-context-bar__command-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-pill, 999px);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-meta);
+}
+
+.ds-chat-context-bar__command-status[data-status="running"] {
+  border-color: var(--ds-accent);
+  color: var(--ds-accent);
+}
+
+.ds-chat-context-bar__command-status[data-status="completed"] {
+  border-color: var(--ds-success);
+  color: var(--ds-success);
+}
+
+.ds-chat-context-bar__command-status[data-status="failed"] {
+  border-color: var(--ds-error);
+  color: var(--ds-error);
+}
+
 /* Trailing search button — bundle .btn-ghost with .kbd ⌘F. */
 .ds-chat-context-bar__search-btn {
   display: inline-flex;

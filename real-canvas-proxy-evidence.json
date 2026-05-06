@@ -1,0 +1,7 @@
+{
+  "status": 401,
+  "ok": false,
+  "contentType": "application/json",
+  "textStart": "{\"error\":\"Gateway returned 401 Unauthorized\"}\n",
+  "tokenPresent": true
+}

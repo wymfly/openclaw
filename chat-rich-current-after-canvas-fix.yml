@@ -1,0 +1,146 @@
+- generic [ref=e3] [box=0,0,1440,1000]:
+  - navigation "Deck panels" [ref=e4] [box=0,0,208,1000]:
+    - button "Collapse navigation" [ref=e6] [cursor=pointer] [box=89,9,30,30]:
+      - img [ref=e7] [box=96,16,16,16]
+    - generic [ref=e9] [box=0,48,207,901]:
+      - generic [ref=e10] [box=6,56,195,175]:
+        - paragraph [ref=e11] [box=14,66,179,13]: Core
+        - button "Chat" [ref=e12] [cursor=pointer] [box=6,86,195,34]:
+          - img [ref=e14] [box=17,95,16,16]
+          - generic [ref=e16] [box=47,95,147,16]: Chat
+        - button "Agents" [ref=e17] [cursor=pointer] [box=6,123,195,34]:
+          - img [ref=e19] [box=17,132,16,16]
+          - generic [ref=e21] [box=47,132,147,16]: Agents
+        - button "Monitor" [ref=e22] [cursor=pointer] [box=6,160,195,34]:
+          - img [ref=e24] [box=17,169,16,16]
+          - generic [ref=e27] [box=47,169,147,16]: Monitor
+        - button "Models" [ref=e28] [cursor=pointer] [box=6,197,195,34]:
+          - img [ref=e30] [box=17,206,16,16]
+          - generic [ref=e32] [box=47,206,147,16]: Models
+      - generic [ref=e33] [box=6,234,195,286]:
+        - paragraph [ref=e34] [box=14,244,179,13]: Observe
+        - button "Usage" [ref=e35] [cursor=pointer] [box=6,264,195,34]:
+          - img [ref=e37] [box=17,273,16,16]
+          - generic [ref=e39] [box=47,273,147,16]: Usage
+        - button "Sessions" [ref=e40] [cursor=pointer] [box=6,301,195,34]:
+          - img [ref=e42] [box=17,310,16,16]
+          - generic [ref=e44] [box=47,310,147,16]: Sessions
+        - button "Memory" [ref=e45] [cursor=pointer] [box=6,338,195,34]:
+          - img [ref=e47] [box=17,347,16,16]
+          - generic [ref=e50] [box=47,347,147,16]: Memory
+        - button "Logs" [ref=e51] [cursor=pointer] [box=6,375,195,34]:
+          - img [ref=e53] [box=17,384,16,16]
+          - generic [ref=e56] [box=47,384,147,16]: Logs
+        - button "Activity" [ref=e57] [cursor=pointer] [box=6,412,195,34]:
+          - img [ref=e59] [box=17,421,16,16]
+          - generic [ref=e61] [box=47,421,147,16]: Activity
+        - button "Threads" [ref=e62] [cursor=pointer] [box=6,449,195,34]:
+          - img [ref=e64] [box=17,458,16,16]
+          - generic [ref=e67] [box=47,458,147,16]: Threads
+        - button "API Explorer" [ref=e68] [cursor=pointer] [box=6,486,195,34]:
+          - img [ref=e70] [box=17,495,16,16]
+          - generic [ref=e72] [box=47,495,147,16]: API Explorer
+      - generic [ref=e73] [box=6,523,195,175]:
+        - paragraph [ref=e74] [box=14,533,179,13]: Automate
+        - button "Cron Jobs" [ref=e75] [cursor=pointer] [box=6,553,195,34]:
+          - img [ref=e77] [box=17,562,16,16]
+          - generic [ref=e80] [box=47,562,147,16]: Cron Jobs
+        - button "Webhooks" [ref=e81] [cursor=pointer] [box=6,590,195,34]:
+          - img [ref=e83] [box=17,599,16,16]
+          - generic [ref=e88] [box=47,599,147,16]: Webhooks
+        - button "Approvals" [ref=e89] [cursor=pointer] [box=6,627,195,34]:
+          - img [ref=e91] [box=17,636,16,16]
+          - generic [ref=e94] [box=47,636,147,16]: Approvals
+        - button "Skills" [ref=e95] [cursor=pointer] [box=6,664,195,34]:
+          - img [ref=e97] [box=17,673,16,16]
+          - generic [ref=e99] [box=47,673,147,16]: Skills
+      - generic [ref=e100] [box=6,701,195,397]:
+        - paragraph [ref=e101] [box=14,711,179,13]: Control
+        - button "Budget" [ref=e102] [cursor=pointer] [box=6,731,195,34]:
+          - img [ref=e104] [box=17,740,16,16]
+          - generic [ref=e107] [box=47,740,147,16]: Budget
+        - button "Alerts" [ref=e108] [cursor=pointer] [box=6,768,195,34]:
+          - img [ref=e110] [box=17,777,16,16]
+          - generic [ref=e112] [box=47,777,147,16]: Alerts
+        - button "Channels" [ref=e113] [cursor=pointer] [box=6,805,195,34]:
+          - img [ref=e115] [box=17,814,16,16]
+          - generic [ref=e121] [box=47,814,147,16]: Channels
+        - button "Plugins" [ref=e122] [cursor=pointer] [box=6,842,195,34]:
+          - img [ref=e124] [box=17,851,16,16]
+          - generic [ref=e129] [box=47,851,147,16]: Plugins
+        - button "Routing" [ref=e130] [cursor=pointer] [box=6,879,195,34]:
+          - img [ref=e132] [box=17,888,16,16]
+          - generic [ref=e136] [box=47,888,147,16]: Routing
+        - button "Subagents" [ref=e137] [cursor=pointer] [box=6,916,195,34]:
+          - img [ref=e139] [box=17,925,16,16]
+          - generic [ref=e144] [box=47,925,147,16]: Subagents
+        - button "Identities" [ref=e145] [cursor=pointer] [box=6,953,195,34]:
+          - img [ref=e147] [box=17,962,16,16]
+          - generic [ref=e152] [box=47,962,147,16]: Identities
+        - button "Config" [ref=e153] [cursor=pointer] [box=6,990,195,34]:
+          - img [ref=e155] [box=17,999,16,16]
+          - generic [ref=e158] [box=47,999,147,16]: Config
+        - button "Nodes" [ref=e159] [cursor=pointer] [box=6,1027,195,34]:
+          - img [ref=e161] [box=17,1036,16,16]
+          - generic [ref=e164] [box=47,1036,147,16]: Nodes
+        - button "Docs" [ref=e165] [cursor=pointer] [box=6,1064,195,34]:
+          - img [ref=e167] [box=17,1073,16,16]
+          - generic [ref=e172] [box=47,1073,147,16]: Docs
+    - button "Settings" [ref=e174] [cursor=pointer] [box=6,958,195,34]:
+      - img [ref=e176] [box=17,967,16,16]
+      - generic [ref=e179] [box=47,967,147,16]: Settings
+  - generic [ref=e180] [box=208,0,1232,1000]:
+    - banner [ref=e181] [box=208,0,1232,48]:
+      - heading "Chat" [level=1] [ref=e184] [box=224,14,34,18]
+      - generic [ref=e185] [box=1152,9,272,30]:
+        - generic "ws://127.0.0.1:18789" [ref=e643] [box=1152,9,71,30]: Bundled
+        - button "Connected" [ref=e186] [box=1228,9,87,30]: Connected
+        - 'button "Switch language: ZH" [ref=e188] [cursor=pointer] [box=1321,9,63,30]':
+          - img [ref=e189] [box=1330,16,16,16]
+          - generic [ref=e193] [box=1353,14,22,20]: ZH
+        - 'button "Theme switch: System" [ref=e194] [cursor=pointer] [box=1390,9,34,30]':
+          - img [ref=e195] [box=1399,16,16,16]
+    - main [ref=e197] [box=208,48,1232,952]:
+      - region "Chat workspace" [ref=e198] [box=208,48,1232,952]:
+        - complementary [ref=e199] [box=208,48,240,952]:
+          - complementary [ref=e200] [box=208,48,239,952]:
+            - generic [ref=e201] [box=208,48,239,46]
+            - button "New Session" [ref=e209] [cursor=pointer] [box=220,104,215,26]
+            - textbox "Search sessions..." [ref=e212] [box=220,140,215,26]
+            - generic [ref=e213] [box=208,174,239,788]
+            - generic [ref=e247] [box=208,962,239,38]: Default Agent main
+        - generic [ref=e248] [box=448,48,512,952]:
+          - toolbar [ref=e249] [box=448,48,512,116]:
+            - generic "97.2K / 100.0K tokens" [ref=e250] [box=470,57,88,17]
+            - generic "97.2K / 100.0K tokens" [ref=e253] [box=572,57,175,17]
+            - generic [ref=e257] [box=761,57,85,17]
+            - button "Reasoning off" [ref=e260] [cursor=pointer] [box=470,89,96,21]
+            - button "Send allow" [ref=e263] [cursor=pointer] [box=580,89,80,21]
+            - button "Usage tokens" [ref=e266] [cursor=pointer] [box=674,89,94,21]
+            - button "Fast" [ref=e269] [cursor=pointer] [box=782,88,55,23]
+            - button "Compact" [ref=e273] [cursor=pointer] [box=470,126,83,27]
+            - button "Search messages..." [ref=e275] [cursor=pointer] [box=567,126,59,28]
+          - button "Go to steer" [ref=e280] [cursor=pointer] [box=861,168,87,29]
+          - region "Transcript" [ref=e281] [box=448,196,512,286]:
+            - generic [ref=e282] [box=448,196,512,286]
+          - toolbar "Transcript filters" [ref=e498] [box=448,482,512,33]:
+            - generic [ref=e499] [box=470,491,42,17]
+            - button "Thinking" [pressed] [ref=e502] [box=522,489,92,20]
+            - button "Tools" [pressed] [ref=e508] [box=620,489,75,20]
+            - button "Results" [pressed] [ref=e513] [box=701,489,85,20]
+          - generic [ref=e520] [box=448,515,512,41]:
+            - img [ref=e521] [box=460,528,14,14]
+            - generic [ref=e524] [box=482,522,411,26]
+            - button "Steer" [disabled] [ref=e527] [box=901,521,47,28]
+          - generic "Tools" [ref=e528] [box=448,556,512,37]:
+            - generic [ref=e533] [box=470,563,230,96]
+            - generic [ref=e538] [box=708,563,230,96]
+          - generic [ref=e542] [box=448,594,512,406]:
+            - region "Approval required" [ref=e543] [box=459,605,490,227]
+            - status [ref=e578] [box=459,848,490,47]
+            - generic [ref=e582] [box=459,903,490,53]
+            - generic [ref=e591] [box=459,963,490,26]
+        - dialog "Side drawer" [ref=e606] [box=960,48,480,952]:
+          - region "Canvas" [ref=e608] [box=977,64,447,920]:
+            - generic [ref=e609] [box=977,64,447,51]
+            - generic [ref=e635] [box=989,127,423,845]

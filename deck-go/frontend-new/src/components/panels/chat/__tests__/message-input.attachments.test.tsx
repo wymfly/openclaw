@@ -29,6 +29,7 @@ vi.mock("next-intl", () => ({
         canvasToggle: "Canvas panel",
         artifactToggle: "Artifact panel",
         error: "Error",
+        toastUnsupportedAttachment: `${key}: value`,
       }) as Record<string, string>
     )[key] ?? key,
 }));
@@ -177,6 +178,7 @@ beforeEach(async () => {
           toolProgress: {},
           activeApproval: null,
           runMetadata: {},
+          commandStates: {},
           a2uiState: null,
           lastAccessedAt: Date.now(),
         },
@@ -219,7 +221,7 @@ describe("MessageInput attachments", () => {
   it("sends attachment payloads with the active session message", async () => {
     mountInput();
 
-    const file = new File(["hello"], "hello.txt", { type: "text/plain" });
+    const file = new File(["image"], "diagram.png", { type: "image/png" });
     fireEvent.change(screen.getByLabelText("File attachments"), {
       target: { files: [file] },
     });
@@ -227,7 +229,7 @@ describe("MessageInput attachments", () => {
       target: { value: "see attached" },
     });
 
-    expect(screen.getByText("hello.txt")).toBeTruthy();
+    expect(screen.getByText("diagram.png")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
     await waitFor(() => {
@@ -237,19 +239,33 @@ describe("MessageInput attachments", () => {
           message: "see attached",
           attachments: [
             expect.objectContaining({
-              type: "file",
-              mimeType: "text/plain",
-              fileName: "hello.txt",
-              content: "aGVsbG8=",
+              type: "image",
+              mimeType: "image/png",
+              fileName: "diagram.png",
+              content: "aW1hZ2U=",
             }),
           ],
         }),
       );
     });
-    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]?.text).toContain("hello.txt");
+    expect(useChatStore.getState().sessionPreviewOverlays["sess-1"]?.text).toContain("diagram.png");
     expect(addedMessages[0]?.content).toEqual([
-      { type: "text", text: "see attached\n[hello.txt]" },
+      { type: "text", text: "see attached\n[diagram.png]" },
     ]);
+  });
+
+  it("blocks generic files before the model attachment path", async () => {
+    mountInput();
+
+    const file = new File(["hello"], "hello.txt", { type: "text/plain" });
+    fireEvent.change(screen.getByLabelText("File attachments"), {
+      target: { files: [file] },
+    });
+
+    expect(screen.queryByText("hello.txt")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("toastUnsupportedAttachment");
+    expect(chatState.sessions.get("sess-1")?.error).toContain("toastUnsupportedAttachment");
+    expect(sendChatMessage).not.toHaveBeenCalled();
   });
 
   it("lets attachment-only messages bypass controlled text send disabling", async () => {
@@ -305,6 +321,7 @@ describe("MessageInput attachments", () => {
     });
 
     expect(screen.queryByText("too-large.bin")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("too-large.bin exceeds");
     expect(chatState.sessions.get("sess-1")?.error).toContain("too-large.bin exceeds");
     expect(sendChatMessage).not.toHaveBeenCalled();
   });

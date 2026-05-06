@@ -3,6 +3,7 @@ import { getToolResultBlocks, type ChatMessage } from "@/stores/chat-types";
 import { ToolResultCard } from "./blocks/ToolResultCard";
 import { ToolUseCard } from "./blocks/ToolUseCard";
 import { MarkdownText } from "./MarkdownText";
+import { OpenClawStatusCard, parseOpenClawStatus } from "./OpenClawStatusCard";
 import { ToolPair } from "./ToolPair";
 import { renderTranscriptBlock } from "./transcript-render-registry";
 
@@ -49,7 +50,12 @@ export function TranscriptBlocks({
               paired
               error={Boolean(result?.isError)}
               toolUse={
-                <ToolUseCard name={block.name} input={block.input} defaultOpen={streaming} paired />
+                <ToolUseCard
+                  name={block.name}
+                  input={block.input}
+                  running={Boolean(streaming && !result)}
+                  paired
+                />
               }
               toolResult={
                 showResult ? (
@@ -83,10 +89,13 @@ export function TranscriptBlocks({
         }
 
         if (block.type === "text") {
+          const openClawStatus = !isUser && parseOpenClawStatus(block.text);
           return (
             <div className="ds-transcript-text" key={`text-${index}`}>
               {isUser ? (
                 <p>{block.text}</p>
+              ) : openClawStatus ? (
+                <OpenClawStatusCard text={block.text} />
               ) : (
                 <MarkdownText text={block.text} streaming={streaming && index === lastTextIndex} />
               )}

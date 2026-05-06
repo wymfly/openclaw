@@ -43,7 +43,10 @@ export { RefreshCw as IconRefresh } from "lucide-react"; // reload / recompute
 export { Save as IconSave } from "lucide-react"; // save changes
 export { Search as IconSearch } from "lucide-react"; // search
 export { Trash2 as IconTrash } from "lucide-react"; // delete
+export { Terminal as IconTerminal } from "lucide-react"; // command / tool result
+export { Wrench as IconTool } from "lucide-react"; // tool invocation
 export { Unlink as IconUnlink } from "lucide-react"; // unlink / detach
+export { Upload as IconUpload } from "lucide-react"; // upload / attach file
 export { X as IconX } from "lucide-react"; // close / dismiss
 
 // ── Navigation arrows ──────────────────────────────────────────────────────

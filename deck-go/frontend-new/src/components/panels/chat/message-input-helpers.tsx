@@ -1,7 +1,8 @@
 import { useCallback, useContext } from "react";
-import { FileTextIcon, MonitorDotIcon, PlusIcon } from "@/deck-ui/icons";
+import { FileTextIcon, MonitorDotIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
+import { IconUpload } from "@/design-system/icons";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { ArtifactContext } from "./artifact-context";
@@ -23,6 +24,10 @@ export function readFileAsBase64(file: File): Promise<string> {
 
 export function attachmentType(mime: string) {
   return mime.startsWith("image/") ? "image" : "file";
+}
+
+export function isSupportedModelAttachment(file: File) {
+  return file.type.startsWith("image/");
 }
 
 export function formatSize(bytes: number) {
@@ -77,7 +82,7 @@ export function FileAttachmentBar({
           title={addLabel ?? "Add"}
           onClick={onAdd}
         >
-          <PlusIcon className="ds-attachment-bar__add-icon" aria-hidden="true" />
+          <IconUpload className="ds-attachment-bar__add-icon" aria-hidden="true" />
           <span>{addLabel ?? "add"}</span>
         </button>
       ) : null}

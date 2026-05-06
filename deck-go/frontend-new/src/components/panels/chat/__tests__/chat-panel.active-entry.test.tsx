@@ -32,16 +32,11 @@ const chatApi = vi.hoisted(() => ({
   steerChatSession: vi.fn(),
 }));
 
-const sse = vi.hoisted(() => ({
-  useChatSSE: vi.fn(),
-}));
-
 const commandDiscovery = vi.hoisted(() => ({
   useCommandDiscovery: vi.fn(),
 }));
 
 vi.mock("../chat-api", () => chatApi);
-vi.mock("../useChatSSE", () => sse);
 vi.mock("@/hooks/use-command-discovery", () => commandDiscovery);
 
 const messages = {
@@ -140,7 +135,7 @@ function resetChatStore() {
     sessionPreviewOverlays: {},
     activeSessionKey: null,
     activeAgentId: "main",
-    sseStatus: "disconnected",
+    sseStatus: "idle",
     canvasCommands: [],
   });
   useSessionsStore.setState({
@@ -284,7 +279,6 @@ describe("ChatPanel active entry", () => {
       });
     });
 
-    expect(sse.useChatSSE).toHaveBeenCalled();
     expect(commandDiscovery.useCommandDiscovery).toHaveBeenCalled();
     expect(useChatStore.getState().activeSessionKey).toBe("sess-1");
     expect(useChatStore.getState().sessionMetas[0]).toMatchObject({

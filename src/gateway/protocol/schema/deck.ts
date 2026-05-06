@@ -704,6 +704,7 @@ const DiscoverableCommandSchema = Type.Object({
   name: Type.String(),
   source: DeckDiscoverableCommandSourceSchema,
   description: Type.String(),
+  aliases: Type.Optional(Type.Array(Type.String())),
   args: Type.Optional(Type.String()),
   argChoices: Type.Optional(Type.Array(Type.String())),
   category: Type.Optional(Type.String()),

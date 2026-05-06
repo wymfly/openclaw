@@ -1,0 +1,317 @@
+{
+  "schemaVersion": 1,
+  "generatedForChange": "deck-go-frontend-verification-discipline",
+  "date": "2026-05-06",
+  "tokenExceptions": [
+    {
+      "module": "alerts",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "approvals",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "budget",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "chat",
+      "tokens": [
+        "--accent",
+        "--accent-bg",
+        "--accent-dim",
+        "--bg-2",
+        "--bg-elev",
+        "--border",
+        "--border-subtle",
+        "--panel",
+        "--shadow-soft",
+        "--text-1",
+        "--text-2",
+        "--text-3"
+      ],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Chat is a reverse-derived pilot with a legacy local token namespace. Renaming it is a product-surface cleanup, not required to establish the verification discipline.",
+      "followUpCondition": "Create a dedicated chat token-consolidation proposal or rename these aliases before claiming strict design-system token closure for Chat."
+    },
+    {
+      "module": "config",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "docs",
+      "tokens": ["--doc-category-color"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Docs uses a data-driven category color custom property for row/category coloring. It is panel-local dynamic styling, not a global design-system token.",
+      "followUpCondition": "Replace with a typed color variant or documented data-driven CSS custom property rule if docs taxonomy becomes shared."
+    },
+    {
+      "module": "identity",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "nodes",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "plugins",
+      "tokens": ["--font-mono"],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Single legacy mono-family alias remains in panel CSS. It is visually equivalent to the canonical mono token but has not been mechanically renamed in this discipline-only change.",
+      "followUpCondition": "Rename to --ds-font-mono during the next panel CSS cleanup or token-consolidation change."
+    },
+    {
+      "module": "threads",
+      "tokens": [
+        "--border",
+        "--border-subtle",
+        "--danger",
+        "--font-mono",
+        "--font-sans",
+        "--panel",
+        "--primary",
+        "--primary-muted",
+        "--surface-elevated",
+        "--surface-inset",
+        "--text-faint",
+        "--text-muted",
+        "--text-primary"
+      ],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Threads still carries a legacy local token namespace. This change records the drift and keeps the visual surface stable instead of silently performing a broad CSS rename.",
+      "followUpCondition": "Resolve in a dedicated threads/design-token cleanup proposal before claiming strict design-system token closure for Threads."
+    },
+    {
+      "module": "usage",
+      "tokens": [
+        "--border",
+        "--danger",
+        "--input-bg",
+        "--primary",
+        "--primary-muted",
+        "--success",
+        "--surface",
+        "--surface-elevated",
+        "--text-faint",
+        "--text-muted",
+        "--text-primary"
+      ],
+      "status": "temporary-exception",
+      "owner": "deck-go frontend",
+      "reason": "Usage still carries a legacy local token namespace around charts/KPIs. This change records the drift and keeps the visual surface stable instead of silently performing a broad CSS rename.",
+      "followUpCondition": "Resolve in a dedicated usage/design-token cleanup proposal before claiming strict design-system token closure for Usage."
+    }
+  ],
+  "panelA11y": [
+    {
+      "module": "activity",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "alerts",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "api-explorer",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "approvals",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "budget",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "channels",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "chat",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "config",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "cron",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "docs",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "gateway",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "identity",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "logs",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "memory",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "models",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "nodes",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "plugins",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "routing",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "sessions",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "settings",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "skills",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "subagents",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "threads",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "usage",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    },
+    {
+      "module": "webhooks",
+      "status": "tracked-exception",
+      "owner": "deck-go frontend",
+      "reason": "Panel-level axe coverage is absent; current closure records the gap rather than pretending atom axe coverage applies to this panel.",
+      "followUpCondition": "Add panel-level axe coverage in the next module a11y hardening pass."
+    }
+  ],
+  "sharedListPrimitives": {
+    "classification": "keep-experimental-follow-up",
+    "owner": "deck-go frontend",
+    "reason": "The list primitives are tested but unused by production panels. This discipline change records the state rather than forcing a broad adoption/removal refactor.",
+    "followUpTrigger": "When two or more list-heavy panels are actively refactored in one proposal, either adopt these primitives there or delete them before closure."
+  }
+}

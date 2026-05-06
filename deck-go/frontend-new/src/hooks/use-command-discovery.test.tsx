@@ -79,6 +79,7 @@ describe("useCommandDiscovery", () => {
           commands: [
             {
               name: "deploy",
+              aliases: ["ship"],
               source: "builtin",
               description: "Deploy target",
               args: "<target>",
@@ -97,6 +98,7 @@ describe("useCommandDiscovery", () => {
       expect(commandRegistry.get("deploy")).toMatchObject({
         source: "builtin",
         execMode: "remote",
+        aliases: ["ship"],
         argOptions: ["staging", "prod"],
         category: "tools",
       });

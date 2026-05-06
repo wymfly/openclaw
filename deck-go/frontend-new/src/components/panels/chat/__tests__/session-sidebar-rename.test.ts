@@ -320,6 +320,26 @@ describe("SessionSidebar rename", () => {
     expect(screen.getByText("Ops Review")).toBeTruthy();
   });
 
+  it("filters sessions by backend label even when the visible title is generated", () => {
+    const metas = [
+      { ...baseMeta, key: "sess-primary", title: "Primary Session" },
+      { ...baseMeta, key: "sess-run", title: "56d72dba (2026-05-06)", label: "run-scoped-label" },
+    ];
+    useChatStore.setState({
+      sessionMetas: metas,
+      sessionMeta: metas,
+      activeSessionKey: "sess-primary",
+    });
+
+    mountSidebar();
+
+    const searchInput = screen.getByPlaceholderText("Search sessions...");
+    fireEvent.change(searchInput, { target: { value: "run-scoped-label" } });
+
+    expect(screen.queryByText("Primary Session")).toBeNull();
+    expect(screen.getByText("56d72dba (2026-05-06)")).toBeTruthy();
+  });
+
   it("restores agent tabs with session counts and active-agent switching", async () => {
     const metas = [
       { ...baseMeta, key: "sess-main", agentId: "main", title: "Main Session" },

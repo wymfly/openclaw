@@ -355,6 +355,13 @@ export function useChatSSE() {
 
     const controller = new AbortController();
     streamControllerRef.current = controller;
+    useChatStore
+      .getState()
+      .setSSEStatus(
+        pendingBrowserRecoveryRef.current || hasConnectedStreamRef.current
+          ? "reconnecting"
+          : "connecting",
+      );
     void deckStream("/api/stream", {
       signal: controller.signal,
       reconnect: true,
@@ -465,7 +472,17 @@ export function useChatSSE() {
           // ignore malformed SSE payloads
         }
       },
-    }).catch(() => {});
+    })
+      .then((response) => {
+        if (!controller.signal.aborted && !response.ok) {
+          useChatStore.getState().setSSEStatus("disconnected");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          useChatStore.getState().setSSEStatus("disconnected");
+        }
+      });
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
@@ -482,10 +499,8 @@ export function useChatSSE() {
       }
       controller.abort();
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      const currentStatus = useChatStore.getState().sseStatus;
-      if (currentStatus !== "reconnecting" && !pendingBrowserRecoveryRef.current) {
-        useChatStore.getState().setSSEStatus("disconnected");
-      }
+      clearReconnectStatusTimer();
+      useChatStore.getState().setSSEStatus("idle");
     };
   }, [streamRestartNonce]);
 }

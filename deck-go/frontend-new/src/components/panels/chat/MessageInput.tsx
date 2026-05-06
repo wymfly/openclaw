@@ -1,9 +1,10 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpIcon, PlusIcon, SlashIcon, SquareIcon, XIcon, ZapIcon } from "@/deck-ui/icons";
+import { ArrowUpIcon, SlashIcon, SquareIcon, XIcon, ZapIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { Textarea } from "@/design-system/atoms/Textarea";
+import { IconUpload } from "@/design-system/icons";
 import { useMention } from "@/hooks/useMention";
 import { resolveSelectMode, useSlashCommand } from "@/hooks/useSlashCommand";
 import { commandRegistry } from "@/lib/command-registry";
@@ -28,8 +29,8 @@ import {
   CanvasToggle,
   FileAttachmentBar,
   MAX_ATTACHMENT_BYTES,
-  attachmentType,
   formatSize,
+  isSupportedModelAttachment,
   readFileAsBase64,
 } from "./message-input-helpers";
 import { PromptTemplateMenu } from "./PromptTemplateMenu";
@@ -100,6 +101,7 @@ export function MessageInput(props: MessageInputProps = {}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const slash = useSlashCommand(input);
   const mention = useMention();
   const history = useInputHistory();
@@ -199,25 +201,32 @@ export function MessageInput(props: MessageInputProps = {}) {
   const addFiles = useCallback(
     (newFiles: File[]) => {
       const valid: File[] = [];
+      let nextAttachmentError: string | null = null;
       for (const file of newFiles) {
         if (file.size > MAX_ATTACHMENT_BYTES) {
+          nextAttachmentError = `${file.name} exceeds ${formatSize(MAX_ATTACHMENT_BYTES)} limit`;
           if (activeSessionKey) {
-            useChatStore
-              .getState()
-              .setSessionError(
-                activeSessionKey,
-                `${file.name} exceeds ${formatSize(MAX_ATTACHMENT_BYTES)} limit`,
-              );
+            useChatStore.getState().setSessionError(activeSessionKey, nextAttachmentError);
+          }
+          continue;
+        }
+        if (!isSupportedModelAttachment(file)) {
+          const message = t("toastUnsupportedAttachment", { value: file.name });
+          nextAttachmentError = message;
+          useNotificationsStore.getState().addToast("error", message, 3000);
+          if (activeSessionKey) {
+            useChatStore.getState().setSessionError(activeSessionKey, message);
           }
           continue;
         }
         valid.push(file);
       }
+      setAttachmentError(nextAttachmentError);
       if (valid.length > 0) {
         appendFiles(valid);
       }
     },
-    [activeSessionKey, appendFiles],
+    [activeSessionKey, appendFiles, t],
   );
 
   const abortRun = useCallback(async () => {
@@ -387,7 +396,11 @@ export function MessageInput(props: MessageInputProps = {}) {
         await handleSlashCommand(command, parsed.args);
         return;
       }
+      if (command?.execMode === "remote") {
+        slash.closePalette();
+      }
       if (!command && /^[a-z]/i.test(parsed.name)) {
+        slash.closePalette();
         showToast("error", "toastUnknownCommand", parsed.name);
         return;
       }
@@ -417,7 +430,7 @@ export function MessageInput(props: MessageInputProps = {}) {
       setFiles([]);
       const attachments = await Promise.all(
         pendingFiles.map(async (file) => ({
-          type: attachmentType(file.type),
+          type: "image" as const,
           mimeType: file.type || "application/octet-stream",
           fileName: file.name,
           content: await readFileAsBase64(file),
@@ -614,6 +627,11 @@ export function MessageInput(props: MessageInputProps = {}) {
         onAdd={() => fileInputRef.current?.click()}
         addLabel={hasTranslation("attachAdd") ? t("attachAdd") : "add"}
       />
+      {attachmentError ? (
+        <div className="ds-message-input__attachment-error deck-ui-attachment-error" role="alert">
+          {attachmentError}
+        </div>
+      ) : null}
       <input
         ref={fileInputRef}
         className="ds-message-input__file-input deck-ui-file-input"
@@ -656,7 +674,7 @@ export function MessageInput(props: MessageInputProps = {}) {
           title={attachFilesLabel}
           onClick={() => fileInputRef.current?.click()}
         >
-          <PlusIcon />
+          <IconUpload />
         </IconButton>
         <div className="ds-message-input__ta-wrap">
           {slash.ghostHint ? (

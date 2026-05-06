@@ -36,11 +36,15 @@ func registerChatSnapshotRoute(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "error": err.Error()})
 			return
 		}
+		a2uiState := detail.A2uiState
+		if stored, ok := loadChatProjectionState(sessionKey); ok {
+			a2uiState = stored
+		}
 		writeJSON(w, http.StatusOK, map[string]any{
 			"session":        detail.Session,
 			"messages":       detail.Messages,
 			"activeApproval": detail.ActiveApproval,
-			"a2uiState":      detail.A2uiState,
+			"a2uiState":      a2uiState,
 		})
 	})
 

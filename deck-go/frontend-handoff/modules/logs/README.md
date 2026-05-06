@@ -1,6 +1,6 @@
 # logs — high-fidelity handoff (v2)
 
-**Status:** `implemented — real-contract verified`
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -127,3 +127,19 @@ The level pills (`LevelPill`) and source tiles (`SourceTile`) stay local to
   outpaces the 5,000-row local buffer?
 - Should the export endpoint become a real download (`/api/deck/logs/export?…`)
   or stay copyable preview only?
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `accepted-with-exceptions`                                                                                                  |
+| Reviewer                       | Codex                                                                                                                       |
+| Date                           | 2026-05-06                                                                                                                  |
+| Prototype reference            | `frontend-handoff/modules/logs/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/logs/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`logs`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`logs`, `mock-prototype-parity`, verdict: `pass-with-exceptions`)   |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`logs`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/logs/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

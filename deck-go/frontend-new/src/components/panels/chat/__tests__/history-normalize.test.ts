@@ -2,6 +2,34 @@ import { describe, expect, it } from "vitest";
 import { normalizeHistoryContent, normalizeHistoryMessages } from "../history-normalize";
 
 describe("history-normalize", () => {
+  it("strips Gateway sender metadata and timestamp wrappers from user transcript text", () => {
+    const messages = normalizeHistoryMessages("agent:main:dashboard:run-1", [
+      {
+        role: "user",
+        timestamp: 1778040308689,
+        content: [
+          {
+            type: "text",
+            text: [
+              "Sender (untrusted metadata):",
+              "```json",
+              "{",
+              '  "label": "gateway-client",',
+              '  "id": "gateway-client"',
+              "}",
+              "```",
+              "",
+              "[Wed 2026-05-06 12:05 GMT+8] 你好",
+            ].join("\n"),
+          },
+        ],
+      },
+    ]);
+
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toEqual([{ type: "text", text: "你好" }]);
+  });
+
   it("normalizes a single text content object without stringifying it", () => {
     const blocks = normalizeHistoryContent({
       type: "text",
@@ -39,6 +67,50 @@ describe("history-normalize", () => {
         type: "unknown",
         rawType: "refusal",
         summary: { type: "refusal", reason: "skew" },
+      },
+    ]);
+  });
+
+  it("preserves direct and preview-wrapped canvas blocks", () => {
+    expect(
+      normalizeHistoryContent([
+        {
+          type: "canvas",
+          kind: "canvas",
+          surface: "assistant_message",
+          render: "url",
+          url: "/__openclaw__/canvas/documents/direct/index.html",
+          title: "Direct canvas",
+          preferredHeight: 360,
+        },
+        {
+          type: "canvas",
+          preview: {
+            kind: "canvas",
+            surface: "assistant_message",
+            render: "url",
+            url: "/__openclaw__/canvas/documents/preview/index.html",
+            viewId: "preview",
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        type: "canvas",
+        kind: "canvas",
+        surface: "assistant_message",
+        render: "url",
+        url: "/__openclaw__/canvas/documents/direct/index.html",
+        title: "Direct canvas",
+        preferredHeight: 360,
+      },
+      {
+        type: "canvas",
+        kind: "canvas",
+        surface: "assistant_message",
+        render: "url",
+        url: "/__openclaw__/canvas/documents/preview/index.html",
+        viewId: "preview",
       },
     ]);
   });

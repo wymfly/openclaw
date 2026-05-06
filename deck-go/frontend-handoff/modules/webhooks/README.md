@@ -1,6 +1,6 @@
 # Webhooks
 
-**Status**: implemented-real-contract
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild - v2)
 **Depends on atoms**: Button, Input, Toggle, Badge, Tag, Code, StatusPill, Spinner, ConfirmDialog
@@ -46,3 +46,19 @@ Layout is a two-pane workbench: filterable receiver inventory on the left, tabbe
 - Retry queue visibility: delivery DTO has retry metadata fields, but no retry mutation route exists.
 - Signature header: Go BFF signs outbound deliveries as `X-Signature-256: sha256=<hmac>` when a secret is configured.
 - Available event types: production uses a bounded frontend-local list. A backend event catalog requires a separate contract proposal.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                                |
+| Reviewer                       | Codex                                                                                                                           |
+| Date                           | 2026-05-06                                                                                                                      |
+| Prototype reference            | `frontend-handoff/modules/webhooks/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/webhooks/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`webhooks`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`webhooks`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`webhooks`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/webhooks/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

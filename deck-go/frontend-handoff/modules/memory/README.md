@@ -1,6 +1,6 @@
 # Memory
 
-**Status**: implemented - real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild — v2)
 **Depends on atoms**: Button, Input, Tag, Code, Badge
@@ -55,3 +55,19 @@ Layout is a **single-page tabbed workspace** (4 tabs at the topbar), with the Br
 - **Direct edit** — current scope is read-only on file content. Editing memory files in the panel raises questions (markdown editor? frontmatter validator? scope gating?) — defer to v2.
 - **LanceDB toggle** — when `lanceDbEnabled=false`, search falls back to keyword-only. UI surfaces this; should there be a "force keyword mode" toggle for testing? Defer.
 - **Dreams diary write-back** — currently the diary is read-only in the UI; should operators add notes? Out of scope.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                              |
+| Reviewer                       | Codex                                                                                                                         |
+| Date                           | 2026-05-06                                                                                                                    |
+| Prototype reference            | `frontend-handoff/modules/memory/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/memory/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`memory`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`memory`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`memory`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/memory/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

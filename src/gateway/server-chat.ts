@@ -896,24 +896,30 @@ export function createAgentEventHandler({
     const eventForClients = chatLink ? { ...evt, runId: eventRunId } : evt;
     const isAborted =
       chatRunState.abortedRuns.has(clientRunId) || chatRunState.abortedRuns.has(evt.runId);
+    const isToolEvent = evt.stream === "tool";
     // Include sessionKey so Control UI can filter tool streams per session.
     const agentPayload = sessionKey ? { ...eventForClients, sessionKey } : eventForClients;
+    const canonicalAgentPayload = isToolEvent
+      ? canonicalizeSessionToolPayload(agentPayload)
+      : agentPayload;
     const last = agentRunSeq.get(evt.runId) ?? 0;
-    const isToolEvent = evt.stream === "tool";
     const isItemEvent = evt.stream === "item";
     const toolVerbose = isToolEvent ? resolveToolVerboseLevel(evt.runId, sessionKey) : "off";
     // Build tool payload: strip result/partialResult unless verbose=full
     const toolPayload =
       isToolEvent && toolVerbose !== "full"
         ? (() => {
-            const data = evt.data ? { ...evt.data } : {};
+            const payload = canonicalAgentPayload as Record<string, unknown>;
+            const sourceData =
+              payload.data && typeof payload.data === "object" && !Array.isArray(payload.data)
+                ? (payload.data as Record<string, unknown>)
+                : {};
+            const data = { ...sourceData };
             delete data.result;
             delete data.partialResult;
-            return sessionKey
-              ? { ...eventForClients, sessionKey, data }
-              : { ...eventForClients, data };
+            return sessionKey ? { ...payload, sessionKey, data } : { ...payload, data };
           })()
-        : agentPayload;
+        : canonicalAgentPayload;
     if (last > 0 && evt.seq !== last + 1) {
       broadcast("agent", {
         runId: eventRunId,
@@ -969,13 +975,13 @@ export function createAgentEventHandler({
       // Use full agentPayload (with result) — Deck needs tool output for
       // BashResultView/DiffPreview rendering. The verbose filter only applies
       // to targeted WS clients and channel message surfaces.
-      broadcast("agent", agentPayload, { dropIfSlow: true });
+      broadcast("agent", canonicalAgentPayload, { dropIfSlow: true });
     } else {
       const itemPhase = isItemEvent && typeof evt.data?.phase === "string" ? evt.data.phase : "";
       if (itemPhase === "start" && isControlUiVisible && sessionKey && !isAborted) {
         flushBufferedChatDeltaIfNeeded(sessionKey, clientRunId, evt.runId, evt.seq);
       }
-      broadcast("agent", agentPayload);
+      broadcast("agent", canonicalAgentPayload);
     }
 
     if (isControlUiVisible && sessionKey) {

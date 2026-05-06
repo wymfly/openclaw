@@ -156,6 +156,52 @@ func TestNormalizeTranscriptMessages(t *testing.T) {
 	}
 }
 
+func TestNormalizeTranscriptMessagesStructuredContent(t *testing.T) {
+	messages := NormalizeTranscriptMessages(map[string]any{
+		"messages": []any{
+			map[string]any{
+				"id":   "m1",
+				"role": "assistant",
+				"content": []any{
+					map[string]any{
+						"type":    "canvas",
+						"preview": map[string]any{"kind": "canvas", "surface": "assistant_message", "render": "url", "url": "/__openclaw__/canvas/documents/preview/index.html", "viewId": "preview", "title": "Preview", "preferredHeight": float64(360)},
+					},
+					map[string]any{
+						"type":      "tool_result",
+						"toolUseId": "tool-1",
+						"content": []any{
+							map[string]any{"type": "text", "text": "tool output"},
+							map[string]any{"type": "future_metric", "score": float64(0.8)},
+						},
+					},
+					map[string]any{"type": "future_block", "value": "preserved"},
+				},
+			},
+		},
+	})
+	if len(messages) != 1 || len(messages[0].Content) != 3 {
+		t.Fatalf("unexpected messages: %#v", messages)
+	}
+	canvas := transcriptBlockMap(messages[0].Content[0])
+	if canvas["type"] != "canvas" || canvas["url"] != "/__openclaw__/canvas/documents/preview/index.html" || canvas["viewId"] != "preview" {
+		t.Fatalf("preview canvas was not normalized: %#v", canvas)
+	}
+	toolResult := transcriptBlockMap(messages[0].Content[1])
+	nested, ok := toolResult["content"].([]deckapi.DeckGoTranscriptBlock)
+	if !ok || len(nested) != 2 {
+		t.Fatalf("tool result content was not recursively normalized: %#v", toolResult)
+	}
+	unknownNested := transcriptBlockMap(nested[1])
+	if unknownNested["type"] != "unknown" || unknownNested["rawType"] != "future_metric" {
+		t.Fatalf("nested unknown content was not preserved: %#v", unknownNested)
+	}
+	unknownTop := transcriptBlockMap(messages[0].Content[2])
+	if unknownTop["type"] != "unknown" || unknownTop["rawType"] != "future_block" {
+		t.Fatalf("top-level unknown content was not preserved: %#v", unknownTop)
+	}
+}
+
 func TestNormalizeSessionPreviews(t *testing.T) {
 	previews := NormalizeSessionPreviews(map[string]any{
 		"ts": 100,

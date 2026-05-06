@@ -1,6 +1,6 @@
 # settings — high-fidelity handoff (v2)
 
-**Status:** `implemented — real-contract verified`
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -202,3 +202,19 @@ visual cue.
    restart". Is there a lighter-touch surface (e.g. `POST
 /api/runtime/bundled/restart`) for supervised restart without a manual
    shell session?
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                                |
+| Reviewer                       | Codex                                                                                                                           |
+| Date                           | 2026-05-06                                                                                                                      |
+| Prototype reference            | `frontend-handoff/modules/settings/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/settings/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`settings`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`settings`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`settings`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/settings/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

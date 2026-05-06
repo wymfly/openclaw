@@ -2,7 +2,7 @@
 
 > **⚠️ Reverse-derived artifact.** This package was reconstructed from real engineering code (`frontend-new/src/components/panels/chat/`) rather than produced through a forward design → engineering flow. Sister modules (agents, settings, etc.) MUST be produced through the **forward** flow per protocol-v1; do **not** copy this package's "engineering-first" shape as the design template.
 
-**Status:** migrated (sha ef59017130)
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Migrated to:** `frontend-new/src/components/panels/chat/` (101 source files + 10 test files)
 **Bundle reference:** [`./prototype.html`](./prototype.html) (single-file Babel-standalone prototype, self-contained with sibling `tokens.css` / `styles.css` / `data.js` / 8 .jsx files)
@@ -98,3 +98,19 @@ Detailed request/response shapes live in [`./api-usage.md`](./api-usage.md).
 5. **Read [`api-usage.md`](./api-usage.md)** — endpoint contracts + SSE protocol
 
 For the engineering source: `frontend-new/src/components/panels/chat/` is canonical.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                            |
+| Reviewer                       | Codex                                                                                                                       |
+| Date                           | 2026-05-06                                                                                                                  |
+| Prototype reference            | `frontend-handoff/modules/chat/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/chat/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`chat`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`chat`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`chat`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/chat/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

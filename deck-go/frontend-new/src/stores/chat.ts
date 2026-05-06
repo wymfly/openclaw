@@ -9,6 +9,7 @@ import type {
   A2UIState,
   A2UIEvent,
   ToolProgress,
+  CommandExecutionState,
   ApprovalRequest,
   RunMetadata,
   SSEConnectionStatus,
@@ -79,6 +80,11 @@ export interface ChatState {
 
   // Tool progress (session-scoped)
   updateToolProgress: (sessionKey: string, toolUseId: string, progress: ToolProgress) => void;
+  setCommandState: (
+    sessionKey: string,
+    command: string,
+    state: CommandExecutionState | null,
+  ) => void;
   updateSessionState: (
     sessionKey: string,
     patch: Partial<
@@ -145,7 +151,7 @@ export const useChatStore = createLocalStore<ChatState>((set, get) => ({
   sessionPreviewOverlays: {},
   activeSessionKey: null,
   activeAgentId: null,
-  sseStatus: "disconnected" as SSEConnectionStatus,
+  sseStatus: "idle" as SSEConnectionStatus,
 
   // -------------------------------------------------------------------------
   // Session management
@@ -539,6 +545,34 @@ export const useChatStore = createLocalStore<ChatState>((set, get) => ({
       next.set(sessionKey, {
         ...session,
         toolProgress: { ...session.toolProgress, [toolUseId]: progress },
+        lastAccessedAt: Date.now(),
+      });
+      return { sessions: next };
+    }),
+
+  setCommandState: (sessionKey, command, commandState) =>
+    set((s) => {
+      const session = s.sessions.get(sessionKey);
+      if (!session) {
+        return s;
+      }
+      const nextCommandStates = { ...session.commandStates };
+      const normalizedCommand = command.trim().toLowerCase();
+      if (!normalizedCommand) {
+        return s;
+      }
+      if (commandState) {
+        nextCommandStates[normalizedCommand] = {
+          ...commandState,
+          command: normalizedCommand,
+        };
+      } else {
+        delete nextCommandStates[normalizedCommand];
+      }
+      const next = new Map(s.sessions);
+      next.set(sessionKey, {
+        ...session,
+        commandStates: nextCommandStates,
         lastAccessedAt: Date.now(),
       });
       return { sessions: next };

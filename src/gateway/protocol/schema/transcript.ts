@@ -54,6 +54,29 @@ export const TranscriptFileBlockSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const TranscriptCanvasBlockSchema = Type.Object(
+  {
+    type: Type.Literal("canvas"),
+    kind: Type.Literal("canvas"),
+    surface: Type.Literal("assistant_message"),
+    render: Type.Literal("url"),
+    url: Type.String(),
+    viewId: Type.Optional(Type.String()),
+    title: Type.Optional(Type.String()),
+    preferredHeight: Type.Optional(Type.Number({ minimum: 0 })),
+  },
+  { additionalProperties: false },
+);
+
+export const TranscriptUnknownBlockSchema = Type.Object(
+  {
+    type: Type.Literal("unknown"),
+    rawType: Type.String(),
+    summary: Type.Record(Type.String(), Type.Unknown()),
+  },
+  { additionalProperties: false },
+);
+
 export const TranscriptBlockSchema = Type.Recursive(
   (Self) =>
     Type.Union([
@@ -71,6 +94,8 @@ export const TranscriptBlockSchema = Type.Recursive(
       ),
       TranscriptImageBlockSchema,
       TranscriptFileBlockSchema,
+      TranscriptCanvasBlockSchema,
+      TranscriptUnknownBlockSchema,
     ]),
   { $id: "TranscriptBlock" },
 );

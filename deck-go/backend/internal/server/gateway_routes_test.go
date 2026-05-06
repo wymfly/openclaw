@@ -151,6 +151,79 @@ func TestGatewayFacade_ChatSend(t *testing.T) {
 	}
 }
 
+func TestGatewayFacade_ChatSendForwardsImageAttachments(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+		if method != "sessions.send" {
+			t.Fatalf("unexpected method: %s", method)
+		}
+		attachments, ok := params["attachments"].([]any)
+		if !ok || len(attachments) != 1 {
+			t.Fatalf("image attachments were not forwarded: %#v", params)
+		}
+		attachment, ok := attachments[0].(map[string]any)
+		if !ok || attachment["type"] != "image" || attachment["mimeType"] != "image/png" {
+			t.Fatalf("unexpected forwarded attachment: %#v", attachment)
+		}
+		_ = conn.WriteJSON(map[string]any{
+			"type": "res",
+			"id":   params["_requestID"],
+			"ok":   true,
+			"payload": map[string]any{
+				"runId":  "run-attachment",
+				"status": "started",
+			},
+		})
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/send", strings.NewReader(`{"sessionKey":"session-1","message":"see","attachments":[{"type":"image","mimeType":"image/png","fileName":"dot.png","content":"aW1n"}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+}
+
+func TestGatewayFacade_ChatSendRejectsGenericFileAttachments(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(_ *websocket.Conn, method string, _ map[string]any) {
+		t.Fatalf("generic file attachment should not reach Gateway method %s", method)
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/send", strings.NewReader(`{"sessionKey":"session-1","message":"read","attachments":[{"type":"file","mimeType":"application/pdf","fileName":"brief.pdf","content":"JVBERi0xLjQ="}]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		body, _ := io.ReadAll(res.Body)
+		t.Fatalf("unexpected status: %d body: %s", res.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["code"] != "unsupported_attachment" {
+		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
 func TestGatewayFacade_ChatSessionCreate(t *testing.T) {
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
 		if method != "sessions.create" {
@@ -2310,7 +2383,7 @@ func TestGatewayFacade_ChannelPatchUsesConfigGetThenConfigPatch(t *testing.T) {
 	expectedCalls := []string{"config.get", "config.patch"}
 	callIndex := 0
 
-	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
+	srv := newPersistentGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
 		if method != expectedCalls[callIndex] {
 			t.Fatalf("unexpected method at index %d: %s", callIndex, method)
 		}
@@ -2408,6 +2481,21 @@ func TestGatewayFacade_ChatSnapshot(t *testing.T) {
 	})
 	defer srv.Close()
 
+	projectionReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/projection", strings.NewReader(`{"sessionKey":"session-1","a2uiState":{"visible":true,"url":"/api/canvas/demo.html","surfaces":["main"],"bridgeStatus":"ready","treeData":{"ignored":true}}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	projectionReq.Header.Set("Authorization", "Bearer admin-token")
+	projectionReq.Header.Set("Content-Type", "application/json")
+	projectionRes, err := http.DefaultClient.Do(projectionReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer projectionRes.Body.Close()
+	if projectionRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected projection status: %d", projectionRes.StatusCode)
+	}
+
 	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/chat/snapshot?sessionKey=session-1", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -2436,6 +2524,16 @@ func TestGatewayFacade_ChatSnapshot(t *testing.T) {
 	session, ok := payload["session"].(map[string]any)
 	if !ok || session["key"] != "session-1" {
 		t.Fatalf("unexpected payload session: %#v", payload)
+	}
+	a2uiState, ok := payload["a2uiState"].(map[string]any)
+	if !ok || a2uiState["visible"] != true || a2uiState["url"] != "/api/canvas/demo.html" {
+		t.Fatalf("stored projection was not merged into snapshot: %#v", payload)
+	}
+	if _, ok := a2uiState["bridgeStatus"]; ok {
+		t.Fatalf("bridge-only projection field leaked into snapshot: %#v", a2uiState)
+	}
+	if _, ok := a2uiState["treeData"]; ok {
+		t.Fatalf("treeData projection field leaked into snapshot: %#v", a2uiState)
 	}
 }
 
@@ -2901,6 +2999,16 @@ func TestGatewayFacade_LogsStream(t *testing.T) {
 
 func newGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn, method string, params map[string]any)) *httptest.Server {
 	t.Helper()
+	return newGatewayBackedServerWithOptions(t, handleMethod, false)
+}
+
+func newPersistentGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn, method string, params map[string]any)) *httptest.Server {
+	t.Helper()
+	return newGatewayBackedServerWithOptions(t, handleMethod, true)
+}
+
+func newGatewayBackedServerWithOptions(t *testing.T, handleMethod func(conn *websocket.Conn, method string, params map[string]any), persistent bool) *httptest.Server {
+	t.Helper()
 
 	upgrader := websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 	var handleMu sync.Mutex
@@ -2932,17 +3040,32 @@ func newGatewayBackedServer(t *testing.T, handleMethod func(conn *websocket.Conn
 			},
 		})
 
-		_, raw, _ = conn.ReadMessage()
-		var reqFrame map[string]any
-		_ = json.Unmarshal(raw, &reqFrame)
-		params, _ := reqFrame["params"].(map[string]any)
-		if params == nil {
-			params = map[string]any{}
+		for {
+			if persistent {
+				_ = conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+			}
+			_, raw, err = conn.ReadMessage()
+			if err != nil {
+				if persistent {
+					return
+				}
+				t.Errorf("read request failed: %v", err)
+				return
+			}
+			var reqFrame map[string]any
+			_ = json.Unmarshal(raw, &reqFrame)
+			params, _ := reqFrame["params"].(map[string]any)
+			if params == nil {
+				params = map[string]any{}
+			}
+			params["_requestID"], _ = reqFrame["id"].(string)
+			handleMu.Lock()
+			handleMethod(conn, reqFrame["method"].(string), params)
+			handleMu.Unlock()
+			if !persistent {
+				return
+			}
 		}
-		params["_requestID"], _ = reqFrame["id"].(string)
-		handleMu.Lock()
-		defer handleMu.Unlock()
-		handleMethod(conn, reqFrame["method"].(string), params)
 	}))
 	t.Cleanup(wsServer.Close)
 

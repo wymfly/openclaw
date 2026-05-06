@@ -39,7 +39,6 @@ import { SSEStatusBanner } from "./SSEStatusBanner";
 import { SteerDialog } from "./SteerDialog";
 import { ToolProgressBar } from "./ToolProgressBar";
 import { TranscriptSearch } from "./TranscriptSearch";
-import { useChatSSE } from "./useChatSSE";
 import { applyChatVisualStateSeed, isChatVisualStateRequested } from "./visual-state-seed";
 
 const SESSION_STATUSES = new Set<SessionState["status"]>([
@@ -120,8 +119,6 @@ export function ChatPanel() {
   useEffect(() => {
     applyChatVisualStateSeed();
   }, []);
-
-  useChatSSE();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

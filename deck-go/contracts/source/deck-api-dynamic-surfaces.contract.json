@@ -95,13 +95,6 @@
       "exitCriteria": "Narrow in the chat projection handler follow-up after persistence semantics are implemented."
     },
     {
-      "surface": "DeckGoChatSendRequest.attachments",
-      "classification": "chat-runtime-envelope",
-      "owner": "chat",
-      "reason": "Chat attachments carry multimodal and channel-specific payload fragments.",
-      "exitCriteria": "Replace with an attachment discriminated union after supported attachment kinds are fixed."
-    },
-    {
       "surface": "DeckGoChatSessionPatchRequest.<index-signature>",
       "classification": "gateway-forward-compatible-envelope",
       "owner": "chat",

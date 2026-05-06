@@ -107,6 +107,7 @@ docs/
 | [`project/codex-prototype-quality-assessment.md`](./project/codex-prototype-quality-assessment.md) | Codex agents 原型质量评估——问题定位 + 正确做法指南 + 质量检查清单。任何 agent 做 handoff 原型前必读。 |
 | [`project/frontend-prototype-gap-audit.md`](./project/frontend-prototype-gap-audit.md) | frontend-handoff 高保真原型与 frontend-new 真实实现的差距审计。记录 real-stack / mock visual / 流程根因，作为后续纠偏提案依据；结论以代码、契约和测试输出为准。 |
 | [`project/frontend-prototype-remediation-matrix.md`](./project/frontend-prototype-remediation-matrix.md) | frontend-new 全模块原型纠偏矩阵。受 `openspec/changes/deck-go-frontend-prototype-parity-remediation` 管理，跟踪 active prototype、当前实现、mock parity、real evidence、子提案和 accepted exceptions。 |
+| [`project/chat-command-e2e/AGENTS.md`](./project/chat-command-e2e/AGENTS.md) | Chat 指令 E2E 排障入口。后续人工测试发现 slash-command 问题时，先按该文档快速定位命令分类、契约链层级、可疑代码文件和代表性验证命令；一切仍以代码、契约和测试输出为准。 |
 | [`contract-chain-audit.matrix.json`](./contract-chain-audit.matrix.json) | 当前契约链审计矩阵源码。记录每个已审计模块能力从 Gateway/Deck source → Go BFF → contract source → generated artifacts → frontend facade → panel → E2E evidence 的链路。代码、契约源、生成产物、路由和测试优先于本文件中的手写总结。 |
 | [`contract-chain-audit.matrix.md`](./contract-chain-audit.matrix.md) | 由 `contract-chain-audit.matrix.json` 生成的人读报告。不要手改；改 JSON 后运行 `make contract-chain-audit-sync`。 |
 

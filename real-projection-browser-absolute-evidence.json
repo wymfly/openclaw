@@ -1,0 +1,26 @@
+{
+  "projectionStatus": 200,
+  "projectionOk": true,
+  "projectionBody": {
+    "a2uiState": {
+      "eventLog": [
+        {
+          "action": "present",
+          "direction": "inbound",
+          "raw": {
+            "ok": true
+          },
+          "summary": "smoke",
+          "timestamp": 1
+        }
+      ],
+      "url": "/__openclaw__/canvas/documents/codex-smoke.html",
+      "visible": true
+    },
+    "ok": true
+  },
+  "snapshotStatus": 400,
+  "snapshotOk": false,
+  "matchedSession": null,
+  "tokenPresent": true
+}

@@ -45,11 +45,14 @@ Canonical icon set for `frontend-new/`. Re-exports from `lucide-react` (v1.x) un
 | `IconShield`                | `Shield`       | Tool policy / security layer                         |
 | `IconStream`                | `Radio`        | SSE event stream subscription                        |
 | `IconSubagents`             | `Users`        | Subagent group / delegation                          |
+| `IconTerminal`              | `Terminal`     | Command / tool result output                         |
+| `IconTool`                  | `Wrench`       | Tool invocation                                      |
 | `IconTrash`                 | `Trash2`       | Destructive delete                                   |
 | `IconUnlink`                | `Unlink`       | Unlink / detach relationship                         |
+| `IconUpload`                | `Upload`       | Upload / attach file                                 |
 | `IconX`                     | `X`            | Close / dismiss / clear                              |
 
-28 icons in v1. Adding a new icon: pick the closest lucide source, add a re-export to `index.ts` in alphabetical order, append a row to this table.
+31 icons in v1. Adding a new icon: pick the closest lucide source, add a re-export to `index.ts` in alphabetical order, append a row to this table.
 
 ## Usage
 

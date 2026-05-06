@@ -1,6 +1,6 @@
 # Activity (Unified Feed)
 
-**Status**: implemented — hifi archived; real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, KbdHint, Avatar, EmptyState
@@ -73,4 +73,16 @@ activity/
 
 ## Reverse sign-off
 
-(pending Claude Code implementation in `frontend-new/src/components/panels/activity/`)
+| Field                          | Value                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `accepted-with-exceptions`                                                                                                      |
+| Reviewer                       | Codex                                                                                                                           |
+| Date                           | 2026-05-06                                                                                                                      |
+| Prototype reference            | `frontend-handoff/modules/activity/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/activity/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`activity`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`activity`, `mock-prototype-parity`, verdict: `pass-with-exceptions`)   |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`activity`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/activity/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

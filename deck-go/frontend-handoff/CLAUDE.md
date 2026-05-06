@@ -154,7 +154,18 @@ frontend-handoff/
 5. **读 api-usage.md** — 接 `../frontend-new/src/api/<module>.ts`。如果 endpoint 假设和后端真相不符，**走"协议增强 #5 后端契约协商"raise 流程**，禁止静默扭曲。
 6. **如果有 tokens-proposal.md** — 先合并 token 到 canonical 文件再开始；用 `../scripts/check-tokens-drift.sh` 验证 0 漂移。
 7. **写测试**（atom 单测含 vitest-axe；module 单测/e2e 按 stack-decisions 决议的框架）。
-8. **更新模块 `README.md`** Status 行：`Status: implemented (sha <commit-sha>)`。
+8. **更新模块 `README.md`** Status 行：`**Status**: implemented (sha <40-hex-commit-sha>)`。
+
+**Review-driven remediation fact rule**：
+
+如果某次实施来自外部审查、交叉审查、设计复查、Claude/Codex 报告，Claude Code MUST 先建立 tracked fact baseline，再创建/执行修复任务。Fact baseline 至少包含：
+
+- `accepted`：确认属实的发现，每项带 rerunnable command 或 file reference。
+- `corrected`：报告中被代码真相推翻或修正的发现，每项带纠正后的事实和证据。
+- `rejected`：明确不作为本轮任务的建议，说明原因。
+- `deferred-uncertain`：需要人类视觉判断或产品决策的问题，不得当成已确认 bug。
+
+历史 OpenSpec checkbox、旧 session 记忆、`.local` 截图目录只能作为辅助上下文。任务勾选完成必须记录本轮 fresh evidence：命令、文件、manifest 或明确 blocker。
 
 **Prototype parity evidence rule**：
 
@@ -167,6 +178,44 @@ frontend-handoff/
 真实数据优先通过 Gateway RPC 或 Deck BFF route 创建；必要时可在隔离测试环境中直接 seed `openclaw.json`、workspace files、sessions 等 OpenClaw 数据源。测试对象必须带当前 run id，cleanup 必须拒绝触碰不带 run id 的对象。外部账号、已安装 skill、device token、用户 memory 等高影响资源可以 `skipped-safe`，但要记录原因和缺失 fixture 能力。
 
 如果 mock-current 和 prototype 有 material mismatch，Claude Code 要么修复，要么在 `implementation-notes.md` 或模块纠偏提案里记录 accepted exception（原型位置、生产文件位置、差异、原因、owner、分类）。单独的 `page.screenshot()` 只能算截图证据，不能算视觉签收。
+
+**Tracked evidence manifest rule**：
+
+`.local` 下的 Playwright output、截图、prototype parity report 默认被 gitignore，不是持久签收面。模块闭环必须在 tracked manifest 或 README/implementation-notes 中链接三层证据：
+
+| Field | Required content |
+| --- | --- |
+| Module | module id |
+| Evidence level | `mock-functional` / `mock-prototype-parity` / `real-gateway` |
+| Command | 可复跑命令 |
+| Artifact path | `.local` artifact 或 tracked file path |
+| Verdict/status | 例如 `pass-with-exceptions` / `unreviewed` / `degraded` / `skipped-safe` |
+| Run id | 有真实 seed/run 时必须记录 |
+| Accepted exceptions | 每项含差异、原因、owner、分类 |
+
+`unreviewed` verdict 必须保留为 `unreviewed`，不能写成视觉签收完成。
+
+**Structured Reverse sign-off template**：
+
+每个已实现模块 README MUST 有结构化 `## Reverse sign-off`，最小格式：
+
+```markdown
+## Reverse sign-off
+
+| Field | Value |
+| --- | --- |
+| Final sign-off status | `accepted-with-exceptions` |
+| Reviewer | Codex |
+| Date | YYYY-MM-DD |
+| Prototype reference | `frontend-handoff/modules/<module>/prototype.html` |
+| Production reference | `frontend-new/src/components/panels/<module>/` |
+| Mock functional evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`mock-functional`) |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`mock-prototype-parity`, verdict: `<verdict>`) |
+| Real Gateway evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`real-gateway`) |
+| Accepted exceptions | See manifest / implementation notes |
+```
+
+允许的 `Final sign-off status` 只有：`accepted` / `accepted-with-exceptions` / `needs-revision` / `blocked`。短句声明不算 reverse sign-off。
 
 ### 3. Claude Code 不同意设计
 
@@ -207,6 +256,10 @@ frontend-handoff/
 - **Token 引用**：每个 `var(--ds-*)` 必须在 canonical tokens 文件存在；不存在先走 tokens-proposal
 - **交互细节**：动画时长 / 缓动 / hover 延迟 / 快捷键
 - **视觉层级**：12px 配 14px 不能擅自换成 16px 配 16px
+
+**Component decomposition rule**：
+
+单文件 panel 不是默认 protocol violation。只有当某个 OpenSpec change、module handoff、或维护性提案明确要求拆分时，单文件才是阻断项。否则它只能被记录为 maintainability follow-up，不能把"原型里有多个 molecule"自动推导成"生产必须一一拆成多个 `.tsx` 文件"。
 
 ### Prototype string rule
 

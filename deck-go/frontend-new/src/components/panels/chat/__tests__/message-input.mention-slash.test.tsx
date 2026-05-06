@@ -293,6 +293,37 @@ describe("MessageInput mention and slash interactions", () => {
     expect(sendChatMessage).not.toHaveBeenCalled();
   });
 
+  it("sends typed remote slash commands and closes the command palette", async () => {
+    const { commandRegistry } = await import("@/lib/command-registry");
+    const { SOURCE_PRIORITY } = await import("@/lib/command-types");
+    commandRegistry.register({
+      name: "status",
+      source: "builtin",
+      execMode: "remote",
+      description: "Show current status",
+      category: "more",
+      priority: SOURCE_PRIORITY.builtin,
+    });
+    mountInput();
+
+    const input = screen.getByPlaceholderText("Type a message...");
+    act(() => {
+      fireEvent.change(input, { target: { value: "/status" } });
+    });
+    expect(screen.getByRole("listbox")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(sendChatMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sessionKey: "sess-1",
+          message: "/status",
+        }),
+      );
+    });
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
   it("shows the new-session toast only after session creation succeeds", async () => {
     mountInput();
 

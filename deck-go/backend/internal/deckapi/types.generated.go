@@ -246,12 +246,21 @@ type DeckGoChatSessionCreateRequest struct {
 	ParentSessionKey string `json:"parentSessionKey,omitempty"`
 }
 
+type DeckGoChatImageAttachment struct {
+	Type string `json:"type"`
+	MimeType string `json:"mimeType"`
+	FileName string `json:"fileName,omitempty"`
+	Content string `json:"content"`
+}
+
+type DeckGoChatAttachment = DeckGoChatImageAttachment
+
 type DeckGoChatSendRequest struct {
 	SessionKey string `json:"sessionKey"`
 	Message string `json:"message,omitempty"`
 	Thinking string `json:"thinking,omitempty"`
 	IdempotencyKey string `json:"idempotencyKey,omitempty"`
-	Attachments []map[string]any `json:"attachments,omitempty"`
+	Attachments []DeckGoChatAttachment `json:"attachments,omitempty"`
 }
 
 type DeckGoChatAbortRequest struct {

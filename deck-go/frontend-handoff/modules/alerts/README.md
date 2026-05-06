@@ -1,6 +1,6 @@
 # Alerts (Rules CRUD)
 
-**Status**: implemented in `frontend-new` — L1 mock and L2 real CRUD verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Badge, Button, IconButton, Modal, Tabs, KbdHint, Avatar, EmptyState,
@@ -77,7 +77,16 @@ alerts/
 
 ## Reverse sign-off
 
-Implemented in `frontend-new/src/components/panels/alerts/` under OpenSpec change
-`frontend-alerts-real-contract-verification`. See `implementation-notes.md` for the contract
-matrix, scoped fixes, verification evidence, and unsupported prototype assumptions that remain
-handoff items.
+| Field                          | Value                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                              |
+| Reviewer                       | Codex                                                                                                                         |
+| Date                           | 2026-05-06                                                                                                                    |
+| Prototype reference            | `frontend-handoff/modules/alerts/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/alerts/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`alerts`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`alerts`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`alerts`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/alerts/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

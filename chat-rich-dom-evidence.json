@@ -1,0 +1,105 @@
+{
+  "canvasEmbed": [
+    {
+      "text": "",
+      "src": "/api/canvas/documents/visual-checklist.html",
+      "aria": null,
+      "y": -512,
+      "h": 260
+    }
+  ],
+  "imageBlock": [
+    {
+      "text": "",
+      "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+      "aria": null,
+      "y": -237,
+      "h": 1
+    }
+  ],
+  "fileBlock": [
+    {
+      "text": "gateway-summary.txt28 B下载",
+      "src": null,
+      "aria": null,
+      "y": -221,
+      "h": 44
+    }
+  ],
+  "unknownBlock": [
+    {
+      "text": "Unsupported block: debug_delta{\n  \"type\": \"debug_delta\",\n  \"keys\": [\n    \"phase\",\n    \"durationMs\",\n    \"source\"\n  ],\n  ",
+      "src": null,
+      "aria": null,
+      "y": -169,
+      "h": 55
+    }
+  ],
+  "artifactCard": [
+    {
+      "text": "config.jsonjson打开",
+      "src": null,
+      "aria": null,
+      "y": -879,
+      "h": 44
+    },
+    {
+      "text": "",
+      "src": null,
+      "aria": null,
+      "y": -867,
+      "h": 20
+    },
+    {
+      "text": "config.json",
+      "src": null,
+      "aria": null,
+      "y": -867,
+      "h": 20
+    },
+    {
+      "text": "json",
+      "src": null,
+      "aria": null,
+      "y": -865,
+      "h": 17
+    },
+    {
+      "text": "deck-go-rich-content-report.mdmarkdown打开",
+      "src": null,
+      "aria": null,
+      "y": -35,
+      "h": 44
+    },
+    {
+      "text": "",
+      "src": null,
+      "aria": null,
+      "y": -23,
+      "h": 20
+    },
+    {
+      "text": "deck-go-rich-content-report.md",
+      "src": null,
+      "aria": null,
+      "y": -23,
+      "h": 20
+    },
+    {
+      "text": "markdown",
+      "src": null,
+      "aria": null,
+      "y": -21,
+      "h": 17
+    }
+  ],
+  "uploadButton": [
+    {
+      "text": "",
+      "src": null,
+      "aria": "附件",
+      "y": 923,
+      "h": 32
+    }
+  ]
+}

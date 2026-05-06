@@ -1,6 +1,7 @@
 import type { TranscriptBlock } from "./protocol/schema/transcript.js";
 
 type TranscriptRecord = Record<string, unknown>;
+const UNKNOWN_SUMMARY_STRING_LIMIT = 160;
 
 function asRecord(value: unknown): TranscriptRecord | null {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -13,6 +14,42 @@ function firstString(...values: unknown[]): string | undefined {
     if (typeof value === "string") {
       return value;
     }
+  }
+  return undefined;
+}
+
+function firstFiniteNumber(...values: unknown[]): number | undefined {
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+function summarizeUnknownValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.length > UNKNOWN_SUMMARY_STRING_LIMIT
+      ? `${value.slice(0, UNKNOWN_SUMMARY_STRING_LIMIT - 3)}...`
+      : value;
+  }
+  if (typeof value === "number" || typeof value === "boolean" || value == null) {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return `[array:${value.length}]`;
+  }
+  if (value && typeof value === "object") {
+    return "[object]";
+  }
+  if (typeof value === "symbol") {
+    return value.description ?? value.toString();
+  }
+  if (typeof value === "function") {
+    return `[function:${value.name || "anonymous"}]`;
+  }
+  if (typeof value === "bigint") {
+    return value.toString();
   }
   return undefined;
 }
@@ -99,6 +136,56 @@ function normalizeFileBlock(raw: TranscriptRecord): TranscriptBlock | null {
   };
 }
 
+function normalizeCanvasBlock(raw: TranscriptRecord): TranscriptBlock | null {
+  const preview = asRecord(raw.preview);
+  const url = firstString(raw.url, preview?.url);
+  const render =
+    raw.render === "url" || preview?.render === "url" || url !== undefined ? "url" : undefined;
+  const surface =
+    raw.surface === "assistant_message" || preview?.surface === "assistant_message"
+      ? "assistant_message"
+      : undefined;
+  if (!url || render !== "url") {
+    return null;
+  }
+  const preferredHeight = firstFiniteNumber(raw.preferredHeight, preview?.preferredHeight);
+  return {
+    type: "canvas",
+    kind: "canvas",
+    surface: surface ?? "assistant_message",
+    render: "url",
+    url,
+    ...(typeof raw.viewId === "string"
+      ? { viewId: raw.viewId }
+      : typeof preview?.viewId === "string"
+        ? { viewId: preview.viewId }
+        : {}),
+    ...(typeof raw.title === "string"
+      ? { title: raw.title }
+      : typeof preview?.title === "string"
+        ? { title: preview.title }
+        : {}),
+    ...(preferredHeight !== undefined ? { preferredHeight } : {}),
+  };
+}
+
+function normalizeUnknownBlock(raw: TranscriptRecord, rawType?: string): TranscriptBlock {
+  if (raw.type === "unknown" && typeof raw.rawType === "string" && asRecord(raw.summary)) {
+    return {
+      type: "unknown",
+      rawType: raw.rawType,
+      summary: raw.summary as Record<string, unknown>,
+    };
+  }
+  return {
+    type: "unknown",
+    rawType: rawType || (typeof raw.type === "string" && raw.type ? raw.type : "unknown"),
+    summary: Object.fromEntries(
+      Object.entries(raw).map(([key, value]) => [key, summarizeUnknownValue(value)]),
+    ),
+  };
+}
+
 function normalizeToolResultContent(value: unknown): string | TranscriptBlock[] {
   if (typeof value === "string") {
     return value;
@@ -170,6 +257,18 @@ export function canonicalizeTranscriptBlock(raw: TranscriptRecord): TranscriptBl
 
   if (type === "file") {
     return normalizeFileBlock(raw);
+  }
+
+  if (type === "canvas") {
+    return normalizeCanvasBlock(raw) ?? normalizeUnknownBlock(raw, type);
+  }
+
+  if (type === "unknown") {
+    return normalizeUnknownBlock(raw, type);
+  }
+
+  if (type) {
+    return normalizeUnknownBlock(raw, type);
   }
 
   if ("analysis" in raw || "reasoning" in raw || "thinking" in raw) {

@@ -7,6 +7,15 @@ describe("detectArtifact enhanced", () => {
     expect(detectArtifact(html)).toMatchObject({ language: "html", title: "Report" });
   });
 
+  it("uses deterministic artifact ids for the same source content", () => {
+    const content = JSON.stringify({ name: "test", items: [1, 2, 3], nested: { ok: true } });
+    const context = { toolName: "write_file", filePath: "/tmp/report.json" };
+    expect(detectArtifact(content, context)?.id).toBe(detectArtifact(content, context)?.id);
+    expect(detectArtifact(content, { ...context, filePath: "/tmp/other.json" })?.id).not.toBe(
+      detectArtifact(content, context)?.id,
+    );
+  });
+
   it("detects SVG", () => {
     expect(
       detectArtifact('<svg xmlns="http://www.w3.org/2000/svg" width="100"></svg>')?.language,

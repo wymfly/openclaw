@@ -1,6 +1,6 @@
 # usage — high-fidelity handoff (v2)
 
-**Status:** `implemented - real-contract verified`
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -303,3 +303,19 @@ this prototype).
    contract add `projectedTotalCost` (linear extrapolation against
    period budget rules) so usage and budget can share a "warn-soon"
    signal? See US-013 budget open question §1.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                        |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                             |
+| Reviewer                       | Codex                                                                                                                        |
+| Date                           | 2026-05-06                                                                                                                   |
+| Prototype reference            | `frontend-handoff/modules/usage/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/usage/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`usage`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`usage`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`usage`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/usage/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

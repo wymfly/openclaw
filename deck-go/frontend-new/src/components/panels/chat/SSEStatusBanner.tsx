@@ -8,7 +8,7 @@ export function SSEStatusBanner() {
   const t = useTranslations("chat");
   const status = useSSEStatus();
 
-  if (status === "connected") {
+  if (status === "idle" || status === "connecting" || status === "connected") {
     return null;
   }
 

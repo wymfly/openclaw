@@ -1,13 +1,15 @@
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback } from "react";
 import { MinusIcon, SearchIcon, ZapIcon } from "@/deck-ui/icons";
 import { contextPct, formatTokens, pressureState } from "@/lib/context-utils";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
+import { useNotificationsStore } from "@/stores/notifications";
 import { useSessionsStore } from "@/stores/sessions";
-import { compactChatSession, patchSession } from "./chat-api";
+import { patchSession } from "./chat-api";
 import "./chat-context-bar.css";
+import { executeSlashCommand } from "./slash-command-executor";
 
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
 const RESPONSE_USAGE_LEVELS = ["off", "tokens", "full"] as const;
@@ -27,8 +29,9 @@ export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
   const sessionEntry = useSessionsStore((state) =>
     activeSessionKey ? state.sessions.find((item) => item.key === activeSessionKey) : undefined,
   );
-  const [compacting, setCompacting] = useState(false);
-  const [compactError, setCompactError] = useState<string | null>(null);
+  const compactCommandState = useChatStore((state) =>
+    activeSessionKey ? state.sessions.get(activeSessionKey)?.commandStates?.compact : undefined,
+  );
 
   const contextWindow = sessionEntry?.contextTokens ?? meta?.contextTokens ?? 0;
   const totalTokens = sessionEntry?.totalTokens ?? meta?.totalTokens;
@@ -42,6 +45,13 @@ export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
 
   const hasTranslation = (key: string) => typeof t.has === "function" && t.has(key);
   const tFallback = (key: string, fallback: string) => (hasTranslation(key) ? t(key) : fallback);
+  const showToast = useCallback(
+    (type: "info" | "success" | "warning" | "error", key: string, value?: string) => {
+      const message = value ? t(key, { value }) : t(key);
+      useNotificationsStore.getState().addToast(type, message, 3000);
+    },
+    [t],
+  );
 
   const updateMetas = (sessionKey: string, updater: (target: SessionMeta) => SessionMeta) => {
     useChatStore.setState((state) => {
@@ -102,18 +112,31 @@ export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
     void patchSession(activeSessionKey, { sendPolicy: next === "allow" ? null : next });
   };
 
+  const compacting = compactCommandState?.status === "running";
+  const compactStatus =
+    compactCommandState?.status === "running"
+      ? tFallback("commandCompactRunning", "Compaction running")
+      : compactCommandState?.status === "completed"
+        ? tFallback("commandCompactComplete", "Compaction complete")
+        : compactCommandState?.status === "failed"
+          ? tFallback("commandCompactFailed", "Compaction failed")
+          : null;
+  const compactError = compactCommandState?.status === "failed" ? compactCommandState.error : null;
+
   const handleCompact = () => {
     if (!activeSessionKey || compacting) {
       return;
     }
-    setCompacting(true);
-    setCompactError(null);
-    void compactChatSession(activeSessionKey)
+    void executeSlashCommand(activeSessionKey, "compact", "")
+      .then((result) => {
+        if (result.toastKey) {
+          showToast(result.toastType ?? "info", result.toastKey, result.toastValue);
+        }
+      })
       .catch((error: unknown) => {
         const reason = error instanceof Error ? error.message : String(error);
-        setCompactError(ts("compactFailed", { reason }));
-      })
-      .finally(() => setCompacting(false));
+        showToast("error", "toastCompactFailed", reason);
+      });
   };
 
   const model = meta?.model ?? tFallback("configModelDefault", "default");
@@ -231,6 +254,17 @@ export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
         </button>
       ) : null}
 
+      {compactStatus ? (
+        <span
+          className="ds-chat-context-bar__command-status"
+          data-status={compactCommandState?.status}
+          role={compactCommandState?.status === "failed" ? "alert" : "status"}
+          title={compactError ?? compactCommandState?.summary}
+        >
+          {compactError ? `${compactStatus}: ${compactError}` : compactStatus}
+        </span>
+      ) : null}
+
       {onToggleSearch ? (
         <button
           type="button"
@@ -243,12 +277,6 @@ export function ChatContextBar({ onToggleSearch }: ChatContextBarProps = {}) {
             ⌘F
           </span>
         </button>
-      ) : null}
-
-      {compactError ? (
-        <span className="ds-chat-context-bar__compact-error" role="alert">
-          {compactError}
-        </span>
       ) : null}
     </div>
   );

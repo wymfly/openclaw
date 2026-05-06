@@ -29,6 +29,21 @@ export type TranscriptBlock =
       type: "tool_use";
     }
   | {
+      kind: "canvas";
+      preferredHeight?: number;
+      render: "url";
+      surface: "assistant_message";
+      title?: string;
+      type: "canvas";
+      url: string;
+      viewId?: string;
+    }
+  | {
+      rawType: string;
+      summary: Record<string, unknown>;
+      type: "unknown";
+    }
+  | {
       text: string;
       type: "text";
     }
@@ -63,6 +78,21 @@ export type TranscriptMessage = {
         input: Record<string, unknown>;
         name: string;
         type: "tool_use";
+      }
+    | {
+        kind: "canvas";
+        preferredHeight?: number;
+        render: "url";
+        surface: "assistant_message";
+        title?: string;
+        type: "canvas";
+        url: string;
+        viewId?: string;
+      }
+    | {
+        rawType: string;
+        summary: Record<string, unknown>;
+        type: "unknown";
       }
     | {
         text: string;
@@ -344,6 +374,21 @@ export type ChatHistoryResult = {
           input: Record<string, unknown>;
           name: string;
           type: "tool_use";
+        }
+      | {
+          kind: "canvas";
+          preferredHeight?: number;
+          render: "url";
+          surface: "assistant_message";
+          title?: string;
+          type: "canvas";
+          url: string;
+          viewId?: string;
+        }
+      | {
+          rawType: string;
+          summary: Record<string, unknown>;
+          type: "unknown";
         }
       | {
           text: string;
@@ -1526,6 +1571,7 @@ export interface DeckCommandsDiscoverParams {
 
 export type DeckCommandsDiscoverResult = {
   commands: {
+    aliases?: string[];
     argChoices?: string[];
     args?: string;
     category?: string;
@@ -4343,6 +4389,21 @@ export type ChatEventPayload = {
           type: "tool_use";
         }
       | {
+          kind: "canvas";
+          preferredHeight?: number;
+          render: "url";
+          surface: "assistant_message";
+          title?: string;
+          type: "canvas";
+          url: string;
+          viewId?: string;
+        }
+      | {
+          rawType: string;
+          summary: Record<string, unknown>;
+          type: "unknown";
+        }
+      | {
           text: string;
           type: "text";
         }
@@ -4411,6 +4472,21 @@ export type SessionMessageEventPayload = {
           type: "tool_use";
         }
       | {
+          kind: "canvas";
+          preferredHeight?: number;
+          render: "url";
+          surface: "assistant_message";
+          title?: string;
+          type: "canvas";
+          url: string;
+          viewId?: string;
+        }
+      | {
+          rawType: string;
+          summary: Record<string, unknown>;
+          type: "unknown";
+        }
+      | {
           text: string;
           type: "text";
         }
@@ -4475,6 +4551,21 @@ export type SessionToolEventPayload = {
               type: "tool_use";
             }
           | {
+              kind: "canvas";
+              preferredHeight?: number;
+              render: "url";
+              surface: "assistant_message";
+              title?: string;
+              type: "canvas";
+              url: string;
+              viewId?: string;
+            }
+          | {
+              rawType: string;
+              summary: Record<string, unknown>;
+              type: "unknown";
+            }
+          | {
               text: string;
               type: "text";
             }
@@ -4510,6 +4601,21 @@ export type SessionToolEventPayload = {
                     input: Record<string, unknown>;
                     name: string;
                     type: "tool_use";
+                  }
+                | {
+                    kind: "canvas";
+                    preferredHeight?: number;
+                    render: "url";
+                    surface: "assistant_message";
+                    title?: string;
+                    type: "canvas";
+                    url: string;
+                    viewId?: string;
+                  }
+                | {
+                    rawType: string;
+                    summary: Record<string, unknown>;
+                    type: "unknown";
                   }
                 | {
                     text: string;
@@ -4553,6 +4659,21 @@ export type SessionToolEventPayload = {
               type: "tool_use";
             }
           | {
+              kind: "canvas";
+              preferredHeight?: number;
+              render: "url";
+              surface: "assistant_message";
+              title?: string;
+              type: "canvas";
+              url: string;
+              viewId?: string;
+            }
+          | {
+              rawType: string;
+              summary: Record<string, unknown>;
+              type: "unknown";
+            }
+          | {
               text: string;
               type: "text";
             }
@@ -4588,6 +4709,21 @@ export type SessionToolEventPayload = {
                     input: Record<string, unknown>;
                     name: string;
                     type: "tool_use";
+                  }
+                | {
+                    kind: "canvas";
+                    preferredHeight?: number;
+                    render: "url";
+                    surface: "assistant_message";
+                    title?: string;
+                    type: "canvas";
+                    url: string;
+                    viewId?: string;
+                  }
+                | {
+                    rawType: string;
+                    summary: Record<string, unknown>;
+                    type: "unknown";
                   }
                 | {
                     text: string;

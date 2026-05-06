@@ -18,8 +18,6 @@ export interface ArtifactInfo {
   source?: { toolName?: string; fileName?: string; filePath?: string };
 }
 
-let artifactCounter = 0;
-
 const EXT_MAP: Record<string, ArtifactLanguage> = {
   ".html": "html",
   ".htm": "html",
@@ -148,13 +146,37 @@ function makeArtifact(
   source?: ArtifactInfo["source"],
 ): ArtifactInfo {
   return {
-    id: `artifact-${++artifactCounter}`,
+    id: stableArtifactId({ title, language, content, codeLang, source }),
     title,
     language,
     content,
     ...(codeLang ? { codeLang } : {}),
     ...(source ? { source } : {}),
   };
+}
+
+function stableArtifactId(input: {
+  title: string;
+  language: ArtifactLanguage;
+  content: string;
+  codeLang?: string;
+  source?: ArtifactInfo["source"];
+}) {
+  const sourceKey = [
+    input.source?.toolName ?? "",
+    input.source?.filePath ?? "",
+    input.source?.fileName ?? "",
+    input.title,
+    input.language,
+    input.codeLang ?? "",
+    input.content,
+  ].join("\u001f");
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < sourceKey.length; index++) {
+    hash ^= sourceKey.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `artifact-${(hash >>> 0).toString(36)}`;
 }
 
 function countCSVFields(line: string): number {

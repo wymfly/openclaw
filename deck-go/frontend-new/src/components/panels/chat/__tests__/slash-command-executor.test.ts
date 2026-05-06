@@ -207,8 +207,30 @@ describe("slash command executor", () => {
   it("compact calls the compact route and reports the migrated refresh toast", async () => {
     const fetchSpy = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response("", { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            sessions: [
+              {
+                key: "sess-1",
+                agentId: "main",
+                updatedAt: 123,
+                compactionCount: 2,
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
 
+    const { useChatStore } = await import("@/stores/chat");
+    const { createEmptySessionState } = await import("@/stores/chat-types");
+    useChatStore.setState({
+      sessions: new Map([["sess-1", createEmptySessionState()]]),
+      sessionMetas: [{ key: "sess-1", agentId: "main", updatedAt: 1, compactionCount: 1 }],
+      sessionMeta: [{ key: "sess-1", agentId: "main", updatedAt: 1, compactionCount: 1 }],
+    });
     const { executeSlashCommand } = await import("../slash-command-executor");
     const result = await executeSlashCommand("sess-1", "compact", "");
 
@@ -224,6 +246,16 @@ describe("slash command executor", () => {
       toastKey: "toastCompacted",
       toastType: "success",
     });
+    expect(useChatStore.getState().sessions.get("sess-1")?.commandStates.compact).toMatchObject({
+      command: "compact",
+      status: "completed",
+      summary: "Compaction completed",
+    });
+    expect(useChatStore.getState().sessionMetas[0]).toMatchObject({
+      key: "sess-1",
+      compactionCount: 2,
+      updatedAt: 123,
+    });
   });
 
   it("returns the compact failure toast when compaction fails", async () => {
@@ -231,12 +263,22 @@ describe("slash command executor", () => {
       new Response(JSON.stringify({ error: "failed" }), { status: 500 }),
     );
 
+    const { useChatStore } = await import("@/stores/chat");
+    const { createEmptySessionState } = await import("@/stores/chat-types");
+    useChatStore.setState({
+      sessions: new Map([["sess-1", createEmptySessionState()]]),
+    });
     const { executeSlashCommand } = await import("../slash-command-executor");
 
     await expect(executeSlashCommand("sess-1", "compact", "")).resolves.toMatchObject({
       content: "",
       toastKey: "toastCompactFailed",
       toastType: "error",
+    });
+    expect(useChatStore.getState().sessions.get("sess-1")?.commandStates.compact).toMatchObject({
+      command: "compact",
+      status: "failed",
+      error: "failed",
     });
   });
 
@@ -272,6 +314,66 @@ describe("slash command executor", () => {
     );
   });
 
+  it("patches session config through local command aliases", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    const { executeSlashCommand } = await import("../slash-command-executor");
+
+    await expect(executeSlashCommand("sess-1", "t", "high")).resolves.toMatchObject({
+      toastKey: "toastThink",
+      toastValue: "high",
+      toastType: "success",
+      configUpdate: { thinkingLevel: "high" },
+    });
+    await expect(executeSlashCommand("sess-1", "reason", "stream")).resolves.toMatchObject({
+      toastKey: "toastReasoning",
+      toastValue: "stream",
+      toastType: "success",
+      configUpdate: { reasoningLevel: "stream" },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", thinkingLevel: "high" }),
+      }),
+    );
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", reasoningLevel: "stream" }),
+      }),
+    );
+  });
+
+  it("sets response usage display when usage receives a mode argument", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    const { executeSlashCommand } = await import("../slash-command-executor");
+
+    await expect(executeSlashCommand("sess-1", "usage", "tokens")).resolves.toMatchObject({
+      content: "",
+      toastKey: "toastUsage",
+      toastValue: "tokens",
+      toastType: "success",
+      configUpdate: { responseUsage: "tokens" },
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", responseUsage: "tokens" }),
+      }),
+    );
+  });
+
   it("distinguishes missing and invalid local model command args", async () => {
     const { executeSlashCommand } = await import("../slash-command-executor");
 
@@ -301,6 +403,9 @@ describe("slash command executor", () => {
     });
     await expect(executeSlashCommand("sess-1", "sendpolicy", "maybe")).resolves.toEqual({
       content: 'Invalid send policy "maybe". Valid: allow, deny',
+    });
+    await expect(executeSlashCommand("sess-1", "usage", "all")).resolves.toEqual({
+      content: 'Invalid usage display "all". Valid: status, off, tokens, full',
     });
   });
 
@@ -431,6 +536,7 @@ describe("slash command executor", () => {
             toolProgress: {},
             activeApproval: null,
             runMetadata: {},
+            commandStates: {},
             a2uiState: null,
             lastAccessedAt: Date.now(),
           },

@@ -375,7 +375,7 @@ describe("showToolResult block filter", () => {
     expect(details[1]?.open).toBe(false);
   });
 
-  it("opens error tool result cards by default", async () => {
+  it("keeps initially rendered error tool result cards collapsed by default", async () => {
     const { ToolResultCard } = await import("../blocks/ToolResultCard");
 
     act(() => {
@@ -397,7 +397,7 @@ describe("showToolResult block filter", () => {
       "details.ds-tool-result-card.is-error",
     );
     expect(details).toBeTruthy();
-    expect(details?.open).toBe(true);
+    expect(details?.open).toBe(false);
     expect(details?.querySelector("summary")?.textContent).toContain("Tool error");
   });
 
@@ -423,7 +423,7 @@ describe("showToolResult block filter", () => {
     const details = container.querySelector<HTMLDetailsElement>(
       "details.ds-tool-result-card.is-error",
     );
-    expect(details?.open).toBe(true);
+    expect(details?.open).toBe(false);
 
     act(() => {
       if (!details) {

@@ -1,6 +1,7 @@
 import { fetchAgentsList, fetchRuntimeConfiguredModels, fetchSessions } from "@/api";
 import { commandRegistry } from "@/lib/command-registry";
 import { formatTokenCount } from "@/lib/format-utils";
+import { useChatStore } from "@/stores/chat";
 import type { SessionMeta } from "@/stores/chat-types";
 import type { ToastType } from "@/stores/notifications";
 import {
@@ -65,7 +66,7 @@ const LOCAL_COMMAND_HANDLERS: Record<string, LocalCommandHandler> = {
   sendpolicy: (sessionKey, args) => executeSendPolicy(sessionKey, args),
   stop: async () => ({ content: "", action: "stop" }),
   think: (sessionKey, args) => executeThink(sessionKey, args),
-  usage: (sessionKey) => getSessionUsage(sessionKey),
+  usage: (sessionKey, args) => executeUsage(sessionKey, args),
   verbose: (sessionKey, args) => executeVerbose(sessionKey, args),
 };
 
@@ -335,6 +336,23 @@ async function getSessionUsage(sessionKey: string): Promise<SlashCommandResult> 
   }
 }
 
+async function executeUsage(sessionKey: string, args: string): Promise<SlashCommandResult> {
+  const mode = args.trim().toLowerCase();
+  if (!mode || mode === "status") {
+    return getSessionUsage(sessionKey);
+  }
+  if (!["off", "tokens", "full"].includes(mode)) {
+    return { content: `Invalid usage display "${args.trim()}". Valid: status, off, tokens, full` };
+  }
+  return patchSessionConfig(
+    sessionKey,
+    { responseUsage: mode as "off" | "tokens" | "full" },
+    "toastUsage",
+    mode,
+    "toastUsageFailed",
+  );
+}
+
 async function listAgents(): Promise<SlashCommandResult> {
   try {
     const data = await fetchAgentsList();
@@ -433,15 +451,81 @@ async function compactLocalSession(sessionKey: string): Promise<SlashCommandResu
   if (!sessionKey) {
     return { content: "No active session." };
   }
+  const startedAt = Date.now();
+  useChatStore.getState().setCommandState(sessionKey, "compact", {
+    command: "compact",
+    status: "running",
+    startedAt,
+    summary: "Compaction is running",
+  });
   try {
     await compactChatSession(sessionKey);
+    await reconcileSessionMeta(sessionKey);
+    useChatStore.getState().setCommandState(sessionKey, "compact", {
+      command: "compact",
+      status: "completed",
+      startedAt,
+      completedAt: Date.now(),
+      summary: "Compaction completed",
+    });
     return {
       content: "",
       action: "refresh",
       toastKey: "toastCompacted",
       toastType: "success",
     };
-  } catch {
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    useChatStore.getState().setCommandState(sessionKey, "compact", {
+      command: "compact",
+      status: "failed",
+      startedAt,
+      completedAt: Date.now(),
+      summary: "Compaction failed",
+      error: reason,
+    });
     return { content: "", toastKey: "toastCompactFailed", toastType: "error" };
+  }
+}
+
+async function reconcileSessionMeta(sessionKey: string): Promise<void> {
+  try {
+    const data = await fetchSessions();
+    const session = (data.sessions ?? []).find(
+      (item: { key?: unknown; sessionKey?: unknown }) =>
+        item.key === sessionKey || item.sessionKey === sessionKey,
+    ) as (Partial<SessionMeta> & { key?: string; sessionKey?: string }) | undefined;
+    if (!session) {
+      return;
+    }
+    useChatStore.setState((state) => {
+      let found = false;
+      const metas = state.sessionMetas.map((meta) => {
+        if (meta.key !== sessionKey) {
+          return meta;
+        }
+        found = true;
+        return {
+          ...meta,
+          ...session,
+          key: sessionKey,
+          updatedAt:
+            typeof session.updatedAt === "number"
+              ? session.updatedAt
+              : (meta.updatedAt ?? Date.now()),
+        };
+      });
+      if (!found) {
+        metas.unshift({
+          agentId: session.agentId ?? state.activeAgentId ?? "main",
+          updatedAt: typeof session.updatedAt === "number" ? session.updatedAt : Date.now(),
+          ...session,
+          key: sessionKey,
+        } as SessionMeta);
+      }
+      return { sessionMetas: metas, sessionMeta: metas };
+    });
+  } catch {
+    // SSE/history refresh can still reconcile later; command state remains completed.
   }
 }

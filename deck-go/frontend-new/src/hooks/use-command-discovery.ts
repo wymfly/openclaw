@@ -11,6 +11,7 @@ type DiscoveredCommand = {
   name?: unknown;
   source?: unknown;
   description?: unknown;
+  aliases?: unknown;
   args?: unknown;
   argChoices?: unknown;
   category?: unknown;
@@ -55,9 +56,16 @@ function toRegisteredCommand(command: DiscoveredCommand): RegisteredCommand | nu
   const argChoices = Array.isArray(command.argChoices)
     ? command.argChoices.filter((choice): choice is string => typeof choice === "string")
     : undefined;
+  const aliases = Array.isArray(command.aliases)
+    ? command.aliases
+        .filter((alias): alias is string => typeof alias === "string" && alias.trim().length > 0)
+        .map((alias) => alias.trim().replace(/^\//u, ""))
+        .filter((alias) => alias.length > 0)
+    : undefined;
 
   return {
     name: command.name.trim(),
+    aliases,
     source,
     execMode: "remote",
     description: typeof command.description === "string" ? command.description : command.name,

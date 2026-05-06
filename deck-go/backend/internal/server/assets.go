@@ -90,7 +90,9 @@ const canvasBridgeScript = `
 })();
 </script>`
 
-func registerAssetRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }, store *config.Store) {
+func registerAssetRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}, store *config.Store) {
 	mux.MethodFunc("GET", "/media", func(w http.ResponseWriter, r *http.Request) {
 		rawPath := r.URL.Query().Get("path")
 		if rawPath == "" {
@@ -141,7 +143,11 @@ func registerAssetRoutes(mux interface{ MethodFunc(string, string, http.HandlerF
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid path"})
 			return
 		}
-		targetURL := strings.TrimRight(baseURL, "/") + "/__openclaw__/a2ui/" + subPath
+		targetPath := "/__openclaw__/a2ui/" + subPath
+		if strings.HasPrefix(subPath, "documents/") {
+			targetPath = "/__openclaw__/canvas/" + subPath
+		}
+		targetURL := strings.TrimRight(baseURL, "/") + targetPath
 		req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, targetURL, nil)
 		if err != nil {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"error": "Failed to fetch canvas host"})
@@ -243,6 +249,9 @@ func registerAssetRoutes(mux interface{ MethodFunc(string, string, http.HandlerF
 }
 
 func resolveGatewayHTTPBase(store *config.Store) (string, string, bool) {
+	if baseURL, token, ok := resolveBundledGatewayHTTPBaseFromEnv(); ok {
+		return baseURL, token, true
+	}
 	settings := store.Effective().ManagedGateway
 	if strings.TrimSpace(settings.GatewayToken) == "" {
 		return "", "", false
@@ -254,6 +263,25 @@ func resolveGatewayHTTPBase(store *config.Store) (string, string, bool) {
 	httpURL := strings.Replace(wsURL, "ws://", "http://", 1)
 	httpURL = strings.Replace(httpURL, "wss://", "https://", 1)
 	return httpURL, settings.GatewayToken, true
+}
+
+func resolveBundledGatewayHTTPBaseFromEnv() (string, string, bool) {
+	if strings.TrimSpace(os.Getenv("RUNTIME_MODE")) != "bundled" {
+		return "", "", false
+	}
+	token := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_TOKEN"))
+	if token == "" {
+		return "", "", false
+	}
+	host := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_BIND_HOST"))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_BIND_PORT"))
+	if port == "" {
+		port = "18789"
+	}
+	return "http://" + host + ":" + port, token, true
 }
 
 func invalidCanvasPath(path string) bool {

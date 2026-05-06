@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
+import { waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const chatState = {
   activeSessionKey: "sess-1" as string | null,
+  sessions: new Map<string, Record<string, unknown>>(),
   sessionMetas: [] as Array<Record<string, unknown>>,
   sessionMeta: [] as Array<Record<string, unknown>>,
 };
@@ -14,7 +16,8 @@ const sessionsState = {
 };
 
 const patchSessionMock = vi.fn();
-const compactChatSessionMock = vi.fn();
+const executeSlashCommandMock = vi.fn();
+const addToastMock = vi.fn();
 
 vi.mock("@/stores/chat", () => ({
   useChatStore: Object.assign(
@@ -41,6 +44,14 @@ vi.mock("@/stores/chat-hooks", () => ({
 
 vi.mock("@/stores/sessions", () => ({
   useSessionsStore: (selector: (state: typeof sessionsState) => unknown) => selector(sessionsState),
+}));
+
+vi.mock("@/stores/notifications", () => ({
+  useNotificationsStore: {
+    getState: () => ({
+      addToast: addToastMock,
+    }),
+  },
 }));
 
 vi.mock("next-intl", () => ({
@@ -91,7 +102,10 @@ vi.mock("next-intl", () => ({
 
 vi.mock("../chat-api", () => ({
   patchSession: (...args: unknown[]) => patchSessionMock(...args),
-  compactChatSession: (...args: unknown[]) => compactChatSessionMock(...args),
+}));
+
+vi.mock("../slash-command-executor", () => ({
+  executeSlashCommand: (...args: unknown[]) => executeSlashCommandMock(...args),
 }));
 
 let ChatContextBar: typeof import("../ChatContextBar").ChatContextBar;
@@ -106,9 +120,22 @@ beforeEach(async () => {
   ({ ChatContextBar } = await import("../ChatContextBar"));
   patchSessionMock.mockReset();
   patchSessionMock.mockResolvedValue(true);
-  compactChatSessionMock.mockReset();
-  compactChatSessionMock.mockResolvedValue(undefined);
+  executeSlashCommandMock.mockReset();
+  executeSlashCommandMock.mockResolvedValue({
+    content: "",
+    toastKey: "toastCompacted",
+    toastType: "success",
+  });
+  addToastMock.mockReset();
   chatState.activeSessionKey = "sess-1";
+  chatState.sessions = new Map([
+    [
+      "sess-1",
+      {
+        commandStates: {},
+      },
+    ],
+  ]);
   chatState.sessionMetas = [
     {
       key: "sess-1",
@@ -240,5 +267,63 @@ describe("ChatContextBar", () => {
     searchButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(onToggleSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs compact through the slash command executor and shows command state", async () => {
+    sessionsState.sessions = [{ key: "sess-1", contextTokens: 1000, totalTokens: 900 }];
+    chatState.sessions = new Map([
+      [
+        "sess-1",
+        {
+          commandStates: {
+            compact: {
+              command: "compact",
+              status: "running",
+              startedAt: Date.now(),
+              summary: "Compaction is running",
+            },
+          },
+        },
+      ],
+    ]);
+
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(ChatContextBar));
+    });
+
+    expect(container.textContent).toContain("Compaction running");
+    const compactButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("compacting"),
+    );
+    if (!compactButton) {
+      throw new Error("missing compact button");
+    }
+    expect(compactButton.hasAttribute("disabled")).toBe(true);
+
+    chatState.sessions = new Map([
+      [
+        "sess-1",
+        {
+          commandStates: {},
+        },
+      ],
+    ]);
+
+    act(() => {
+      root?.render(createElement(ChatContextBar));
+    });
+    const readyCompactButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("compact"),
+    );
+    if (!readyCompactButton) {
+      throw new Error("missing ready compact button");
+    }
+    readyCompactButton.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    await waitFor(() => {
+      expect(executeSlashCommandMock).toHaveBeenCalledWith("sess-1", "compact", "");
+    });
+    expect(addToastMock).toHaveBeenCalledWith("success", "toastCompacted", 3000);
   });
 });

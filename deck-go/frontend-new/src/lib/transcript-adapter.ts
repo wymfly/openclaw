@@ -60,6 +60,13 @@ function summarizeUnknownValue(value: unknown): unknown {
 function normalizeUnknownBlock(
   raw: Record<string, unknown>,
 ): Extract<ContentBlock, { type: "unknown" }> {
+  if (raw.type === "unknown" && typeof raw.rawType === "string" && isRecord(raw.summary)) {
+    return {
+      type: "unknown",
+      rawType: raw.rawType,
+      summary: raw.summary,
+    };
+  }
   const summary = Object.fromEntries(
     Object.entries(raw).map(([key, value]) => [key, summarizeUnknownValue(value)]),
   );
@@ -70,12 +77,75 @@ function normalizeUnknownBlock(
   };
 }
 
+function normalizeCanvasBlock(
+  raw: Record<string, unknown>,
+): Extract<ContentBlock, { type: "canvas" }> | null {
+  const preview = isRecord(raw.preview) ? raw.preview : undefined;
+  const url =
+    typeof raw.url === "string" ? raw.url : typeof preview?.url === "string" ? preview.url : null;
+  const render = raw.render === "url" || preview?.render === "url" || url ? "url" : undefined;
+  const surface =
+    raw.surface === "assistant_message" || preview?.surface === "assistant_message"
+      ? "assistant_message"
+      : undefined;
+  if (!url || render !== "url") {
+    return null;
+  }
+  return {
+    type: "canvas",
+    kind: "canvas",
+    surface: surface ?? "assistant_message",
+    render: "url",
+    url,
+    ...(typeof raw.viewId === "string"
+      ? { viewId: raw.viewId }
+      : typeof preview?.viewId === "string"
+        ? { viewId: preview.viewId }
+        : {}),
+    ...(typeof raw.title === "string"
+      ? { title: raw.title }
+      : typeof preview?.title === "string"
+        ? { title: preview.title }
+        : {}),
+    ...(typeof raw.preferredHeight === "number"
+      ? { preferredHeight: raw.preferredHeight }
+      : typeof preview?.preferredHeight === "number"
+        ? { preferredHeight: preview.preferredHeight }
+        : {}),
+  };
+}
+
 function normalizeTextBlock(
   raw: Record<string, unknown>,
 ): Extract<ContentBlock, { type: "text" }> | null {
   const text =
     typeof raw.text === "string" ? raw.text : typeof raw.content === "string" ? raw.content : null;
   return text == null ? null : { type: "text", text };
+}
+
+export function normalizeGatewayUserDisplayText(text: string): string {
+  const trimmed = text.trim();
+  const withoutSender = trimmed.replace(
+    /^Sender \(untrusted metadata\):\s*```json[\s\S]*?```\s*/u,
+    "",
+  );
+  if (withoutSender !== trimmed) {
+    return withoutSender.replace(/^\[[^\]]+\]\s*/u, "").trim();
+  }
+  if (trimmed.startsWith("Sender (untrusted metadata):")) {
+    const timestampMatch = trimmed.match(/\[[^\]]+\]\s*([\s\S]*)$/u);
+    return timestampMatch?.[1]?.trim() ?? "";
+  }
+  return trimmed.replace(/^\[[^\]]+\]\s*/u, "").trim();
+}
+
+function normalizeUserDisplayContent(content: ContentBlock[]): ContentBlock[] {
+  return content.map((block) => {
+    if (block.type !== "text") {
+      return block;
+    }
+    return { ...block, text: normalizeGatewayUserDisplayText(block.text) };
+  });
 }
 
 function normalizeThinkingBlock(
@@ -214,6 +284,14 @@ export function normalizeTranscriptBlock(raw: Record<string, unknown>): ContentB
     }
   }
 
+  if (type === "canvas") {
+    return normalizeCanvasBlock(raw) ?? normalizeUnknownBlock(raw);
+  }
+
+  if (type === "unknown") {
+    return normalizeUnknownBlock(raw);
+  }
+
   return normalizeUnknownBlock(raw);
 }
 
@@ -272,11 +350,13 @@ export function normalizeTranscriptMessage(
   // Detect compaction summary messages from Gateway transcript JSONL.
   // Source: role "compactionSummary" defined in src/types/pi-agent-core.d.ts:6-10
   const isCompaction = messageRecord.role === "compactionSummary";
+  const sourceRole = messageRecord.role;
   const role = isCompaction
     ? "system"
-    : messageRecord.role === "toolResult"
+    : sourceRole === "toolResult"
       ? "user"
       : ((messageRecord.role as ChatMessage["role"]) ?? "assistant");
+  const content = normalizeTranscriptContent(messageRecord.content);
   return {
     id: resolveMessageId(
       sessionKey,
@@ -287,7 +367,7 @@ export function normalizeTranscriptMessage(
       options?.messageSeq,
     ),
     role,
-    content: normalizeTranscriptContent(messageRecord.content),
+    content: sourceRole === "user" ? normalizeUserDisplayContent(content) : content,
     timestamp,
     ...(isCompaction ? { isCompaction: true } : {}),
   };

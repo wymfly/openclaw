@@ -65,7 +65,7 @@ beforeEach(async () => {
     sessionPreviewOverlays: {},
     activeSessionKey: null,
     activeAgentId: null,
-    sseStatus: "disconnected",
+    sseStatus: "idle",
     canvasCommands: [],
   });
   window.localStorage.clear();
@@ -85,6 +85,15 @@ afterEach(() => {
 });
 
 describe("useChatSSE visibility eviction", () => {
+  it("starts from a non-alarm connecting state until the stream opens", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<HookHost />);
+    });
+
+    expect(useChatStore.getState().sseStatus).toBe("connecting");
+  });
+
   it("calls evictStale(DEFAULT_EVICT_IDLE_MS) when page goes hidden", async () => {
     const spy = vi.spyOn(useChatStore.getState(), "evictStale");
 
@@ -127,6 +136,7 @@ describe("useChatSSE visibility eviction", () => {
     root = null;
 
     expect(removeSpy).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(useChatStore.getState().sseStatus).toBe("idle");
   });
 
   it("dispatches chat SSE events into the migrated chat store", async () => {

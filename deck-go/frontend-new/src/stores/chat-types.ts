@@ -97,6 +97,15 @@ export interface ToolProgress {
   completedAt?: number;
 }
 
+export interface CommandExecutionState {
+  command: string;
+  status: "running" | "completed" | "failed";
+  startedAt: number;
+  completedAt?: number;
+  summary?: string;
+  error?: string;
+}
+
 // ---------------------------------------------------------------------------
 // A2UI state (Agent-to-User Interface overlay)
 // ---------------------------------------------------------------------------
@@ -190,6 +199,7 @@ export interface SessionState {
   toolProgress: Record<string, ToolProgress>;
   activeApproval: ApprovalRequest | null;
   runMetadata: Record<string, RunMetadata>;
+  commandStates: Record<string, CommandExecutionState>;
   a2uiState: A2UIState | null;
   lastAccessedAt: number;
   // New lifecycle fields
@@ -206,6 +216,7 @@ export interface SessionState {
 export interface SessionMeta {
   key: string;
   agentId: string;
+  label?: string;
   title?: string;
   updatedAt: number;
   lastMessagePreview?: string;
@@ -251,7 +262,12 @@ export const MAX_CACHED_SESSIONS = 20;
 /** How long (ms) an idle session can stay cached before becoming evictable. */
 export const DEFAULT_EVICT_IDLE_MS = 5 * 60 * 1000; // 5 minutes
 
-export type SSEConnectionStatus = "connected" | "reconnecting" | "disconnected";
+export type SSEConnectionStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "disconnected";
 
 // ---------------------------------------------------------------------------
 // Factory
@@ -268,6 +284,7 @@ export function createEmptySessionState(): SessionState {
     toolProgress: {},
     activeApproval: null,
     runMetadata: {},
+    commandStates: {},
     a2uiState: null,
     lastAccessedAt: Date.now(),
   };

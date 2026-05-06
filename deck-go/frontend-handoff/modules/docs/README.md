@@ -1,6 +1,6 @@
 # Docs
 
-**Status**: implemented - real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild — v2)
 **Depends on atoms**: Button, Input, Tag, Code
@@ -61,3 +61,19 @@ Layout is the **2-pane workspace** with a search overlay that drops below the to
 - **Code-block syntax highlighting** — prototype emits `<code class="md-codeblock--{lang}">` but doesn't actually highlight. Production currently uses the existing shared Markdown renderer without adding a new syntax-highlighting dependency.
 - **Edit on source** — `DeckGoDoc.content` is editable in the local store; should the panel offer inline editing (markdown textarea + save) or stay read-only? Current scope = read-only.
 - **Frontmatter** — `DeckGoDoc.content` is plain markdown. If we want frontmatter (e.g., `version:`, `deprecated:`), the BFF strips it.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `needs-revision`                                                                                                            |
+| Reviewer                       | Codex                                                                                                                       |
+| Date                           | 2026-05-06                                                                                                                  |
+| Prototype reference            | `frontend-handoff/modules/docs/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/docs/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`docs`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`docs`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`docs`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/docs/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

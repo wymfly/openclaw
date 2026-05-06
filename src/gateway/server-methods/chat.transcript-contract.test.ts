@@ -86,7 +86,22 @@ describe("chat.history transcript contract", () => {
             {
               type: "toolResult",
               toolCallId: "tool-1",
-              content: [{ type: "output_text", text: "tool output" }],
+              content: [
+                { type: "output_text", text: "tool output" },
+                {
+                  type: "canvas",
+                  preview: {
+                    kind: "canvas",
+                    surface: "assistant_message",
+                    render: "url",
+                    url: "/__openclaw__/canvas/documents/tool/index.html",
+                    viewId: "tool",
+                    title: "Tool canvas",
+                    preferredHeight: 360,
+                  },
+                },
+                { type: "vendor_metric", score: 0.97, label: "confidence" },
+              ],
               is_error: false,
             },
             {
@@ -100,6 +115,20 @@ describe("chat.history transcript contract", () => {
               mimeType: "text/plain",
               fileName: "demo.txt",
               size: 4,
+            },
+            {
+              type: "canvas",
+              kind: "canvas",
+              surface: "assistant_message",
+              render: "url",
+              url: "/__openclaw__/canvas/documents/direct/index.html",
+              viewId: "direct",
+              title: "Direct canvas",
+              preferredHeight: 420,
+            },
+            {
+              type: "future_block",
+              value: "kept as unknown",
             },
           ],
           timestamp: 1_710_000_000_100,
@@ -134,7 +163,24 @@ describe("chat.history transcript contract", () => {
             {
               type: "tool_result",
               toolUseId: "tool-1",
-              content: [{ type: "text", text: "tool output" }],
+              content: [
+                { type: "text", text: "tool output" },
+                {
+                  type: "canvas",
+                  kind: "canvas",
+                  surface: "assistant_message",
+                  render: "url",
+                  url: "/__openclaw__/canvas/documents/tool/index.html",
+                  viewId: "tool",
+                  title: "Tool canvas",
+                  preferredHeight: 360,
+                },
+                {
+                  type: "unknown",
+                  rawType: "vendor_metric",
+                  summary: { type: "vendor_metric", score: 0.97, label: "confidence" },
+                },
+              ],
               isError: false,
             },
             {
@@ -149,6 +195,21 @@ describe("chat.history transcript contract", () => {
               mimeType: "text/plain",
               fileName: "demo.txt",
               size: 4,
+            },
+            {
+              type: "canvas",
+              kind: "canvas",
+              surface: "assistant_message",
+              render: "url",
+              url: "/__openclaw__/canvas/documents/direct/index.html",
+              viewId: "direct",
+              title: "Direct canvas",
+              preferredHeight: 420,
+            },
+            {
+              type: "unknown",
+              rawType: "future_block",
+              summary: { type: "future_block", value: "kept as unknown" },
             },
           ],
           timestamp: 1_710_000_000_100,

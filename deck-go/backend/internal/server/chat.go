@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
@@ -249,6 +251,14 @@ func registerChatRoutes(mux interface {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"ok": false, "error": "message or attachment required"})
 			return
 		}
+		if err := validateChatModelAttachments(body.Attachments); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"code":  "unsupported_attachment",
+				"error": err.Error(),
+			})
+			return
+		}
 		params := map[string]any{
 			"key":     body.SessionKey,
 			"message": body.Message,
@@ -395,7 +405,8 @@ func registerChatRoutes(mux interface {
 
 	mux.MethodFunc("POST", "/chat/projection", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			SessionKey string `json:"sessionKey"`
+			SessionKey string         `json:"sessionKey"`
+			A2uiState  map[string]any `json:"a2uiState"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
@@ -405,6 +416,26 @@ func registerChatRoutes(mux interface {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "sessionKey is required"})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+		stored := storeChatProjectionState(body.SessionKey, body.A2uiState)
+		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "a2uiState": stored})
 	})
+}
+
+func validateChatModelAttachments(attachments []map[string]any) error {
+	for index, attachment := range attachments {
+		if attachment == nil {
+			continue
+		}
+		attachmentType, _ := attachment["type"].(string)
+		mimeType, _ := attachment["mimeType"].(string)
+		if attachmentType == "image" || strings.HasPrefix(strings.ToLower(mimeType), "image/") {
+			continue
+		}
+		fileName, _ := attachment["fileName"].(string)
+		if fileName == "" {
+			fileName = fmt.Sprintf("attachment-%d", index+1)
+		}
+		return fmt.Errorf("%s is not a supported model attachment; OpenClaw currently accepts image attachments only", fileName)
+	}
+	return nil
 }

@@ -17,6 +17,7 @@ export interface CommandVisibilityContext {
 
 export interface RegisteredCommand {
   name: string;
+  aliases?: string[];
   source: CommandSource;
   execMode: CommandExecMode;
   description: string;

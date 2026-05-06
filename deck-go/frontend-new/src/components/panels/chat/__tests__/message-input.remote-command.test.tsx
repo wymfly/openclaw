@@ -198,6 +198,7 @@ beforeEach(async () => {
           toolProgress: {},
           activeApproval: null,
           runMetadata: {},
+          commandStates: {},
           a2uiState: null,
           lastAccessedAt: Date.now(),
         },
@@ -392,6 +393,93 @@ describe("MessageInput remote slash command preview", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ sessionKey: "sess-1", thinkingLevel: "high" }),
+      }),
+    );
+  });
+
+  it("does not apply local slash config updates when the patch route fails", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "patch failed" }), {
+        status: 500,
+      }),
+    );
+    const { useNotificationsStore } = await import("@/stores/notifications");
+
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(MessageInput));
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Type a message..."), {
+      target: { value: "/think high" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(useNotificationsStore.getState().toasts.at(-1)).toMatchObject({
+        type: "error",
+        message: "toastThinkFailed",
+      });
+    });
+    expect(useChatStore.getState().sessionMetas[0]).toMatchObject({
+      key: "sess-1",
+    });
+    expect(useChatStore.getState().sessionMetas[0]).not.toHaveProperty("thinkingLevel");
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", thinkingLevel: "high" }),
+      }),
+    );
+  });
+
+  it("applies slash command aliases and usage modes to the active session meta", async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }));
+
+    act(() => {
+      root = createRoot(container);
+      root.render(createElement(MessageInput));
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Type a message..."), {
+      target: { value: "/t high" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(useChatStore.getState().sessionMetas[0]).toMatchObject({
+        key: "sess-1",
+        thinkingLevel: "high",
+      });
+    });
+
+    fireEvent.change(screen.getByPlaceholderText("Type a message..."), {
+      target: { value: "/usage tokens" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      expect(useChatStore.getState().sessionMetas[0]).toMatchObject({
+        key: "sess-1",
+        responseUsage: "tokens",
+      });
+    });
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", thinkingLevel: "high" }),
+      }),
+    );
+    expect(fetchSpy).toHaveBeenCalledWith(
+      "/api/chat/sessions/patch",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ sessionKey: "sess-1", responseUsage: "tokens" }),
       }),
     );
   });

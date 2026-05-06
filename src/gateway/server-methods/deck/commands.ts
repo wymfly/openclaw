@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { listPluginCommands } from "../../../plugins/commands.js";
 import type { MethodMetadata } from "../../method-registry.js";
 import {
   ErrorCodes,
@@ -23,6 +24,7 @@ type DiscoverableCommand = {
   name: string;
   source: "builtin" | "skill" | "plugin";
   description: string;
+  aliases?: string[];
   args?: string;
   argChoices?: string[];
   category?: string;
@@ -36,6 +38,22 @@ function normalizeCommandName(command: ChatCommandDefinition): string {
     return command.key;
   }
   return textAlias.replace(/^\//, "");
+}
+
+function normalizeCommandAliases(command: ChatCommandDefinition): string[] | undefined {
+  const primary = normalizeCommandName(command).toLowerCase();
+  const aliases = new Set<string>();
+  for (const textAlias of command.textAliases.slice(1)) {
+    const alias = textAlias.trim().replace(/^\//, "");
+    if (!alias || alias.toLowerCase() === primary) {
+      continue;
+    }
+    aliases.add(alias);
+  }
+  if (!aliases.size) {
+    return undefined;
+  }
+  return [...aliases];
 }
 
 function formatBuiltinArgs(command: ChatCommandDefinition): string | undefined {
@@ -77,7 +95,7 @@ function buildDiscoverVersion(commands: DiscoverableCommand[]): string {
   const hashInput = commands
     .map(
       (command) =>
-        `${command.source}:${command.name}:${command.description}:${command.args ?? ""}:${command.category ?? ""}:${(command.argChoices ?? []).join(";")}`,
+        `${command.source}:${command.name}:${command.description}:${(command.aliases ?? []).join(";")}:${command.args ?? ""}:${command.category ?? ""}:${(command.argChoices ?? []).join(";")}`,
     )
     .toSorted()
     .join(",");
@@ -109,13 +127,17 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
         if (command.scope === "native") {
           continue;
         }
+        const aliases = normalizeCommandAliases(command);
+        const args = formatBuiltinArgs(command);
+        const argChoices = resolveBuiltinArgChoices(command);
         commands.push({
           name: normalizeCommandName(command),
           source: "builtin",
           description: command.description,
-          args: formatBuiltinArgs(command),
-          argChoices: resolveBuiltinArgChoices(command),
-          category: "more",
+          ...(aliases ? { aliases } : {}),
+          ...(args ? { args } : {}),
+          ...(argChoices ? { argChoices } : {}),
+          ...(command.category ? { category: command.category } : {}),
         });
       }
 
@@ -130,7 +152,17 @@ export const deckCommandsHandlers: GatewayRequestHandlers = {
         });
       }
 
-      // 3) Plugin commands reserved for future extension
+      // 3) Plugin commands currently registered in the OpenClaw plugin registry
+      for (const command of listPluginCommands()) {
+        commands.push({
+          name: command.name,
+          source: "plugin",
+          description: command.description,
+          ...(command.acceptsArgs ? { args: "<args>" } : {}),
+          category: "plugins",
+          pluginId: command.pluginId,
+        });
+      }
 
       commands.sort((a, b) => a.source.localeCompare(b.source) || a.name.localeCompare(b.name));
       const version = buildDiscoverVersion(commands);

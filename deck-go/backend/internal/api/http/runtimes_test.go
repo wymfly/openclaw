@@ -1305,7 +1305,7 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 	})
 
 	t.Run("typed gateway rpc rejects methods outside generated allowlist", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"tools.catalog","params":{}}`))
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"not.a.real.method","params":{}}`))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -1438,7 +1438,7 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		diagnostics.batchCalls = 0
 		diagnostics.batch = mustGatewayBatchResult(t, `{"results":[{"id":"a","ok":true,"result":{"id":"allowed"}}]}`)
 
-		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(`{"calls":[{"id":"a","method":"models.configured","params":{}},{"id":"b","method":"tools.catalog","params":{}},{"id":"c","method":"gateway.batch","params":{"calls":[]}},{"id":"d","method":"sessions.messages.subscribe","params":{}}]}`))
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/batch", strings.NewReader(`{"calls":[{"id":"a","method":"models.configured","params":{}},{"id":"b","method":"not.a.real.method","params":{}},{"id":"c","method":"gateway.batch","params":{"calls":[]}},{"id":"d","method":"sessions.messages.subscribe","params":{}}]}`))
 		if err != nil {
 			t.Fatal(err)
 		}

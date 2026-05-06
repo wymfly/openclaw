@@ -226,6 +226,9 @@ func (m *ManagedRuntime) HandleDeckCanvas(ctx context.Context, body map[string]a
 }
 
 func (m *ManagedRuntime) resolveGatewayHTTPBase() (string, string, bool) {
+	if baseURL, token, ok := resolveBundledGatewayHTTPBaseFromEnv(); ok {
+		return baseURL, token, true
+	}
 	if m == nil || m.store == nil {
 		return "", "", false
 	}
@@ -240,6 +243,25 @@ func (m *ManagedRuntime) resolveGatewayHTTPBase() (string, string, bool) {
 	httpURL := strings.Replace(wsURL, "ws://", "http://", 1)
 	httpURL = strings.Replace(httpURL, "wss://", "https://", 1)
 	return httpURL, settings.GatewayToken, true
+}
+
+func resolveBundledGatewayHTTPBaseFromEnv() (string, string, bool) {
+	if strings.TrimSpace(os.Getenv("RUNTIME_MODE")) != "bundled" {
+		return "", "", false
+	}
+	token := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_TOKEN"))
+	if token == "" {
+		return "", "", false
+	}
+	host := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_BIND_HOST"))
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	port := strings.TrimSpace(os.Getenv("RUNTIME_BUNDLED_BIND_PORT"))
+	if port == "" {
+		port = "18789"
+	}
+	return "http://" + host + ":" + port, token, true
 }
 
 func isAllowedMediaPath(path string) bool {

@@ -1,6 +1,6 @@
 # agents - high-fidelity handoff
 
-**Status:** `revised v2 - implemented in real-contract pilot`
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
 **OpenSpec change:** `frontend-agents-real-contract-verification`
@@ -61,3 +61,19 @@ No canonical atom or token is required by this handoff. Local molecules:
 - Whether Gateway should add query support to `agents.list`.
 - Whether skill modes should migrate from `"all" | "whitelist"` to product-facing labels later.
 - Whether repeated row/section molecules from agents + routing/subagents should become shared design-system patterns.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `accepted-with-exceptions`                                                                                                    |
+| Reviewer                       | Codex                                                                                                                         |
+| Date                           | 2026-05-06                                                                                                                    |
+| Prototype reference            | `frontend-handoff/modules/agents/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/agents/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`agents`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`agents`, `mock-prototype-parity`, verdict: `pass-with-exceptions`)   |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`agents`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/agents/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

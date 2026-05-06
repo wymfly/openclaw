@@ -1,6 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { SegmentedControl } from "@/design-system/atoms/SegmentedControl";
+import { IconAlert, IconTerminal } from "@/design-system/icons";
 import {
   countLines,
   getFileExtension,
@@ -14,6 +15,7 @@ import { ArtifactContext } from "../artifact-context";
 import { ArtifactCard } from "../artifacts/ArtifactCard";
 import { detectArtifact } from "../artifacts/detectArtifact";
 import { BashResultView } from "./BashResultView";
+import { CanvasEmbed } from "./CanvasEmbed";
 import { DiffPreview } from "./DiffPreview";
 import { FileBlock } from "./FileBlock";
 import { HighlightedCodeView } from "./HighlightedCodeView";
@@ -50,14 +52,7 @@ function renderNestedBlock(block: ContentBlock, index: number) {
     case "file":
       return <FileBlock key={`file-${index}`} {...block} />;
     case "canvas":
-      return (
-        <iframe
-          className="ds-block ds-block--canvas ds-canvas-embed deck-ui-canvas-embed"
-          key={`canvas-${index}`}
-          src={block.url}
-          title={block.title ?? "canvas"}
-        />
-      );
+      return <CanvasEmbed block={block} key={`canvas-${index}`} />;
     case "unknown":
       return (
         <UnknownBlockCard
@@ -86,7 +81,7 @@ export function ToolResultCard(props: ToolResultCardProps) {
   const { content, isError, toolName, toolInput, paired } = props;
   const t = useTranslations("chat");
   const { onOpenArtifact } = useContext(ArtifactContext);
-  const [isOpen, setIsOpen] = useState(Boolean(isError));
+  const [isOpen, setIsOpen] = useState(false);
   const previousIsError = useRef(Boolean(isError));
   const isStructuredContent = typeof content !== "string";
   const contentText = typeof content === "string" ? content : JSON.stringify(content, null, 2);
@@ -213,9 +208,11 @@ export function ToolResultCard(props: ToolResultCardProps) {
         data-tool-error={isError ? "true" : undefined}
       >
         <summary className="deck-ui-tool-use-summary ds-tool-result-card__summary">
-          <span className="ds-tool-icon deck-ui-tool-icon" aria-hidden="true">
-            {isError ? "!" : "ok"}
-          </span>
+          {isError ? (
+            <IconAlert className="ds-tool-result-card__icon" size={12} />
+          ) : (
+            <IconTerminal className="ds-tool-result-card__icon" size={12} />
+          )}
           <span className="ds-tool-label deck-ui-tool-label">{title}</span>
           {hasEnhancedView ? (
             <span

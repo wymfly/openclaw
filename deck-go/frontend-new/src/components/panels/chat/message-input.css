@@ -65,6 +65,15 @@
   font-size: var(--ds-fs-meta);
 }
 
+.ds-message-input__attachment-error {
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--ds-error) 42%, var(--ds-border));
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-error-bg);
+  color: var(--ds-error);
+  font-size: var(--ds-fs-meta);
+}
+
 /* Hidden file input — kept in DOM for accessibility / file picker trigger. */
 .ds-message-input__file-input {
   display: none;

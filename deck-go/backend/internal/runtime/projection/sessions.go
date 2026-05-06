@@ -2,11 +2,14 @@ package projection
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
 )
+
+const unknownSummaryStringLimit = 160
 
 func NormalizeSessionMetas(payload any, fallbackAgentID string) []deckapi.DeckGoSessionMeta {
 	items := extractSessionItems(payload)
@@ -264,56 +267,267 @@ func normalizeTranscriptBlocks(raw any) []deckapi.DeckGoTranscriptBlock {
 	for _, item := range items {
 		block, ok := item.(map[string]any)
 		if !ok {
+			if text, ok := item.(string); ok {
+				result = append(result, map[string]any{"type": "text", "text": text})
+			}
 			continue
 		}
-		// DeckGoTranscriptBlock is now a discriminated union on the TS side;
-		// the Go codegen resolves the union to `any`, so the normalizer
-		// builds a map matching the wire shape. Fields are emitted only when
-		// they carry a real value, preserving the omitempty semantics that
-		// the prior flat-struct codegen produced.
-		normalized := map[string]any{
-			"type": coerce.String(block["type"], ""),
+		if normalized := normalizeTranscriptBlock(block); normalized != nil {
+			result = append(result, normalized)
 		}
-		setIfNonEmpty := func(key, value string) {
-			if value != "" {
-				normalized[key] = value
-			}
-		}
-		setIfNonZero := func(key string, value float64) {
-			if value != 0 {
-				normalized[key] = value
-			}
-		}
-		setIfNonNil := func(key string, value map[string]any) {
-			if value != nil {
-				normalized[key] = value
-			}
-		}
-		setIfNonEmpty("text", coerce.String(block["text"], ""))
-		setIfNonEmpty("id", coerce.String(block["id"], ""))
-		setIfNonEmpty("name", coerce.String(block["name"], ""))
-		setIfNonNil("input", coerce.Map(block["input"]))
-		setIfNonEmpty("toolUseId", coerce.String(block["toolUseId"], ""))
-		if content, present := block["content"]; present && content != nil {
-			normalized["content"] = content
-		}
-		if coerce.Bool(block["isError"]) {
-			normalized["isError"] = true
-		}
-		setIfNonEmpty("data", coerce.String(block["data"], ""))
-		setIfNonEmpty("mimeType", coerce.String(block["mimeType"], ""))
-		setIfNonEmpty("fileName", coerce.String(block["fileName"], ""))
-		setIfNonZero("size", coerce.Number(block["size"]))
-		setIfNonEmpty("kind", coerce.String(block["kind"], ""))
-		setIfNonEmpty("surface", coerce.String(block["surface"], ""))
-		setIfNonEmpty("render", coerce.String(block["render"], ""))
-		setIfNonEmpty("url", coerce.String(block["url"], ""))
-		setIfNonEmpty("title", coerce.String(block["title"], ""))
-		setIfNonZero("preferredHeight", coerce.Number(block["preferredHeight"]))
-		setIfNonNil("summary", coerce.Map(block["summary"]))
-		// `unknown` variant carries the original wire `type` in `rawType`.
-		setIfNonEmpty("rawType", coerce.String(block["rawType"], ""))
-		result = append(result, normalized)
 	}
 	return result
+}
+
+func normalizeTranscriptBlock(block map[string]any) map[string]any {
+	blockType := coerce.String(block["type"], "")
+	switch blockType {
+	case "text":
+		return textBlock(coerce.FirstString(block["text"], block["content"]))
+	case "thinking":
+		return textLikeBlock("thinking", coerce.FirstString(block["text"], block["thinking"], block["reasoning"], block["analysis"]))
+	case "tool_use":
+		normalized := map[string]any{
+			"type":  "tool_use",
+			"id":    coerce.FirstString(block["id"], block["toolCallId"], block["tool_use_id"]),
+			"name":  coerce.FirstString(block["name"], block["tool"], block["title"]),
+			"input": normalizeToolInput(block["input"]),
+		}
+		if normalized["name"] == "" {
+			normalized["name"] = "unknown"
+		}
+		return normalized
+	case "tool_result":
+		normalized := map[string]any{
+			"type":      "tool_result",
+			"toolUseId": coerce.FirstString(block["toolUseId"], block["tool_use_id"], block["toolCallId"], block["id"]),
+			"content":   normalizeToolResultContent(firstPresent(block, "content", "result")),
+		}
+		if coerce.Bool(block["isError"]) || coerce.Bool(block["is_error"]) {
+			normalized["isError"] = true
+		}
+		return normalized
+	case "image":
+		return normalizeImageBlock(block)
+	case "file":
+		return normalizeFileBlock(block)
+	case "canvas":
+		if canvas := normalizeCanvasBlock(block); canvas != nil {
+			return canvas
+		}
+		return unknownBlock(block, blockType)
+	case "unknown":
+		return unknownBlock(block, coerce.String(block["rawType"], "unknown"))
+	case "input_text", "output_text":
+		return textBlock(coerce.FirstString(block["text"], block["content"]))
+	case "reasoning", "analysis":
+		return textLikeBlock("thinking", coerce.FirstString(block["text"], block["thinking"], block["reasoning"], block["analysis"]))
+	case "toolCall":
+		block["type"] = "tool_use"
+		return normalizeTranscriptBlock(block)
+	case "toolResult":
+		block["type"] = "tool_result"
+		return normalizeTranscriptBlock(block)
+	default:
+		if blockType != "" {
+			return unknownBlock(block, blockType)
+		}
+		if text := coerce.FirstString(block["text"], block["content"]); text != "" {
+			return textBlock(text)
+		}
+		if coerce.FirstString(block["thinking"], block["reasoning"], block["analysis"]) != "" {
+			return textLikeBlock("thinking", coerce.FirstString(block["thinking"], block["reasoning"], block["analysis"]))
+		}
+		return nil
+	}
+}
+
+func textBlock(text string) map[string]any {
+	if text == "" {
+		return nil
+	}
+	return map[string]any{"type": "text", "text": text}
+}
+
+func textLikeBlock(blockType string, text string) map[string]any {
+	if text == "" {
+		return nil
+	}
+	return map[string]any{"type": blockType, "text": text}
+}
+
+func normalizeToolInput(value any) map[string]any {
+	if record := coerce.Map(value); record != nil {
+		return record
+	}
+	if value == nil {
+		return map[string]any{}
+	}
+	if raw, ok := value.(string); ok {
+		var parsed map[string]any
+		if err := json.Unmarshal([]byte(raw), &parsed); err == nil {
+			return parsed
+		}
+		return map[string]any{"raw": raw}
+	}
+	return map[string]any{"value": value}
+}
+
+func firstPresent(record map[string]any, keys ...string) any {
+	for _, key := range keys {
+		if value, ok := record[key]; ok {
+			return value
+		}
+	}
+	return nil
+}
+
+func normalizeToolResultContent(value any) any {
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case []any:
+		return normalizeTranscriptBlocks(typed)
+	case map[string]any:
+		if nested, ok := typed["content"]; ok {
+			return normalizeToolResultContent(nested)
+		}
+		if nested, ok := typed["result"]; ok {
+			return normalizeToolResultContent(nested)
+		}
+		if block := normalizeTranscriptBlock(typed); block != nil {
+			return []deckapi.DeckGoTranscriptBlock{block}
+		}
+		return jsonString(typed)
+	case nil:
+		return ""
+	default:
+		return jsonString(typed)
+	}
+}
+
+func normalizeImageBlock(block map[string]any) map[string]any {
+	data := coerce.String(block["data"], "")
+	mimeType := coerce.FirstString(block["mimeType"], block["mediaType"])
+	if data == "" {
+		if source := coerce.Map(block["source"]); source != nil {
+			data = coerce.String(source["data"], "")
+			mimeType = coerce.FirstString(mimeType, source["media_type"])
+		}
+	}
+	if data == "" || mimeType == "" {
+		return unknownBlock(block, "image")
+	}
+	normalized := map[string]any{"type": "image", "data": data, "mimeType": mimeType}
+	if fileName := coerce.String(block["fileName"], ""); fileName != "" {
+		normalized["fileName"] = fileName
+	}
+	return normalized
+}
+
+func normalizeFileBlock(block map[string]any) map[string]any {
+	data := coerce.FirstString(block["data"], block["content"])
+	if data == "" {
+		return unknownBlock(block, "file")
+	}
+	normalized := map[string]any{
+		"type":     "file",
+		"data":     data,
+		"mimeType": coerce.FirstString(block["mimeType"], block["mime_type"], block["mediaType"], "application/octet-stream"),
+		"fileName": coerce.FirstString(block["fileName"], block["file_name"], block["name"], "file"),
+	}
+	if size := coerce.Number(block["size"]); size != 0 {
+		normalized["size"] = size
+	}
+	return normalized
+}
+
+func normalizeCanvasBlock(block map[string]any) map[string]any {
+	preview := coerce.Map(block["preview"])
+	url := coerce.FirstString(block["url"])
+	if url == "" && preview != nil {
+		url = coerce.String(preview["url"], "")
+	}
+	if url == "" {
+		return nil
+	}
+	surface := "assistant_message"
+	if coerce.String(block["surface"], "") == "assistant_message" {
+		surface = "assistant_message"
+	} else if preview != nil && coerce.String(preview["surface"], "") == "assistant_message" {
+		surface = "assistant_message"
+	}
+	normalized := map[string]any{
+		"type":    "canvas",
+		"kind":    "canvas",
+		"surface": surface,
+		"render":  "url",
+		"url":     url,
+	}
+	for _, key := range []string{"viewId", "title"} {
+		if value := coerce.String(block[key], ""); value != "" {
+			normalized[key] = value
+		} else if preview != nil {
+			if value := coerce.String(preview[key], ""); value != "" {
+				normalized[key] = value
+			}
+		}
+	}
+	if preferredHeight := coerce.FirstNumber(block["preferredHeight"], valueFromMap(preview, "preferredHeight")); preferredHeight != 0 {
+		normalized["preferredHeight"] = preferredHeight
+	}
+	return normalized
+}
+
+func valueFromMap(record map[string]any, key string) any {
+	if record == nil {
+		return nil
+	}
+	return record[key]
+}
+
+func unknownBlock(block map[string]any, rawType string) map[string]any {
+	if block["type"] == "unknown" && coerce.String(block["rawType"], "") != "" {
+		if summary := coerce.Map(block["summary"]); summary != nil {
+			return map[string]any{
+				"type":    "unknown",
+				"rawType": coerce.String(block["rawType"], "unknown"),
+				"summary": summary,
+			}
+		}
+	}
+	if rawType == "" {
+		rawType = "unknown"
+	}
+	summary := make(map[string]any, len(block))
+	for key, value := range block {
+		summary[key] = summarizeUnknownValue(value)
+	}
+	return map[string]any{"type": "unknown", "rawType": rawType, "summary": summary}
+}
+
+func summarizeUnknownValue(value any) any {
+	switch typed := value.(type) {
+	case string:
+		if len(typed) > unknownSummaryStringLimit {
+			return typed[:unknownSummaryStringLimit-3] + "..."
+		}
+		return typed
+	case nil, bool, float64, int, int64, uint64:
+		return typed
+	case []any:
+		return fmt.Sprintf("[array:%d]", len(typed))
+	case map[string]any:
+		return "[object]"
+	default:
+		return fmt.Sprintf("%v", typed)
+	}
+}
+
+func jsonString(value any) string {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Sprintf("%v", value)
+	}
+	return string(raw)
 }

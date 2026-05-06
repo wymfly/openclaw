@@ -1,0 +1,1128 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "degraded",
+      "stepCount": 5
+    }
+  ],
+  "backendResponses": [
+    {
+      "method": "GET",
+      "path": "/api/runtime/gateway",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/gateway",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/bootstrap/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/bootstrap/status",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/stream",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/capabilities",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/capabilities",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/runtimes/rt_local/gateway/rpc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/capabilities",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/stream",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/capabilities",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/stream",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/deck/commands/discover",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/endpoint",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/runtimes/rt_local/gateway/rpc",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/deck/commands/discover",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/deck/commands/discover",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/session-events",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/snapshot",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/patch",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/send",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/send",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/history",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/compact",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/sessions",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/sessions/preview",
+      "status": 200
+    }
+  ],
+  "browserUrl": "http://127.0.0.1:4174",
+  "fixture": {
+    "key": "agent:main:dashboard:d206c843-ced3-41f6-afb3-6571d46b0848",
+    "label": "deckgo-e2e-chat-command-motvgfu1-w0-r0-chat-command-1",
+    "runId": "d356d85d-7a82-49b3-96c0-3d58bb60e443"
+  },
+  "maxAttempts": 2,
+  "sampledCommands": [
+    {
+      "command": "skill/plugin discovery",
+      "sourceClass": "skill/plugin discovery",
+      "expectedBackendPath": "POST /api/deck/commands/discover -> deck.commands.discover",
+      "frontendAssertion": "discovered skill/plugin commands are present; dispatch skipped until harmless fixture is selected",
+      "finalStatus": "skipped-safe",
+      "responseSummary": {
+        "commandCount": 84,
+        "skillOrPluginCount": 40,
+        "status": 200
+      },
+      "blockerReason": "dispatch is skipped-safe because command side effects are not classified by Gateway metadata"
+    },
+    {
+      "command": "/t high",
+      "sourceClass": "local config alias",
+      "expectedBackendPath": "POST /api/chat/sessions/patch",
+      "frontendAssertion": "context bar updates the thinking level to high",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "method": "POST",
+        "ok": true,
+        "path": "/api/chat/sessions/patch",
+        "payloadKeys": ["ok", "key", "entry"],
+        "status": 200
+      }
+    },
+    {
+      "command": "/usage status",
+      "sourceClass": "local query",
+      "expectedBackendPath": "GET /api/sessions",
+      "frontendAssertion": "transcript receives a structured usage summary text block",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "method": "GET",
+        "ok": true,
+        "path": "/api/sessions",
+        "payloadKeys": ["sessions"],
+        "status": 200
+      }
+    },
+    {
+      "command": "/definitely-missing-command",
+      "sourceClass": "unknown",
+      "expectedBackendPath": "none",
+      "frontendAssertion": "unknown command toast is visible and the command is not sent as chat text",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "beforeSendCount": 0,
+        "afterSendCount": 0,
+        "backendBase": "http://127.0.0.1:19566"
+      }
+    },
+    {
+      "command": "/status",
+      "sourceClass": "gateway-builtin",
+      "expectedBackendPath": "POST /api/chat/send -> Gateway remote command",
+      "frontendAssertion": "status command renders an OpenClaw status card",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "method": "POST",
+        "ok": true,
+        "path": "/api/chat/send",
+        "payloadKeys": ["runId", "status", "messageSeq"],
+        "status": 200
+      }
+    },
+    {
+      "command": "/id",
+      "sourceClass": "alias",
+      "expectedBackendPath": "POST /api/chat/send -> Gateway remote command",
+      "frontendAssertion": "alias command is accepted and produces a remote transcript reply",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "method": "POST",
+        "ok": true,
+        "path": "/api/chat/send",
+        "payloadKeys": ["runId", "status", "messageSeq"],
+        "status": 200
+      }
+    },
+    {
+      "command": "/compact",
+      "sourceClass": "local mutation",
+      "expectedBackendPath": "POST /api/chat/compact -> sessions.compact",
+      "frontendAssertion": "context bar shows running state and final compaction command state",
+      "finalStatus": "passed",
+      "responseSummary": {
+        "compact": {
+          "method": "POST",
+          "ok": true,
+          "path": "/api/chat/compact",
+          "payloadKeys": ["compacted", "key", "ok"],
+          "status": 200
+        },
+        "compactionList": {
+          "ok": true,
+          "status": 200,
+          "payloadKeys": ["checkpoints", "key", "ok"]
+        }
+      }
+    }
+  ],
+  "scenarioId": "chat.command.real-convergence",
+  "steps": [
+    {
+      "step": "runtime",
+      "endpoint": "/api/runtime/gateway",
+      "method": "GET",
+      "ok": true,
+      "payload": {
+        "mode": "bundled",
+        "pid": 10829,
+        "ownershipState": "owned"
+      },
+      "status": 200
+    },
+    {
+      "step": "deck.commands.discover",
+      "endpoint": "/api/deck/commands/discover",
+      "method": "POST",
+      "ok": true,
+      "payload": {
+        "commands": [
+          {
+            "argChoices": [
+              "spawn",
+              "cancel",
+              "steer",
+              "close",
+              "sessions",
+              "status",
+              "set-mode",
+              "set",
+              "cwd",
+              "permissions",
+              "timeout",
+              "model",
+              "reset-options",
+              "doctor",
+              "install",
+              "help"
+            ],
+            "args": "<action> <value...>",
+            "category": "management",
+            "description": "Manage ACP sessions and runtime options.",
+            "name": "acp",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["mention", "always"],
+            "args": "<mode>",
+            "category": "management",
+            "description": "Set group activation mode.",
+            "name": "activation",
+            "source": "builtin"
+          },
+          {
+            "category": "management",
+            "description": "List thread-bound agents for this session.",
+            "name": "agents",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "management",
+            "description": "List/add/remove allowlist entries.",
+            "name": "allowlist",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "management",
+            "description": "Approve or deny exec requests.",
+            "name": "approve",
+            "source": "builtin"
+          },
+          {
+            "args": "<command...>",
+            "category": "tools",
+            "description": "Run host shell commands (host-only).",
+            "name": "bash",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "tools",
+            "description": "Ask a side question without changing future session context.",
+            "name": "btw",
+            "source": "builtin"
+          },
+          {
+            "category": "status",
+            "description": "List all slash commands.",
+            "name": "commands",
+            "source": "builtin"
+          },
+          {
+            "args": "<instructions...>",
+            "category": "session",
+            "description": "Compact the session context.",
+            "name": "compact",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["show", "get", "set", "unset"],
+            "args": "<action> <path> <value...>",
+            "category": "management",
+            "description": "Show or set config values.",
+            "name": "config",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "status",
+            "description": "Explain how context is built and used.",
+            "name": "context",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["show", "reset", "set", "unset"],
+            "args": "<action> <path> <value...>",
+            "category": "management",
+            "description": "Set runtime debug overrides.",
+            "name": "debug",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["elev"],
+            "argChoices": ["on", "off", "ask", "full"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Toggle elevated mode.",
+            "name": "elevated",
+            "source": "builtin"
+          },
+          {
+            "argChoices": [
+              "sandbox",
+              "gateway",
+              "node",
+              "deny",
+              "allowlist",
+              "full",
+              "off",
+              "on-miss",
+              "always"
+            ],
+            "args": "<host> <security> <ask> <node>",
+            "category": "options",
+            "description": "Set exec defaults for this session.",
+            "name": "exec",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["export"],
+            "args": "<path>",
+            "category": "status",
+            "description": "Export current session to HTML file with full system prompt.",
+            "name": "export-session",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["status", "on", "off"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Toggle fast mode.",
+            "name": "fast",
+            "source": "builtin"
+          },
+          {
+            "args": "<target...>",
+            "category": "management",
+            "description": "Bind this thread (Discord) or topic/conversation (Telegram) to a session target.",
+            "name": "focus",
+            "source": "builtin"
+          },
+          {
+            "category": "status",
+            "description": "Show available commands.",
+            "name": "help",
+            "source": "builtin"
+          },
+          {
+            "args": "<target>",
+            "category": "management",
+            "description": "Kill a running subagent (or all).",
+            "name": "kill",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["show", "get", "set", "unset"],
+            "args": "<action> <path> <value...>",
+            "category": "management",
+            "description": "Show or set OpenClaw MCP servers.",
+            "name": "mcp",
+            "source": "builtin"
+          },
+          {
+            "args": "<model>",
+            "category": "options",
+            "description": "Show or set the model.",
+            "name": "model",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "options",
+            "description": "List model providers or provider models.",
+            "name": "models",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "session",
+            "description": "Start a new session.",
+            "name": "new",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["plugin"],
+            "argChoices": ["list", "show", "get", "enable", "disable"],
+            "args": "<action> <path>",
+            "category": "management",
+            "description": "List, show, enable, or disable plugins.",
+            "name": "plugins",
+            "source": "builtin"
+          },
+          {
+            "argChoices": [
+              "steer",
+              "interrupt",
+              "followup",
+              "collect",
+              "steer-backlog",
+              "old",
+              "new",
+              "summarize"
+            ],
+            "args": "<mode> <debounce> <cap> <drop>",
+            "category": "options",
+            "description": "Adjust queue settings.",
+            "name": "queue",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["reason"],
+            "argChoices": ["on", "off", "stream"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Toggle reasoning visibility.",
+            "name": "reasoning",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "session",
+            "description": "Reset the current session.",
+            "name": "reset",
+            "source": "builtin"
+          },
+          {
+            "category": "tools",
+            "description": "Restart OpenClaw.",
+            "name": "restart",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["on", "off", "inherit"],
+            "args": "<mode>",
+            "category": "management",
+            "description": "Set send policy.",
+            "name": "send",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["idle", "max-age"],
+            "args": "<action> <value...>",
+            "category": "session",
+            "description": "Manage session-level settings (for example /session idle).",
+            "name": "session",
+            "source": "builtin"
+          },
+          {
+            "args": "<name> <input...>",
+            "category": "tools",
+            "description": "Run a skill by name.",
+            "name": "skill",
+            "source": "builtin"
+          },
+          {
+            "category": "status",
+            "description": "Show current status.",
+            "name": "status",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["tell"],
+            "args": "<target> <message...>",
+            "category": "management",
+            "description": "Send guidance to a running subagent.",
+            "name": "steer",
+            "source": "builtin"
+          },
+          {
+            "category": "session",
+            "description": "Stop the current run.",
+            "name": "stop",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["list", "kill", "log", "info", "send", "steer", "spawn"],
+            "args": "<action> <target> <value...>",
+            "category": "management",
+            "description": "List, kill, log, spawn, or steer subagent runs for this session.",
+            "name": "subagents",
+            "source": "builtin"
+          },
+          {
+            "category": "status",
+            "description": "List background tasks for this session.",
+            "name": "tasks",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["thinking", "t"],
+            "args": "<level>",
+            "category": "options",
+            "description": "Set thinking level.",
+            "name": "think",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["compact", "verbose"],
+            "args": "<mode>",
+            "category": "status",
+            "description": "List available runtime tools.",
+            "name": "tools",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["on", "off", "raw"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Toggle plugin trace lines.",
+            "name": "trace",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["on", "off", "status", "provider", "limit", "summary", "audio", "help"],
+            "args": "<action> <value...>",
+            "category": "media",
+            "description": "Control text-to-speech (TTS).",
+            "name": "tts",
+            "source": "builtin"
+          },
+          {
+            "category": "management",
+            "description": "Remove the current thread (Discord) or topic/conversation (Telegram) binding.",
+            "name": "unfocus",
+            "source": "builtin"
+          },
+          {
+            "argChoices": ["off", "tokens", "full", "cost"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Usage footer or cost summary.",
+            "name": "usage",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["v"],
+            "argChoices": ["on", "off"],
+            "args": "<mode>",
+            "category": "options",
+            "description": "Toggle verbose mode.",
+            "name": "verbose",
+            "source": "builtin"
+          },
+          {
+            "aliases": ["id"],
+            "category": "status",
+            "description": "Show your sender id.",
+            "name": "whoami",
+            "source": "builtin"
+          },
+          {
+            "args": "<args>",
+            "category": "plugins",
+            "description": "Enable or disable memory dreaming.",
+            "name": "dreaming",
+            "pluginId": "memory-core",
+            "source": "plugin"
+          },
+          {
+            "args": "<args>",
+            "category": "plugins",
+            "description": "Generate setup codes and approve device pairing requests.",
+            "name": "pair",
+            "pluginId": "device-pair",
+            "source": "plugin"
+          },
+          {
+            "args": "<args>",
+            "category": "plugins",
+            "description": "Arm/disarm high-risk phone node commands (camera/screen/writes).",
+            "name": "phone",
+            "pluginId": "phone-control",
+            "source": "plugin"
+          },
+          {
+            "args": "<args>",
+            "category": "plugins",
+            "description": "List/set Talk provider voices (affects iOS Talk playback).",
+            "name": "voice",
+            "pluginId": "talk-voice",
+            "source": "plugin"
+          },
+          {
+            "category": "skills",
+            "description": "Delegate coding tasks to Codex, Claude Code, or Pi agents via background process. Use when: (1) bui…",
+            "name": "coding_agent",
+            "skillName": "coding-agent",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "AI 驱动的领域知识深度调研。使用 WebSearch + WebFetch + Semantic Scholar + OpenAlex 多轮搜索， 撰写带引用的 Markdown 调研报告，自动存…",
+            "name": "domain_research",
+            "skillName": "domain-research",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill w…",
+            "name": "frontend_design",
+            "skillName": "frontend-design",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Gemini CLI for one-shot Q&A, summaries, and generation.",
+            "name": "gemini",
+            "skillName": "gemini",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Use when reviewing code quality, frontend UI/UX design, performing technical research, or contribut…",
+            "name": "gemini_review",
+            "skillName": "gemini-review",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Fetch GitHub issues, spawn sub-agents to implement fixes and open PRs, then monitor and address PR …",
+            "name": "gh_issues",
+            "skillName": "gh-issues",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "GitHub operations via `gh` CLI: issues, PRs, CI runs, code review, API queries. Use when: (1) check…",
+            "name": "github",
+            "skillName": "github",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Remote GPU server operations skill for deploying AI models, managing services, and maintaining infr…",
+            "name": "gpu_server_ops",
+            "skillName": "gpu-server-ops",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Host security hardening and risk-tolerance configuration for OpenClaw deployments. Use when a user …",
+            "name": "healthcheck",
+            "skillName": "healthcheck",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Create and edit JSON Canvas files (.canvas) with nodes, edges, groups, and connections. Use when wo…",
+            "name": "json_canvas",
+            "skillName": "json-canvas",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "个人知识库管理系统。搜索、整理、维护 Obsidian Vault 中的领域知识。 触发词：\"knowledge\", \"知识库\", \"搜索知识\", \"搜索\", \"术语\", \"学习路径\", \"整理\",…",
+            "name": "knowledge_vault",
+            "skillName": "knowledge-vault",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Diagnose OpenClaw node connection and pairing failures for Android, iOS, and macOS companion apps. …",
+            "name": "node_connect",
+            "skillName": "node-connect",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Transforms conversations and discussions into structured documentation pages in Notion. Captures in…",
+            "name": "notion_knowledge_capture",
+            "skillName": "notion-knowledge-capture",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Prepares meeting materials by gathering context from Notion, enriching with Claude research, and cr…",
+            "name": "notion_meeting_intelligence",
+            "skillName": "notion-meeting-intelligence",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Searches across your Notion workspace, synthesizes findings from multiple pages, and creates compre…",
+            "name": "notion_research_documentation",
+            "skillName": "notion-research-documentation",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Turns product or tech specs into concrete Notion tasks that Claude code can implement. Breaks down …",
+            "name": "notion_spec_to_implementation",
+            "skillName": "notion-spec-to-implementation",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Work with Obsidian vaults (plain Markdown notes) and automate via obsidian-cli.",
+            "name": "obsidian",
+            "skillName": "obsidian",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Create and edit Obsidian Bases (.base files) with views, filters, formulas, and summaries. Use when…",
+            "name": "obsidian_bases",
+            "skillName": "obsidian-bases",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Create and edit Obsidian Flavored Markdown with wikilinks, embeds, callouts, properties, and other …",
+            "name": "obsidian_markdown",
+            "skillName": "obsidian-markdown",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Creates interactive HTML playgrounds — self-contained single-file explorers that let users configur…",
+            "name": "playground",
+            "skillName": "playground",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Generate industrial-grade Part Production Plans (PPP) for 3D printing through systematic research, …",
+            "name": "ppp_generation",
+            "skillName": "ppp-generation",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Generate industrial-grade Part Production Plans (PPP) and Build Packages for 3D printing. Use when …",
+            "name": "ppp_generation_v2",
+            "skillName": "ppp-generation-v2",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Profile and optimize Python code using cProfile, memory profilers, and performance best practices. …",
+            "name": "python_performance_optimization",
+            "skillName": "python-performance-optimization",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "E2E web testing with Playwright. Use when writing tests, debugging flakes, or setting up CI with se…",
+            "name": "qa_testing_playwright",
+            "skillName": "qa-testing-playwright",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Search and analyze your own session logs (older/parent conversations) using jq.",
+            "name": "session_logs",
+            "skillName": "session-logs",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Create, edit, improve, or audit AgentSkills. Use when creating a new skill from scratch or when ask…",
+            "name": "skill_creator",
+            "skillName": "skill-creator",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes",
+            "name": "systematic_debugging",
+            "skillName": "systematic-debugging",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Use when work should span one or more detached tasks but still behave like one job with a single ow…",
+            "name": "taskflow",
+            "skillName": "taskflow",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Example TaskFlow authoring pattern for inbox triage. Use when messages need different treatment bas…",
+            "name": "taskflow_inbox_triage",
+            "skillName": "taskflow-inbox-triage",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Use when implementing any feature or bugfix, before writing implementation code",
+            "name": "test_driven_development",
+            "skillName": "test-driven-development",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Remote-control tmux sessions for interactive CLIs by sending keystrokes and scraping pane output.",
+            "name": "tmux",
+            "skillName": "tmux",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "UI/UX design intelligence. 50 styles, 21 palettes, 50 font pairings, 20 charts, 9 stacks (React, Ne…",
+            "name": "ui_ux_pro_max",
+            "skillName": "ui-ux-pro-max",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - re…",
+            "name": "verification_before_completion",
+            "skillName": "verification-before-completion",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Extract frames or short clips from videos using ffmpeg.",
+            "name": "video_frames",
+            "skillName": "video-frames",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "Get current weather and forecasts via wttr.in or Open-Meteo. Use when: user asks about weather, tem…",
+            "name": "weather",
+            "skillName": "weather",
+            "source": "skill"
+          },
+          {
+            "category": "skills",
+            "description": "文档与智能表格操作。当用户提到企业微信文档、创建文档、编辑文档、新建文档、写文档、智能表格时激活。支持文档创建/写入和智能表格的创建及子表/字段/记录写入。注意：所有文档创建和编辑请求都应使用此 s…",
+            "name": "wecom_doc",
+            "skillName": "wecom-doc",
+            "source": "skill"
+          }
+        ],
+        "version": "a43e345bb3c7"
+      },
+      "status": 200
+    },
+    {
+      "step": "fixture.create",
+      "attempt": 1,
+      "label": "deckgo-e2e-chat-command-motvgfu1-w0-r0-chat-command-1",
+      "ok": true,
+      "status": 200,
+      "payload": {
+        "ok": true,
+        "key": "agent:main:dashboard:d206c843-ced3-41f6-afb3-6571d46b0848",
+        "sessionId": "d9782073-4c3b-4678-a480-dfebcfdb690d",
+        "runId": "d356d85d-7a82-49b3-96c0-3d58bb60e443",
+        "status": "started",
+        "messageSeq": 1,
+        "runStarted": true,
+        "entry": {
+          "label": "deckgo-e2e-chat-command-motvgfu1-w0-r0-chat-command-1",
+          "sessionFile": "/Users/wangym/workspace/agents/openclaw/deck-go/.local/deck-go-real-stack/isolated/data/managed-gateway-state/agents/main/sessions/d9782073-4c3b-4678-a480-dfebcfdb690d.jsonl",
+          "sessionId": "d9782073-4c3b-4678-a480-dfebcfdb690d",
+          "updatedAt": 1778060740486
+        }
+      }
+    },
+    {
+      "step": "fixture.abort-active-run",
+      "endpoint": "/api/chat/abort",
+      "method": "POST",
+      "ok": true,
+      "payload": {
+        "ok": true,
+        "abortedRunId": "d356d85d-7a82-49b3-96c0-3d58bb60e443",
+        "status": "aborted"
+      },
+      "status": 200
+    },
+    {
+      "step": "cleanup",
+      "cleanup": {
+        "key": "agent:main:dashboard:d206c843-ced3-41f6-afb3-6571d46b0848",
+        "label": "deckgo-e2e-chat-command-motvgfu1-w0-r0-chat-command-1",
+        "ok": true,
+        "payload": {
+          "ok": true,
+          "key": "agent:main:dashboard:d206c843-ced3-41f6-afb3-6571d46b0848"
+        },
+        "status": 200
+      }
+    }
+  ],
+  "runId": "deckgo-e2e-chat-command-motvgfu1-w0-r0",
+  "selectedSession": "agent:main:dashboard:d206c843-ced3-41f6-afb3-6571d46b0848",
+  "status": "degraded",
+  "uiAssertions": [
+    {
+      "command": "skill/plugin discovery",
+      "assertion": "discovered skill/plugin commands are present; dispatch skipped until harmless fixture is selected",
+      "status": "skipped-safe"
+    },
+    {
+      "command": "/t high",
+      "assertion": "context bar updates the thinking level to high",
+      "status": "passed"
+    },
+    {
+      "command": "/usage status",
+      "assertion": "transcript receives a structured usage summary text block",
+      "status": "passed"
+    },
+    {
+      "command": "/definitely-missing-command",
+      "assertion": "unknown command toast is visible and the command is not sent as chat text",
+      "status": "passed"
+    },
+    {
+      "command": "/status",
+      "assertion": "status command renders an OpenClaw status card",
+      "status": "passed"
+    },
+    {
+      "command": "/id",
+      "assertion": "alias command is accepted and produces a remote transcript reply",
+      "status": "passed"
+    },
+    {
+      "command": "/compact",
+      "assertion": "context bar shows running state and final compaction command state",
+      "status": "passed"
+    }
+  ],
+  "attemptCount": 1
+}

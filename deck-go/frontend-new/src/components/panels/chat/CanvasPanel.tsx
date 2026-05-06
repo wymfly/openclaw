@@ -135,7 +135,19 @@ function resolveCanvasSrc(url: string | null): string {
   if (canResolveVisualSeedCanvas() && url.startsWith("visual-seed:")) {
     return `data:text/html;charset=utf-8,${encodeURIComponent(visualSeedCanvasHtml())}`;
   }
-  return /^https?:\/\//.test(url) ? url : `/api/canvas/${url}`;
+  if (/^(https?:|data:|blob:)/.test(url)) {
+    return url;
+  }
+  if (url.startsWith("/api/canvas/")) {
+    return url;
+  }
+  if (url.startsWith("/__openclaw__/canvas/")) {
+    return `/api/canvas/${url.slice("/__openclaw__/canvas/".length)}`;
+  }
+  if (url.startsWith("/__openclaw__/a2ui/")) {
+    return `/api/canvas/${url.slice("/__openclaw__/a2ui/".length)}`;
+  }
+  return `/api/canvas/${url.replace(/^\/+/, "")}`;
 }
 
 export function CanvasPanel({ onClose }: CanvasPanelProps) {

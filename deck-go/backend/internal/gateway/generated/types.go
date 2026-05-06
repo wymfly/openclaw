@@ -892,6 +892,7 @@ type DeckCommandsDiscoverParams struct {
 
 type DeckCommandsDiscoverResult struct {
 	Commands []struct {
+		Aliases     []string `json:"aliases,omitempty"`
 		ArgChoices  []string `json:"argChoices,omitempty"`
 		Args        string   `json:"args,omitempty"`
 		Category    string   `json:"category,omitempty"`
@@ -1773,27 +1774,4 @@ type GatewayBatchResult struct {
 type GatewayDescribeParams struct {
 	Filter         string `json:"filter,omitempty"`
 	IncludeSchemas bool   `json:"includeSchemas,omitempty"`
-}
-
-type GatewayDescribeResult struct {
-	Events map[string]struct {
-		Payload map[string]any `json:"payload,omitempty"`
-		Since   float64        `json:"since,omitempty"`
-	} `json:"events"`
-	Methods map[string]struct {
-		BffEligible                  bool           `json:"bffEligible,omitempty"`
-		ControlPlaneWrite            bool           `json:"controlPlaneWrite,omitempty"`
-		ForkClass                    string         `json:"forkClass,omitempty"`
-		ForkDeprecated               bool           `json:"forkDeprecated,omitempty"`
-		ForkDeprecationRemovalTarget string         `json:"forkDeprecationRemovalTarget,omitempty"`
-		ForkDeprecationReplacement   string         `json:"forkDeprecationReplacement,omitempty"`
-		ForkDeprecationSince         string         `json:"forkDeprecationSince,omitempty"`
-		Params                       map[string]any `json:"params,omitempty"`
-		Result                       map[string]any `json:"result,omitempty"`
-		Scope                        string         `json:"scope"`
-		Since                        float64        `json:"since,omitempty"`
-	} `json:"methods"`
-	Protocol      float64  `json:"protocol"`
-	SchemaVersion string   `json:"schemaVersion"`
-	Untyped       []string `json:"untyped"`
 }

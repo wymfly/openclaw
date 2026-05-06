@@ -23,6 +23,17 @@ const setSessionEventsSubscriptionMock = vi.fn();
 const steerChatSessionMock = vi.fn();
 const abortChatRunMock = vi.fn();
 const compactChatSessionMock = vi.fn();
+const wrappedUserText = [
+  "Sender (untrusted metadata):",
+  "```json",
+  "{",
+  '  "label": "gateway-client",',
+  '  "id": "gateway-client"',
+  "}",
+  "```",
+  "",
+  "[Wed 2026-05-06 12:05 GMT+8] 你好",
+].join("\n");
 
 vi.mock("@/api", () => ({
   abortChatRun: (...args: unknown[]) => abortChatRunMock(...args),
@@ -130,6 +141,27 @@ describe("fetchSessionPreviews", () => {
       "sess-1": null,
     });
   });
+
+  it("strips Gateway sender wrappers from remote preview overlay text", async () => {
+    fetchSessionPreviewsRequestMock.mockResolvedValueOnce({
+      ts: 456,
+      previews: [
+        {
+          key: "sess-1",
+          status: "ok",
+          items: [{ role: "user", text: wrappedUserText }],
+        },
+      ],
+    });
+
+    await expect(fetchSessionPreviews(["sess-1"])).resolves.toEqual({
+      "sess-1": {
+        text: "你好",
+        updatedAt: 456,
+        source: "remote",
+      },
+    });
+  });
 });
 
 describe("fetchSessionList", () => {
@@ -177,6 +209,50 @@ describe("fetchSessionList", () => {
       },
     ]);
     expect(fetchSessionsMock).toHaveBeenCalledWith({ agentId: "main" });
+  });
+
+  it("strips Gateway sender wrappers from session titles and previews", async () => {
+    fetchSessionsMock.mockResolvedValueOnce({
+      sessions: [
+        {
+          key: "sess-1",
+          agentId: "main",
+          title: wrappedUserText,
+          lastMessagePreview: wrappedUserText,
+          updatedAt: 42,
+        },
+      ],
+    });
+
+    await expect(fetchSessionList("main")).resolves.toMatchObject([
+      {
+        key: "sess-1",
+        title: "你好",
+        lastMessagePreview: "你好",
+      },
+    ]);
+  });
+
+  it("drops truncated Gateway sender metadata titles without leaking JSON", async () => {
+    fetchSessionsMock.mockResolvedValueOnce({
+      sessions: [
+        {
+          key: "sess-1",
+          agentId: "main",
+          title: 'Sender (untrusted metadata): ```json { "label":…',
+          lastMessagePreview: wrappedUserText,
+          updatedAt: 42,
+        },
+      ],
+    });
+
+    await expect(fetchSessionList("main")).resolves.toMatchObject([
+      {
+        key: "sess-1",
+        title: undefined,
+        lastMessagePreview: "你好",
+      },
+    ]);
   });
 });
 
@@ -226,6 +302,29 @@ describe("fetchChatSnapshot", () => {
       },
       activeApproval: { id: "approval-1", toolName: "exec" },
       a2uiState: { visible: true, surfaces: ["summary"] },
+    });
+  });
+
+  it("strips Gateway sender wrappers from snapshot session metadata", async () => {
+    fetchChatSnapshotRequestMock.mockResolvedValueOnce({
+      session: {
+        key: "sess-1",
+        agentId: "main",
+        title: wrappedUserText,
+        lastMessagePreview: wrappedUserText,
+        updatedAt: 99,
+      },
+      messages: [],
+    });
+
+    await expect(
+      fetchChatSnapshot({ sessionKey: "sess-1", agentId: "main" }),
+    ).resolves.toMatchObject({
+      meta: {
+        key: "sess-1",
+        title: "你好",
+        lastMessagePreview: "你好",
+      },
     });
   });
 });

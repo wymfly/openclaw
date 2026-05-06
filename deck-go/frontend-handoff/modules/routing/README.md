@@ -2,7 +2,7 @@
 
 > 2-card workbench for the deck-go agent route-binding contract: queue card (left) + selected-binding/simulator/activity card (right). v2 multi-file React rebuild via Babel-standalone.
 
-**Status**: implemented - real-contract verified
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Design completed**: 2026-05-04 (v2 rebuild from V1 codex single-file)
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Button, Input, Select, Textarea, JsonView, Code
@@ -70,3 +70,19 @@ Considered three layouts:
 3. **2-card workbench** (chosen): queue stays sticky and dense; detail card is a single scrollable column with hero + actions + JSON + simulator + activity. The detail card reads top-to-bottom: "what is selected" → "what can I do to it" → "what happens if I simulate this binding's match chain" → "what just happened on this fleet". This vertical narrative is the natural operator workflow.
 
 Same 2-card workbench shape used by gateway. Pattern is already canonicalized.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| Final sign-off status          | `needs-revision`                                                                                                               |
+| Reviewer                       | Codex                                                                                                                          |
+| Date                           | 2026-05-06                                                                                                                     |
+| Prototype reference            | `frontend-handoff/modules/routing/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/routing/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`routing`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`routing`, `mock-prototype-parity`, verdict: `unreviewed`)             |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`routing`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/routing/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

@@ -210,8 +210,15 @@ export function SessionSidebar(
     const query = searchQuery.toLowerCase();
     return sessionMetas.filter((session) => {
       const title = (session.title ?? sessionTitle(session)).toLowerCase();
+      const label = (session.label ?? "").toLowerCase();
       const preview = finalSessionPreview(session, sessionPreviewOverlays).toLowerCase();
-      return title.includes(query) || preview.includes(query);
+      const key = session.key.toLowerCase();
+      return (
+        title.includes(query) ||
+        label.includes(query) ||
+        preview.includes(query) ||
+        key.includes(query)
+      );
     });
   }, [searchQuery, sessionMetas, sessionPreviewOverlays]);
 
@@ -367,6 +374,9 @@ export function SessionSidebar(
               title={titleNode}
               preview={previewText || undefined}
               meta={formatTime(session.updatedAt)}
+              aria-label={[sessionTitle(session), session.label, previewText]
+                .filter(Boolean)
+                .join(" ")}
               trailing={
                 <IconButton
                   size="sm"

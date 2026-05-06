@@ -698,7 +698,8 @@ describe("agent event handler", () => {
       data: { phase: "start", name: "read", toolCallId: "t1" },
     });
 
-    expect(broadcast).not.toHaveBeenCalled();
+    expect(broadcast).toHaveBeenCalledTimes(1);
+    expect(broadcast.mock.calls[0]?.[0]).toBe("agent");
     expect(broadcastToConnIds).toHaveBeenCalledTimes(1);
     resetAgentRunContextForTest();
   });
@@ -1118,7 +1119,7 @@ describe("agent event handler", () => {
 
     registerAgentRunContext("run-tool-session", {
       sessionKey: "session-1",
-      verboseLevel: "on",
+      verboseLevel: "full",
     });
     sessionEventSubscribers.subscribe("conn-session");
 
@@ -1132,7 +1133,22 @@ describe("agent event handler", () => {
         name: "exec",
         toolCallId: "t5",
         result: {
-          content: [{ type: "output_text", text: "secret" }],
+          content: [
+            { type: "output_text", text: "secret" },
+            {
+              type: "canvas",
+              preview: {
+                kind: "canvas",
+                surface: "assistant_message",
+                render: "url",
+                url: "/__openclaw__/canvas/documents/session-tool/index.html",
+                viewId: "session-tool",
+                title: "Session tool canvas",
+                preferredHeight: 320,
+              },
+            },
+            { type: "future_metric", score: 1 },
+          ],
           details: { exitCode: 0 },
         },
       },
@@ -1143,13 +1159,30 @@ describe("agent event handler", () => {
     const payload = broadcastToConnIds.mock.calls[0]?.[1] as {
       data?: {
         result?: {
-          content?: Array<{ type?: string; text?: string }>;
+          content?: Array<Record<string, unknown>>;
           details?: { exitCode?: number };
         };
       };
     };
     expect(payload.data?.result).toEqual({
-      content: [{ type: "text", text: "secret" }],
+      content: [
+        { type: "text", text: "secret" },
+        {
+          type: "canvas",
+          kind: "canvas",
+          surface: "assistant_message",
+          render: "url",
+          url: "/__openclaw__/canvas/documents/session-tool/index.html",
+          viewId: "session-tool",
+          title: "Session tool canvas",
+          preferredHeight: 320,
+        },
+        {
+          type: "unknown",
+          rawType: "future_metric",
+          summary: { type: "future_metric", score: 1 },
+        },
+      ],
       details: { exitCode: 0 },
     });
     resetAgentRunContextForTest();

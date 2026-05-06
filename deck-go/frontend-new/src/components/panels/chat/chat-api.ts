@@ -20,6 +20,7 @@ import {
   type DeckGoCompactionCheckpoint,
   type DeckGoCompactionListResponse,
 } from "@/api";
+import { normalizeGatewayUserDisplayText } from "@/lib/transcript-adapter";
 import type {
   A2UIState,
   ApprovalRequest,
@@ -31,6 +32,7 @@ type RawSessionMeta = {
   key?: string;
   sessionKey?: string;
   agentId?: string;
+  label?: string;
   title?: string;
   displayName?: string;
   lastMessage?: string;
@@ -174,13 +176,21 @@ function normalizeSendPolicy(v: string | null | undefined): "allow" | "deny" | u
   return undefined;
 }
 
+function normalizeSessionDisplayText(value: string | undefined): string | undefined {
+  if (!value) {
+    return value;
+  }
+  return normalizeGatewayUserDisplayText(value) || undefined;
+}
+
 function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): SessionMeta {
   return {
     key: raw.key ?? raw.sessionKey ?? "",
     agentId: raw.agentId ?? fallbackAgentId ?? "main",
-    title: raw.title ?? raw.displayName,
+    label: normalizeSessionDisplayText(raw.label),
+    title: normalizeSessionDisplayText(raw.title ?? raw.displayName),
     updatedAt: raw.updatedAt ?? Date.now(),
-    lastMessagePreview: raw.lastMessagePreview ?? raw.lastMessage,
+    lastMessagePreview: normalizeSessionDisplayText(raw.lastMessagePreview ?? raw.lastMessage),
     status: raw.status,
     startedAt: raw.startedAt,
     endedAt: raw.endedAt,
@@ -208,7 +218,7 @@ function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): Se
 
 function buildSessionPreviewText(items: Array<{ text?: string }> | undefined): string {
   return (items ?? [])
-    .map((item) => item.text?.trim() ?? "")
+    .map((item) => normalizeGatewayUserDisplayText(item.text?.trim() ?? ""))
     .filter(Boolean)
     .join(" · ")
     .trim();

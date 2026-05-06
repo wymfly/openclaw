@@ -1,4 +1,5 @@
 import type { PropsWithChildren } from "react";
+import { ChatStreamBridge } from "../components/panels/chat/ChatStreamBridge";
 import { FirstRunBanner } from "../components/runtime/FirstRunBanner";
 import { DeckHeaderBar } from "./HeaderBar";
 import { DeckNavRail } from "./NavRail";
@@ -15,6 +16,7 @@ export function DeckShell(props: PropsWithChildren) {
 
   return (
     <div className="deck-ui-shell" data-active-panel={activePanel}>
+      <ChatStreamBridge />
       <DeckNavRail />
       <div className="deck-ui-main">
         <DeckHeaderBar />

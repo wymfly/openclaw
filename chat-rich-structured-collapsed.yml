@@ -1,0 +1,360 @@
+- generic [ref=e3] [box=0,0,1440,1000]:
+  - navigation "Deck 面板" [ref=e4] [box=0,0,208,1000]:
+    - button "收起导航" [ref=e6] [cursor=pointer] [box=89,9,30,30]:
+      - img [ref=e7] [box=96,16,16,16]
+    - generic [ref=e9] [box=0,48,207,901]:
+      - generic [ref=e10] [box=6,56,195,177]:
+        - paragraph [ref=e11] [box=14,66,179,15]: 核心
+        - button "对话" [ref=e12] [cursor=pointer] [box=6,88,195,34]:
+          - img [ref=e14] [box=17,97,16,16]
+          - generic [ref=e16] [box=47,96,147,19]: 对话
+        - button "智能体" [ref=e17] [cursor=pointer] [box=6,125,195,34]:
+          - img [ref=e19] [box=17,134,16,16]
+          - generic [ref=e21] [box=47,133,147,19]: 智能体
+        - button "监控" [ref=e22] [cursor=pointer] [box=6,162,195,34]:
+          - img [ref=e24] [box=17,171,16,16]
+          - generic [ref=e27] [box=47,170,147,19]: 监控
+        - button "模型" [ref=e28] [cursor=pointer] [box=6,199,195,34]:
+          - img [ref=e30] [box=17,208,16,16]
+          - generic [ref=e32] [box=47,207,147,19]: 模型
+      - generic [ref=e33] [box=6,236,195,288]:
+        - paragraph [ref=e34] [box=14,246,179,15]: 观测
+        - button "用量" [ref=e35] [cursor=pointer] [box=6,268,195,34]:
+          - img [ref=e37] [box=17,277,16,16]
+          - generic [ref=e39] [box=47,276,147,19]: 用量
+        - button "会话" [ref=e40] [cursor=pointer] [box=6,305,195,34]:
+          - img [ref=e42] [box=17,314,16,16]
+          - generic [ref=e44] [box=47,313,147,19]: 会话
+        - button "记忆" [ref=e45] [cursor=pointer] [box=6,342,195,34]:
+          - img [ref=e47] [box=17,351,16,16]
+          - generic [ref=e50] [box=47,350,147,19]: 记忆
+        - button "日志" [ref=e51] [cursor=pointer] [box=6,379,195,34]:
+          - img [ref=e53] [box=17,388,16,16]
+          - generic [ref=e56] [box=47,387,147,19]: 日志
+        - button "动态" [ref=e57] [cursor=pointer] [box=6,416,195,34]:
+          - img [ref=e59] [box=17,425,16,16]
+          - generic [ref=e61] [box=47,424,147,19]: 动态
+        - button "线程" [ref=e62] [cursor=pointer] [box=6,453,195,34]:
+          - img [ref=e64] [box=17,462,16,16]
+          - generic [ref=e67] [box=47,461,147,19]: 线程
+        - button "API 浏览器" [ref=e68] [cursor=pointer] [box=6,490,195,34]:
+          - img [ref=e70] [box=17,499,16,16]
+          - generic [ref=e72] [box=47,498,147,19]: API 浏览器
+      - generic [ref=e73] [box=6,527,195,177]:
+        - paragraph [ref=e74] [box=14,537,179,15]: 自动化
+        - button "定时任务" [ref=e75] [cursor=pointer] [box=6,559,195,34]:
+          - img [ref=e77] [box=17,568,16,16]
+          - generic [ref=e80] [box=47,567,147,19]: 定时任务
+        - button "Webhooks" [ref=e81] [cursor=pointer] [box=6,596,195,34]:
+          - img [ref=e83] [box=17,605,16,16]
+          - generic [ref=e88] [box=47,605,147,16]: Webhooks
+        - button "审批" [ref=e89] [cursor=pointer] [box=6,633,195,34]:
+          - img [ref=e91] [box=17,642,16,16]
+          - generic [ref=e94] [box=47,641,147,19]: 审批
+        - button "技能" [ref=e95] [cursor=pointer] [box=6,670,195,34]:
+          - img [ref=e97] [box=17,679,16,16]
+          - generic [ref=e99] [box=47,678,147,19]: 技能
+      - generic [ref=e100] [box=6,707,195,399]:
+        - paragraph [ref=e101] [box=14,717,179,15]: 控制
+        - button "预算" [ref=e102] [cursor=pointer] [box=6,739,195,34]:
+          - img [ref=e104] [box=17,748,16,16]
+          - generic [ref=e107] [box=47,747,147,19]: 预算
+        - button "告警" [ref=e108] [cursor=pointer] [box=6,776,195,34]:
+          - img [ref=e110] [box=17,785,16,16]
+          - generic [ref=e112] [box=47,784,147,19]: 告警
+        - button "渠道" [ref=e113] [cursor=pointer] [box=6,813,195,34]:
+          - img [ref=e115] [box=17,822,16,16]
+          - generic [ref=e121] [box=47,821,147,19]: 渠道
+        - button "插件" [ref=e122] [cursor=pointer] [box=6,850,195,34]:
+          - img [ref=e124] [box=17,859,16,16]
+          - generic [ref=e129] [box=47,858,147,19]: 插件
+        - button "消息路由" [ref=e130] [cursor=pointer] [box=6,887,195,34]:
+          - img [ref=e132] [box=17,896,16,16]
+          - generic [ref=e136] [box=47,895,147,19]: 消息路由
+        - button "子智能体" [ref=e137] [cursor=pointer] [box=6,924,195,34]:
+          - img [ref=e139] [box=17,933,16,16]
+          - generic [ref=e144] [box=47,932,147,19]: 子智能体
+        - button "身份" [ref=e145] [cursor=pointer] [box=6,961,195,34]:
+          - img [ref=e147] [box=17,970,16,16]
+          - generic [ref=e152] [box=47,969,147,19]: 身份
+        - button "配置" [ref=e153] [cursor=pointer] [box=6,998,195,34]:
+          - img [ref=e155] [box=17,1007,16,16]
+          - generic [ref=e158] [box=47,1006,147,19]: 配置
+        - button "节点" [ref=e159] [cursor=pointer] [box=6,1035,195,34]:
+          - img [ref=e161] [box=17,1044,16,16]
+          - generic [ref=e164] [box=47,1043,147,19]: 节点
+        - button "文档" [ref=e165] [cursor=pointer] [box=6,1072,195,34]:
+          - img [ref=e167] [box=17,1081,16,16]
+          - generic [ref=e172] [box=47,1080,147,19]: 文档
+    - button "设置" [ref=e174] [cursor=pointer] [box=6,958,195,34]:
+      - img [ref=e176] [box=17,967,16,16]
+      - generic [ref=e179] [box=47,966,147,19]: 设置
+  - generic [ref=e180] [box=208,0,1232,1000]:
+    - banner [ref=e181] [box=208,0,1232,48]:
+      - heading "对话" [level=1] [ref=e184] [box=224,14,29,18]
+      - generic [ref=e185] [box=1178,9,246,30]:
+        - generic "ws://127.0.0.1:18789" [ref=e278] [box=1178,9,72,30]: 本机托管
+        - button "已连接" [ref=e186] [box=1256,9,59,30]: 已连接
+        - 'button "切换语言: EN" [ref=e188] [cursor=pointer] [box=1321,9,63,30]':
+          - img [ref=e189] [box=1330,16,16,16]
+          - generic [ref=e193] [box=1353,14,22,20]: EN
+        - 'button "主题切换: 深色" [ref=e194] [cursor=pointer] [box=1390,9,34,30]':
+          - img [ref=e195] [box=1399,16,16,16]
+    - main [ref=e197] [box=208,48,1232,952]:
+      - region "Chat workspace" [ref=e198] [box=208,48,1232,952]:
+        - complementary [ref=e199] [box=208,48,240,952]:
+          - complementary [ref=e200] [box=208,48,239,952]:
+            - generic [ref=e201] [box=208,48,239,46]:
+              - tablist [ref=e202] [box=208,48,201,45]:
+                - tab "全部 3" [ref=e280] [cursor=pointer] [box=220,60,46,25]: 全部3
+                - tab "main 2" [selected] [ref=e281] [cursor=pointer] [box=268,60,51,25]: main2
+                - tab "e2e-test-agent" [ref=e282] [cursor=pointer] [box=320,60,113,25]
+                - tab "new-agent" [ref=e283] [cursor=pointer] [box=435,60,78,25]
+                - tab "test-agent" [ref=e284] [cursor=pointer] [box=515,60,85,25]
+              - button "折叠侧栏" [ref=e204] [cursor=pointer] [box=413,58,26,26]:
+                - img [ref=e205] [box=419,64,14,14]
+            - button "新建会话" [ref=e207] [cursor=pointer] [box=220,104,215,26]:
+              - img [ref=e208] [box=296,112,12,12]
+              - generic [ref=e209] [box=313,109,46,17]: 新建会话
+            - textbox "搜索会话..." [ref=e210] [box=220,140,215,26]
+            - generic [ref=e211] [box=208,174,239,788]:
+              - generic [ref=e285] [cursor=pointer] [box=216,174,223,76]:
+                - 'button "Gateway startup regression triage Visual seed: streaming response with approval and canvas drawer." [ref=e286] [box=228,184,167,56]':
+                  - generic [ref=e288] [box=228,184,167,19]: Gateway startup regression triage
+                  - generic [ref=e289] [box=228,205,167,17]: "Visual seed: streaming response with approval and canvas drawer."
+                  - generic [ref=e290] [box=228,225,167,16]: 4月26日 22:00
+                - button "删除会话" [ref=e292] [box=401,182,26,26]:
+                  - img [ref=e293] [box=407,189,14,14]
+              - generic [ref=e296] [cursor=pointer] [box=216,250,223,76]:
+                - button "A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮 Preview text remains dense but readable in the old Deck row layout." [ref=e297] [box=228,260,167,56]:
+                  - generic [ref=e299] [box=228,260,167,19]: A very long bilingual session title for truncation 验证导航列表不会溢出到删除按钮
+                  - generic [ref=e300] [box=228,282,167,17]: Preview text remains dense but readable in the old Deck row layout.
+                  - generic [ref=e301] [box=228,301,167,16]: 4月26日 21:20
+                - button "删除会话" [ref=e303] [box=401,258,26,26]:
+                  - img [ref=e304] [box=407,265,14,14]
+              - generic [ref=e307] [cursor=pointer] [box=216,327,223,76]:
+                - button "Tool rendering and artifact handoff Generated an artifact and opened the canvas drawer." [ref=e308] [box=228,337,167,56]:
+                  - generic [ref=e310] [box=228,337,167,19]: Tool rendering and artifact handoff
+                  - generic [ref=e311] [box=228,358,167,17]: Generated an artifact and opened the canvas drawer.
+                  - generic [ref=e312] [box=228,377,167,16]: 4月26日 20:00
+                - button "删除会话" [ref=e314] [box=401,335,26,26]:
+                  - img [ref=e315] [box=407,341,14,14]
+            - generic [ref=e212] [box=208,962,239,38]: 默认智能体 main
+        - generic [ref=e213] [box=448,48,512,952]:
+          - toolbar [ref=e214] [box=448,48,512,82]:
+            - generic "97.2K / 100.0K tokens" [ref=e318] [box=470,59,77,17]:
+              - generic [ref=e216] [box=470,59,23,17]: 模型
+              - generic [ref=e217] [box=499,59,48,17]: gpt-5.4
+            - generic "97.2K / 100.0K tokens" [ref=e319] [box=561,59,167,17]:
+              - generic [ref=e219] [box=561,59,35,17]: 上下文
+              - generic [ref=e221] [box=708,59,21,17]: 97%
+            - generic [ref=e222] [box=743,59,59,17]:
+              - generic [ref=e223] [box=743,59,46,17]: 压缩次数
+              - generic [ref=e224] [box=795,59,7,17]: "2"
+            - button "推理 关闭" [ref=e225] [cursor=pointer] [box=815,57,64,21]:
+              - generic [ref=e226] [box=821,59,23,17]: 推理
+              - generic [ref=e227] [box=850,59,23,17]: 关闭
+            - button "发送 允许" [ref=e228] [cursor=pointer] [box=470,96,64,21]:
+              - generic [ref=e229] [box=476,98,23,17]: 发送
+              - generic [ref=e230] [box=505,98,23,17]: 允许
+            - button "用量 Token" [ref=e321] [cursor=pointer] [box=548,96,76,21]:
+              - generic [ref=e232] [box=554,98,23,17]: 用量
+              - generic [ref=e233] [box=583,98,35,17]: Token
+            - button "快速" [ref=e234] [cursor=pointer] [box=638,95,55,23]:
+              - img [ref=e235] [box=647,101,10,10]
+              - generic [ref=e237] [box=661,98,23,17]: 快速
+            - button "压缩" [ref=e322] [cursor=pointer] [box=808,93,57,27]:
+              - img [ref=e323] [box=817,101,12,12]
+              - text: 压缩
+            - button "搜索对话..." [ref=e238] [cursor=pointer] [box=879,92,59,28]:
+              - img [ref=e239] [box=888,101,11,11]
+              - generic [ref=e242] [box=905,97,24,18]: ⌘F
+          - button "跳转到引导" [ref=e324] [cursor=pointer] [box=864,134,84,29]
+          - region "Transcript" [ref=e243] [box=448,163,512,333]:
+            - generic [ref=e325] [box=448,163,512,333]:
+              - generic "User message" [ref=e327] [box=448,-145,512,105]:
+                - img [ref=e329] [box=916,-127,14,14]
+                - generic [ref=e332] [box=470,-135,428,81]:
+                  - paragraph [ref=e335] [box=470,-135,428,61]: The Gateway starts locally but the Deck client keeps reconnecting. Please inspect the startup path and summarize the most likely failure.
+                  - generic [ref=e336] [box=808,-68,90,14]:
+                    - generic [ref=e337] [box=810,-68,12,14]: 你
+                    - generic [ref=e338] [box=828,-68,7,14]: ·
+                    - generic [ref=e339] [box=841,-68,55,14]: 21:54:00
+              - generic "Assistant message" [ref=e341] [box=448,-26,512,318]:
+                - img [ref=e343] [box=476,-8,14,14]
+                - generic [ref=e345] [box=510,-16,428,294]:
+                  - generic [ref=e346] [box=510,-16,428,236]:
+                    - group [ref=e347] [box=510,-16,428,60]
+                    - generic [ref=e351] [box=510,44,428,115]
+                    - paragraph [ref=e385] [box=510,159,428,61]: The local launch contract looks correct. The remaining risk is the frontend hitting the Vite fallback instead of the Go API proxy, which explains the HTML response in the JSON parser.
+                  - generic [ref=e386] [box=510,226,428,14]:
+                    - generic [ref=e387] [box=512,226,23,14]: 助手
+                    - generic [ref=e388] [box=541,226,7,14]: ·
+                    - generic [ref=e389] [box=554,226,55,14]: 21:55:00
+                  - toolbar "消息操作" [ref=e390] [box=510,251,428,26]:
+                    - button "复制" [ref=e391] [cursor=pointer] [box=510,251,26,26]
+                    - button "点赞" [ref=e395] [cursor=pointer] [box=540,251,26,26]
+                    - button "踩" [ref=e398] [cursor=pointer] [box=570,251,26,26]
+              - generic "Assistant message" [ref=e402] [box=448,305,512,299]:
+                - img [ref=e404] [box=476,323,14,14]
+                - generic [ref=e406] [box=510,315,428,275]:
+                  - generic [ref=e407] [box=510,315,428,218]:
+                    - generic [ref=e408] [box=510,315,428,71]
+                    - generic [ref=e432] [box=510,386,428,147]
+                  - generic [ref=e465] [box=510,539,428,14]:
+                    - generic [ref=e466] [box=512,539,23,14]: 助手
+                    - generic [ref=e467] [box=541,539,7,14]: ·
+                    - generic [ref=e468] [box=554,539,55,14]: 21:55:30
+                  - toolbar "消息操作" [ref=e469] [box=510,565,428,26]:
+                    - button "复制" [ref=e470] [cursor=pointer] [box=510,565,26,26]
+                    - button "点赞" [ref=e474] [cursor=pointer] [box=540,565,26,26]
+                    - button "踩" [ref=e477] [cursor=pointer] [box=570,565,26,26]
+              - generic [ref=e480] [box=510,631,388,42]:
+                - generic [ref=e481] [box=523,643,27,18]: cmp
+                - generic [ref=e482] [box=558,643,69,17]: 上下文已压缩
+                - generic [ref=e483] [box=635,643,110,17]: 128,000 → 42,000
+                - button "查看摘要" [ref=e484] [cursor=pointer] [box=758,639,64,26]
+                - generic [ref=e485] [box=830,643,55,17]: 21:56:00
+              - generic "User message" [ref=e487] [box=448,699,512,84]:
+                - img [ref=e489] [box=916,717,14,14]
+                - generic [ref=e492] [box=470,709,428,60]:
+                  - paragraph [ref=e495] [box=470,709,428,41]: Open the canvas and keep the approval visible so I can compare the old Deck spacing.
+                  - generic [ref=e496] [box=808,755,90,14]:
+                    - generic [ref=e497] [box=810,755,12,14]: 你
+                    - generic [ref=e498] [box=828,755,7,14]: ·
+                    - generic [ref=e499] [box=841,755,55,14]: 21:58:00
+              - generic "Assistant message" [ref=e501] [box=448,797,512,182]:
+                - img [ref=e503] [box=476,815,14,14]
+                - generic [ref=e505] [box=510,807,428,158]:
+                  - paragraph [ref=e509] [box=510,807,428,41]: I have the transcript, tool ladder, approval prompt, and canvas drawer visible. I am now checking responsive spacing
+                  - generic [ref=e510] [box=510,863,428,43]:
+                    - generic [ref=e511] [box=510,863,60,20]: 运行中
+                    - generic [ref=e513] [box=576,865,59,17]
+                    - generic [ref=e516] [box=640,865,208,17]
+                    - generic [ref=e519] [box=510,889,121,17]
+                    - generic [ref=e523] [box=637,889,86,17]: 会话累计 97,200
+                  - generic [ref=e524] [box=510,913,428,14]:
+                    - generic [ref=e525] [box=512,913,23,14]: 助手
+                    - generic [ref=e526] [box=541,913,7,14]: ·
+                    - generic [ref=e527] [box=554,913,55,14]: 21:59:30
+                    - generic [ref=e528] [box=615,913,7,14]: ·
+                    - generic [ref=e529] [box=628,913,23,14]: 流式
+                  - toolbar "消息操作" [ref=e530] [box=510,939,428,26]:
+                    - button "复制" [ref=e531] [cursor=pointer] [box=510,939,26,26]
+                    - button "点赞" [ref=e535] [cursor=pointer] [box=540,939,26,26]
+                    - button "踩" [ref=e538] [cursor=pointer] [box=570,939,26,26]
+          - toolbar "对话过滤器" [ref=e541] [box=448,496,512,33]:
+            - generic [ref=e542] [box=470,504,37,17]:
+              - img [ref=e543] [box=470,508,10,10]
+              - text: 显示
+            - button "推理" [pressed] [ref=e545] [box=517,503,69,20]:
+              - img [ref=e546] [box=524,508,10,10]
+              - img [ref=e548] [box=540,507,12,12]
+              - text: 推理
+            - button "工具" [pressed] [ref=e551] [box=592,503,69,20]:
+              - img [ref=e552] [box=599,508,10,10]
+              - img [ref=e554] [box=615,507,12,12]
+              - text: 工具
+            - button "结果" [pressed] [ref=e556] [box=666,503,69,20]:
+              - img [ref=e557] [box=673,508,10,10]
+              - img [ref=e559] [box=689,507,12,12]
+              - text: 结果
+          - generic [ref=e563] [box=448,529,512,41]:
+            - img [ref=e564] [box=460,542,14,14]
+            - generic [ref=e567] [box=482,536,417,26]:
+              - generic [ref=e568] [box=482,539,27,20]: 引导
+              - textbox "引导" [ref=e569] [box=515,536,384,26]:
+                - /placeholder: 输入指令以改变执行方向...
+            - button "引导" [disabled] [ref=e570] [box=907,535,41,28]
+          - generic "工具" [ref=e571] [box=448,570,512,40]:
+            - generic [ref=e572] [box=470,577,230,96]:
+              - paragraph [ref=e573] [box=481,585,208,16]: 运行中
+              - strong [ref=e574] [box=481,605,208,17]: shell_command
+              - generic [ref=e575] [box=481,626,208,17]: tool-run-gateway
+              - generic [ref=e576] [box=481,647,208,17]: 862939s
+            - generic [ref=e577] [box=708,577,230,96]:
+              - paragraph [ref=e578] [box=719,585,208,37]: 工具
+              - strong [ref=e579] [box=719,626,208,39]: 工具运行中
+          - generic [ref=e253] [box=448,611,512,389]:
+            - region "需要审批" [ref=e580] [box=459,622,490,227]:
+              - generic [ref=e581] [box=474,635,460,20]:
+                - img [ref=e582] [box=474,637,16,16]
+                - strong [ref=e585] [box=498,635,52,20]: 需要审批
+                - generic [ref=e586] [box=870,636,64,17]:
+                  - img [ref=e587] [box=870,639,12,12]
+                  - text: 16m 32s
+              - generic [ref=e590] [box=474,663,460,86]:
+                - code [ref=e591] [box=474,663,112,26]: shell_command
+                - generic [ref=e592] [box=474,695,460,54]: pnpm openclaw gateway run --bind loopback --port 18789 --force
+              - generic [ref=e593] [box=474,757,460,46]:
+                - term [ref=e594] [box=474,764,35,17]: 智能体
+                - definition [ref=e595] [box=521,764,414,17]:
+                  - img [ref=e596] [box=521,766,12,12]
+                  - text: main
+                - term [ref=e598] [box=474,785,35,17]: cwd
+                - definition [ref=e599] [box=521,785,414,17]:
+                  - img [ref=e600] [box=521,788,12,12]
+                  - text: /workspace/openclaw
+              - generic [ref=e603] [box=474,810,460,26]:
+                - button "批准" [ref=e604] [cursor=pointer] [box=474,810,59,26]:
+                  - img [ref=e605] [box=483,818,12,12]
+                  - text: 批准
+                - button "始终批准" [ref=e607] [cursor=pointer] [box=539,810,82,26]:
+                  - img [ref=e608] [box=548,818,12,12]
+                  - text: 始终批准
+                - button "拒绝" [ref=e611] [cursor=pointer] [box=626,810,59,26]:
+                  - img [ref=e612] [box=635,818,12,12]
+                  - text: 拒绝
+            - status [ref=e615] [box=459,865,490,29]:
+              - img [ref=e616] [box=469,874,11,11]
+              - generic [ref=e618] [box=488,871,451,17]: 上下文窗口接近满载 — 建议压缩或新建会话
+            - generic [ref=e254] [box=459,903,490,53]:
+              - button "附件" [ref=e255] [cursor=pointer] [box=459,923,32,32]:
+                - img [ref=e256] [box=463,927,24,24]
+              - textbox "输入消息..." [ref=e260] [box=497,903,382,53]
+              - button "提示模板" [ref=e262] [cursor=pointer] [box=885,929,64,26]
+            - generic [ref=e263] [box=459,963,490,26]:
+              - button "画布面板" [pressed] [ref=e264] [cursor=pointer] [box=459,963,82,26]:
+                - img [ref=e265] [box=468,970,12,12]
+                - generic [ref=e268] [box=486,967,46,17]: 画布面板
+              - button "工件面板" [ref=e269] [cursor=pointer] [box=547,963,82,26]:
+                - img [ref=e270] [box=556,970,12,12]
+                - text: 工件面板
+              - generic [ref=e273] [box=792,967,92,17]: 0 ch · ⌘↵ 发送
+              - button "停止" [ref=e619] [cursor=pointer] [box=891,963,59,26]:
+                - img [ref=e620] [box=900,970,12,12]
+                - generic [ref=e277] [box=917,967,23,17]: 停止
+        - dialog "Side drawer" [ref=e622] [box=960,48,480,952]:
+          - region "画布" [ref=e624] [box=977,64,447,920]:
+            - generic [ref=e625] [box=977,64,447,51]:
+              - img [ref=e626] [box=989,79,16,16]
+              - generic [ref=e629] [box=1017,72,131,30]:
+                - generic [ref=e630] [box=1017,72,131,16]: 画布
+                - generic [ref=e631] [box=1017,89,131,14]: a2ui-bridge · 连接中
+              - button "调试面板" [ref=e632] [cursor=pointer] [box=1310,74,26,26]:
+                - img [ref=e633] [box=1317,81,13,13]
+                - generic [ref=e637] [box=1323,87,1,1]: 调试面板
+              - button "刷新画布" [ref=e638] [cursor=pointer] [box=1348,74,26,26]:
+                - img [ref=e639] [box=1355,81,13,13]
+                - generic [ref=e644] [box=1361,87,1,1]: 刷新画布
+              - button "收起画布" [ref=e645] [cursor=pointer] [box=1386,74,26,26]:
+                - img [ref=e646] [box=1393,81,13,13]
+                - generic [ref=e649] [box=1399,87,1,1]: 收起画布
+            - generic [ref=e651] [box=989,127,423,845]:
+              - generic [ref=e652] [box=990,128,421,28]:
+                - generic [ref=e653] [box=1000,133,62,17]: a2ui:tree
+                - generic [ref=e654] [box=1068,133,7,17]: ·
+                - generic [ref=e655] [box=1081,133,69,17]: 2 surfaces
+                - generic [ref=e656] [box=1156,133,7,17]: ·
+                - generic [ref=e657] [box=1169,133,35,17]: 连接中
+              - iframe [ref=e658] [box=990,157,421,814]:
+                - main [ref=f2e2] [box=0,0,421,815]:
+                  - generic [ref=f2e3] [box=14,14,393,147]:
+                    - generic [ref=f2e4] [box=15,15,391,30]: DataTable
+                    - generic [ref=f2e5] [box=15,45,391,29]
+                    - generic [ref=f2e9] [box=15,74,391,29]
+                    - generic [ref=f2e13] [box=15,103,391,29]
+                    - generic [ref=f2e17] [box=15,132,391,28]
+                  - generic [ref=f2e21] [box=14,173,393,38]:
+                    - button "Refresh" [ref=f2e22] [box=14,173,70,34]
+                    - button "Export" [ref=f2e23] [box=92,173,63,34]

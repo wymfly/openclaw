@@ -1,0 +1,45 @@
+{
+  "createStatus": 200,
+  "createOk": true,
+  "sessionKeyPresent": true,
+  "projectionStatus": 200,
+  "projectionOk": true,
+  "projectionBody": {
+    "a2uiState": {
+      "eventLog": [
+        {
+          "action": "present",
+          "direction": "inbound",
+          "raw": {
+            "ok": true
+          },
+          "summary": "smoke",
+          "timestamp": 1
+        }
+      ],
+      "url": "/__openclaw__/canvas/documents/codex-smoke.html",
+      "visible": true
+    },
+    "ok": true
+  },
+  "snapshotStatus": 200,
+  "snapshotOk": true,
+  "snapshotA2UI": {
+    "eventLog": [
+      {
+        "action": "present",
+        "direction": "inbound",
+        "raw": {
+          "ok": true
+        },
+        "summary": "smoke",
+        "timestamp": 1
+      }
+    ],
+    "url": "/__openclaw__/canvas/documents/codex-smoke.html",
+    "visible": true
+  },
+  "sanitizedBridgeStatus": false,
+  "sanitizedTreeData": false,
+  "tokenPresent": true
+}

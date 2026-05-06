@@ -8,11 +8,13 @@ const {
   mockLoadConfig,
   mockGetChatCommands,
   mockListSkillCommandsForAgents,
+  mockListPluginCommands,
 } = vi.hoisted(() => ({
   mockResolveDefaultAgentId: vi.fn(),
   mockLoadConfig: vi.fn(),
   mockGetChatCommands: vi.fn(),
   mockListSkillCommandsForAgents: vi.fn(),
+  mockListPluginCommands: vi.fn(),
 }));
 
 vi.mock("../../../agents/agent-scope.js", () => ({
@@ -54,6 +56,10 @@ vi.mock("../../../auto-reply/skill-commands.js", () => ({
   listSkillCommandsForAgents: mockListSkillCommandsForAgents,
 }));
 
+vi.mock("../../../plugins/commands.js", () => ({
+  listPluginCommands: mockListPluginCommands,
+}));
+
 import { deckCommandsHandlers } from "./commands.js";
 
 function callDiscover(
@@ -85,6 +91,7 @@ function makeBuiltinCommands(): ChatCommandDefinition[] {
       description: "Show current status",
       textAliases: ["/status"],
       scope: "text",
+      category: "status",
     },
     {
       key: "native-only",
@@ -95,8 +102,9 @@ function makeBuiltinCommands(): ChatCommandDefinition[] {
     {
       key: "queue",
       description: "Configure queue",
-      textAliases: ["/queue"],
+      textAliases: ["/queue", "/q"],
       scope: "both",
+      category: "options",
       acceptsArgs: true,
       args: [
         {
@@ -132,6 +140,14 @@ beforeEach(() => {
   mockLoadConfig.mockReturnValue({});
   mockGetChatCommands.mockReturnValue(makeBuiltinCommands());
   mockListSkillCommandsForAgents.mockReturnValue(makeSkillCommands());
+  mockListPluginCommands.mockReturnValue([
+    {
+      name: "phone-arm",
+      description: "Arm phone command group",
+      pluginId: "phone-control",
+      acceptsArgs: true,
+    },
+  ]);
 });
 
 describe("deck.commands.discover", () => {
@@ -157,15 +173,24 @@ describe("deck.commands.discover", () => {
         name: "queue",
         source: "builtin",
         description: "Configure queue",
+        aliases: ["q"],
         args: "<mode> <value...>",
         argChoices: ["on", "off"],
-        category: "more",
+        category: "options",
       },
       {
         name: "status",
         source: "builtin",
         description: "Show current status",
-        category: "more",
+        category: "status",
+      },
+      {
+        name: "phone-arm",
+        source: "plugin",
+        description: "Arm phone command group",
+        args: "<args>",
+        category: "plugins",
+        pluginId: "phone-control",
       },
       {
         name: "deploy",

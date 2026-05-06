@@ -1,0 +1,9 @@
+{
+  "status": 200,
+  "ok": true,
+  "contentType": "text/html; charset=utf-8",
+  "textStart": "<!doctype html>\n<html>\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, init",
+  "hasBridge": true,
+  "tokenPresent": true,
+  "url": "http://127.0.0.1:19566/api/canvas/index.html"
+}

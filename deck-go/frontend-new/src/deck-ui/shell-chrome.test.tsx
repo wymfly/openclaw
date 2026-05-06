@@ -11,6 +11,10 @@ import { PanelErrorBoundary } from "./PanelErrorBoundary";
 import { DeckShell } from "./Shell";
 import { useDeckShortcuts } from "./use-deck-shortcuts";
 
+const streamBridge = vi.hoisted(() => ({
+  ChatStreamBridge: vi.fn(() => null),
+}));
+
 const uiState = vi.hoisted(() => ({
   activePanel: "gateway",
   bootstrap: {
@@ -41,6 +45,10 @@ vi.mock("./ui-store", () => ({
 
 vi.mock("../components/runtime/FirstRunBanner", () => ({
   FirstRunBanner: () => null,
+}));
+
+vi.mock("../components/panels/chat/ChatStreamBridge", () => ({
+  ChatStreamBridge: streamBridge.ChatStreamBridge,
 }));
 
 function installMatchMedia() {
@@ -171,6 +179,7 @@ describe("Deck shell chrome parity", () => {
     );
     expect(content.getAttribute("data-active-panel")).toBe("chat");
     expect(content.classList.contains("deck-ui-content--workbench")).toBe(true);
+    expect(streamBridge.ChatStreamBridge).toHaveBeenCalled();
   });
 
   it("keeps normal padded content mode for non-chat panels", () => {

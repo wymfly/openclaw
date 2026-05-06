@@ -1,6 +1,6 @@
 # sessions - high-fidelity handoff
 
-**Status:** `implemented - real-contract verified`
+**Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
 **OpenSpec changes:** `frontend-sessions-hifi-contract-redesign`,
@@ -121,3 +121,19 @@ No canonical atom or token is required by this handoff. Local molecules:
   strongly into the subagents module.
 - Whether the transcript export seam should become a shared pattern after usage
   or docs repeats it.
+
+## Reverse sign-off
+
+| Field                          | Value                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| Final sign-off status          | `accepted-with-exceptions`                                                                                                      |
+| Reviewer                       | Codex                                                                                                                           |
+| Date                           | 2026-05-06                                                                                                                      |
+| Prototype reference            | `frontend-handoff/modules/sessions/prototype.html`                                                                              |
+| Production reference           | `frontend-new/src/components/panels/sessions/`                                                                                  |
+| Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`sessions`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
+| Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`sessions`, `mock-prototype-parity`, verdict: `pass-with-exceptions`)   |
+| Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`sessions`, `real-gateway`, status: `recorded-in-implementation-notes`) |
+| Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/sessions/implementation-notes.md`.     |
+
+This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.

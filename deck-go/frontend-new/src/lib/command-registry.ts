@@ -17,29 +17,36 @@ export class CommandRegistry {
   private version = 0;
 
   register(cmd: RegisteredCommand): void {
-    const cmdKey = getQualifiedKey(cmd.source, cmd.name);
+    const normalized: RegisteredCommand = {
+      ...cmd,
+      name: cmd.name.trim().toLowerCase(),
+      aliases: cmd.aliases
+        ?.map((alias) => alias.trim().replace(/^\//u, "").toLowerCase())
+        .filter(Boolean),
+    };
+    const cmdKey = getQualifiedKey(normalized.source, normalized.name);
     this.qualified.delete(cmdKey);
 
-    const existing = this.commands.get(cmd.name);
+    const existing = this.commands.get(normalized.name);
     if (!existing) {
-      this.commands.set(cmd.name, cmd);
+      this.commands.set(normalized.name, normalized);
       this.version++;
       this.notify();
       return;
     }
 
-    if (existing.source === cmd.source) {
-      this.commands.set(cmd.name, cmd);
+    if (existing.source === normalized.source) {
+      this.commands.set(normalized.name, normalized);
       this.version++;
       this.notify();
       return;
     }
 
-    if (cmd.priority < existing.priority) {
+    if (normalized.priority < existing.priority) {
       this.qualified.set(getQualifiedKey(existing.source, existing.name), existing);
-      this.commands.set(cmd.name, cmd);
+      this.commands.set(normalized.name, normalized);
     } else {
-      this.qualified.set(cmdKey, cmd);
+      this.qualified.set(cmdKey, normalized);
     }
 
     this.version++;
@@ -134,22 +141,32 @@ export class CommandRegistry {
   }
 
   get(name: string): RegisteredCommand | undefined {
+    const lookupName = name.toLowerCase();
     if (name.includes(":")) {
-      const qualified = this.qualified.get(name);
+      const qualified = this.qualified.get(lookupName);
       if (qualified) {
         return qualified;
       }
 
-      const separator = name.indexOf(":");
-      const source = name.slice(0, separator);
-      const unqualifiedName = name.slice(separator + 1);
+      const separator = lookupName.indexOf(":");
+      const source = lookupName.slice(0, separator);
+      const unqualifiedName = lookupName.slice(separator + 1);
       const active = this.commands.get(unqualifiedName);
       if (active?.source === source) {
         return active;
       }
       return undefined;
     }
-    return this.commands.get(name);
+    const exact = this.commands.get(lookupName);
+    if (exact) {
+      return exact;
+    }
+    for (const command of this.commands.values()) {
+      if (command.aliases?.some((alias) => alias.toLowerCase() === lookupName)) {
+        return command;
+      }
+    }
+    return undefined;
   }
 
   getAll(): RegisteredCommand[] {
@@ -161,7 +178,8 @@ export class CommandRegistry {
     const results: RegisteredCommand[] = [];
 
     for (const cmd of this.commands.values()) {
-      if (lower && !cmd.name.toLowerCase().startsWith(lower)) {
+      const aliasMatches = cmd.aliases?.some((alias) => alias.toLowerCase().startsWith(lower));
+      if (lower && !cmd.name.toLowerCase().startsWith(lower) && !aliasMatches) {
         continue;
       }
       if (ctx && cmd.visibleIf && !cmd.visibleIf(ctx)) {
@@ -177,6 +195,7 @@ export class CommandRegistry {
     for (const def of defs) {
       this.register({
         name: def.name,
+        aliases: def.aliases,
         source: "local",
         execMode: "local",
         description: def.descriptionKey,

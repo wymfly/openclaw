@@ -2,6 +2,7 @@ export type SlashCommandCategory = "session" | "model" | "tools" | "agents";
 
 export interface SlashCommandDef {
   name: string;
+  aliases?: string[];
   descriptionKey: string;
   args?: string;
   icon: string;
@@ -19,6 +20,7 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   { name: "model", descriptionKey: "cmd_model", args: "<name>", icon: "cpu", category: "model" },
   {
     name: "think",
+    aliases: ["thinking", "t"],
     descriptionKey: "cmd_think",
     args: "<off|low|medium|high>",
     icon: "brain",
@@ -35,6 +37,7 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   },
   {
     name: "verbose",
+    aliases: ["v"],
     descriptionKey: "cmd_verbose",
     args: "<on|off|full>",
     icon: "terminal",
@@ -43,6 +46,7 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
   },
   {
     name: "reasoning",
+    aliases: ["reason"],
     descriptionKey: "cmd_reasoning",
     args: "<off|on|stream>",
     icon: "lightbulb",
@@ -58,7 +62,14 @@ export const LOCAL_COMMAND_DEFS: SlashCommandDef[] = [
     argOptions: ["allow", "deny"],
   },
   { name: "help", descriptionKey: "cmd_help", icon: "book-open", category: "tools" },
-  { name: "usage", descriptionKey: "cmd_usage", icon: "bar-chart-2", category: "tools" },
+  {
+    name: "usage",
+    descriptionKey: "cmd_usage",
+    args: "<status|off|tokens|full>",
+    icon: "bar-chart-2",
+    category: "tools",
+    argOptions: ["status", "off", "tokens", "full"],
+  },
   { name: "agents", descriptionKey: "cmd_agents", icon: "monitor", category: "agents" },
 ];
 
@@ -69,6 +80,11 @@ export const CATEGORY_LABEL_KEYS: Record<string, string> = {
   agents: "cmdCatAgents",
   skills: "cmdCatSkills",
   plugins: "cmdCatPlugins",
+  status: "cmdCatStatus",
+  management: "cmdCatManagement",
+  media: "cmdCatMedia",
+  options: "cmdCatOptions",
+  docks: "cmdCatDocks",
   more: "cmdCatMore",
 };
 

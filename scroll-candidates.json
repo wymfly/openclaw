@@ -1,0 +1,26 @@
+[
+  {
+    "tag": "DIV",
+    "cls": "deck-ui-rail-scroll",
+    "role": null,
+    "label": null,
+    "scrollTop": 0,
+    "scrollHeight": 1058,
+    "clientHeight": 901,
+    "overflowY": "auto",
+    "y": 48,
+    "h": 901
+  },
+  {
+    "tag": "DIV",
+    "cls": "ds-chat-message-list deck-ui-message-list",
+    "role": null,
+    "label": null,
+    "scrollTop": 719,
+    "scrollHeight": 1162,
+    "clientHeight": 333,
+    "overflowY": "auto",
+    "y": 163,
+    "h": 333
+  }
+]

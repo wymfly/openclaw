@@ -145,6 +145,10 @@ ship
 
 **反向签收（协议 #2）**：实施完毕通知设计 agent，由它视觉对照原型 vs 真实运行，签字 / 提 revision。这是闭环最后一步。
 
+**Review-driven remediation fact rule**：如果某次实现来自外部审查、设计复查或跨 agent 报告，Claude Code MUST 先创建 tracked fact baseline，再执行任务。Baseline 至少把发现分成 `accepted` / `corrected` / `rejected` / `deferred-uncertain`，并为 accepted/corrected 项写入 rerunnable command 或 file reference。未经验证的 review prose 不能直接成为任务真相。
+
+**Task checkbox evidence rule**：OpenSpec task 只能在本轮 fresh evidence 已产生后勾选。历史 OpenSpec 归档、旧 session 记忆、`.local` 截图、或之前的口头结论只能作为辅助上下文；最终勾选必须链接当前命令输出、tracked manifest、测试、build、或明确 blocker。
+
 **Evidence levels for module completion**：
 
 - `mock functional`：mock-backed 页面、关键交互、console/page/API 错误检查和截图采集通过。
@@ -158,6 +162,14 @@ ship
 - 外部账号、已安装 skill、device token、用户 memory 等影响面大的资源可以标记 `skipped-safe`，但仍要跑可读 UI/链路验证并记录缺口。
 
 模块不能只凭 mock 截图或测试通过宣称高保真视觉对齐。若 verdict 存在 material mismatch，必须修复或记录 source-linked accepted exception。
+
+**Tracked evidence manifest**：`.local` 下的 Playwright output、截图和 parity report 是临时 artifact，不是持久签收面。模块完成记录 MUST 有 tracked manifest 或 README/implementation-notes 链接三层证据：`mock-functional`、`mock-prototype-parity`、`real-gateway`。`unreviewed` verdict 必须保留为 `unreviewed`，不能写成已签收。
+
+**Canonical module status**：已实现模块的 handoff README status 必须写成 `**Status**: implemented (sha <40-hex-commit-sha>)`。非 canonical implemented-like 文案不算 protocol-closed。
+
+**Structured reverse sign-off**：已实现模块必须有结构化 `Reverse sign-off`，至少记录 final status、reviewer、date、prototype reference、production reference、mock functional evidence、mock prototype parity evidence、real Gateway evidence、accepted exceptions。允许的 final status 只有 `accepted` / `accepted-with-exceptions` / `needs-revision` / `blocked`。
+
+**Component decomposition classification**：单文件 panel 默认是 maintainability concern，不是硬性 protocol violation。只有具体 OpenSpec change、module handoff、或维护性提案明确要求拆分时，才把它列为阻断项。
 
 ---
 
