@@ -30,17 +30,23 @@ function jobsPayload() {
         id: "job-a",
         name: "Nightly",
         schedule: { kind: "cron" as const, expr: "0 0 * * *" },
-        payload: { kind: "systemEvent" as const, type: "nightly" },
+        payload: { kind: "systemEvent" as const, text: "nightly" },
         description: "Nightly sync",
         agentId: "main",
+        sessionTarget: "main",
+        wakeMode: "now",
         enabled: true,
         nextRunAtMs: baseTime + 60_000,
+        createdAtMs: baseTime - 120_000,
+        updatedAtMs: baseTime - 60_000,
       },
       {
         id: "job-b",
         name: "Frequent",
         schedule: { kind: "every" as const, everyMs: 60_000 },
-        payload: { kind: "agentTurn" as const, prompt: "ping" },
+        payload: { kind: "agentTurn" as const, message: "ping" },
+        sessionTarget: "isolated",
+        wakeMode: "now",
         enabled: false,
         nextRunAtMs: baseTime + 120_000,
       },
@@ -56,14 +62,21 @@ function runsPayload(jobId: string) {
         jobId,
         status: jobId === "job-a" ? ("ok" as const) : ("error" as const),
         ts: baseTime,
+        durationMs: 333,
       },
     ],
   };
 }
 
-function renderCronPanel() {
+function renderCronPanel(locale: "en" | "zh" = "en") {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(CronPanel)));
+  root.render(createElement(DeckIntlProvider, { locale }, createElement(CronPanel)));
+}
+
+function buttonByText(text: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text,
+  );
 }
 
 describe("CronPanel", () => {
@@ -73,7 +86,6 @@ describe("CronPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchCronJobs.mockResolvedValue(jobsPayload());
     apiMocks.fetchCronStatus.mockResolvedValue({
       running: false,
@@ -105,7 +117,7 @@ describe("CronPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads cron status, inventory, and selected job runs", async () => {
+  it("loads cron status, inventory, filters, and selected detail", async () => {
     await act(async () => {
       renderCronPanel();
     });
@@ -116,152 +128,62 @@ describe("CronPanel", () => {
     expect(apiMocks.fetchCronJobs).toHaveBeenCalledWith({ includeDisabled: true });
     expect(apiMocks.fetchCronStatus).toHaveBeenCalledTimes(1);
     expect(apiMocks.fetchCronRuns).toHaveBeenCalledWith("job-a", { limit: 20, sortDir: "desc" });
-    expect(container.textContent).toContain("running: no");
-    expect(container.textContent).toContain("jobs: 2");
-    expect(container.textContent).toContain("enabled1");
+    expect(container.textContent).toContain("Scheduled jobs");
     expect(container.textContent).toContain("Nightly");
     expect(container.textContent).toContain("Frequent");
-    expect(container.textContent).toContain("Schedule: 0 0 * * * | Status: Enabled");
-    expect(container.textContent).toContain("Schedule: every 60000ms | Status: Disabled");
-    expect(container.querySelector(".cron-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".cron-panel__card").length).toBe(2);
-    expect(container.querySelectorAll(".cron-panel__surface").length).toBe(1);
-    expect(
-      container.querySelectorAll(".cron-panel__input, .cron-panel__select, .cron-panel__textarea")
-        .length,
-    ).toBe(9);
-    expect(container.querySelectorAll(".cron-panel__button").length).toBeGreaterThanOrEqual(13);
-    expect(container.querySelectorAll(".cron-panel__row").length).toBe(2);
-    expect(container.querySelector(".cron-panel__hero")).toBeTruthy();
-    expect(container.querySelector(".cron-panel__details")).toBeTruthy();
+    expect(container.textContent).toContain("Selected Job");
+    expect(container.textContent).toContain("0 0 * * *");
+    expect(container.querySelector(".cron-panel__topbar")).toBeTruthy();
+    expect(container.querySelectorAll(".cron-panel__job-row").length).toBe(2);
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Nightly");
+    await act(async () => {
+      fireEvent.change(container.querySelector(".cron-panel__search input") as HTMLInputElement, {
+        target: { value: "nightly" },
+      });
+    });
+
+    expect(container.querySelectorAll(".cron-panel__job-row").length).toBe(1);
+    expect(container.textContent).toContain("Nightly");
+
+    await act(async () => {
+      buttonByText("History")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("Run History");
+    expect(container.textContent).toContain("OK");
   });
 
-  it("runs and deletes the selected job while preserving preferred selection", async () => {
+  it("creates and edits cron jobs through the builder dialog", async () => {
     await act(async () => {
       renderCronPanel();
     });
-
     await waitFor(() => expect(container.textContent).toContain("Cron ready"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Frequent"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("New Job")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() =>
-      expect(apiMocks.fetchCronRuns).toHaveBeenCalledWith("job-b", {
-        limit: 20,
-        sortDir: "desc",
-      }),
+    const createDialog = container.querySelector('[role="dialog"]') as HTMLElement;
+    expect(createDialog.textContent).toContain("New scheduled job");
+    const textInputs = Array.from(createDialog.querySelectorAll("input")).filter(
+      (input): input is HTMLInputElement =>
+        input instanceof HTMLInputElement && input.type !== "checkbox",
     );
+    const selects = Array.from(createDialog.querySelectorAll("select"));
+    const textareas = Array.from(createDialog.querySelectorAll("textarea"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Run Now")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.change(textInputs[0], { target: { value: "Daily review" } });
+      fireEvent.change(textInputs[1], { target: { value: "0 8 * * *" } });
+      fireEvent.change(selects[3], { target: { value: "agentTurn" } });
+      fireEvent.change(textInputs[2], { target: { value: "reviewer" } });
+      fireEvent.change(textareas[0], { target: { value: "brief me" } });
+      fireEvent.change(textareas[1], { target: { value: "Daily review prompt" } });
     });
 
-    await waitFor(() =>
-      expect(apiMocks.runCronJob).toHaveBeenCalledWith("job-b", { mode: "force" }),
-    );
-    expect(container.textContent).toContain("Last cron action");
-
-    const selectedAfterRun = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedAfterRun?.textContent).toContain("Frequent");
+    expect(selects[1].value).toBe("isolated");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete Job")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() => expect(apiMocks.deleteCronJob).toHaveBeenCalledWith("job-b"));
-    expect(window.confirm).toHaveBeenCalledWith("Delete cron job job-b?");
-  });
-
-  it("does not delete a cron job when confirmation is cancelled", async () => {
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
-
-    await act(async () => {
-      renderCronPanel();
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Cron ready"));
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete Job")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(window.confirm).toHaveBeenCalledWith("Delete cron job job-a?");
-    expect(apiMocks.deleteCronJob).not.toHaveBeenCalled();
-  });
-
-  it("applies schedule templates to the cron draft", async () => {
-    await act(async () => {
-      renderCronPanel();
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Cron ready"));
-
-    const scheduleKindSelect = container.querySelector("select") as HTMLSelectElement;
-    const scheduleInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="cron schedule value"]',
-    );
-    expect(scheduleKindSelect.value).toBe("cron");
-    expect(scheduleInput?.value).toBe("0 9 * * *");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Hourly")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(scheduleKindSelect.value).toBe("cron");
-    expect(scheduleInput?.value).toBe("0 * * * *");
-  });
-
-  it("creates cron jobs and saves selected job edits through the Gateway-backed facade", async () => {
-    await act(async () => {
-      renderCronPanel();
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Cron ready"));
-
-    const textInputs = Array.from(container.querySelectorAll("input"));
-    const [nameInput, scheduleInput, agentIdInput] = textInputs.filter(
-      (input) => input.type !== "checkbox",
-    );
-    const selects = Array.from(container.querySelectorAll("select"));
-    const [, sessionTargetSelect, , payloadKindSelect] = selects;
-    const [payloadTextarea, descriptionTextarea] = Array.from(
-      container.querySelectorAll("textarea"),
-    );
-
-    await act(async () => {
-      fireEvent.change(nameInput, { target: { value: "Daily review" } });
-      fireEvent.change(scheduleInput, { target: { value: "0 8 * * *" } });
-      fireEvent.change(payloadKindSelect, { target: { value: "agentTurn" } });
-      fireEvent.change(agentIdInput, { target: { value: "reviewer" } });
-      fireEvent.change(payloadTextarea, { target: { value: "brief me" } });
-      fireEvent.change(descriptionTextarea, { target: { value: "Daily review prompt" } });
-    });
-
-    expect(sessionTargetSelect.value).toBe("isolated");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create Job")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Create Job")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -278,44 +200,36 @@ describe("CronPanel", () => {
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Frequent"))
+      Array.from(container.querySelectorAll(".cron-panel__job-row"))
+        .find((row) => row.textContent?.includes("Frequent"))
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Load selected")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Edit Job")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const editTextInputs = Array.from(container.querySelectorAll("input")).filter(
+    const editDialog = container.querySelector('[role="dialog"]') as HTMLElement;
+    const editInputs = Array.from(editDialog.querySelectorAll("input")).filter(
       (input): input is HTMLInputElement =>
         input instanceof HTMLInputElement && input.type !== "checkbox",
     );
-    const editSelects = Array.from(container.querySelectorAll("select"));
-    const editTextareas = Array.from(container.querySelectorAll("textarea"));
-    const enabledInput = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    const editSelects = Array.from(editDialog.querySelectorAll("select"));
+    const editTextareas = Array.from(editDialog.querySelectorAll("textarea"));
+    const enabledInput = editDialog.querySelector('input[type="checkbox"]') as HTMLInputElement;
 
-    expect(editTextInputs[0].value).toBe("Frequent");
+    expect(editInputs[0].value).toBe("Frequent");
     expect(editSelects[0].value).toBe("every");
-    expect(editTextInputs[1].value).toBe("60000");
-    expect(editSelects[1].value).toBe("isolated");
-    expect(editSelects[3].value).toBe("agentTurn");
+    expect(editInputs[1].value).toBe("60000");
     expect(editTextareas[0].value).toBe("ping");
     expect(enabledInput.checked).toBe(false);
 
     await act(async () => {
-      fireEvent.change(editTextInputs[0], { target: { value: "Frequent edited" } });
-      fireEvent.change(editTextInputs[1], { target: { value: "120000" } });
-      fireEvent.change(editTextareas[0], { target: { value: "heartbeat" } });
+      fireEvent.change(editInputs[0], { target: { value: "Frequent edited" } });
+      fireEvent.change(editInputs[1], { target: { value: "120000" } });
       fireEvent.click(enabledInput);
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save selected")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Save selected")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -324,10 +238,67 @@ describe("CronPanel", () => {
         schedule: { kind: "every", everyMs: 120000 },
         sessionTarget: "isolated",
         wakeMode: "now",
-        payload: { kind: "agentTurn", message: "heartbeat" },
+        payload: { kind: "agentTurn", message: "ping" },
         description: "",
         enabled: true,
       }),
     );
+  });
+
+  it("runs, toggles, and deletes with in-app confirmation", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm");
+    await act(async () => {
+      renderCronPanel();
+    });
+    await waitFor(() => expect(container.textContent).toContain("Cron ready"));
+
+    await act(async () => {
+      buttonByText("Run Now")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() =>
+      expect(apiMocks.runCronJob).toHaveBeenCalledWith("job-a", { mode: "force" }),
+    );
+    expect(container.textContent).toContain("Last cron action");
+
+    await act(async () => {
+      buttonByText("Disable")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() =>
+      expect(apiMocks.updateCronJob).toHaveBeenCalledWith("job-a", { enabled: false }),
+    );
+
+    await act(async () => {
+      buttonByText("Delete Job")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Delete scheduled job?",
+    );
+    expect(confirmSpy).not.toHaveBeenCalled();
+
+    await act(async () => {
+      buttonByText("Cancel")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.deleteCronJob).not.toHaveBeenCalled();
+
+    await act(async () => {
+      buttonByText("Delete Job")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      const deleteButtons = Array.from(container.querySelectorAll("button")).filter(
+        (button) => button.textContent === "Delete Job",
+      );
+      deleteButtons.at(-1)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() => expect(apiMocks.deleteCronJob).toHaveBeenCalledWith("job-a"));
+  });
+
+  it("renders the cron shell in Chinese", async () => {
+    await act(async () => {
+      renderCronPanel("zh");
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("定时任务"));
+    expect(container.textContent).toContain("调度任务");
+    expect(container.textContent).toContain("自动化 · Cron");
   });
 });

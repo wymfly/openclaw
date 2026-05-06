@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type {
   DeckGoAgentSubagentConfigResponse,
   DeckGoAgentSummary,
@@ -7,7 +7,6 @@ import type {
   DeckGoSubagentsLineageResponse,
 } from "../../../api";
 import {
-  applyDeckConfig,
   fetchAgentsList,
   fetchAgentSubagentConfig,
   fetchDeckConfig,
@@ -15,6 +14,7 @@ import {
   fetchSubagentRuns,
   killSubagentRun,
   steerSubagentRun,
+  updateAgentSubagentConfig,
 } from "../../../api";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
@@ -23,9 +23,11 @@ import {
   Button,
   Card,
   Input,
-  Select,
+  Modal,
   SegmentedControl,
   Spinner,
+  Tab,
+  Tag,
   Textarea,
   Toggle,
 } from "../../../design-system/atoms";
@@ -34,28 +36,22 @@ import { formatDuration } from "../../../lib/format-utils";
 import { JsonDetails } from "../../shared/ShellComponents";
 import "./subagents-panel.css";
 
-type PanelState = "idle" | "loading" | "ready";
-type SubagentsTab = "active" | "history" | "config";
-type SubagentStatusFilter = "active" | "completed" | "failed" | "timeout" | "all";
-type TimeRangeFilter = "1h" | "6h" | "24h" | "all";
+type LoadState = "idle" | "loading" | "ready";
+type ListMode = "runs" | "permissions";
+type StatusFilter = "all" | "active" | "completed" | "failed" | "timeout";
+type SpawnFilter = "all" | "blocking" | "background";
+type DetailTab = "overview" | "lineage" | "outcome" | "permissions" | "audit" | "raw";
 type SubagentsTranslator = ReturnType<typeof useTranslations>;
 
-type RunsFilter = {
-  childAgentId: string;
-  requesterAgentId: string;
-  status: SubagentStatusFilter;
-  timeRange: TimeRangeFilter;
-};
-
-type GlobalSubagentDefaults = {
-  archiveAfterMinutes: number;
-  maxChildrenPerAgent: number;
-  maxConcurrent: number;
-  maxSpawnDepth: number;
-  model: string;
-  requireAgentId: boolean;
-  runTimeoutSeconds: number;
-  thinking: string;
+type GlobalDefaults = {
+  archiveAfterMinutes?: number;
+  maxChildrenPerAgent?: number;
+  maxConcurrent?: number;
+  maxSpawnDepth?: number;
+  model?: string;
+  requireAgentId?: boolean;
+  runTimeoutSeconds?: number;
+  thinking?: unknown;
 };
 
 type LineageTreeNode = {
@@ -63,48 +59,18 @@ type LineageTreeNode = {
   children: LineageTreeNode[];
 };
 
-const DEFAULT_FILTERS: RunsFilter = {
-  childAgentId: "",
-  requesterAgentId: "",
-  status: "active",
-  timeRange: "all",
+type PermissionDraft = {
+  agentId: string;
+  allowAny: boolean;
+  allowAgents: string[];
+  model: string;
 };
 
-const SUBAGENT_POLL_INTERVAL_MS = 5_000;
+const POLL_INTERVAL_MS = 5_000;
 const RUNS_FETCH_LIMIT = 100;
-const VISIBLE_RUN_INCREMENT = 20;
-const DEFAULT_GLOBAL_SUBAGENT_DEFAULTS: GlobalSubagentDefaults = {
-  archiveAfterMinutes: 60,
-  maxChildrenPerAgent: 5,
-  maxConcurrent: 3,
-  maxSpawnDepth: 1,
-  model: "",
-  requireAgentId: false,
-  runTimeoutSeconds: 0,
-  thinking: "",
-};
-const STATUS_LABEL_KEYS: Record<SubagentStatusFilter, string> = {
-  active: "statusActive",
-  all: "allStatus",
-  completed: "completed",
-  failed: "failed",
-  timeout: "timeout",
-};
-const TIME_RANGE_LABEL_KEYS: Record<TimeRangeFilter, string> = {
-  "1h": "timeRange.1h",
-  "6h": "timeRange.6h",
-  "24h": "timeRange.24h",
-  all: "timeRange.all",
-};
-
-function statusLabel(t: SubagentsTranslator, status?: string) {
-  const key = STATUS_LABEL_KEYS[status as SubagentStatusFilter];
-  return key ? t(key) : status || t("notAvailable");
-}
-
-function timeRangeLabel(t: SubagentsTranslator, range: TimeRangeFilter) {
-  return t(TIME_RANGE_LABEL_KEYS[range]);
-}
+const STATUS_FILTERS: StatusFilter[] = ["all", "active", "completed", "failed", "timeout"];
+const SPAWN_FILTERS: SpawnFilter[] = ["all", "blocking", "background"];
+const DETAIL_TABS: DetailTab[] = ["overview", "lineage", "outcome", "permissions", "audit", "raw"];
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -112,184 +78,18 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function numberValue(record: Record<string, unknown>, key: string, fallback: number) {
-  const value = record[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function stringValue(record: Record<string, unknown>, key: string) {
-  const value = record[key];
-  return typeof value === "string" ? value : "";
-}
-
-function booleanValue(record: Record<string, unknown>, key: string, fallback: boolean) {
-  const value = record[key];
-  return typeof value === "boolean" ? value : fallback;
-}
-
-function readGlobalSubagentDefaults(config: unknown): GlobalSubagentDefaults {
+function readGlobalDefaults(config: unknown): GlobalDefaults {
   const root = asRecord(config);
   const agents = asRecord(root.agents);
   const defaults = asRecord(agents.defaults);
-  const subagents = asRecord(defaults.subagents);
-  return {
-    archiveAfterMinutes: numberValue(
-      subagents,
-      "archiveAfterMinutes",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.archiveAfterMinutes,
-    ),
-    maxChildrenPerAgent: numberValue(
-      subagents,
-      "maxChildrenPerAgent",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.maxChildrenPerAgent,
-    ),
-    maxConcurrent: numberValue(
-      subagents,
-      "maxConcurrent",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.maxConcurrent,
-    ),
-    maxSpawnDepth: numberValue(
-      subagents,
-      "maxSpawnDepth",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.maxSpawnDepth,
-    ),
-    model: stringValue(subagents, "model"),
-    requireAgentId: booleanValue(
-      subagents,
-      "requireAgentId",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.requireAgentId,
-    ),
-    runTimeoutSeconds: numberValue(
-      subagents,
-      "runTimeoutSeconds",
-      DEFAULT_GLOBAL_SUBAGENT_DEFAULTS.runTimeoutSeconds,
-    ),
-    thinking: stringValue(subagents, "thinking"),
-  };
+  return asRecord(defaults.subagents) as GlobalDefaults;
 }
 
-function clampInteger(value: number, min: number, max?: number) {
-  const next = Number.isFinite(value) ? Math.trunc(value) : min;
-  return Math.min(Math.max(next, min), max ?? next);
+function isLiveStatus(status?: string) {
+  return status === "active";
 }
 
-function buildConfigWithGlobalSubagentDefaults(config: unknown, defaults: GlobalSubagentDefaults) {
-  const root = { ...asRecord(config) };
-  const agents = { ...asRecord(root.agents) };
-  const agentDefaults = { ...asRecord(agents.defaults) };
-  const subagents = {
-    ...asRecord(agentDefaults.subagents),
-    archiveAfterMinutes: clampInteger(defaults.archiveAfterMinutes, 0),
-    maxChildrenPerAgent: clampInteger(defaults.maxChildrenPerAgent, 1, 20),
-    maxConcurrent: clampInteger(defaults.maxConcurrent, 1),
-    maxSpawnDepth: clampInteger(defaults.maxSpawnDepth, 1, 5),
-    requireAgentId: defaults.requireAgentId,
-    runTimeoutSeconds: clampInteger(defaults.runTimeoutSeconds, 0),
-    ...(defaults.model.trim() ? { model: defaults.model.trim() } : { model: undefined }),
-    ...(defaults.thinking.trim()
-      ? { thinking: defaults.thinking.trim() }
-      : { thinking: undefined }),
-  };
-  agentDefaults.subagents = subagents;
-  agents.defaults = agentDefaults;
-  root.agents = agents;
-  return root;
-}
-
-function formatTimestamp(value: number | undefined, emptyLabel: string) {
-  if (!value) {
-    return emptyLabel;
-  }
-  return new Date(value).toLocaleString();
-}
-
-function timeRangeCutoff(range: TimeRangeFilter, now = Date.now()) {
-  switch (range) {
-    case "1h":
-      return now - 60 * 60 * 1000;
-    case "6h":
-      return now - 6 * 60 * 60 * 1000;
-    case "24h":
-      return now - 24 * 60 * 60 * 1000;
-    case "all":
-      return null;
-  }
-  return null;
-}
-
-function isRunInTimeRange(run: DeckGoSubagentRun, range: TimeRangeFilter) {
-  const cutoff = timeRangeCutoff(range);
-  if (cutoff === null) {
-    return true;
-  }
-  return (run.startedAt ?? run.createdAt) >= cutoff;
-}
-
-function formatRunDuration(run: DeckGoSubagentRun, labels: { elapsed: string; empty: string }) {
-  if (typeof run.durationMs === "number") {
-    return formatDuration(run.durationMs);
-  }
-  if (typeof run.startedAt === "number" && run.status === "active") {
-    return `${formatDuration(Date.now() - run.startedAt)} ${labels.elapsed}`;
-  }
-  return labels.empty;
-}
-
-function describeAllowedSubagents(
-  config: DeckGoAgentSubagentConfigResponse | undefined,
-  labels: { any: string; loading: string; none: string },
-) {
-  if (!config) {
-    return labels.loading;
-  }
-  if (config.allowAny || config.allowAgents.includes("*")) {
-    return labels.any;
-  }
-  if (config.allowAgents.length === 0) {
-    return labels.none;
-  }
-  return config.allowAgents.join(", ");
-}
-
-function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
-  const childrenByParent = new Map<string, DeckGoSubagentLineageNode[]>();
-  for (const node of nodes) {
-    const siblings = childrenByParent.get(node.parentRunId) ?? [];
-    siblings.push(node);
-    childrenByParent.set(node.parentRunId, siblings);
-  }
-
-  function build(parentRunId: string, ancestors: Set<string>): LineageTreeNode[] {
-    const children = (childrenByParent.get(parentRunId) ?? [])
-      .slice()
-      .toSorted((left, right) =>
-        left.depth === right.depth
-          ? left.runId.localeCompare(right.runId)
-          : left.depth - right.depth,
-      );
-    return children
-      .filter((node) => !ancestors.has(node.runId))
-      .map((node) => {
-        const nextAncestors = new Set(ancestors);
-        nextAncestors.add(node.runId);
-        return {
-          node,
-          children: build(node.runId, nextAncestors),
-        };
-      });
-  }
-
-  const roots = nodes
-    .filter((node) => !node.parentRunId)
-    .slice()
-    .toSorted((left, right) => left.runId.localeCompare(right.runId));
-  return roots.map((node) => ({
-    node,
-    children: build(node.runId, new Set([node.runId])),
-  }));
-}
-
-function badgeVariant(status?: string) {
+function statusVariant(status?: string) {
   if (status === "active") {
     return "running";
   }
@@ -305,28 +105,133 @@ function badgeVariant(status?: string) {
   return "neutral";
 }
 
-function loadVariant(loadState: PanelState) {
-  if (loadState === "ready") {
-    return "ok";
+function statusLabel(t: SubagentsTranslator, status?: string) {
+  if (status === "active") {
+    return t("statusActive");
   }
-  if (loadState === "loading") {
-    return "running";
+  if (status === "completed") {
+    return t("completed");
   }
-  return "neutral";
+  if (status === "failed") {
+    return t("failed");
+  }
+  if (status === "timeout") {
+    return t("timeout");
+  }
+  if (status === "all") {
+    return t("allStatus");
+  }
+  return status || t("notAvailable");
 }
 
-function Field(props: { emptyLabel: string; label: string; value?: string | number }) {
+function spawnLabel(t: SubagentsTranslator, mode: string) {
+  if (mode === "all") {
+    return t("spawnAll");
+  }
+  if (mode === "blocking") {
+    return t("spawnBlocking");
+  }
+  if (mode === "background") {
+    return t("spawnBackground");
+  }
+  return mode || t("notAvailable");
+}
+
+function formatTimestamp(value: number | undefined, emptyLabel: string) {
+  return value ? new Date(value).toLocaleString() : emptyLabel;
+}
+
+function formatRunDuration(run: DeckGoSubagentRun, t: SubagentsTranslator) {
+  if (typeof run.durationMs === "number") {
+    return formatDuration(run.durationMs);
+  }
+  if (typeof run.startedAt === "number" && isLiveStatus(run.status)) {
+    return `${formatDuration(Date.now() - run.startedAt)} ${t("elapsed")}`;
+  }
+  return t("notAvailable");
+}
+
+function runSearchText(run: DeckGoSubagentRun) {
+  return [
+    run.runId,
+    run.childSessionKey,
+    run.childAgentId,
+    run.childAgentName,
+    run.requesterSessionKey,
+    run.requesterAgentId,
+    run.requesterAgentName,
+    run.task,
+    run.label,
+    run.model,
+    run.spawnMode,
+    run.status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function configSummary(
+  config: DeckGoAgentSubagentConfigResponse | undefined,
+  t: SubagentsTranslator,
+) {
+  if (!config) {
+    return t("loading");
+  }
+  if (config.allowAny || config.allowAgents.includes("*")) {
+    return t("allowAny");
+  }
+  if (config.allowAgents.length === 0) {
+    return t("allowNone");
+  }
+  return config.allowAgents.join(", ");
+}
+
+function buildLineageTree(nodes: DeckGoSubagentLineageNode[]) {
+  const childrenByParent = new Map<string, DeckGoSubagentLineageNode[]>();
+  const roots: DeckGoSubagentLineageNode[] = [];
+
+  for (const node of nodes) {
+    const parentRunId = node.parentRunId || "";
+    if (!parentRunId) {
+      roots.push(node);
+      continue;
+    }
+    const siblings = childrenByParent.get(parentRunId) ?? [];
+    siblings.push(node);
+    childrenByParent.set(parentRunId, siblings);
+  }
+
+  function build(parentRunId: string, ancestors: Set<string>): LineageTreeNode[] {
+    return (childrenByParent.get(parentRunId) ?? [])
+      .slice()
+      .toSorted((left, right) => left.runId.localeCompare(right.runId))
+      .filter((node) => !ancestors.has(node.runId))
+      .map((node) => {
+        const nextAncestors = new Set(ancestors);
+        nextAncestors.add(node.runId);
+        return { node, children: build(node.runId, nextAncestors) };
+      });
+  }
+
+  return roots
+    .slice()
+    .toSorted((left, right) => left.runId.localeCompare(right.runId))
+    .map((node) => ({ node, children: build(node.runId, new Set([node.runId])) }));
+}
+
+function Field(props: { label: string; value: ReactNode }) {
   return (
-    <div className="subagents-field">
-      <span>{props.label}</span>
-      <strong>{props.value || props.emptyLabel}</strong>
+    <div className="field-row">
+      <span className="field-row__label">{props.label}</span>
+      <strong>{props.value}</strong>
     </div>
   );
 }
 
-function MetricTile(props: { hint?: string; label: string; value: string | number }) {
+function Kpi(props: { label: string; value: string | number; hint?: string }) {
   return (
-    <article className="subagents-metric">
+    <article className="kpi">
       <span>{props.label}</span>
       <strong>{props.value}</strong>
       {props.hint ? <small>{props.hint}</small> : null}
@@ -334,40 +239,56 @@ function MetricTile(props: { hint?: string; label: string; value: string | numbe
   );
 }
 
-function LineageTreeView(props: {
-  labels: {
-    depth: string;
-    empty: string;
-    run: string;
-    status: string;
-    statusValue: (status?: string) => string;
-  };
+function AgentGlyph(props: { id: string; name?: string }) {
+  const label = (props.name || props.id || "?").slice(0, 2).toUpperCase();
+  return (
+    <span className="agent-glyph" aria-hidden="true">
+      {label}
+    </span>
+  );
+}
+
+function LineageTree(props: {
   nodes: LineageTreeNode[];
+  selectedRunId: string;
+  onSelect: (runId: string) => void;
+  t: SubagentsTranslator;
 }) {
   if (props.nodes.length === 0) {
-    return <p className="subagents-panel__empty">{props.labels.empty}</p>;
+    return <div className="empty-block">{props.t("lineageEmpty")}</div>;
   }
 
   return (
-    <ul className="subagents-lineage-list">
+    <ul className="tree" role="tree">
       {props.nodes.map((entry) => (
         <li key={entry.node.runId}>
-          <article className="subagents-lineage-node">
-            <div className="subagents-row__top">
+          <button
+            type="button"
+            className={
+              entry.node.runId === props.selectedRunId
+                ? "tree-node tree-node--selected"
+                : "tree-node"
+            }
+            role="treeitem"
+            aria-selected={entry.node.runId === props.selectedRunId}
+            onClick={() => props.onSelect(entry.node.runId)}
+          >
+            <span className="tree-node__main">
               <strong>{entry.node.agentName || entry.node.agentId}</strong>
-              <Badge variant={badgeVariant(entry.node.status)}>
-                {props.labels.statusValue(entry.node.status)}
-              </Badge>
-            </div>
-            <p className="subagents-row__meta">
-              {props.labels.run}: {entry.node.runId} | {props.labels.depth}: {entry.node.depth} |{" "}
-              {props.labels.status}: {props.labels.statusValue(entry.node.status)}
-            </p>
-            {entry.node.task ? <p className="subagents-row__note">{entry.node.task}</p> : null}
-          </article>
+              <small>{entry.node.runId}</small>
+            </span>
+            <Badge variant={statusVariant(entry.node.status)}>
+              {statusLabel(props.t, entry.node.status)}
+            </Badge>
+          </button>
           {entry.children.length > 0 ? (
-            <div className="subagents-lineage-children">
-              <LineageTreeView labels={props.labels} nodes={entry.children} />
+            <div className="tree-children">
+              <LineageTree
+                nodes={entry.children}
+                selectedRunId={props.selectedRunId}
+                t={props.t}
+                onSelect={props.onSelect}
+              />
             </div>
           ) : null}
         </li>
@@ -380,41 +301,102 @@ export function SubagentsPanel() {
   const t = useTranslations("subagents");
   const tc = useTranslations("common");
   const ui = useDeckUI();
-  const [activeTab, setActiveTab] = useState<SubagentsTab>("active");
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const selectedRunIdRef = useRef("");
+
+  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const [mode, setMode] = useState<ListMode>("runs");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [spawnFilter, setSpawnFilter] = useState<SpawnFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [agents, setAgents] = useState<DeckGoAgentSummary[]>([]);
   const [agentConfigs, setAgentConfigs] = useState<
     Record<string, DeckGoAgentSubagentConfigResponse>
   >({});
-  const [globalDefaults, setGlobalDefaults] = useState(DEFAULT_GLOBAL_SUBAGENT_DEFAULTS);
-  const [configBaseHash, setConfigBaseHash] = useState("");
+  const [globalDefaults, setGlobalDefaults] = useState<GlobalDefaults>({});
   const [runs, setRuns] = useState<DeckGoSubagentRun[]>([]);
   const [total, setTotal] = useState(0);
   const [selectedRunId, setSelectedRunId] = useState("");
-  const selectedRunIdRef = useRef("");
   const [lineage, setLineage] = useState<DeckGoSubagentsLineageResponse | null>(null);
-  const [steerInstruction, setSteerInstruction] = useState("");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [configActionState, setConfigActionState] = useState<"idle" | "saving">("idle");
-  const [actionState, setActionState] = useState<"idle" | "lineage" | "killing" | "steering">(
-    "idle",
-  );
-  const [visibleLimit, setVisibleLimit] = useState(VISIBLE_RUN_INCREMENT);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [actionResult, setActionResult] = useState<unknown>(null);
-  const [configActionResult, setConfigActionResult] = useState<unknown>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>("overview");
   const [error, setError] = useState("");
+  const [actionState, setActionState] = useState<
+    "idle" | "lineage" | "killing" | "steering" | "saving"
+  >("idle");
+  const [actionResult, setActionResult] = useState<unknown>(null);
+  const [steerOpen, setSteerOpen] = useState(false);
+  const [steerDraft, setSteerDraft] = useState("");
+  const [killOpen, setKillOpen] = useState(false);
+  const [permissionOpen, setPermissionOpen] = useState(false);
+  const [permissionDraft, setPermissionDraft] = useState<PermissionDraft | null>(null);
+  const [outcomeOpen, setOutcomeOpen] = useState(false);
 
   useEffect(() => {
     selectedRunIdRef.current = selectedRunId;
   }, [selectedRunId]);
 
-  const loadAgents = useCallback(async () => {
+  const agentOptions = useMemo(() => {
+    const byId = new Map<string, string>();
+    for (const agent of agents) {
+      byId.set(agent.id, agent.name || agent.id);
+    }
+    for (const run of runs) {
+      byId.set(
+        run.childAgentId,
+        run.childAgentName || byId.get(run.childAgentId) || run.childAgentId,
+      );
+      byId.set(
+        run.requesterAgentId,
+        run.requesterAgentName || byId.get(run.requesterAgentId) || run.requesterAgentId,
+      );
+    }
+    return Array.from(byId, ([id, name]) => ({ id, name })).toSorted((left, right) =>
+      left.name.localeCompare(right.name),
+    );
+  }, [agents, runs]);
+
+  const selectedRun = useMemo(
+    () => runs.find((run) => run.runId === selectedRunId) ?? runs[0] ?? null,
+    [runs, selectedRunId],
+  );
+  const liveCount = useMemo(() => runs.filter((run) => isLiveStatus(run.status)).length, [runs]);
+  const failedCount = useMemo(
+    () => runs.filter((run) => run.status === "failed" || run.status === "timeout").length,
+    [runs],
+  );
+  const lineageTree = useMemo(() => buildLineageTree(lineage?.nodes ?? []), [lineage]);
+
+  const filteredRuns = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return runs
+      .filter((run) => (statusFilter === "all" ? true : run.status === statusFilter))
+      .filter((run) => (spawnFilter === "all" ? true : run.spawnMode.toLowerCase() === spawnFilter))
+      .filter((run) => (query ? runSearchText(run).includes(query) : true))
+      .toSorted((left, right) => {
+        const liveDelta = Number(isLiveStatus(right.status)) - Number(isLiveStatus(left.status));
+        return liveDelta !== 0 ? liveDelta : right.createdAt - left.createdAt;
+      });
+  }, [runs, searchQuery, spawnFilter, statusFilter]);
+
+  const filteredAgents = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return agentOptions.filter((agent) => {
+      if (!query) {
+        return true;
+      }
+      return `${agent.id} ${agent.name}`.toLowerCase().includes(query);
+    });
+  }, [agentOptions, searchQuery]);
+
+  const loadAgentsAndConfig = useCallback(async () => {
     try {
-      const next = await fetchAgentsList();
-      const nextAgents = next.agents ?? [];
+      const [agentList, configSnapshot] = await Promise.all([fetchAgentsList(), fetchDeckConfig()]);
+      const nextAgents = agentList.agents ?? [];
       setAgents(nextAgents);
-      const configs = await Promise.all(
+      setGlobalDefaults(readGlobalDefaults(configSnapshot.config));
+
+      const pairs = await Promise.all(
         nextAgents.map(async (agent) => {
           try {
             return [agent.id, await fetchAgentSubagentConfig(agent.id)] as const;
@@ -425,26 +407,16 @@ export function SubagentsPanel() {
       );
       setAgentConfigs(
         Object.fromEntries(
-          configs.filter(
-            (entry): entry is readonly [string, DeckGoAgentSubagentConfigResponse] =>
-              entry[1] !== null,
+          pairs.filter(
+            (pair): pair is readonly [string, DeckGoAgentSubagentConfigResponse] =>
+              pair[1] !== null,
           ),
         ),
       );
     } catch {
       setAgents([]);
       setAgentConfigs({});
-    }
-  }, []);
-
-  const loadGlobalDefaults = useCallback(async () => {
-    try {
-      const snapshot = await fetchDeckConfig();
-      setGlobalDefaults(readGlobalSubagentDefaults(snapshot.config));
-      setConfigBaseHash(snapshot.baseHash ?? snapshot.hash ?? "");
-    } catch {
-      setGlobalDefaults(DEFAULT_GLOBAL_SUBAGENT_DEFAULTS);
-      setConfigBaseHash("");
+      setGlobalDefaults({});
     }
   }, []);
 
@@ -452,35 +424,26 @@ export function SubagentsPanel() {
     async (preferredRunId?: string) => {
       setLoadState("loading");
       try {
-        const request: NonNullable<Parameters<typeof fetchSubagentRuns>[0]> = {
+        const next = await fetchSubagentRuns({
           limit: RUNS_FETCH_LIMIT,
-          status: filters.status,
-        };
-        if (filters.childAgentId.trim()) {
-          request.agentId = filters.childAgentId.trim();
-        }
-        if (filters.requesterAgentId.trim()) {
-          request.requesterAgentId = filters.requesterAgentId.trim();
-        }
-        const next = await fetchSubagentRuns(request);
-        const nextRuns = (next.runs ?? []).filter((run) =>
-          isRunInTimeRange(run, filters.timeRange),
-        );
+          status: "all",
+        });
+        const nextRuns = next.runs ?? [];
         setRuns(nextRuns);
         setTotal(next.total ?? nextRuns.length);
         setLoadState("ready");
         setError("");
-        const fallbackId = preferredRunId?.trim() || nextRuns[0]?.runId || "";
-        const currentSelectedRunId = selectedRunIdRef.current;
-        const nextSelectedRunId = nextRuns.some((run) => run.runId === currentSelectedRunId)
-          ? currentSelectedRunId
-          : nextRuns.some((run) => run.runId === fallbackId)
-            ? fallbackId
-            : nextRuns[0]?.runId || "";
-        selectedRunIdRef.current = nextSelectedRunId;
-        setSelectedRunId(nextSelectedRunId);
-        if (nextSelectedRunId) {
-          const lineageResult = await fetchSubagentLineage({ runId: nextSelectedRunId });
+
+        const currentId = selectedRunIdRef.current;
+        const fallbackId = preferredRunId || currentId || nextRuns[0]?.runId || "";
+        const nextSelected = nextRuns.some((run) => run.runId === fallbackId)
+          ? fallbackId
+          : nextRuns[0]?.runId || "";
+        selectedRunIdRef.current = nextSelected;
+        setSelectedRunId(nextSelected);
+
+        if (nextSelected) {
+          const lineageResult = await fetchSubagentLineage({ runId: nextSelected });
           setLineage(lineageResult);
         } else {
           setLineage(null);
@@ -490,16 +453,14 @@ export function SubagentsPanel() {
         setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
       }
     },
-    [filters, t],
+    [t],
   );
 
   useEffect(() => {
-    void loadAgents();
-    void loadGlobalDefaults();
-  }, [loadAgents, loadGlobalDefaults]);
+    void loadAgentsAndConfig();
+  }, [loadAgentsAndConfig]);
 
   useEffect(() => {
-    setVisibleLimit(VISIBLE_RUN_INCREMENT);
     void refresh();
   }, [refresh]);
 
@@ -507,59 +468,44 @@ export function SubagentsPanel() {
     if (!autoRefresh) {
       return undefined;
     }
-    const poll = () => {
+    const timer = window.setInterval(() => {
       if (document.visibilityState !== "hidden") {
         void refresh();
       }
-    };
-    const timer = window.setInterval(poll, SUBAGENT_POLL_INTERVAL_MS);
-    const handleVisibility = () => {
-      if (document.visibilityState !== "hidden") {
-        void refresh();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
+    }, POLL_INTERVAL_MS);
+    return () => window.clearInterval(timer);
   }, [autoRefresh, refresh]);
 
-  const selectedRun = runs.find((run) => run.runId === selectedRunId) ?? runs[0] ?? null;
-  const activeCount = useMemo(() => runs.filter((run) => run.status === "active").length, [runs]);
-  const historyCount = runs.length - activeCount;
-  const visibleRuns = useMemo(() => runs.slice(0, visibleLimit), [runs, visibleLimit]);
-  const lineageTree = useMemo(() => buildLineageTree(lineage?.nodes ?? []), [lineage]);
-  const agentOptions = useMemo(() => {
-    const byId = new Map<string, string>();
-    for (const agent of agents) {
-      byId.set(agent.id, agent.name || agent.id);
-    }
-    for (const run of runs) {
-      if (run.childAgentId) {
-        byId.set(
-          run.childAgentId,
-          run.childAgentName || byId.get(run.childAgentId) || run.childAgentId,
-        );
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey)) {
+        return;
       }
-      if (run.requesterAgentId) {
-        byId.set(
-          run.requesterAgentId,
-          run.requesterAgentName || byId.get(run.requesterAgentId) || run.requesterAgentId,
-        );
+      const key = event.key.toLowerCase();
+      if (key === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
       }
-    }
-    return Array.from(byId, ([id, label]) => ({ id, label })).toSorted((left, right) =>
-      left.label.localeCompare(right.label),
-    );
-  }, [agents, runs]);
+      if (key === "p") {
+        event.preventDefault();
+        setMode("permissions");
+      }
+      if (key === "r") {
+        event.preventDefault();
+        void refresh();
+      }
+    };
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [refresh]);
 
-  const selectRun = async (run: DeckGoSubagentRun) => {
-    setSelectedRunId(run.runId);
+  const selectRun = async (runId: string) => {
+    setSelectedRunId(runId);
+    selectedRunIdRef.current = runId;
     setActionState("lineage");
     try {
-      const result = await fetchSubagentLineage({ runId: run.runId });
-      setLineage(result);
+      setLineage(await fetchSubagentLineage({ runId }));
+      setDetailTab("overview");
       setError("");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("lineageLoadFailed"));
@@ -568,17 +514,15 @@ export function SubagentsPanel() {
     }
   };
 
-  const killAction = async () => {
+  const confirmKill = async () => {
     if (!selectedRun) {
-      return;
-    }
-    if (!window.confirm(t("killConfirm", { runId: selectedRun.runId }))) {
       return;
     }
     setActionState("killing");
     try {
       const result = await killSubagentRun(selectedRun.runId);
       setActionResult(result);
+      setKillOpen(false);
       setError("");
       await refresh(selectedRun.runId);
     } catch (actionError) {
@@ -588,16 +532,17 @@ export function SubagentsPanel() {
     }
   };
 
-  const steerAction = async () => {
-    if (!selectedRun || !steerInstruction.trim()) {
+  const sendSteer = async () => {
+    if (!selectedRun || !steerDraft.trim()) {
       return;
     }
     setActionState("steering");
     try {
-      const result = await steerSubagentRun(selectedRun.runId, steerInstruction.trim());
+      const result = await steerSubagentRun(selectedRun.runId, steerDraft.trim());
       setActionResult(result);
+      setSteerDraft("");
+      setSteerOpen(false);
       setError("");
-      setSteerInstruction("");
       await refresh(selectedRun.runId);
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("steerError"));
@@ -606,546 +551,342 @@ export function SubagentsPanel() {
     }
   };
 
-  const updateGlobalDefault = <Key extends keyof GlobalSubagentDefaults>(
-    key: Key,
-    value: GlobalSubagentDefaults[Key],
-  ) => {
-    setGlobalDefaults((current) => ({ ...current, [key]: value }));
+  const openPermissionEditor = async (agentId: string) => {
+    let config = agentConfigs[agentId];
+    if (!config) {
+      config = await fetchAgentSubagentConfig(agentId);
+      setAgentConfigs((current) => ({ ...current, [agentId]: config }));
+    }
+    setPermissionDraft({
+      agentId,
+      allowAny: config.allowAny || config.allowAgents.includes("*"),
+      allowAgents: config.allowAgents.filter((entry) => entry !== "*"),
+      model: config.model ?? "",
+    });
+    setPermissionOpen(true);
   };
 
-  const saveGlobalDefaults = async () => {
-    setConfigActionState("saving");
+  const savePermissionDraft = async () => {
+    if (!permissionDraft) {
+      return;
+    }
+    const currentConfig = agentConfigs[permissionDraft.agentId];
+    if (!currentConfig?.configHash) {
+      setError(t("permissionMissingHash"));
+      return;
+    }
+    setActionState("saving");
     try {
-      const snapshot = await fetchDeckConfig();
-      const raw =
-        typeof snapshot.raw === "string"
-          ? snapshot.raw
-          : JSON.stringify(snapshot.config ?? {}, null, 2);
-      const parsed = JSON.parse(raw) as unknown;
-      const nextConfig = buildConfigWithGlobalSubagentDefaults(parsed, globalDefaults);
-      const result = await applyDeckConfig(
-        JSON.stringify(nextConfig, null, 2),
-        snapshot.baseHash ?? snapshot.hash ?? configBaseHash,
-      );
-      setConfigActionResult(result);
-      setConfigBaseHash(result.baseHash ?? result.hash ?? configBaseHash);
+      const allowAgents = permissionDraft.allowAny ? ["*"] : permissionDraft.allowAgents;
+      const result = await updateAgentSubagentConfig(permissionDraft.agentId, {
+        allowAgents,
+        model: permissionDraft.model.trim() || undefined,
+        baseHash: currentConfig.configHash,
+      });
+      const refreshed = await fetchAgentSubagentConfig(permissionDraft.agentId);
+      setAgentConfigs((current) => ({
+        ...current,
+        [permissionDraft.agentId]: {
+          ...refreshed,
+          configHash: refreshed.configHash || result.configHash || currentConfig.configHash,
+        },
+      }));
+      setActionResult(result);
+      setPermissionOpen(false);
+      setPermissionDraft(null);
       setError("");
-      await loadGlobalDefaults();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("defaultsUpdateFailed"));
+      setError(actionError instanceof Error ? actionError.message : t("permissionSaveFailed"));
     } finally {
-      setConfigActionState("idle");
+      setActionState("idle");
     }
   };
 
   const emptyLabel = t("notAvailable");
-  const defaultLabel = tc("inherit");
-  const durationLabels = { elapsed: t("elapsed"), empty: emptyLabel };
-  const allowedLabels = {
-    any: t("allowAny"),
-    loading: tc("loading"),
-    none: t("allowNone"),
-  };
-  const lineageLabels = {
-    depth: t("depth"),
-    empty: t("lineageEmpty"),
-    run: t("run"),
-    status: t("status"),
-    statusValue: (status?: string) => statusLabel(t, status),
-  };
-
-  const selectTab = (nextTab: SubagentsTab) => {
-    setActiveTab(nextTab);
-    if (nextTab === "active") {
-      setFilters((current) => ({ ...current, status: "active" }));
-      return;
-    }
-    if (nextTab === "history") {
-      setFilters((current) => ({
-        ...current,
-        status: current.status === "active" ? "all" : current.status,
-      }));
-    }
-  };
 
   return (
     <section className="subagents-panel" data-testid="subagents-panel">
-      <div className="subagents-panel__header">
+      <header className="subagents-panel__topbar">
         <div>
           <p className="subagents-panel__eyebrow">operations / subagents</p>
           <h2>{t("title")}</h2>
-          <p>{t("description")}</p>
+          <p>{t("descriptionV2")}</p>
         </div>
-        <div className="subagents-panel__header-actions">
-          <Badge variant={loadVariant(loadState)}>
+        <div className="subagents-panel__actions">
+          <Badge
+            variant={loadState === "loading" ? "running" : loadState === "ready" ? "ok" : "neutral"}
+          >
             {loadState === "loading" ? tc("loading") : t(loadState)}
           </Badge>
           {loadState === "loading" ? <Spinner aria-label={tc("loading")} size="sm" /> : null}
-          <div className="subagents-toggle">
+          <label className="subagents-auto">
             <Toggle
               aria-label={t("autoRefresh")}
               checked={autoRefresh}
               onCheckedChange={setAutoRefresh}
             />
             <span>{t("autoRefresh")}</span>
-          </div>
+          </label>
           <Button size="sm" onClick={() => void refresh()}>
             {t("refreshRuns")}
           </Button>
         </div>
-      </div>
+      </header>
 
       {error ? (
-        <div className="subagents-panel__banner" role="status">
+        <div className="banner banner--error" role="status">
           <Badge variant="err">{t("failed")}</Badge>
           <span>{error}</span>
         </div>
       ) : null}
 
-      <div className="subagents-panel__metrics">
-        <MetricTile
-          hint={t("mode", { mode: statusLabel(t, filters.status) })}
-          label={t("visibleCount", { count: runs.length })}
-          value={runs.length}
+      <div className="kpi-strip">
+        <Kpi
+          label={t("visibleCount", { count: filteredRuns.length })}
+          value={filteredRuns.length}
         />
-        <MetricTile label={t("serverTotal", { count: total })} value={total} />
-        <MetricTile label={t("activeStat")} value={activeCount} />
-        <MetricTile label={t("historyStat")} value={historyCount} />
-        <MetricTile
-          hint={selectedRun?.model || defaultLabel}
+        <Kpi label={t("serverTotal", { count: total })} value={total} />
+        <Kpi label={t("activeStat")} value={liveCount} />
+        <Kpi label={t("failedKpi")} value={failedCount} />
+        <Kpi
+          hint={selectedRun?.model || emptyLabel}
           label={t("selectedRun")}
           value={selectedRun ? `${t("depth")} ${selectedRun.depth}` : emptyLabel}
         />
       </div>
 
       <div className="subagents-workbench">
-        <Card className="subagents-card subagents-queue-card" padded={false}>
-          <div className="subagents-card__header">
-            <div>
-              <h3>{activeTab === "config" ? t("config") : t("runs")}</h3>
-              <p>{activeTab === "config" ? t("globalDefaultsDescription") : t("runFilters")}</p>
-            </div>
+        <Card className="subagents-list-card" padded={false}>
+          <div className="toolbar">
             <SegmentedControl
-              aria-label={t("title")}
+              aria-label={t("listMode")}
               controlSize="xs"
               items={[
-                { value: "active", label: t("activeRuns") },
-                { value: "history", label: t("history") },
-                { value: "config", label: t("config") },
+                { value: "runs", label: t("runs") },
+                { value: "permissions", label: t("perAgentPermissions") },
               ]}
-              value={activeTab}
-              onChange={selectTab}
+              value={mode}
+              onChange={(next) => setMode(next)}
             />
-          </div>
-          <div className="subagents-card__body">
-            {activeTab === "config" ? (
+            <Input
+              ref={searchRef}
+              aria-label={t("search")}
+              className="toolbar__search"
+              inputSize="sm"
+              value={searchQuery}
+              placeholder={t(mode === "runs" ? "searchRuns" : "searchPermissions")}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            {mode === "runs" ? (
               <>
-                <section className="subagents-surface">
-                  <div className="subagents-section-heading">
-                    <div>
-                      <h3>{t("globalDefaults")}</h3>
-                      <p>{t("globalDefaultsDescription")}</p>
-                    </div>
-                    <Badge>{t("hashLabel", { hash: configBaseHash || emptyLabel })}</Badge>
-                  </div>
-                  <div className="subagents-defaults-grid">
-                    <label className="subagents-label">
-                      <span>{t("maxSpawnDepth")}</span>
-                      <Input
-                        aria-label={t("globalMaxSpawnDepth")}
-                        inputSize="sm"
-                        min={1}
-                        max={5}
-                        type="number"
-                        value={globalDefaults.maxSpawnDepth}
-                        onChange={(event) =>
-                          updateGlobalDefault("maxSpawnDepth", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("maxChildrenPerAgent")}</span>
-                      <Input
-                        aria-label={t("globalMaxChildrenPerAgent")}
-                        inputSize="sm"
-                        min={1}
-                        max={20}
-                        type="number"
-                        value={globalDefaults.maxChildrenPerAgent}
-                        onChange={(event) =>
-                          updateGlobalDefault("maxChildrenPerAgent", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("maxConcurrent")}</span>
-                      <Input
-                        aria-label={t("globalMaxConcurrent")}
-                        inputSize="sm"
-                        min={1}
-                        type="number"
-                        value={globalDefaults.maxConcurrent}
-                        onChange={(event) =>
-                          updateGlobalDefault("maxConcurrent", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("archiveAfterMinutes")}</span>
-                      <Input
-                        aria-label={t("globalArchiveAfterMinutes")}
-                        inputSize="sm"
-                        min={0}
-                        type="number"
-                        value={globalDefaults.archiveAfterMinutes}
-                        onChange={(event) =>
-                          updateGlobalDefault("archiveAfterMinutes", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("runTimeoutSeconds")}</span>
-                      <Input
-                        aria-label={t("globalRunTimeoutSeconds")}
-                        inputSize="sm"
-                        min={0}
-                        type="number"
-                        value={globalDefaults.runTimeoutSeconds}
-                        onChange={(event) =>
-                          updateGlobalDefault("runTimeoutSeconds", Number(event.target.value))
-                        }
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("thinkingDefault")}</span>
-                      <Input
-                        aria-label={t("globalThinkingDefault")}
-                        inputSize="sm"
-                        value={globalDefaults.thinking}
-                        onChange={(event) => updateGlobalDefault("thinking", event.target.value)}
-                        placeholder={t("thinkingPlaceholder")}
-                      />
-                    </label>
-                  </div>
-                  <div className="subagents-config-row">
-                    <label className="subagents-label">
-                      <span>{t("defaultModel")}</span>
-                      <Input
-                        aria-label={t("globalDefaultModel")}
-                        inputSize="sm"
-                        value={globalDefaults.model}
-                        onChange={(event) => updateGlobalDefault("model", event.target.value)}
-                        placeholder={t("modelPlaceholder")}
-                      />
-                    </label>
-                    <div className="subagents-toggle subagents-toggle--field">
-                      <Toggle
-                        aria-label={t("globalRequireExplicitAgentId")}
-                        checked={globalDefaults.requireAgentId}
-                        onCheckedChange={(next) => updateGlobalDefault("requireAgentId", next)}
-                      />
-                      <span>{t("requireExplicitAgentId")}</span>
-                    </div>
-                  </div>
-                  <div className="subagents-inline-actions">
-                    <Button
-                      disabled={configActionState !== "idle"}
-                      size="sm"
-                      onClick={() => void loadGlobalDefaults()}
-                    >
-                      {t("reloadDefaults")}
-                    </Button>
-                    <Button
-                      disabled={configActionState !== "idle"}
-                      size="sm"
-                      variant="primary"
-                      onClick={() => void saveGlobalDefaults()}
-                    >
-                      {configActionState === "saving" ? t("savingDefaults") : t("saveDefaults")}
-                    </Button>
-                  </div>
-                  {configActionResult ? (
-                    <JsonDetails title={t("defaultsSaveResult")} payload={configActionResult} />
-                  ) : null}
-                </section>
-                <section className="subagents-surface">
-                  <div className="subagents-section-heading">
-                    <div>
-                      <h3>{t("perAgentPermissions")}</h3>
-                      <p>{t("globalDefaultsDescription")}</p>
-                    </div>
-                  </div>
-                  {agents.length === 0 ? (
-                    <p className="subagents-panel__empty">{t("noAgentsConfigured")}</p>
-                  ) : (
-                    <ul className="subagents-list">
-                      {agents.map((agent) => {
-                        const config = agentConfigs[agent.id];
-                        return (
-                          <li key={agent.id}>
-                            <article className="subagents-permission-row">
-                              <div className="subagents-row__top">
-                                <strong>{agent.name || agent.id}</strong>
-                                <Badge>
-                                  {t("allowed")}: {describeAllowedSubagents(config, allowedLabels)}
-                                </Badge>
-                              </div>
-                              <p className="subagents-row__meta">
-                                {t("depth")}: {config?.effectiveMaxSpawnDepth ?? emptyLabel} |{" "}
-                                {t("children")}:{" "}
-                                {config?.effectiveMaxChildrenPerAgent ?? emptyLabel} | {t("model")}:{" "}
-                                {config?.model || defaultLabel}
-                              </p>
-                              <Button
-                                size="sm"
-                                onClick={() => navigateToAgent(ui, agent.id, "subagents")}
-                              >
-                                {t("openAgentSubagents")}
-                              </Button>
-                            </article>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </section>
+                <SegmentedControl
+                  aria-label={t("runStatusFilter")}
+                  controlSize="xs"
+                  items={STATUS_FILTERS.map((status) => ({
+                    value: status,
+                    label: statusLabel(t, status),
+                  }))}
+                  value={statusFilter}
+                  onChange={(next) => setStatusFilter(next)}
+                />
+                <SegmentedControl
+                  aria-label={t("spawnMode")}
+                  controlSize="xs"
+                  items={SPAWN_FILTERS.map((spawn) => ({
+                    value: spawn,
+                    label: spawnLabel(t, spawn),
+                  }))}
+                  value={spawnFilter}
+                  onChange={(next) => setSpawnFilter(next)}
+                />
               </>
-            ) : (
-              <>
-                <section className="subagents-surface">
-                  <div className="subagents-filters">
-                    <label className="subagents-label">
-                      <span>{t("childAgentFilter")}</span>
-                      <Select
-                        aria-label={t("childAgentFilter")}
-                        selectSize="sm"
-                        value={filters.childAgentId}
-                        onChange={(event) =>
-                          setFilters((current) => ({
-                            ...current,
-                            childAgentId: event.target.value,
-                          }))
-                        }
-                      >
-                        <option value="">{t("allChildAgents")}</option>
-                        {agentOptions.map((agent) => (
-                          <option key={agent.id} value={agent.id}>
-                            {agent.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("requesterAgentFilter")}</span>
-                      <Input
-                        aria-label={t("requesterAgentFilter")}
-                        inputSize="sm"
-                        value={filters.requesterAgentId}
-                        onChange={(event) =>
-                          setFilters((current) => ({
-                            ...current,
-                            requesterAgentId: event.target.value,
-                          }))
-                        }
-                        placeholder={t("requesterAgentPlaceholder")}
-                      />
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("runStatusFilter")}</span>
-                      <Select
-                        aria-label={t("runStatusFilter")}
-                        selectSize="sm"
-                        value={filters.status}
-                        onChange={(event) =>
-                          setFilters((current) => ({
-                            ...current,
-                            status: event.target.value as SubagentStatusFilter,
-                          }))
-                        }
-                      >
-                        {(["all", "active", "completed", "failed", "timeout"] as const).map(
-                          (status) => (
-                            <option key={status} value={status}>
-                              {statusLabel(t, status)}
-                            </option>
-                          ),
-                        )}
-                      </Select>
-                    </label>
-                    <label className="subagents-label">
-                      <span>{t("runTimeRangeFilter")}</span>
-                      <Select
-                        aria-label={t("runTimeRangeFilter")}
-                        selectSize="sm"
-                        value={filters.timeRange}
-                        onChange={(event) =>
-                          setFilters((current) => ({
-                            ...current,
-                            timeRange: event.target.value as TimeRangeFilter,
-                          }))
-                        }
-                      >
-                        {(["1h", "6h", "24h", "all"] as const).map((range) => (
-                          <option key={range} value={range}>
-                            {timeRangeLabel(t, range)}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                  </div>
-                </section>
+            ) : null}
+          </div>
 
-                {runs.length === 0 ? (
-                  <p className="subagents-panel__empty">{t("noRunsFound")}</p>
-                ) : (
-                  <ul className="subagents-run-list">
-                    {visibleRuns.map((run) => (
-                      <li key={run.runId}>
-                        <button
-                          type="button"
-                          aria-pressed={selectedRun?.runId === run.runId}
-                          className={
-                            selectedRun?.runId === run.runId
-                              ? "subagents-run-row is-selected"
-                              : "subagents-run-row"
-                          }
-                          onClick={() => void selectRun(run)}
-                        >
-                          <div className="subagents-row__top">
-                            <strong>{run.childAgentName || run.childAgentId}</strong>
-                            <Badge variant={badgeVariant(run.status)}>
-                              {statusLabel(t, run.status)}
-                            </Badge>
+          {mode === "permissions" ? (
+            <div className="permissions-mode">
+              <section className="global-defaults">
+                <div>
+                  <h3>{t("globalDefaults")}</h3>
+                  <p>{t("globalDefaultsReadonly")}</p>
+                </div>
+                <div className="global-defaults__grid">
+                  <Tag>
+                    {t("maxSpawnDepth")}: {String(globalDefaults.maxSpawnDepth ?? emptyLabel)}
+                  </Tag>
+                  <Tag>
+                    {t("maxChildrenPerAgent")}:{" "}
+                    {String(globalDefaults.maxChildrenPerAgent ?? emptyLabel)}
+                  </Tag>
+                  <Tag>
+                    {t("maxConcurrent")}: {String(globalDefaults.maxConcurrent ?? emptyLabel)}
+                  </Tag>
+                  <Tag>
+                    {t("defaultModel")}: {globalDefaults.model ?? emptyLabel}
+                  </Tag>
+                </div>
+              </section>
+              {filteredAgents.length === 0 ? (
+                <div className="empty-block">{t("noAgentsConfigured")}</div>
+              ) : (
+                <ul className="row-list">
+                  {filteredAgents.map((agent) => {
+                    const config = agentConfigs[agent.id];
+                    return (
+                      <li key={agent.id}>
+                        <article className="row row--permission">
+                          <AgentGlyph id={agent.id} name={agent.name} />
+                          <div className="row__id-task">
+                            <strong>{agent.name || agent.id}</strong>
+                            <small>{agent.id}</small>
                           </div>
-                          <p className="subagents-row__meta">
-                            {t("status")}: {statusLabel(t, run.status)} | {t("depth")}: {run.depth}{" "}
-                            | {t("modeLabel")}: {run.spawnMode}
-                          </p>
-                          <p className="subagents-row__meta">
-                            {t("requester")}: {run.requesterAgentName || run.requesterAgentId} |{" "}
-                            {t("duration")}: {formatRunDuration(run, durationLabels)}
-                          </p>
-                          {run.task ? <p className="subagents-row__note">{run.task}</p> : null}
-                        </button>
+                          <div className="row__perm-policy">
+                            <Badge>{configSummary(config, t)}</Badge>
+                            <small>
+                              {t("hashLabel", { hash: config?.configHash || emptyLabel })}
+                            </small>
+                          </div>
+                          <div className="row__perm-caps">
+                            <span className="cap-num">
+                              {config?.effectiveMaxSpawnDepth ?? emptyLabel}
+                            </span>
+                            <small>{t("depth")}</small>
+                            <span className="cap-num">
+                              {config?.effectiveMaxChildrenPerAgent ?? emptyLabel}
+                            </span>
+                            <small>{t("children")}</small>
+                          </div>
+                          <Tag>{config?.model || t("inheritModel")}</Tag>
+                          <Button size="sm" onClick={() => void openPermissionEditor(agent.id)}>
+                            {t("editPermissions")}
+                          </Button>
+                        </article>
                       </li>
-                    ))}
-                  </ul>
-                )}
-                {visibleLimit < runs.length ? (
-                  <div className="subagents-inline-actions">
-                    <Button
-                      size="sm"
-                      onClick={() => setVisibleLimit((current) => current + VISIBLE_RUN_INCREMENT)}
-                    >
-                      {t("remaining", { count: runs.length - visibleLimit })}
-                    </Button>
-                  </div>
-                ) : null}
-              </>
-            )}
-          </div>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          ) : filteredRuns.length === 0 ? (
+            <div className="empty-block">{t("noRunsFound")}</div>
+          ) : (
+            <ul className="row-list">
+              {filteredRuns.map((run) => (
+                <li key={run.runId}>
+                  <button
+                    type="button"
+                    className={selectedRun?.runId === run.runId ? "row row--selected" : "row"}
+                    aria-pressed={selectedRun?.runId === run.runId}
+                    onClick={() => void selectRun(run.runId)}
+                  >
+                    <AgentGlyph id={run.childAgentId} name={run.childAgentName} />
+                    <span className="row__id-task">
+                      <strong>{run.childAgentName || run.childAgentId}</strong>
+                      <small>{run.task || run.runId}</small>
+                    </span>
+                    <span className="parent-row">
+                      {t("requester")}: {run.requesterAgentName || run.requesterAgentId}
+                    </span>
+                    <Tag>{run.model || emptyLabel}</Tag>
+                    <span className={`mode-pill mode-pill--${run.spawnMode}`}>
+                      {run.spawnMode || emptyLabel}
+                    </span>
+                    <span className="time-mono">{formatRunDuration(run, t)}</span>
+                    <Badge variant={statusVariant(run.status)}>{statusLabel(t, run.status)}</Badge>
+                    <span aria-hidden="true">›</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
-        <div className="subagents-detail">
-          <Card className="subagents-card subagents-detail-card" padded={false}>
-            <div className="subagents-card__header">
-              <div>
-                <h3>{t("runDetail")}</h3>
-                <p>{t("runDetailDescription")}</p>
-              </div>
-              {actionState === "lineage" ? <Spinner aria-label={tc("loading")} size="sm" /> : null}
-            </div>
-            <div className="subagents-card__body">
-              {selectedRun ? (
-                <>
-                  <section className="subagents-hero">
-                    <div>
-                      <p className="subagents-panel__eyebrow">{t("selectedRun")}</p>
-                      <h3>{selectedRun.childAgentName || selectedRun.childAgentId}</h3>
-                      <p>{selectedRun.runId}</p>
-                    </div>
-                    <div className="subagents-status-row">
-                      <Badge variant={badgeVariant(selectedRun.status)}>
-                        {statusLabel(t, selectedRun.status)}
-                      </Badge>
-                      <Badge>
-                        {t("depth")} {selectedRun.depth}
-                      </Badge>
-                      <Badge>{selectedRun.spawnMode}</Badge>
-                    </div>
-                  </section>
+        <Card className="detail" padded={false}>
+          {selectedRun ? (
+            <>
+              <section
+                className="hero"
+                aria-live={isLiveStatus(selectedRun.status) ? "polite" : "off"}
+              >
+                <div className="hero__main">
+                  <AgentGlyph id={selectedRun.childAgentId} name={selectedRun.childAgentName} />
+                  <div>
+                    <p className="subagents-panel__eyebrow">{t("selectedRun")}</p>
+                    <h3>{selectedRun.childAgentName || selectedRun.childAgentId}</h3>
+                    <p>{selectedRun.task || selectedRun.runId}</p>
+                  </div>
+                </div>
+                <div className="hero__actions">
+                  <Badge variant={statusVariant(selectedRun.status)}>
+                    {statusLabel(t, selectedRun.status)}
+                  </Badge>
+                  <Button size="sm" onClick={() => setOutcomeOpen(true)}>
+                    {t("raw")}
+                  </Button>
+                  {isLiveStatus(selectedRun.status) ? (
+                    <>
+                      <Button size="sm" variant="primary" onClick={() => setSteerOpen(true)}>
+                        {t("steerConfirm")}
+                      </Button>
+                      <Button size="sm" variant="danger" onClick={() => setKillOpen(true)}>
+                        {t("killRun")}
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
+              </section>
 
-                  <section className="subagents-surface">
-                    <div className="subagents-section-heading">
-                      <div>
-                        <h3>{t("historicalRunDetail")}</h3>
-                        {selectedRun.task ? <p>{selectedRun.task}</p> : null}
-                      </div>
-                      <Badge>{formatRunDuration(selectedRun, durationLabels)}</Badge>
-                    </div>
-                    <div className="subagents-detail-grid">
+              <div className="tabs" role="tablist" aria-label={t("runDetail")}>
+                {DETAIL_TABS.map((tab) => (
+                  <Tab
+                    key={tab}
+                    active={detailTab === tab}
+                    onClick={() => setDetailTab(tab)}
+                    aria-label={t(`tab.${tab}`)}
+                  >
+                    {t(`tab.${tab}`)}
+                  </Tab>
+                ))}
+              </div>
+
+              <section className="section">
+                {detailTab === "overview" ? (
+                  <>
+                    <div className="field-grid">
                       <Field
-                        emptyLabel={emptyLabel}
                         label={t("childAgent")}
                         value={selectedRun.childAgentName || selectedRun.childAgentId}
                       />
                       <Field
-                        emptyLabel={emptyLabel}
                         label={t("requester")}
                         value={selectedRun.requesterAgentName || selectedRun.requesterAgentId}
                       />
+                      <Field label={t("status")} value={statusLabel(t, selectedRun.status)} />
+                      <Field label={t("model")} value={selectedRun.model || emptyLabel} />
+                      <Field label={t("spawnMode")} value={selectedRun.spawnMode || emptyLabel} />
+                      <Field label={t("depth")} value={selectedRun.depth} />
+                      <Field label={t("duration")} value={formatRunDuration(selectedRun, t)} />
                       <Field
-                        emptyLabel={emptyLabel}
-                        label={t("status")}
-                        value={statusLabel(t, selectedRun.status)}
-                      />
-                      <Field
-                        emptyLabel={emptyLabel}
-                        label={t("model")}
-                        value={selectedRun.model || defaultLabel}
-                      />
-                      <Field
-                        emptyLabel={emptyLabel}
-                        label={t("spawnMode")}
-                        value={selectedRun.spawnMode}
-                      />
-                      <Field emptyLabel={emptyLabel} label={t("depth")} value={selectedRun.depth} />
-                      <Field
-                        emptyLabel={emptyLabel}
-                        label={t("childSession")}
-                        value={selectedRun.childSessionKey}
-                      />
-                      <Field
-                        emptyLabel={emptyLabel}
-                        label={t("requesterSession")}
-                        value={selectedRun.requesterSessionKey}
-                      />
-                      <Field
-                        emptyLabel={emptyLabel}
                         label={t("created")}
                         value={formatTimestamp(selectedRun.createdAt, emptyLabel)}
                       />
                       <Field
-                        emptyLabel={emptyLabel}
                         label={t("started")}
                         value={formatTimestamp(selectedRun.startedAt, emptyLabel)}
                       />
                       <Field
-                        emptyLabel={emptyLabel}
                         label={t("ended")}
                         value={formatTimestamp(selectedRun.endedAt, emptyLabel)}
                       />
                     </div>
-                    <div className="subagents-inline-actions">
+                    <div className="detail-actions">
                       <Button
-                        disabled={!selectedRun.childAgentId}
                         size="sm"
                         onClick={() => navigateToAgent(ui, selectedRun.childAgentId, "subagents")}
                       >
                         {t("openChildAgent")}
                       </Button>
                       <Button
-                        disabled={!selectedRun.requesterAgentId}
                         size="sm"
                         onClick={() =>
                           navigateToAgent(ui, selectedRun.requesterAgentId, "subagents")
@@ -1154,100 +895,265 @@ export function SubagentsPanel() {
                         {t("openRequesterAgent")}
                       </Button>
                       <Button
-                        disabled={!selectedRun.childSessionKey}
                         size="sm"
-                        onClick={() => navigateToSession(ui, selectedRun.childSessionKey ?? "")}
+                        onClick={() => navigateToSession(ui, selectedRun.childSessionKey)}
                       >
                         {t("openChildSession")}
                       </Button>
                       <Button
-                        disabled={!selectedRun.requesterSessionKey}
                         size="sm"
-                        onClick={() => navigateToSession(ui, selectedRun.requesterSessionKey ?? "")}
+                        onClick={() => navigateToSession(ui, selectedRun.requesterSessionKey)}
                       >
                         {t("openRequesterSession")}
                       </Button>
                     </div>
-                    {selectedRun.status === "failed" || selectedRun.status === "timeout" ? (
-                      <p className="subagents-panel__note">
-                        {t("runEndedStatus", { status: statusLabel(t, selectedRun.status) })}
-                      </p>
-                    ) : null}
-                  </section>
+                  </>
+                ) : null}
 
-                  <section className="subagents-surface">
-                    <div className="subagents-section-heading">
+                {detailTab === "lineage" ? (
+                  <>
+                    <div className="section__heading">
                       <div>
-                        <h3>{t("steerTitle")}</h3>
-                        <p>{t("steerWarning")}</p>
+                        <h3>{t("lineageRoot")}</h3>
+                        <p>{lineage?.root.sessionKey || t("selectRunForLineage")}</p>
                       </div>
+                      {actionState === "lineage" ? (
+                        <Spinner aria-label={tc("loading")} size="sm" />
+                      ) : null}
                     </div>
-                    <Textarea
-                      aria-label={t("steerInstruction")}
-                      noResize
-                      value={steerInstruction}
-                      onChange={(event) => setSteerInstruction(event.target.value)}
-                      placeholder={t("steerPlaceholder")}
+                    <LineageTree
+                      nodes={lineageTree}
+                      selectedRunId={selectedRun.runId}
+                      t={t}
+                      onSelect={(runId) => void selectRun(runId)}
                     />
-                    <div className="subagents-inline-actions">
+                  </>
+                ) : null}
+
+                {detailTab === "outcome" ? (
+                  selectedRun.outcome ? (
+                    <JsonDetails title={t("outcomePayload")} payload={selectedRun.outcome} />
+                  ) : (
+                    <div className="empty-block">
+                      {isLiveStatus(selectedRun.status) ? t("outcomeRunning") : t("outcomeEmpty")}
+                    </div>
+                  )
+                ) : null}
+
+                {detailTab === "permissions" ? (
+                  <div className="permission-grid permission-grid--readonly">
+                    <div className="section__heading">
+                      <div>
+                        <h3>{selectedRun.requesterAgentName || selectedRun.requesterAgentId}</h3>
+                        <p>{t("requesterPermissionDescription")}</p>
+                      </div>
                       <Button
-                        disabled={actionState !== "idle" || !steerInstruction.trim()}
                         size="sm"
-                        variant="primary"
-                        onClick={() => void steerAction()}
+                        onClick={() => void openPermissionEditor(selectedRun.requesterAgentId)}
                       >
-                        {actionState === "steering" ? t("steering") : t("steerConfirm")}
-                      </Button>
-                      <Button
-                        disabled={actionState !== "idle" || selectedRun.status !== "active"}
-                        size="sm"
-                        variant="danger"
-                        onClick={() => void killAction()}
-                      >
-                        {actionState === "killing" ? t("killing") : t("killRun")}
+                        {t("editPermissions")}
                       </Button>
                     </div>
-                  </section>
+                    <Field
+                      label={t("allowed")}
+                      value={configSummary(agentConfigs[selectedRun.requesterAgentId], t)}
+                    />
+                    <Field
+                      label={t("model")}
+                      value={agentConfigs[selectedRun.requesterAgentId]?.model || t("inheritModel")}
+                    />
+                    <Field
+                      label={t("hash")}
+                      value={agentConfigs[selectedRun.requesterAgentId]?.configHash || emptyLabel}
+                    />
+                  </div>
+                ) : null}
 
+                {detailTab === "audit" ? (
+                  <div className="banner banner--info">
+                    <Badge>{t("degraded")}</Badge>
+                    <span>{t("auditUnsupported")}</span>
+                  </div>
+                ) : null}
+
+                {detailTab === "raw" ? (
                   <JsonDetails title={t("runPayload")} payload={selectedRun} />
-                </>
-              ) : (
-                <p className="subagents-panel__empty">{t("chooseRun")}</p>
-              )}
-            </div>
-          </Card>
-
-          <Card className="subagents-card subagents-lineage-card" padded={false}>
-            <div className="subagents-card__header">
-              <div>
-                <h3>{t("lineageRoot")}</h3>
-                <p>{lineage?.root.sessionKey || t("selectRunForLineage")}</p>
-              </div>
-              {lineage ? <Badge>{t("nodesCount", { count: lineage.nodes.length })}</Badge> : null}
-            </div>
-            <div className="subagents-card__body">
-              {lineage ? (
-                <>
-                  <section className="subagents-hero subagents-hero--compact">
-                    <div>
-                      <p className="subagents-panel__eyebrow">{t("lineageRoot")}</p>
-                      <h3>{lineage.root.agentName || lineage.root.agentId}</h3>
-                      <p>{lineage.root.sessionKey}</p>
-                    </div>
-                    <Badge>{t("lineage")}</Badge>
-                  </section>
-                  <LineageTreeView labels={lineageLabels} nodes={lineageTree} />
-                  <JsonDetails title={t("lineagePayload")} payload={lineage} />
-                </>
-              ) : (
-                <p className="subagents-panel__empty">{t("selectRunForLineage")}</p>
-              )}
+                ) : null}
+              </section>
 
               {actionResult ? <JsonDetails title={t("lastAction")} payload={actionResult} /> : null}
-            </div>
-          </Card>
-        </div>
+            </>
+          ) : (
+            <div className="empty-block">{t("chooseRun")}</div>
+          )}
+        </Card>
       </div>
+
+      <Modal
+        open={killOpen}
+        onClose={() => setKillOpen(false)}
+        dismissOnScrimClick={false}
+        size="sm"
+        aria-label={t("killRun")}
+      >
+        <div className="subagents-modal">
+          <h3>{t("killRun")}</h3>
+          <p>{t("killDialogBody", { runId: selectedRun?.runId || emptyLabel })}</p>
+          <div className="modal-actions">
+            <Button size="sm" onClick={() => setKillOpen(false)}>
+              {t("steerCancel")}
+            </Button>
+            <Button
+              disabled={actionState === "killing"}
+              size="sm"
+              variant="danger"
+              onClick={() => void confirmKill()}
+            >
+              {actionState === "killing" ? t("killing") : t("killRun")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={steerOpen}
+        onClose={() => setSteerOpen(false)}
+        size="md"
+        aria-label={t("steerTitle")}
+      >
+        <div className="subagents-modal">
+          <h3>{t("steerTitle")}</h3>
+          <p>{t("steerWarning")}</p>
+          <Textarea
+            aria-label={t("steerInstruction")}
+            noResize
+            value={steerDraft}
+            placeholder={t("steerPlaceholder")}
+            onChange={(event) => setSteerDraft(event.target.value)}
+          />
+          <div className="modal-actions">
+            <Button size="sm" onClick={() => setSteerOpen(false)}>
+              {t("steerCancel")}
+            </Button>
+            <Button
+              disabled={actionState === "steering" || !steerDraft.trim()}
+              size="sm"
+              variant="primary"
+              onClick={() => void sendSteer()}
+            >
+              {actionState === "steering" ? t("steering") : t("sendHint")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={permissionOpen}
+        onClose={() => setPermissionOpen(false)}
+        size="lg"
+        aria-label={t("editPermissions")}
+      >
+        <div className="subagents-modal">
+          <h3>{t("editPermissions")}</h3>
+          {permissionDraft ? (
+            <>
+              <label className="perm-row">
+                <Toggle
+                  aria-label={t("allowAny")}
+                  checked={permissionDraft.allowAny}
+                  onCheckedChange={(next) =>
+                    setPermissionDraft((current) =>
+                      current ? { ...current, allowAny: next } : current,
+                    )
+                  }
+                />
+                <span>{t("allowAnyDescription")}</span>
+              </label>
+              <div className="permission-grid">
+                {agentOptions
+                  .filter((agent) => agent.id !== permissionDraft.agentId)
+                  .map((agent) => {
+                    const checked = permissionDraft.allowAgents.includes(agent.id);
+                    return (
+                      <label
+                        key={agent.id}
+                        className={
+                          permissionDraft.allowAny
+                            ? "perm-row is-dimmed"
+                            : checked
+                              ? "perm-row is-active"
+                              : "perm-row"
+                        }
+                      >
+                        <input
+                          disabled={permissionDraft.allowAny}
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) =>
+                            setPermissionDraft((current) => {
+                              if (!current) {
+                                return current;
+                              }
+                              const allowAgents = event.target.checked
+                                ? [...current.allowAgents, agent.id]
+                                : current.allowAgents.filter((id) => id !== agent.id);
+                              return { ...current, allowAgents };
+                            })
+                          }
+                        />
+                        <span>{agent.name || agent.id}</span>
+                        <small>{agent.id}</small>
+                      </label>
+                    );
+                  })}
+              </div>
+              <label className="subagents-modal__field">
+                <span>{t("defaultModel")}</span>
+                <Input
+                  inputSize="sm"
+                  value={permissionDraft.model}
+                  placeholder={t("modelPlaceholder")}
+                  onChange={(event) =>
+                    setPermissionDraft((current) =>
+                      current ? { ...current, model: event.target.value } : current,
+                    )
+                  }
+                />
+              </label>
+              <div className="modal-actions">
+                <Button size="sm" onClick={() => setPermissionOpen(false)}>
+                  {t("steerCancel")}
+                </Button>
+                <Button
+                  disabled={actionState === "saving"}
+                  size="sm"
+                  variant="primary"
+                  onClick={() => void savePermissionDraft()}
+                >
+                  {actionState === "saving" ? t("savingPermissions") : t("savePermissions")}
+                </Button>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </Modal>
+
+      <Modal
+        open={outcomeOpen}
+        onClose={() => setOutcomeOpen(false)}
+        size="lg"
+        aria-label={t("raw")}
+      >
+        <div className="subagents-modal">
+          <h3>{t("raw")}</h3>
+          <JsonDetails title={t("runPayload")} payload={selectedRun ?? {}} />
+          <div className="modal-actions">
+            <Button size="sm" onClick={() => setOutcomeOpen(false)}>
+              {t("close")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }

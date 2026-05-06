@@ -1,5 +1,6 @@
-import { useEffect } from "react";
-import { streamEvents, type DeckGoActivityEvent } from "../../../api";
+import { useCallback } from "react";
+import type { DeckGoActivityEvent, DeckGoServerEvent } from "../../../api";
+import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
 
 type ActivityStreamEvent = {
   event?: string;
@@ -66,22 +67,22 @@ export function normalizeActivityEvent(event: ActivityStreamEvent): DeckGoActivi
 }
 
 export function useActivitySSE(onActivityEvent: (event: DeckGoActivityEvent) => void) {
-  useEffect(() => {
-    const controller = new AbortController();
-    void streamEvents({
-      signal: controller.signal,
-      retryDelayMs: 1_000,
-      onEvent(event) {
-        if (event.event !== "activity.event") {
-          return;
-        }
-        const activityEvent = normalizeActivityEvent(event);
-        if (activityEvent) {
-          onActivityEvent(activityEvent);
-        }
-      },
-    }).catch(() => {});
+  const handleEvent = useCallback(
+    (event: DeckGoServerEvent) => {
+      if (event.event !== "activity.event") {
+        return;
+      }
+      const activityEvent = normalizeActivityEvent(event);
+      if (activityEvent) {
+        onActivityEvent(activityEvent);
+      }
+    },
+    [onActivityEvent],
+  );
 
-    return () => controller.abort();
-  }, [onActivityEvent]);
+  useLiveProjectionSubscription({
+    projectionId: "activity-feed",
+    retryDelayMs: 1_000,
+    onEvent: handleEvent,
+  });
 }

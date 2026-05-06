@@ -13,7 +13,7 @@ import {
   addRoutingBinding,
   fetchActivityEvents,
   fetchRoutingBindings,
-  patchDeckConfig,
+  patchRoutingDmScope,
   removeRoutingBinding,
   simulateRouting,
   validateRoutingBinding,
@@ -76,6 +76,37 @@ type RoutingBindingDraft = {
   comment: string;
   position: string;
 };
+
+type PendingRoutingAction =
+  | {
+      kind: "scope";
+      label: string;
+      hint: string;
+      nextScope: string;
+      baseHash: string;
+    }
+  | {
+      kind: "add";
+      label: string;
+      hint: string;
+      draft: RoutingBindingDraft;
+      baseHash: string;
+    }
+  | {
+      kind: "remove";
+      label: string;
+      hint: string;
+      binding: DeckGoRoutingBinding;
+      baseHash: string;
+    }
+  | {
+      kind: "move";
+      label: string;
+      hint: string;
+      binding: DeckGoRoutingBinding;
+      direction: -1 | 1;
+      baseHash: string;
+    };
 
 type MetricTileProps = {
   label: string;
@@ -177,6 +208,10 @@ function parsePosition(value: string) {
   }
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function shortConfigHash(value: string) {
+  return value ? `${value.slice(0, 8)}...` : "n/a";
 }
 
 function summarizeBindingMatch(
@@ -332,6 +367,8 @@ export function RoutingPanel() {
     DeckGoRoutingAddResponse | DeckGoRoutingRemoveResponse | null
   >(null);
   const [scopeResult, setScopeResult] = useState("");
+  const [showBindingDraft, setShowBindingDraft] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingRoutingAction | null>(null);
   const [loadState, setLoadState] = useState<PanelState>("idle");
   const [actionState, setActionState] = useState<
     "idle" | "simulating" | "validating" | "adding" | "removing" | "reordering" | "scope"
@@ -494,7 +531,7 @@ export function RoutingPanel() {
     }
   };
 
-  const addBinding = async () => {
+  const addBinding = () => {
     if (!bindingDraft.agentId.trim() || !bindingDraft.channel.trim()) {
       setError(t("bindingAgentChannelRequired"));
       return;
@@ -503,18 +540,34 @@ export function RoutingPanel() {
       setError(t("configHashRequiredAdd"));
       return;
     }
+    setPendingAction({
+      kind: "add",
+      label: t("addBindingAction"),
+      hint: t("confirmAddHint", {
+        agentId: bindingDraft.agentId.trim(),
+        channel: bindingDraft.channel.trim(),
+        hash: shortConfigHash(configHash),
+      }),
+      draft: { ...bindingDraft },
+      baseHash: configHash,
+    });
+    setError("");
+  };
+
+  const executeAddBinding = async (draft: RoutingBindingDraft, baseHash: string) => {
     setActionState("adding");
     try {
       const result = await addRoutingBinding({
-        agentId: bindingDraft.agentId.trim(),
-        match: buildRoutingMatch(bindingDraft),
-        baseHash: configHash,
-        comment: bindingDraft.comment.trim() || undefined,
-        position: parsePosition(bindingDraft.position),
+        agentId: draft.agentId.trim(),
+        match: buildRoutingMatch(draft),
+        baseHash,
+        comment: draft.comment.trim() || undefined,
+        position: parsePosition(draft.position),
       });
       setMutationResult(result);
       setValidationResult(null);
       setBindingDraft(DEFAULT_BINDING_DRAFT);
+      setShowBindingDraft(false);
       setError("");
       await refresh(result.binding.id);
     } catch (actionError) {
@@ -524,16 +577,30 @@ export function RoutingPanel() {
     }
   };
 
-  const removeSelectedBinding = async () => {
+  const removeSelectedBinding = () => {
     if (!selectedBinding || !configHash) {
       setError(t("selectBindingBeforeRemove"));
       return;
     }
+    setPendingAction({
+      kind: "remove",
+      label: t("removeBinding"),
+      hint: t("confirmRemoveHint", {
+        agentId: selectedBinding.agentId,
+        bindingId: selectedBinding.id,
+      }),
+      binding: selectedBinding,
+      baseHash: configHash,
+    });
+    setError("");
+  };
+
+  const executeRemoveBinding = async (binding: DeckGoRoutingBinding, baseHash: string) => {
     setActionState("removing");
     try {
       const result = await removeRoutingBinding({
-        id: selectedBinding.id,
-        baseHash: configHash,
+        id: binding.id,
+        baseHash,
       });
       setMutationResult(result);
       setValidationResult(null);
@@ -546,7 +613,7 @@ export function RoutingPanel() {
     }
   };
 
-  const reorderSelectedBinding = async (direction: -1 | 1) => {
+  const reorderSelectedBinding = (direction: -1 | 1) => {
     if (!selectedBinding || !configHash) {
       setError(t("selectBindingBeforeReorder"));
       return;
@@ -556,17 +623,44 @@ export function RoutingPanel() {
       setError(t("bindingAtEdge"));
       return;
     }
+    setPendingAction({
+      kind: "move",
+      label: direction < 0 ? t("moveUp") : t("moveDown"),
+      hint: t("confirmMoveHint", {
+        agentId: selectedBinding.agentId,
+        direction: direction < 0 ? t("moveUpDirection") : t("moveDownDirection"),
+        position: nextPosition + 1,
+        hash: shortConfigHash(configHash),
+      }),
+      binding: selectedBinding,
+      direction,
+      baseHash: configHash,
+    });
+    setError("");
+  };
+
+  const executeReorderBinding = async (
+    binding: DeckGoRoutingBinding,
+    direction: -1 | 1,
+    baseHash: string,
+  ) => {
+    const currentIndex = bindings.findIndex((candidate) => candidate.id === binding.id);
+    const nextPosition = currentIndex + direction;
+    if (currentIndex < 0 || nextPosition < 0 || nextPosition >= bindings.length) {
+      setError(t("bindingAtEdge"));
+      return;
+    }
     setActionState("reordering");
     try {
       const removeResult = await removeRoutingBinding({
-        id: selectedBinding.id,
-        baseHash: configHash,
+        id: binding.id,
+        baseHash,
       });
       const addResult = await addRoutingBinding({
-        agentId: selectedBinding.agentId,
-        match: selectedBinding.match,
+        agentId: binding.agentId,
+        match: binding.match,
         baseHash: removeResult.configHash,
-        comment: selectedBinding.comment,
+        comment: binding.comment,
         position: nextPosition,
       });
       setMutationResult(addResult);
@@ -580,7 +674,7 @@ export function RoutingPanel() {
     }
   };
 
-  const patchDmScope = async () => {
+  const patchDmScope = () => {
     if (!scopeDraft.trim()) {
       setError(t("dmScopeRequired"));
       return;
@@ -589,19 +683,56 @@ export function RoutingPanel() {
       setError(t("configHashRequiredScope"));
       return;
     }
+    const nextScope = scopeDraft.trim();
+    setPendingAction({
+      kind: "scope",
+      label: t("patchDmScope"),
+      hint: t("confirmScopeHint", {
+        from: dmScope || emptyLabel,
+        to: nextScope,
+        hash: shortConfigHash(configHash),
+      }),
+      nextScope,
+      baseHash: configHash,
+    });
+    setError("");
+  };
+
+  const executePatchDmScope = async (nextScope: string, baseHash: string) => {
     setActionState("scope");
     try {
-      const nextScope = scopeDraft.trim();
-      const result = await patchDeckConfig({ session: { dmScope: nextScope } }, configHash);
+      const result = await patchRoutingDmScope(nextScope, baseHash);
       setScopeResult(t("dmScopeUpdated", { scope: nextScope }));
       setDmScope(nextScope);
-      setConfigHash(result.hash || result.baseHash || configHash);
+      setConfigHash(result.hash || result.baseHash || baseHash);
       setError("");
       await refresh(selectedBindingId);
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("dmScopePatchFailed"));
     } finally {
       setActionState("idle");
+    }
+  };
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) {
+      return;
+    }
+    const action = pendingAction;
+    setPendingAction(null);
+    switch (action.kind) {
+      case "scope":
+        await executePatchDmScope(action.nextScope, action.baseHash);
+        break;
+      case "add":
+        await executeAddBinding(action.draft, action.baseHash);
+        break;
+      case "remove":
+        await executeRemoveBinding(action.binding, action.baseHash);
+        break;
+      case "move":
+        await executeReorderBinding(action.binding, action.direction, action.baseHash);
+        break;
     }
   };
 
@@ -651,7 +782,12 @@ export function RoutingPanel() {
               <h3>{t("bindings")}</h3>
               <p>{t("bindingQueueDescription")}</p>
             </div>
-            {loadState === "loading" ? <Spinner size="sm" aria-label={tc("loading")} /> : null}
+            <div className="routing-card-header__actions">
+              <Button size="sm" onClick={() => setShowBindingDraft((current) => !current)}>
+                {showBindingDraft ? t("closeBindingDraft") : t("showAddBinding")}
+              </Button>
+              {loadState === "loading" ? <Spinner size="sm" aria-label={tc("loading")} /> : null}
+            </div>
           </div>
           <div className="routing-card-body">
             <div className="routing-filter-row">
@@ -710,8 +846,8 @@ export function RoutingPanel() {
                 </Select>
                 <Button
                   size="sm"
-                  disabled={actionState !== "idle"}
-                  onClick={() => void patchDmScope()}
+                  disabled={actionState !== "idle" || Boolean(pendingAction)}
+                  onClick={() => patchDmScope()}
                 >
                   {actionState === "scope" ? t("patchingDmScope") : t("patchDmScope")}
                 </Button>
@@ -723,6 +859,36 @@ export function RoutingPanel() {
               <p className="routing-panel__error" role="alert">
                 {error}
               </p>
+            ) : null}
+
+            {pendingAction ? (
+              <section
+                className={`routing-confirm ${pendingAction.kind === "remove" ? "is-danger" : ""}`}
+                role="alert"
+              >
+                <div>
+                  <p className="routing-panel__eyebrow">{t("confirmActionTitle")}</p>
+                  <strong>{pendingAction.label}</strong>
+                  <p className="routing-panel__note">{pendingAction.hint}</p>
+                </div>
+                <div className="routing-inline-actions">
+                  <Button
+                    size="sm"
+                    variant={pendingAction.kind === "remove" ? "danger" : "primary"}
+                    disabled={actionState !== "idle"}
+                    onClick={() => void confirmPendingAction()}
+                  >
+                    {t("confirmAction")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={actionState !== "idle"}
+                    onClick={() => setPendingAction(null)}
+                  >
+                    {t("cancelAction")}
+                  </Button>
+                </div>
+              </section>
             ) : null}
 
             {bindings.length === 0 ? (
@@ -853,8 +1019,12 @@ export function RoutingPanel() {
                     ) : null}
                     <Button
                       size="sm"
-                      disabled={actionState !== "idle" || selectedBindingIndex <= 0}
-                      onClick={() => void reorderSelectedBinding(-1)}
+                      disabled={
+                        actionState !== "idle" ||
+                        Boolean(pendingAction) ||
+                        selectedBindingIndex <= 0
+                      }
+                      onClick={() => reorderSelectedBinding(-1)}
                     >
                       {actionState === "reordering" ? t("reordering") : t("moveUp")}
                     </Button>
@@ -862,18 +1032,19 @@ export function RoutingPanel() {
                       size="sm"
                       disabled={
                         actionState !== "idle" ||
+                        Boolean(pendingAction) ||
                         selectedBindingIndex < 0 ||
                         selectedBindingIndex >= bindings.length - 1
                       }
-                      onClick={() => void reorderSelectedBinding(1)}
+                      onClick={() => reorderSelectedBinding(1)}
                     >
                       {actionState === "reordering" ? t("reordering") : t("moveDown")}
                     </Button>
                     <Button
                       size="sm"
                       variant="danger"
-                      disabled={actionState !== "idle"}
-                      onClick={() => void removeSelectedBinding()}
+                      disabled={actionState !== "idle" || Boolean(pendingAction)}
+                      onClick={() => removeSelectedBinding()}
                     >
                       {actionState === "removing" ? t("removingBinding") : t("removeBinding")}
                     </Button>
@@ -1051,151 +1222,160 @@ export function RoutingPanel() {
             </div>
           </Card>
 
-          <Card className="routing-draft" padded={false}>
-            <div className="routing-card-header">
-              <div>
-                <h3>{t("addOrValidateBinding")}</h3>
-                <p>{t("bindingDraftDescription")}</p>
-              </div>
-              {validationResult ? (
-                <Badge variant={validationResult.ok ? "ok" : "warn"}>
-                  {t("validationResult", {
-                    state: validationResult.ok ? t("ok") : t("blocked"),
-                  })}
-                </Badge>
-              ) : null}
-            </div>
-            <div className="routing-card-body">
-              <div className="routing-form-grid">
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.agentId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, agentId: event.target.value }))
-                  }
-                  aria-label={t("bindingAgentId")}
-                  placeholder={t("bindingAgentIdPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.channel}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, channel: event.target.value }))
-                  }
-                  aria-label={t("bindingChannel")}
-                  placeholder={t("bindingChannelPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.accountId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, accountId: event.target.value }))
-                  }
-                  aria-label={t("bindingAccountId")}
-                  placeholder={t("bindingAccountIdPlaceholder")}
-                />
-                <Select
-                  selectSize="sm"
-                  value={bindingDraft.peerKind}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({
-                      ...current,
-                      peerKind: event.target.value as RoutingBindingDraft["peerKind"],
-                    }))
-                  }
-                  aria-label={t("bindingPeerKind")}
-                >
-                  <option value="">{t("noPeer")}</option>
-                  <option value="direct">{t("directPeer")}</option>
-                  <option value="group">{t("groupPeer")}</option>
-                  <option value="channel">{t("channelPeer")}</option>
-                </Select>
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.peerId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, peerId: event.target.value }))
-                  }
-                  aria-label={t("bindingPeerId")}
-                  placeholder={t("bindingPeerIdPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.guildId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, guildId: event.target.value }))
-                  }
-                  aria-label={t("bindingGuildId")}
-                  placeholder={t("bindingGuildIdPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.teamId}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, teamId: event.target.value }))
-                  }
-                  aria-label={t("bindingTeamId")}
-                  placeholder={t("bindingTeamIdPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.roles}
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, roles: event.target.value }))
-                  }
-                  aria-label={t("bindingRoles")}
-                  placeholder={t("bindingRolesPlaceholder")}
-                />
-                <Input
-                  inputSize="sm"
-                  value={bindingDraft.position}
-                  inputMode="numeric"
-                  onChange={(event) =>
-                    setBindingDraft((current) => ({ ...current, position: event.target.value }))
-                  }
-                  aria-label={t("bindingPosition")}
-                  placeholder={t("bindingPositionPlaceholder")}
-                />
-              </div>
-              <Textarea
-                value={bindingDraft.comment}
-                onChange={(event) =>
-                  setBindingDraft((current) => ({ ...current, comment: event.target.value }))
-                }
-                aria-label={t("bindingComment")}
-                placeholder={t("bindingCommentPlaceholder")}
-                noResize
-              />
-              <div className="routing-inline-actions">
-                <Button
-                  size="sm"
-                  disabled={actionState !== "idle"}
-                  onClick={() => void validateBinding()}
-                >
-                  {actionState === "validating" ? t("validating") : t("validateBinding")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  disabled={actionState !== "idle"}
-                  onClick={() => void addBinding()}
-                >
-                  {actionState === "adding" ? t("addingBinding") : t("addBindingAction")}
-                </Button>
-              </div>
-              {validationResult ? (
-                <div className="routing-validation-row">
-                  <Badge variant={validationResult.ok ? "ok" : "warn"}>
-                    {t("validationResult", {
-                      state: validationResult.ok ? t("ok") : t("blocked"),
-                    })}
-                  </Badge>
-                  <Badge>{t("tierValue", { tier: validationResult.tier })}</Badge>
-                  <Badge>{t("conflictsValue", { count: validationResult.conflicts.length })}</Badge>
+          {showBindingDraft ? (
+            <Card className="routing-draft" padded={false}>
+              <div className="routing-card-header">
+                <div>
+                  <h3>{t("addOrValidateBinding")}</h3>
+                  <p>{t("bindingDraftDescription")}</p>
                 </div>
-              ) : null}
-            </div>
-          </Card>
+                <div className="routing-card-header__actions">
+                  {validationResult ? (
+                    <Badge variant={validationResult.ok ? "ok" : "warn"}>
+                      {t("validationResult", {
+                        state: validationResult.ok ? t("ok") : t("blocked"),
+                      })}
+                    </Badge>
+                  ) : null}
+                  <Button size="sm" onClick={() => setShowBindingDraft(false)}>
+                    {t("closeBindingDraft")}
+                  </Button>
+                </div>
+              </div>
+              <div className="routing-card-body">
+                <div className="routing-form-grid">
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.agentId}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, agentId: event.target.value }))
+                    }
+                    aria-label={t("bindingAgentId")}
+                    placeholder={t("bindingAgentIdPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.channel}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, channel: event.target.value }))
+                    }
+                    aria-label={t("bindingChannel")}
+                    placeholder={t("bindingChannelPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.accountId}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, accountId: event.target.value }))
+                    }
+                    aria-label={t("bindingAccountId")}
+                    placeholder={t("bindingAccountIdPlaceholder")}
+                  />
+                  <Select
+                    selectSize="sm"
+                    value={bindingDraft.peerKind}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({
+                        ...current,
+                        peerKind: event.target.value as RoutingBindingDraft["peerKind"],
+                      }))
+                    }
+                    aria-label={t("bindingPeerKind")}
+                  >
+                    <option value="">{t("noPeer")}</option>
+                    <option value="direct">{t("directPeer")}</option>
+                    <option value="group">{t("groupPeer")}</option>
+                    <option value="channel">{t("channelPeer")}</option>
+                  </Select>
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.peerId}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, peerId: event.target.value }))
+                    }
+                    aria-label={t("bindingPeerId")}
+                    placeholder={t("bindingPeerIdPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.guildId}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, guildId: event.target.value }))
+                    }
+                    aria-label={t("bindingGuildId")}
+                    placeholder={t("bindingGuildIdPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.teamId}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, teamId: event.target.value }))
+                    }
+                    aria-label={t("bindingTeamId")}
+                    placeholder={t("bindingTeamIdPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.roles}
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, roles: event.target.value }))
+                    }
+                    aria-label={t("bindingRoles")}
+                    placeholder={t("bindingRolesPlaceholder")}
+                  />
+                  <Input
+                    inputSize="sm"
+                    value={bindingDraft.position}
+                    inputMode="numeric"
+                    onChange={(event) =>
+                      setBindingDraft((current) => ({ ...current, position: event.target.value }))
+                    }
+                    aria-label={t("bindingPosition")}
+                    placeholder={t("bindingPositionPlaceholder")}
+                  />
+                </div>
+                <Textarea
+                  value={bindingDraft.comment}
+                  onChange={(event) =>
+                    setBindingDraft((current) => ({ ...current, comment: event.target.value }))
+                  }
+                  aria-label={t("bindingComment")}
+                  placeholder={t("bindingCommentPlaceholder")}
+                  noResize
+                />
+                <div className="routing-inline-actions">
+                  <Button
+                    size="sm"
+                    disabled={actionState !== "idle" || Boolean(pendingAction)}
+                    onClick={() => void validateBinding()}
+                  >
+                    {actionState === "validating" ? t("validating") : t("validateBinding")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={actionState !== "idle" || Boolean(pendingAction)}
+                    onClick={() => addBinding()}
+                  >
+                    {actionState === "adding" ? t("addingBinding") : t("addBindingAction")}
+                  </Button>
+                </div>
+                {validationResult ? (
+                  <div className="routing-validation-row">
+                    <Badge variant={validationResult.ok ? "ok" : "warn"}>
+                      {t("validationResult", {
+                        state: validationResult.ok ? t("ok") : t("blocked"),
+                      })}
+                    </Badge>
+                    <Badge>{t("tierValue", { tier: validationResult.tier })}</Badge>
+                    <Badge>
+                      {t("conflictsValue", { count: validationResult.conflicts.length })}
+                    </Badge>
+                  </div>
+                ) : null}
+              </div>
+            </Card>
+          ) : null}
 
           <Card className="routing-activity" padded={false}>
             <div className="routing-card-header">

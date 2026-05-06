@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +16,39 @@ const backendRoot = path.join(deckRoot, "backend");
 const frontendRoot = path.join(deckRoot, "frontend-new");
 const mockGatewayEntry = path.join(deckRoot, "test/fixtures/mock-gateway.mjs");
 const localNoProxy = "localhost,127.0.0.1,::1";
+const openClawConfigFile = "openclaw.json";
+const maxBootstrapCopyBytes = 512 * 1024;
+const maxSidecarCopyBytes = 1024 * 1024;
+const realGatewayReadyTimeoutMs = Number(
+  process.env.DECK_GO_REAL_GATEWAY_READY_TIMEOUT_MS ?? 420_000,
+);
+const workspaceBootstrapFiles = [
+  "AGENTS.md",
+  "SOUL.md",
+  "TOOLS.md",
+  "IDENTITY.md",
+  "USER.md",
+  "HEARTBEAT.md",
+  "BOOTSTRAP.md",
+  "MEMORY.md",
+  "memory.md",
+  "README.md",
+] as const;
+const stateSidecarFiles = [
+  ".env",
+  "oauth.json",
+  "credentials.json",
+  "credentials.enc.json",
+  "secrets.json",
+] as const;
+const sensitiveKeyPattern = /token|secret|password|api[-_]?key|authorization|cookie|credential/i;
+
+type JsonObject = Record<string, unknown>;
+type WorkspaceCopy = {
+  agentId: string;
+  source?: string;
+  target: string;
+};
 
 type ManagedProcess = {
   stop: () => Promise<void>;
@@ -27,6 +60,7 @@ export type E2EStack = {
   frontendBase: string;
   requestLog: string;
   accessToken?: string;
+  realE2E?: RealE2EIsolation;
   mockGateway?: {
     url: string;
     token: string;
@@ -36,6 +70,27 @@ export type E2EStack = {
     token: string;
   };
   stop: () => Promise<void>;
+};
+
+export type RealE2EIsolation = {
+  runId: string;
+  root: string;
+  dataDir: string;
+  logDir: string;
+  gatewayStateDir: string;
+  configPath: string;
+  homeDir: string;
+  workspaceRoot: string;
+  evidenceDir: string;
+  copiedConfig: boolean;
+  sourceConfigPath?: string;
+  sanitizedConfig?: RealE2EConfigSanitization;
+};
+
+export type RealE2EConfigSanitization = {
+  removedChannels: string[];
+  removedPluginEntries: string[];
+  reason: string;
 };
 
 let backendBinaryPromise: Promise<string> | null = null;
@@ -195,45 +250,76 @@ async function waitForBundledRuntime(backendBase: string, accessToken?: string) 
     .toBeGreaterThan(0);
 }
 
-async function waitForGatewayHealth(backendBase: string, accessToken?: string) {
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(`${backendBase}/api/gateway/health`, {
-          headers: deckTokenHeaders(accessToken),
-        });
-        if (!response.ok) {
-          return response.status;
-        }
-        const payload = (await response.json()) as { ok?: boolean };
-        return payload.ok === false ? 502 : 200;
-      },
-      { timeout: 180_000 },
-    )
-    .toBe(200);
+async function recordGatewayHealthStartup(
+  backendBase: string,
+  accessToken: string | undefined,
+  testInfo: TestInfo,
+) {
+  const samples: unknown[] = [];
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`${backendBase}/api/gateway/health`, {
+        headers: deckTokenHeaders(accessToken),
+      });
+      const text = await response.text();
+      samples.push({
+        attempt,
+        ok: response.ok,
+        status: response.status,
+        payload: parseJsonOrText(text),
+      });
+      if (response.ok) {
+        break;
+      }
+    } catch (error) {
+      samples.push({
+        attempt,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  await testInfo.attach("real-gateway-health-startup", {
+    body: JSON.stringify(samples, null, 2),
+    contentType: "application/json",
+  });
 }
 
-async function waitForGatewayRPC(backendBase: string, accessToken?: string) {
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(`${backendBase}/api/v1/runtimes/rt_local/gateway/rpc`, {
-          method: "POST",
-          headers: {
-            ...deckTokenHeaders(accessToken),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ method: "agents.list", params: {} }),
-        });
-        if (!response.ok) {
-          return response.status;
+async function waitForGatewayRPC(
+  backendBase: string,
+  accessToken: string | undefined,
+  processOutput: () => string,
+) {
+  const deadline = Date.now() + realGatewayReadyTimeoutMs;
+  let lastError = "";
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${backendBase}/api/v1/runtimes/rt_local/gateway/rpc`, {
+        method: "POST",
+        headers: {
+          ...deckTokenHeaders(accessToken),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ method: "agents.list", params: {} }),
+      });
+      const text = await response.text();
+      if (response.ok) {
+        const payload = parseJsonOrText(text) as { result?: { agents?: unknown[] } };
+        if (Array.isArray(payload.result?.agents)) {
+          return;
         }
-        const payload = (await response.json()) as { result?: { agents?: unknown[] } };
-        return Array.isArray(payload.result?.agents) ? 200 : 502;
-      },
-      { timeout: 180_000 },
-    )
-    .toBe(200);
+      }
+      lastError = `${response.status} ${text}`;
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  throw new Error(`gateway RPC did not become ready: ${lastError}\n${tailOutput(processOutput())}`);
+}
+
+function tailOutput(output: string) {
+  return output.length > 40_000 ? output.slice(output.length - 40_000) : output;
 }
 
 async function startFrontend(backendBase: string, frontendPort: number, accessToken?: string) {
@@ -278,6 +364,883 @@ async function createStackDirs(testInfo: TestInfo, mode: string) {
     contentType: "text/plain",
   });
   return { root, dataDir, logDir };
+}
+
+export function buildRealE2ERunId(testInfo: Pick<TestInfo, "workerIndex" | "retry">) {
+  return `deckgo-e2e-${Date.now().toString(36)}-w${testInfo.workerIndex}-r${testInfo.retry}`;
+}
+
+export async function prepareIsolatedOpenClawState(params: {
+  root: string;
+  dataDir: string;
+  logDir: string;
+  runId: string;
+  gatewayToken?: string;
+  testInfo?: TestInfo;
+  sourceConfigPath?: string;
+}): Promise<RealE2EIsolation> {
+  const gatewayStateDir = path.join(params.dataDir, "managed-gateway-state");
+  const homeDir = path.join(params.root, "openclaw-home");
+  const workspaceRoot = path.join(params.root, "workspaces");
+  const evidenceDir = path.join(params.root, "evidence");
+  const configPath = path.join(gatewayStateDir, openClawConfigFile);
+  await mkdir(gatewayStateDir, { recursive: true, mode: 0o700 });
+  await mkdir(homeDir, { recursive: true, mode: 0o700 });
+  await mkdir(workspaceRoot, { recursive: true, mode: 0o700 });
+  await mkdir(evidenceDir, { recursive: true, mode: 0o700 });
+
+  const sourceConfigPath =
+    params.sourceConfigPath ?? (await resolveSourceOpenClawConfigPath(process.env));
+  const defaultWorkspace = path.join(workspaceRoot, "main");
+  let copiedConfig = false;
+  let config: JsonObject;
+  let workspaceCopies: WorkspaceCopy[];
+  let sanitizedConfig: RealE2EConfigSanitization | undefined;
+
+  if (sourceConfigPath) {
+    const raw = await readFile(sourceConfigPath, "utf8");
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!isObject(parsed)) {
+        throw new Error("config root is not an object");
+      }
+      config = parsed;
+    } catch (error) {
+      throw new Error(
+        `real E2E source config must be JSON so workspaces can be isolated (${sourceConfigPath}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { cause: error },
+      );
+    }
+    workspaceCopies = rewriteOpenClawConfigForIsolation(config, {
+      gatewayToken: params.gatewayToken,
+      workspaceRoot,
+      defaultWorkspace,
+      sourceConfigPath,
+      sourceHome: os.homedir(),
+    });
+    sanitizedConfig = sanitizeOpenClawConfigForRealSeed(config);
+    await copyOpenClawSidecars(path.dirname(sourceConfigPath), gatewayStateDir);
+    copiedConfig = true;
+  } else {
+    config = {
+      agents: {
+        defaults: {
+          workspace: defaultWorkspace,
+        },
+        list: [
+          {
+            id: "main",
+            default: true,
+            name: "Main",
+            workspace: defaultWorkspace,
+          },
+        ],
+      },
+    };
+    if (params.gatewayToken) {
+      rewriteGatewayAuthToken(config, params.gatewayToken);
+    }
+    sanitizedConfig = sanitizeOpenClawConfigForRealSeed(config);
+    workspaceCopies = [{ agentId: "main", target: defaultWorkspace }];
+  }
+
+  await Promise.all(workspaceCopies.map((copy) => copyWorkspaceBootstrap(copy, params.runId)));
+  await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+
+  const isolation: RealE2EIsolation = {
+    runId: params.runId,
+    root: params.root,
+    dataDir: params.dataDir,
+    logDir: params.logDir,
+    gatewayStateDir,
+    configPath,
+    homeDir,
+    workspaceRoot,
+    evidenceDir,
+    copiedConfig,
+    sourceConfigPath,
+    sanitizedConfig,
+  };
+
+  await writeRealE2EIsolationManifest(isolation);
+  if (params.testInfo) {
+    await params.testInfo.attach("real-e2e-isolation", {
+      body: JSON.stringify(redactSecrets(isolation), null, 2),
+      contentType: "application/json",
+    });
+  }
+  return isolation;
+}
+
+async function resolveSourceOpenClawConfigPath(env: NodeJS.ProcessEnv) {
+  const explicit = env.DECK_GO_REAL_E2E_SOURCE_CONFIG?.trim();
+  if (explicit) {
+    const resolved = resolveUserPath(explicit, os.homedir());
+    if (!(await pathExists(resolved))) {
+      throw new Error(`DECK_GO_REAL_E2E_SOURCE_CONFIG does not exist: ${resolved}`);
+    }
+    return resolved;
+  }
+
+  const candidates = [
+    env.OPENCLAW_CONFIG_PATH,
+    env.OPENCLAW_STATE_DIR
+      ? path.join(resolveUserPath(env.OPENCLAW_STATE_DIR, os.homedir()), openClawConfigFile)
+      : "",
+    path.join(os.homedir(), ".openclaw", openClawConfigFile),
+    path.join(os.homedir(), ".clawdbot", "clawdbot.json"),
+  ];
+  for (const candidate of candidates) {
+    if (!candidate) {
+      continue;
+    }
+    const resolved = resolveUserPath(candidate, os.homedir());
+    if (await pathExists(resolved)) {
+      return resolved;
+    }
+  }
+  return undefined;
+}
+
+function rewriteOpenClawConfigForIsolation(
+  config: JsonObject,
+  params: {
+    gatewayToken?: string;
+    workspaceRoot: string;
+    defaultWorkspace: string;
+    sourceConfigPath: string;
+    sourceHome: string;
+  },
+): WorkspaceCopy[] {
+  if (params.gatewayToken) {
+    rewriteGatewayAuthToken(config, params.gatewayToken);
+  }
+  const agents = ensureObject(config, "agents");
+  const defaults = ensureObject(agents, "defaults");
+  const sourceDefaultWorkspace =
+    readString(defaults.workspace) ?? path.join(params.sourceHome, ".openclaw", "workspace");
+  const sourceDefaultRepoRoot = readString(defaults.repoRoot);
+  defaults.workspace = params.defaultWorkspace;
+  if (sourceDefaultRepoRoot) {
+    defaults.repoRoot = params.defaultWorkspace;
+  }
+
+  const workspaceCopies: WorkspaceCopy[] = [
+    {
+      agentId: "defaults",
+      source: resolvePossiblyRelativePath(sourceDefaultWorkspace, params.sourceHome),
+      target: params.defaultWorkspace,
+    },
+  ];
+
+  const list = Array.isArray(agents.list) ? agents.list : [];
+  if (list.length === 0) {
+    agents.list = [
+      {
+        id: "main",
+        default: true,
+        name: "Main",
+        workspace: params.defaultWorkspace,
+      },
+    ];
+    workspaceCopies.push({
+      agentId: "main",
+      source: resolvePossiblyRelativePath(sourceDefaultWorkspace, params.sourceHome),
+      target: params.defaultWorkspace,
+    });
+    return uniqueWorkspaceCopies(workspaceCopies);
+  }
+
+  let hasMain = false;
+  const nextList: unknown[] = [];
+  for (const [index, entry] of list.entries()) {
+    if (!isObject(entry)) {
+      nextList.push(entry);
+      continue;
+    }
+    const agentId = readString(entry.id) ?? `agent-${index + 1}`;
+    hasMain = hasMain || agentId === "main";
+    const target = path.join(params.workspaceRoot, sanitizePathSegment(agentId));
+    const source = readString(entry.workspace) ?? sourceDefaultWorkspace;
+    entry.workspace = target;
+    rewriteAgentRuntimeCwd(entry, target);
+    workspaceCopies.push({
+      agentId,
+      source: resolvePossiblyRelativePath(source, params.sourceHome),
+      target,
+    });
+    nextList.push(entry);
+  }
+  if (!hasMain) {
+    nextList.push({
+      id: "main",
+      default: true,
+      name: "Main",
+      workspace: params.defaultWorkspace,
+    });
+    workspaceCopies.push({
+      agentId: "main",
+      source: resolvePossiblyRelativePath(sourceDefaultWorkspace, params.sourceHome),
+      target: params.defaultWorkspace,
+    });
+  }
+  agents.list = nextList;
+  return uniqueWorkspaceCopies(workspaceCopies);
+}
+
+function rewriteGatewayAuthToken(config: JsonObject, gatewayToken: string) {
+  const gateway = ensureObject(config, "gateway");
+  const auth = ensureObject(gateway, "auth");
+  auth.mode = "token";
+  auth.token = gatewayToken;
+}
+
+function sanitizeOpenClawConfigForRealSeed(config: JsonObject): RealE2EConfigSanitization {
+  const sanitization: RealE2EConfigSanitization = {
+    removedChannels: [],
+    removedPluginEntries: [],
+    reason:
+      "real E2E seed runs chat/session through cpa + main; external channel accounts are skipped-safe in the isolated copy",
+  };
+  if (process.env.DECK_GO_REAL_E2E_PRESERVE_CHANNELS === "1") {
+    return sanitization;
+  }
+
+  if (isObject(config.channels)) {
+    sanitization.removedChannels = Object.keys(config.channels).toSorted();
+    delete config.channels;
+  }
+
+  if (sanitization.removedChannels.length > 0 && isObject(config.plugins)) {
+    const plugins = config.plugins;
+    if (isObject(plugins.entries)) {
+      for (const channelId of sanitization.removedChannels) {
+        if (Object.prototype.hasOwnProperty.call(plugins.entries, channelId)) {
+          delete plugins.entries[channelId];
+          sanitization.removedPluginEntries.push(channelId);
+        }
+      }
+      sanitization.removedPluginEntries.sort();
+    }
+  }
+  return sanitization;
+}
+
+function rewriteAgentRuntimeCwd(agent: JsonObject, targetWorkspace: string) {
+  if (!isObject(agent.runtime)) {
+    return;
+  }
+  const runtime = agent.runtime;
+  if (!isObject(runtime.acp)) {
+    return;
+  }
+  runtime.acp.cwd = targetWorkspace;
+}
+
+async function copyWorkspaceBootstrap(copy: WorkspaceCopy, runId: string) {
+  await mkdir(copy.target, { recursive: true, mode: 0o700 });
+  let copied = 0;
+  if (copy.source && (await pathExists(copy.source))) {
+    for (const name of workspaceBootstrapFiles) {
+      const sourceFile = path.join(copy.source, name);
+      const targetFile = path.join(copy.target, name);
+      if (await copyFileIfSmall(sourceFile, targetFile, maxBootstrapCopyBytes)) {
+        copied += 1;
+      }
+    }
+  }
+  if (copied === 0) {
+    await writeFile(
+      path.join(copy.target, "AGENTS.md"),
+      [
+        "# deck-go isolated real E2E workspace",
+        "",
+        `Run id: ${runId}`,
+        `Agent id: ${copy.agentId}`,
+        "",
+        "This workspace is a temporary copy used by deck-go real E2E tests.",
+        "",
+      ].join("\n"),
+      { encoding: "utf8", mode: 0o600 },
+    );
+  }
+  await writeFile(
+    path.join(copy.target, ".deck-go-e2e-run.json"),
+    `${JSON.stringify({ agentId: copy.agentId, runId, source: copy.source ?? null }, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+async function copyOpenClawSidecars(sourceDir: string, targetDir: string) {
+  await Promise.all(
+    stateSidecarFiles.map((name) =>
+      copyFileIfSmall(path.join(sourceDir, name), path.join(targetDir, name), maxSidecarCopyBytes),
+    ),
+  );
+}
+
+async function copyFileIfSmall(source: string, target: string, maxBytes: number) {
+  try {
+    const info = await stat(source);
+    if (!info.isFile() || info.size > maxBytes) {
+      return false;
+    }
+    await copyFile(source, target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function writeRealE2EIsolationManifest(isolation: RealE2EIsolation) {
+  await writeFile(
+    path.join(isolation.evidenceDir, "isolation.json"),
+    `${JSON.stringify(redactSecrets(isolation), null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+function uniqueWorkspaceCopies(copies: WorkspaceCopy[]) {
+  const byTarget = new Map<string, WorkspaceCopy>();
+  for (const copy of copies) {
+    if (byTarget.has(copy.target)) {
+      byTarget.delete(copy.target);
+    }
+    byTarget.set(copy.target, copy);
+  }
+  return Array.from(byTarget.values());
+}
+
+function ensureObject(parent: JsonObject, key: string): JsonObject {
+  const current = parent[key];
+  if (isObject(current)) {
+    return current;
+  }
+  const next: JsonObject = {};
+  parent[key] = next;
+  return next;
+}
+
+function isObject(value: unknown): value is JsonObject {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function resolveUserPath(input: string, home: string) {
+  if (input === "~") {
+    return path.resolve(home);
+  }
+  if (input.startsWith("~/")) {
+    return path.resolve(home, input.slice(2));
+  }
+  return path.resolve(input);
+}
+
+function resolvePossiblyRelativePath(input: string, home: string) {
+  return resolveUserPath(input, home);
+}
+
+async function pathExists(filePath: string) {
+  try {
+    await stat(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function sanitizePathSegment(value: string) {
+  return (
+    value
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "resource"
+  );
+}
+
+export function buildRunScopedName(runId: string, label: string) {
+  const suffix = sanitizePathSegment(label);
+  return `${runId}-${suffix}`.slice(0, 140);
+}
+
+export function isRunScopedValue(value: unknown, runId: string): boolean {
+  if (typeof value === "string") {
+    return value.includes(runId);
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => isRunScopedValue(entry, runId));
+  }
+  if (!isObject(value)) {
+    return false;
+  }
+  for (const key of ["id", "name", "label", "title", "description", "runId"]) {
+    if (isRunScopedValue(value[key], runId)) {
+      return true;
+    }
+  }
+  if (isObject(value.metadata) && isRunScopedValue(value.metadata.deckGoE2ERunId, runId)) {
+    return true;
+  }
+  return false;
+}
+
+export function filterRunScopedResources<T>(resources: T[], runId: string): T[] {
+  return resources.filter((resource) => isRunScopedValue(resource, runId));
+}
+
+export function assertRunScopedCleanupTarget(resource: unknown, runId: string) {
+  if (!isRunScopedValue(resource, runId)) {
+    throw new Error(`refusing to clean up resource without current real E2E run id ${runId}`);
+  }
+}
+
+export const unsafeRealE2EFixtureClasses = [
+  "channel accounts",
+  "installed skills",
+  "device tokens",
+  "user memory mutations",
+] as const;
+
+export const deferredRealE2EFixtureClasses = ["routing bindings", "docs registry entries"] as const;
+
+export const realE2EEvidenceStatuses = [
+  "passed",
+  "degraded",
+  "empty-valid",
+  "skipped-safe",
+  "handoff-blocked",
+] as const;
+
+export type RealE2EEvidenceStatus = (typeof realE2EEvidenceStatuses)[number];
+
+export type BudgetRuleFixture = {
+  id: string;
+  name: string;
+  runId: string;
+};
+
+export type AlertRuleFixture = {
+  id: string;
+  name: string;
+  runId: string;
+};
+
+export type AgentFixture = {
+  id: string;
+  name: string;
+  runId: string;
+  workspace: string;
+};
+
+export type ExecApprovalFixture = {
+  id: string;
+  command: string;
+  runId: string;
+};
+
+export type WebhookFixture = {
+  id: string;
+  name: string;
+  runId: string;
+};
+
+export function buildRealE2EFixtureName(
+  stack: Pick<E2EStack, "realE2E">,
+  label: string,
+  fallbackRunId = "deckgo-e2e-unknown",
+) {
+  return buildRunScopedName(stack.realE2E?.runId ?? fallbackRunId, label);
+}
+
+export async function createBudgetRuleFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  label: string,
+  overrides: Partial<{
+    dimension: string;
+    enabled: boolean;
+    overThreshold: number;
+    period: string;
+    scope: string;
+    warnThreshold: number;
+  }> = {},
+): Promise<BudgetRuleFixture> {
+  const runId = stack.realE2E?.runId ?? "deckgo-e2e-unknown";
+  const name = buildRunScopedName(runId, label);
+  const response = await request.post(`${stack.backendBase}/api/usage/budget`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: {
+      name,
+      scope: overrides.scope ?? "global",
+      dimension: overrides.dimension ?? "cost",
+      warnThreshold: overrides.warnThreshold ?? 100,
+      overThreshold: overrides.overThreshold ?? 200,
+      period: overrides.period ?? "monthly",
+      enabled: overrides.enabled ?? false,
+    },
+  });
+  expect(response.ok(), `/usage/budget fixture create returned ${response.status()}`).toBe(true);
+  const payload = (await response.json()) as { id?: unknown; name?: unknown };
+  expect(payload.name).toBe(name);
+  expect(typeof payload.id).toBe("string");
+  const fixture = { id: String(payload.id), name, runId };
+  assertRunScopedCleanupTarget(fixture, runId);
+  return fixture;
+}
+
+export async function deleteBudgetRuleFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  fixture: BudgetRuleFixture,
+) {
+  const runId = stack.realE2E?.runId ?? fixture.runId;
+  assertRunScopedCleanupTarget(fixture, runId);
+  const response = await request.delete(
+    `${stack.backendBase}/api/usage/budget/${encodeURIComponent(fixture.id)}`,
+    { headers: deckTokenHeaders(stack.accessToken) },
+  );
+  expect(response.ok(), `/usage/budget fixture cleanup returned ${response.status()}`).toBe(true);
+}
+
+export async function createAlertRuleFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  label: string,
+  overrides: Partial<{
+    action: string;
+    condition: string;
+    cooldownMs: number;
+    enabled: boolean;
+    entityType: string;
+    threshold: number;
+  }> = {},
+): Promise<AlertRuleFixture> {
+  const runId = stack.realE2E?.runId ?? "deckgo-e2e-unknown";
+  const name = buildRunScopedName(runId, label);
+  const response = await request.post(`${stack.backendBase}/api/alerts`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: {
+      name,
+      entityType: overrides.entityType ?? "usage",
+      condition: overrides.condition ?? "usage_pct > threshold",
+      threshold: overrides.threshold ?? 72,
+      action: overrides.action ?? "toast",
+      cooldownMs: overrides.cooldownMs ?? 300000,
+      enabled: overrides.enabled ?? true,
+    },
+  });
+  expect(response.ok(), `/alerts fixture create returned ${response.status()}`).toBe(true);
+  const payload = (await response.json()) as {
+    rule?: { id?: unknown; name?: unknown };
+  };
+  expect(payload.rule?.name).toBe(name);
+  expect(typeof payload.rule?.id).toBe("string");
+  const fixture = { id: String(payload.rule?.id), name, runId };
+  assertRunScopedCleanupTarget(fixture, runId);
+  return fixture;
+}
+
+export async function deleteAlertRuleFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  fixture: AlertRuleFixture,
+) {
+  const runId = stack.realE2E?.runId ?? fixture.runId;
+  assertRunScopedCleanupTarget(fixture, runId);
+  const response = await request.delete(
+    `${stack.backendBase}/api/alerts/${encodeURIComponent(fixture.id)}`,
+    { headers: deckTokenHeaders(stack.accessToken) },
+  );
+  expect(response.ok(), `/alerts fixture cleanup returned ${response.status()}`).toBe(true);
+}
+
+export async function createAgentFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  label: string,
+  overrides: Partial<{
+    emoji: string;
+    model: string;
+    workspace: string;
+  }> = {},
+): Promise<AgentFixture> {
+  const runId = stack.realE2E?.runId ?? "deckgo-e2e-unknown";
+  const name = buildRunScopedName(runId, label);
+  const workspace =
+    overrides.workspace ??
+    path.join(stack.realE2E?.workspaceRoot ?? os.tmpdir(), "fixtures", sanitizePathSegment(name));
+  const response = await request.post(`${stack.backendBase}/api/agents`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: {
+      name,
+      workspace,
+      ...(overrides.model ? { model: overrides.model } : {}),
+      ...(overrides.emoji ? { emoji: overrides.emoji } : {}),
+    },
+  });
+  expect(response.ok(), `/agents fixture create returned ${response.status()}`).toBe(true);
+  const payload = (await response.json()) as {
+    agentId?: unknown;
+    id?: unknown;
+    name?: unknown;
+    workspace?: unknown;
+  };
+  const id = typeof payload.id === "string" ? payload.id : payload.agentId;
+  expect(typeof id).toBe("string");
+  const fixture = {
+    id: String(id),
+    name: typeof payload.name === "string" ? payload.name : name,
+    runId,
+    workspace: typeof payload.workspace === "string" ? payload.workspace : workspace,
+  };
+  assertRunScopedCleanupTarget(fixture, runId);
+  return fixture;
+}
+
+export async function deleteAgentFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  fixture: AgentFixture,
+) {
+  const runId = stack.realE2E?.runId ?? fixture.runId;
+  assertRunScopedCleanupTarget(fixture, runId);
+  const response = await request.delete(
+    `${stack.backendBase}/api/agents?agentId=${encodeURIComponent(fixture.id)}`,
+    { headers: deckTokenHeaders(stack.accessToken) },
+  );
+  expect(response.ok(), `/agents fixture cleanup returned ${response.status()}`).toBe(true);
+}
+
+export async function createExecApprovalFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  label: string,
+  overrides: Partial<{
+    agentId: string;
+    cwd: string;
+    timeoutMs: number;
+  }> = {},
+): Promise<ExecApprovalFixture> {
+  const runId = stack.realE2E?.runId ?? "deckgo-e2e-unknown";
+  const id = buildRunScopedName(runId, label);
+  const command = `echo ${id}`;
+  const rpc = await callRuntimeGatewayRpc(request, stack, "exec.approval.request", {
+    id,
+    command,
+    commandArgv: ["echo", id],
+    cwd: overrides.cwd ?? stack.realE2E?.workspaceRoot ?? os.tmpdir(),
+    agentId: overrides.agentId ?? "main",
+    sessionKey: buildRunScopedName(runId, `${label}-session`),
+    ask: "always",
+    security: "deny",
+    timeoutMs: overrides.timeoutMs ?? 300_000,
+    twoPhase: true,
+  });
+  const result = isObject(rpc.result) ? rpc.result : {};
+  const fixture = {
+    id: typeof result.id === "string" ? result.id : id,
+    command,
+    runId,
+  };
+  assertRunScopedCleanupTarget(fixture, runId);
+  return fixture;
+}
+
+export async function resolveExecApprovalFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  fixture: ExecApprovalFixture,
+  decision: "allow-once" | "allow-always" | "deny" = "deny",
+  options: { allowMissing?: boolean } = {},
+) {
+  const runId = stack.realE2E?.runId ?? fixture.runId;
+  assertRunScopedCleanupTarget(fixture, runId);
+  const pending = await request.get(`${stack.backendBase}/api/approvals/pending`, {
+    headers: deckTokenHeaders(stack.accessToken),
+  });
+  if (pending.ok()) {
+    const payload = (await pending.json()) as { pending?: Array<{ id?: unknown }> };
+    const stillPending = (payload.pending ?? []).some((entry) => entry.id === fixture.id);
+    if (!stillPending) {
+      if (options.allowMissing) {
+        return;
+      }
+      throw new Error(`exec approval fixture ${fixture.id} is not pending`);
+    }
+  } else if (options.allowMissing) {
+    return;
+  }
+  const response = await request.post(`${stack.backendBase}/api/approvals`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: { id: fixture.id, decision },
+  });
+  if (options.allowMissing && !response.ok()) {
+    return;
+  }
+  expect(response.ok(), `/approvals fixture resolve returned ${response.status()}`).toBe(true);
+}
+
+export async function createWebhookFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  label: string,
+  params: {
+    url: string;
+    enabled?: boolean;
+    events?: string[];
+    secret?: string;
+  },
+): Promise<WebhookFixture> {
+  const runId = stack.realE2E?.runId ?? "deckgo-e2e-unknown";
+  const name = buildRunScopedName(runId, label);
+  const response = await request.post(`${stack.backendBase}/api/webhooks`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: {
+      enabled: params.enabled ?? true,
+      events: params.events ?? ["alert.fired", "test.ping"],
+      name,
+      secret: params.secret ?? "real-secret",
+      url: params.url,
+    },
+  });
+  expect(response.ok(), `/webhooks fixture create returned ${response.status()}`).toBe(true);
+  const payload = (await response.json()) as { id?: unknown; name?: unknown; secret?: unknown };
+  expect(payload.name).toBe(name);
+  expect(payload.secret).toBe("***redacted");
+  expect(typeof payload.id).toBe("string");
+  const fixture = { id: String(payload.id), name, runId };
+  assertRunScopedCleanupTarget(fixture, runId);
+  return fixture;
+}
+
+export async function deleteWebhookFixture(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase" | "realE2E">,
+  fixture: WebhookFixture,
+) {
+  const runId = stack.realE2E?.runId ?? fixture.runId;
+  assertRunScopedCleanupTarget(fixture, runId);
+  const response = await request.delete(
+    `${stack.backendBase}/api/webhooks/${encodeURIComponent(fixture.id)}`,
+    { headers: deckTokenHeaders(stack.accessToken) },
+  );
+  expect(response.ok(), `/webhooks fixture cleanup returned ${response.status()}`).toBe(true);
+}
+
+export function isRealE2EEvidenceStatus(value: unknown): value is RealE2EEvidenceStatus {
+  return (
+    typeof value === "string" && realE2EEvidenceStatuses.includes(value as RealE2EEvidenceStatus)
+  );
+}
+
+export function normalizeRealE2EScenarioEvidence(evidence: JsonObject): JsonObject {
+  const scenarioId = readString(evidence.scenarioId);
+  const runId = readString(evidence.runId);
+  if (!scenarioId) {
+    throw new Error("real E2E scenario evidence requires scenarioId");
+  }
+  if (!runId) {
+    throw new Error(`real E2E scenario ${scenarioId} requires runId`);
+  }
+  if (!isRealE2EEvidenceStatus(evidence.status)) {
+    throw new Error(
+      `real E2E scenario ${scenarioId} has invalid status ${String(evidence.status)}`,
+    );
+  }
+
+  const attempts = Array.isArray(evidence.attempts) ? evidence.attempts : [];
+  const maxAttempts =
+    typeof evidence.maxAttempts === "number" && Number.isInteger(evidence.maxAttempts)
+      ? evidence.maxAttempts
+      : undefined;
+  if (maxAttempts !== undefined && (maxAttempts < 0 || attempts.length > maxAttempts)) {
+    throw new Error(
+      `real E2E scenario ${scenarioId} recorded ${attempts.length} attempts over max ${maxAttempts}`,
+    );
+  }
+
+  return {
+    ...evidence,
+    scenarioId,
+    runId,
+    status: evidence.status,
+    attemptCount: attempts.length,
+    ...(maxAttempts !== undefined ? { maxAttempts } : {}),
+  };
+}
+
+export async function writeRealE2EScenarioEvidence(
+  stack: Pick<E2EStack, "realE2E">,
+  name: string,
+  evidence: JsonObject,
+  testInfo?: TestInfo,
+) {
+  return writeRealE2EEvidence(stack, name, normalizeRealE2EScenarioEvidence(evidence), testInfo);
+}
+
+export function redactSecrets(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => redactSecrets(entry));
+  }
+  if (!isObject(value)) {
+    if (typeof value === "string" && /^Bearer\s+\S+/i.test(value)) {
+      return "Bearer ***redacted***";
+    }
+    return value;
+  }
+  const redacted: JsonObject = {};
+  for (const [key, entry] of Object.entries(value)) {
+    redacted[key] = sensitiveKeyPattern.test(key) ? "***redacted***" : redactSecrets(entry);
+  }
+  return redacted;
+}
+
+export async function writeRealE2EEvidence(
+  stack: Pick<E2EStack, "realE2E">,
+  name: string,
+  evidence: unknown,
+  testInfo?: TestInfo,
+) {
+  const evidenceDir =
+    stack.realE2E?.evidenceDir ?? path.join(os.tmpdir(), "deck-go-real-e2e-evidence");
+  await mkdir(evidenceDir, { recursive: true, mode: 0o700 });
+  const evidenceName = sanitizePathSegment(name);
+  const redactedEvidence = redactSecrets(evidence);
+  const evidencePath = path.join(evidenceDir, `${evidenceName}.json`);
+  await writeFile(evidencePath, `${JSON.stringify(redactedEvidence, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  const persistentEvidenceDir = process.env.DECK_GO_REAL_E2E_EVIDENCE_DIR?.trim();
+  if (persistentEvidenceDir) {
+    const runId = sanitizePathSegment(stack.realE2E?.runId ?? "no-run-id");
+    const persistentDir = resolveUserPath(persistentEvidenceDir, os.homedir());
+    await mkdir(persistentDir, { recursive: true, mode: 0o700 });
+    await writeFile(
+      path.join(persistentDir, `${runId}-${evidenceName}.json`),
+      `${JSON.stringify(redactedEvidence, null, 2)}\n`,
+      {
+        encoding: "utf8",
+        mode: 0o600,
+      },
+    );
+  }
+  if (testInfo) {
+    await testInfo.attach(name, {
+      path: evidencePath,
+      contentType: "application/json",
+    });
+  }
+  return evidencePath;
 }
 
 export async function startBundledStack(testInfo: TestInfo): Promise<E2EStack> {
@@ -330,6 +1293,17 @@ export async function startBundledStack(testInfo: TestInfo): Promise<E2EStack> {
       },
     };
   } catch (error) {
+    const output = backend.output();
+    await writeFile(path.join(logDir, "backend-output.log"), output, {
+      encoding: "utf8",
+      mode: 0o600,
+    }).catch(() => {});
+    await testInfo
+      .attach("real-gateway-backend-output", {
+        body: output,
+        contentType: "text/plain",
+      })
+      .catch(() => {});
     for (const stop of cleanup.toReversed()) {
       await stop();
     }
@@ -420,6 +1394,14 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
   const binary = await buildBackendBinary();
   const accessToken = `real-e2e-deck-token-${testInfo.workerIndex}`;
   const gatewayToken = `real-e2e-gateway-token-${testInfo.workerIndex}`;
+  const realE2E = await prepareIsolatedOpenClawState({
+    root,
+    dataDir,
+    logDir,
+    gatewayToken,
+    runId: buildRealE2ERunId(testInfo),
+    testInfo,
+  });
 
   const backend = spawnManaged("backend", binary, [], {
     cwd: deckRoot,
@@ -438,6 +1420,8 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
       RUNTIME_BUNDLED_BIND_PORT: String(gatewayPort),
       RUNTIME_BUNDLED_TOKEN: gatewayToken,
       RUNTIME_BUNDLED_AUTO_START: "true",
+      RUNTIME_BUNDLED_ENV_OPENCLAW_CONFIG_PATH: realE2E.configPath,
+      RUNTIME_BUNDLED_ENV_OPENCLAW_HOME: realE2E.homeDir,
       RUNTIME_BUNDLED_ENV_NO_PROXY: localNoProxy,
     },
   });
@@ -445,8 +1429,8 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
   try {
     await waitForHTTP(`${backendBase}/healthz`, "backend", backend.output);
     await waitForBundledRuntime(backendBase, accessToken);
-    await waitForGatewayHealth(backendBase, accessToken);
-    await waitForGatewayRPC(backendBase, accessToken);
+    await recordGatewayHealthStartup(backendBase, accessToken, testInfo);
+    await waitForGatewayRPC(backendBase, accessToken, backend.output);
     const frontend = await startFrontend(backendBase, frontendPort, accessToken);
     cleanup.push(frontend.process.stop);
     return {
@@ -454,6 +1438,7 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
       frontendBase: frontend.frontendBase,
       requestLog,
       accessToken,
+      realE2E,
       realGateway: {
         url: `http://127.0.0.1:${gatewayPort}`,
         token: gatewayToken,
@@ -492,6 +1477,7 @@ export async function openDeck(
   await page.addInitScript(
     ({ localeValue, sidebarCollapsedValue, themeValue }) => {
       try {
+        document.cookie = `NEXT_LOCALE=${localeValue};path=/;max-age=31536000`;
         window.localStorage.setItem("deckGoLocale", localeValue);
         window.localStorage.setItem("deckGoSidebarCollapsed", sidebarCollapsedValue);
         window.localStorage.removeItem("deckGoActivePanel");
@@ -551,17 +1537,180 @@ export async function createChatSession(
   backendBase: string,
   message: string,
   accessToken?: string,
+  options: {
+    agentId?: string;
+    label?: string;
+    model?: string;
+  } = {},
 ) {
   const response = await request.post(`${backendBase}/api/chat/sessions/create`, {
     headers: deckTokenHeaders(accessToken),
     data: {
-      agentId: "main",
-      label: "E2E smoke",
+      agentId: options.agentId ?? "main",
+      label: options.label ?? "E2E smoke",
       message,
+      ...(options.model ? { model: options.model } : {}),
     },
   });
   expect(response.ok(), `chat session create returned ${response.status()}`).toBe(true);
   return (await response.json()) as Record<string, unknown>;
+}
+
+export async function seedRealGatewayChat(
+  request: APIRequestContext,
+  stack: E2EStack,
+  testInfo: TestInfo,
+  options: {
+    agentId?: string;
+    channel?: string;
+    maxAttempts?: number;
+    model?: string;
+  } = {},
+) {
+  const runId = stack.realE2E?.runId ?? buildRealE2ERunId(testInfo);
+  const agentId = options.agentId ?? "main";
+  const channel = options.channel ?? process.env.DECK_GO_REAL_GATEWAY_E2E_CHANNEL ?? "cpa";
+  const model = options.model ?? process.env.DECK_GO_REAL_GATEWAY_E2E_MODEL ?? "gpt-5.4";
+  const maxAttempts = options.maxAttempts ?? 3;
+  const headers = deckTokenHeaders(stack.accessToken);
+  const evidence: JsonObject = {
+    scenarioId: "real-e2e.cpa-main-seed",
+    runId,
+    agentId,
+    channel,
+    model,
+    maxAttempts,
+    attempts: [],
+    endpoints: {},
+    configuredModels: await requestJsonEvidence(
+      request,
+      stack,
+      "POST",
+      "/api/v1/runtimes/rt_local/gateway/rpc",
+      headers,
+      { method: "models.configured", params: {} },
+    ),
+  };
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const label = buildRunScopedName(runId, `real-seed-${attempt}`);
+    const message = `deck-go isolated real E2E seed ${runId} attempt ${attempt}`;
+    const session = await requestJsonEvidence(
+      request,
+      stack,
+      "POST",
+      "/api/chat/sessions/create",
+      headers,
+      {
+        agentId,
+        label,
+        message,
+        model,
+      },
+    );
+    (evidence.attempts as unknown[]).push(session);
+    if (session.ok) {
+      evidence.sessionStatus = "passed";
+      evidence.session = session.payload;
+      break;
+    }
+  }
+  if (evidence.sessionStatus !== "passed") {
+    evidence.sessionStatus = "handoff-blocked";
+  }
+
+  const endpoints = evidence.endpoints as JsonObject;
+  for (const endpoint of [
+    "/api/sessions?limit=20",
+    "/api/activity?limit=20",
+    "/api/logs?limit=10&maxBytes=65536",
+    "/api/usage/cost?days=7",
+    "/api/docs",
+  ]) {
+    endpoints[endpoint] = await requestJsonEvidence(request, stack, "GET", endpoint, headers);
+  }
+
+  const endpointStatuses = Object.values(endpoints).map((entry) =>
+    isObject(entry) && entry.statusLabel ? entry.statusLabel : "degraded",
+  );
+  evidence.status =
+    evidence.sessionStatus === "passed"
+      ? endpointStatuses.includes("degraded")
+        ? "degraded"
+        : "passed"
+      : "handoff-blocked";
+
+  await writeRealE2EScenarioEvidence(stack, "real-gateway-cpa-main-seed", evidence, testInfo);
+  return evidence;
+}
+
+async function requestJsonEvidence(
+  request: APIRequestContext,
+  stack: E2EStack,
+  method: "GET" | "POST",
+  endpoint: string,
+  headers: Record<string, string>,
+  data?: unknown,
+) {
+  const response =
+    method === "GET"
+      ? await request.get(`${stack.backendBase}${endpoint}`, { headers })
+      : await request.post(`${stack.backendBase}${endpoint}`, { headers, data });
+  const text = await response.text();
+  const payload = parseJsonOrText(text);
+  return {
+    endpoint,
+    method,
+    ok: response.ok(),
+    status: response.status(),
+    statusLabel: response.ok() ? classifyPayloadStatus(payload) : "degraded",
+    payload,
+  };
+}
+
+export async function callRuntimeGatewayRpc(
+  request: APIRequestContext,
+  stack: Pick<E2EStack, "accessToken" | "backendBase">,
+  method: string,
+  params: Record<string, unknown>,
+) {
+  const response = await request.post(`${stack.backendBase}/api/v1/runtimes/rt_local/gateway/rpc`, {
+    headers: deckTokenHeaders(stack.accessToken),
+    data: { method, params },
+  });
+  const payload = parseJsonOrText(await response.text()) as { result?: unknown; error?: unknown };
+  expect(
+    response.ok() && !payload.error,
+    `${method} gateway RPC returned ${response.status()}: ${JSON.stringify(payload)}`,
+  ).toBe(true);
+  return payload;
+}
+
+function parseJsonOrText(text: string) {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text.slice(0, 4000);
+  }
+}
+
+function classifyPayloadStatus(payload: unknown) {
+  if (payload === null || payload === undefined || payload === "") {
+    return "empty-valid";
+  }
+  if (Array.isArray(payload)) {
+    return payload.length > 0 ? "passed" : "empty-valid";
+  }
+  if (isObject(payload)) {
+    const values = Object.values(payload);
+    const hasNonEmptyArray = values.some((value) => Array.isArray(value) && value.length > 0);
+    if (hasNonEmptyArray) {
+      return "passed";
+    }
+    const hasEmptyArray = values.some((value) => Array.isArray(value) && value.length === 0);
+    return hasEmptyArray ? "empty-valid" : "passed";
+  }
+  return "passed";
 }
 
 export async function sendChatMessage(page: Page, text: string) {

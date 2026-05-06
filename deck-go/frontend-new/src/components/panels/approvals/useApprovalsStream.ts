@@ -1,10 +1,10 @@
-import { useEffect, type Dispatch, type SetStateAction } from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import type {
   DeckGoPendingApproval,
   DeckGoPendingApprovalsResponse,
   DeckGoServerEvent,
 } from "../../../api";
-import { streamEvents } from "../../../api";
+import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
 
 function filterActivePendingApprovals(approvals: DeckGoPendingApproval[], now = Date.now()) {
   return approvals.filter(
@@ -106,32 +106,32 @@ export function useApprovalsStream({
   setPendingResponse: Dispatch<SetStateAction<DeckGoPendingApprovalsResponse | null>>;
   setSelectedApprovalId: Dispatch<SetStateAction<string>>;
 }) {
-  useEffect(() => {
-    const controller = new AbortController();
-    void streamEvents({
-      signal: controller.signal,
-      retryDelayMs: 1_000,
-      onEvent(event) {
-        if (event.event === "approval.pending") {
-          const approval = readPendingApproval(event);
-          if (!approval) {
-            return;
-          }
-          setPendingResponse((current) => addPendingApproval(current, approval));
-          setSelectedApprovalId((current) => current || approval.id);
+  const handleEvent = useCallback(
+    (event: DeckGoServerEvent) => {
+      if (event.event === "approval.pending") {
+        const approval = readPendingApproval(event);
+        if (!approval) {
           return;
         }
-        if (event.event === "approval.resolved") {
-          const id = readResolvedApprovalId(event);
-          if (!id) {
-            return;
-          }
-          setPendingResponse((current) => removePendingApproval(current, id));
-          setSelectedApprovalId((current) => (current === id ? "" : current));
+        setPendingResponse((current) => addPendingApproval(current, approval));
+        setSelectedApprovalId((current) => current || approval.id);
+        return;
+      }
+      if (event.event === "approval.resolved") {
+        const id = readResolvedApprovalId(event);
+        if (!id) {
+          return;
         }
-      },
-    }).catch(() => {});
+        setPendingResponse((current) => removePendingApproval(current, id));
+        setSelectedApprovalId((current) => (current === id ? "" : current));
+      }
+    },
+    [setPendingResponse, setSelectedApprovalId],
+  );
 
-    return () => controller.abort();
-  }, [setPendingResponse, setSelectedApprovalId]);
+  useLiveProjectionSubscription({
+    projectionId: "approval-queue",
+    retryDelayMs: 1_000,
+    onEvent: handleEvent,
+  });
 }

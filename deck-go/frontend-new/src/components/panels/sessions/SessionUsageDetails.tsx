@@ -17,6 +17,31 @@ type SessionUsageDetailsProps = {
 
 const SESSION_LOG_LIMIT = 50;
 
+type ContextWeightSummary = {
+  files: number;
+  fileEntries: number;
+  skills: number;
+  skillEntries: number;
+  system: number;
+  tools: number;
+  toolEntries: number;
+  total: number;
+};
+
+function numericValue(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function arrayValue(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function formatChars(value: number) {
   if (value >= 1_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M`;
@@ -35,21 +60,33 @@ function formatTimestamp(value?: number) {
   return value ? new Date(value).toLocaleString() : "n/a";
 }
 
-function contextWeightSummary(report: DeckGoContextWeightReport | null | undefined) {
+function contextWeightSummary(
+  report: DeckGoContextWeightReport | null | undefined,
+): ContextWeightSummary | null {
   if (!report) {
     return null;
   }
-  const files = report.injectedWorkspaceFiles.reduce((sum, file) => sum + file.injectedChars, 0);
-  const skills = report.skills.promptChars;
-  const system = report.systemPrompt.chars;
-  const tools = report.tools.listChars + report.tools.schemaChars;
+  const systemPrompt = objectValue(report.systemPrompt);
+  const skillsRecord = objectValue(report.skills);
+  const toolsRecord = objectValue(report.tools);
+  const workspaceFiles = arrayValue(report.injectedWorkspaceFiles);
+  const files = workspaceFiles.reduce(
+    (sum, file) => sum + numericValue(objectValue(file).injectedChars),
+    0,
+  );
+  const skills = numericValue(skillsRecord.promptChars);
+  const system = numericValue(systemPrompt.chars);
+  const tools = numericValue(toolsRecord.listChars) + numericValue(toolsRecord.schemaChars);
   return {
+    fileEntries: workspaceFiles.length,
     files,
     skills,
+    skillEntries: arrayValue(skillsRecord.entries).length,
     system,
     tools,
+    toolEntries: arrayValue(toolsRecord.entries).length,
     total: files + skills + system + tools,
-  };
+  } satisfies ContextWeightSummary;
 }
 
 function usageTotal(entry: DeckGoUsageSessionEntry | null) {
@@ -169,7 +206,7 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
               <div className="sessions-meta">
                 {t("contextEntryDetail", {
                   chars: formatChars(contextSummary.tools),
-                  count: usageEntry?.contextWeight?.tools.entries.length ?? 0,
+                  count: contextSummary.toolEntries,
                 })}
               </div>
             </li>
@@ -178,7 +215,7 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
               <div className="sessions-meta">
                 {t("contextEntryDetail", {
                   chars: formatChars(contextSummary.skills),
-                  count: usageEntry?.contextWeight?.skills.entries.length ?? 0,
+                  count: contextSummary.skillEntries,
                 })}
               </div>
             </li>
@@ -187,7 +224,7 @@ export function SessionUsageDetails(props: SessionUsageDetailsProps) {
               <div className="sessions-meta">
                 {t("contextFilesDetail", {
                   chars: formatChars(contextSummary.files),
-                  count: usageEntry?.contextWeight?.injectedWorkspaceFiles.length ?? 0,
+                  count: contextSummary.fileEntries,
                 })}
               </div>
             </li>

@@ -7,10 +7,11 @@ import type {
 import { applyDeckConfig, fetchDeckConfig, lookupConfigPath } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff, type DiffEntry } from "../../../lib/config-diff";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import "./config-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
+type PreviewPaneMode = "diff" | "raw" | "history";
 type StructuredFieldKind = "boolean" | "enum" | "number" | "string" | "readonly";
 
 type StructuredEnumOption = {
@@ -221,7 +222,11 @@ function hintBoolean(child: DeckGoConfigLookupChild, key: string) {
 }
 
 function isSensitiveChild(child: DeckGoConfigLookupChild) {
-  return hintBoolean(child, "sensitive") || hintString(child, "inputType") === "password";
+  return (
+    hintBoolean(child, "sensitive") ||
+    hintBoolean(child, "secret") ||
+    hintString(child, "inputType") === "password"
+  );
 }
 
 function hintTags(child: DeckGoConfigLookupChild) {
@@ -300,6 +305,15 @@ function formatDiffValue(value: unknown) {
   return "";
 }
 
+function sectionDisplayLabel(t: ReturnType<typeof useTranslations>, section: string) {
+  return t.has(section) ? t(section) : section.charAt(0).toUpperCase() + section.slice(1);
+}
+
+function dirtyCountForSection(entries: DiffEntry[], section: string) {
+  return entries.filter((entry) => entry.path === section || entry.path.startsWith(`${section}.`))
+    .length;
+}
+
 function isConfigConflictMessage(message: string) {
   const normalized = message.toLowerCase();
   return normalized.includes("config changed") || normalized.includes("base hash");
@@ -309,15 +323,17 @@ export function ConfigPanel() {
   const t = useTranslations("config");
   const [rawConfig, setRawConfig] = useState("");
   const [lastLoadedRawConfig, setLastLoadedRawConfig] = useState("");
+  const [rawConfigWritable, setRawConfigWritable] = useState(false);
   const [baseHash, setBaseHash] = useState("");
-  const [schemaPath, setSchemaPath] = useState("agents.defaults");
+  const [schemaPath, setSchemaPath] = useState("");
   const [rootLookup, setRootLookup] = useState<DeckGoConfigLookupResponse | null>(null);
   const [lookupResult, setLookupResult] = useState<DeckGoConfigLookupResponse | null>(null);
   const [selectedSection, setSelectedSection] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
   const [structuredFieldFilter, setStructuredFieldFilter] = useState("");
   const [structuredFieldTag, setStructuredFieldTag] = useState("");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
+  const [previewPaneMode, setPreviewPaneMode] = useState<PreviewPaneMode>("diff");
+  const [_loadState, setLoadState] = useState<PanelState>("idle");
   const [actionState, setActionState] = useState<"idle" | "saving" | "lookup">("idle");
   const [error, setError] = useState("");
   const [actionResult, setActionResult] = useState<unknown>(null);
@@ -331,9 +347,11 @@ export function ConfigPanel() {
     try {
       const next = await fetchDeckConfig();
       const nextRaw = snapshotRawConfig(next);
+      const nextRawWritable = typeof next.raw === "string";
       setRawConfig(nextRaw);
       setLastLoadedRawConfig(nextRaw);
-      setBaseHash(next.hash ?? next.baseHash ?? "");
+      setRawConfigWritable(nextRawWritable);
+      setBaseHash(next.baseHash ?? next.hash ?? "");
       setPendingDiffEntries(null);
       setConflictPreview(null);
       setStructuredJsonDrafts({});
@@ -358,11 +376,11 @@ export function ConfigPanel() {
   useEffect(() => {
     void refresh();
     void loadRootSchema();
-    void lookupAction("agents.defaults");
   }, []);
 
   const topLevelKeys = useMemo(() => summarizeTopLevelKeys(rawConfig), [rawConfig]);
   const parsedConfig = useMemo(() => parseRawConfig(rawConfig), [rawConfig]);
+  const rawDraftValid = useMemo(() => parseRawConfigRecord(rawConfig) !== null, [rawConfig]);
   const isDirty = rawConfig !== lastLoadedRawConfig;
   const schemaSections = useMemo(() => {
     const rootSections =
@@ -374,12 +392,24 @@ export function ConfigPanel() {
     if (!query) {
       return schemaSections;
     }
-    return schemaSections.filter((section) => section.toLowerCase().includes(query));
-  }, [schemaSections, sectionFilter]);
+    return schemaSections.filter(
+      (section) =>
+        section.toLowerCase().includes(query) ||
+        sectionDisplayLabel(t, section).toLowerCase().includes(query),
+    );
+  }, [schemaSections, sectionFilter, t]);
   const selectedSectionValue = useMemo(
     () => (selectedSection ? readConfigPath(parsedConfig, selectedSection) : undefined),
     [parsedConfig, selectedSection],
   );
+  const diffEntries = useMemo(() => {
+    const loadedConfig = parseRawConfigRecord(lastLoadedRawConfig);
+    const nextConfig = parseRawConfigRecord(rawConfig);
+    return loadedConfig && nextConfig ? computeConfigDiff(loadedConfig, nextConfig) : [];
+  }, [lastLoadedRawConfig, rawConfig]);
+  const selectedSectionDirtyCount = selectedSection
+    ? dirtyCountForSection(diffEntries, selectedSection)
+    : 0;
   const structuredFieldTags = useMemo(() => {
     const tags = new Set<string>();
     for (const child of lookupResult?.children ?? []) {
@@ -408,9 +438,18 @@ export function ConfigPanel() {
       return;
     }
     setSelectedSection((current) =>
-      current && schemaSections.includes(current) ? current : schemaSections[0],
+      current && schemaSections.includes(current)
+        ? current
+        : (schemaSections.find((section) => section === "agents") ?? schemaSections[0]),
     );
   }, [schemaSections]);
+
+  useEffect(() => {
+    if (!selectedSection || lookupResult) {
+      return;
+    }
+    void lookupAction(selectedSection);
+  }, [lookupResult, selectedSection]);
 
   useEffect(() => {
     if (structuredFieldTag && !structuredFieldTags.includes(structuredFieldTag)) {
@@ -452,6 +491,11 @@ export function ConfigPanel() {
 
   const previewSaveAction = () => {
     setConflictPreview(null);
+    if (!rawConfigWritable) {
+      setPendingDiffEntries(null);
+      setError(t("rawConfigUnavailableApplyBlocked"));
+      return;
+    }
     const loadedConfig = parseRawConfigRecord(lastLoadedRawConfig);
     const nextConfig = parseRawConfigRecord(rawConfig);
     if (!nextConfig) {
@@ -470,6 +514,7 @@ export function ConfigPanel() {
       setError(t("noConfigChanges"));
       return;
     }
+    setPreviewPaneMode("diff");
     setPendingDiffEntries(entries);
     setError("");
   };
@@ -537,6 +582,10 @@ export function ConfigPanel() {
   };
 
   const updateStructuredPath = (path: string, value: unknown) => {
+    if (!rawConfigWritable) {
+      setError(t("rawConfigUnavailableStructuredBlocked"));
+      return;
+    }
     try {
       const parsed = JSON.parse(rawConfig) as unknown;
       const nextConfig = writeConfigPath(parsed, path, value);
@@ -589,534 +638,614 @@ export function ConfigPanel() {
 
   return (
     <section className="config-panel" data-testid="config-panel">
-      <div className="config-panel__column">
-        <article className="config-panel__card">
-          <div className="config-panel__card-head">
-            <h2 className="config-panel__card-title">{t("panelTitle")}</h2>
+      <header className="config-panel__topbar">
+        <div>
+          <p className="config-panel__eyebrow">{t("workbenchEyebrow")}</p>
+          <h2 className="config-panel__title">{t("workbenchTitle")}</h2>
+          <p className="config-panel__subtitle">{t("workbenchSubtitle")}</p>
+        </div>
+        <div className="config-panel__topbar-actions">
+          <span className={`config-panel__pill ${isDirty ? "is-warning" : "is-positive"}`}>
+            {isDirty ? t("unsavedCount", { count: diffEntries.length }) : t("snapshotInSync")}
+          </span>
+          <span className="config-panel__kbd">
+            <kbd>⌘</kbd>
+            <kbd>K</kbd>
+            <span>{t("focusSectionSearch")}</span>
+          </span>
+        </div>
+      </header>
+
+      <main className="config-panel__layout">
+        <aside className="config-panel__section-nav" aria-label={t("schemaSections")}>
+          <div className="config-panel__section-nav-head">
+            <p className="config-panel__eyebrow">openclaw.json</p>
+            <h3>{t("schemaSections")}</h3>
+            <p>{t("topLevelKeysCount", { count: schemaSections.length })}</p>
           </div>
-          <p className="config-panel__description">{t("panelDescription")}</p>
-          <div className="config-panel__body">
-            <div className="config-panel__pill-row">
-              <span
-                className={`config-panel__pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}
-              >
-                {t("configStatus", { status: t(loadState) })}
-              </span>
-              <span className="config-panel__pill">
-                {t("topLevelKeysCount", { count: topLevelKeys.length })}
-              </span>
-              <span className="config-panel__pill">
-                {t("schemaSectionsCount", { count: schemaSections.length })}
-              </span>
-              <span className="config-panel__pill">
-                {t("hashValue", { value: baseHash || t("notAvailable") })}
-              </span>
-              <span className={`config-panel__pill ${isDirty ? "is-warning" : "is-muted"}`}>
-                {t("unsavedStatus", { value: isDirty ? t("yes") : t("no") })}
-              </span>
-            </div>
-            <div className="config-panel__metrics">
-              <ShellStat label={t("keys")} value={topLevelKeys.length} />
-              <ShellStat label={t("schemaPath")} value={schemaPath} />
-              <ShellStat label={t("hash")} value={baseHash || t("notAvailable")} />
+          <label className="config-panel__search">
+            <span>{t("filterSections")}</span>
+            <input
+              className="config-panel__input"
+              value={sectionFilter}
+              onChange={(event) => setSectionFilter(event.target.value)}
+              placeholder={t("filterSections")}
+              type="search"
+            />
+          </label>
+          <div className="config-panel__section-list" role="tablist">
+            {filteredSchemaSections.length === 0 ? (
+              <p className="config-panel__empty">{t("noMatchingSchemaSections")}</p>
+            ) : (
+              filteredSchemaSections.map((section) => {
+                const dirtyCount = dirtyCountForSection(diffEntries, section);
+                return (
+                  <button
+                    key={section}
+                    className={`config-panel__section-button ${
+                      selectedSection === section ? "is-selected" : ""
+                    }`}
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedSection === section}
+                    onClick={() => {
+                      setSelectedSection(section);
+                      void lookupAction(section);
+                    }}
+                    disabled={actionState !== "idle"}
+                  >
+                    <span className="config-panel__section-icon">
+                      {sectionDisplayLabel(t, section).slice(0, 1)}
+                    </span>
+                    <span>
+                      <strong>{sectionDisplayLabel(t, section)}</strong>
+                      <code>{section}</code>
+                    </span>
+                    {dirtyCount > 0 ? (
+                      <span className="config-panel__dirty-count">{dirtyCount}</span>
+                    ) : null}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </aside>
+
+        <section className="config-panel__form-pane" aria-label={t("structuredSectionEditor")}>
+          <div className="config-panel__form-head">
+            <div>
+              <p className="config-panel__eyebrow">{t("section")}</p>
+              <h3>
+                <code>{selectedSection || t("noConfigKeys")}</code>
+              </h3>
+              <p className="config-panel__meta">
+                {lookupResult
+                  ? t("editingSchemaChildren", { path: lookupResult.path })
+                  : t("runSchemaLookup")}
+              </p>
             </div>
             <div className="config-panel__actions">
+              <button
+                className="config-panel__button"
+                type="button"
+                onClick={() => setPreviewPaneMode(previewPaneMode === "diff" ? "raw" : "diff")}
+              >
+                {previewPaneMode === "diff" ? t("raw") : t("diff")}
+              </button>
               <button className="config-panel__button" type="button" onClick={() => void refresh()}>
                 {t("refreshConfig")}
               </button>
+            </div>
+          </div>
+
+          <div className="config-panel__hash-row">
+            <span className="config-panel__pill">
+              {t("baseHash", { value: baseHash || t("notAvailable") })}
+            </span>
+            <span className="config-panel__pill">
+              {t("draftHash", {
+                value: isDirty ? `${baseHash || "draft"}*` : baseHash || t("notAvailable"),
+              })}
+            </span>
+            <span
+              className={`config-panel__pill ${
+                selectedSectionDirtyCount > 0 ? "is-warning" : "is-positive"
+              }`}
+            >
+              {selectedSectionDirtyCount > 0
+                ? t("unsavedHere", { count: selectedSectionDirtyCount })
+                : t("sectionClean")}
+            </span>
+          </div>
+
+          {error ? <p className="config-panel__error">{error}</p> : null}
+          {!rawConfigWritable ? (
+            <p className="config-panel__notice">{t("rawConfigUnavailable")}</p>
+          ) : null}
+
+          <div className="config-panel__lookup-bar">
+            <input
+              className="config-panel__input"
+              value={schemaPath}
+              onChange={(event) => setSchemaPath(event.target.value)}
+              placeholder={t("configPath")}
+            />
+            <button
+              className="config-panel__button"
+              type="button"
+              onClick={() => void lookupAction()}
+              disabled={actionState !== "idle"}
+            >
+              {actionState === "lookup" ? t("lookingUp") : t("lookupSchema")}
+            </button>
+          </div>
+
+          {lookupResult ? (
+            <>
+              <div className="config-panel__field-toolbar">
+                <input
+                  className="config-panel__input"
+                  value={structuredFieldFilter}
+                  onChange={(event) => setStructuredFieldFilter(event.target.value)}
+                  placeholder={t("filterStructuredFields")}
+                  type="search"
+                />
+                {structuredFieldTags.length > 0 ? (
+                  <div className="config-panel__tag-list">
+                    <button
+                      className={`config-panel__button ${structuredFieldTag ? "" : "is-primary"}`}
+                      type="button"
+                      onClick={() => setStructuredFieldTag("")}
+                    >
+                      {t("allTags")}
+                    </button>
+                    {structuredFieldTags.map((tag) => (
+                      <button
+                        key={tag}
+                        className={`config-panel__button ${
+                          structuredFieldTag === tag ? "is-primary" : ""
+                        }`}
+                        type="button"
+                        onClick={() => setStructuredFieldTag(tag)}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              <p className="config-panel__meta">
+                {t("showingStructuredFields", {
+                  visible: visibleLookupChildren.length,
+                  total: lookupResult.children.length,
+                })}
+              </p>
+              {visibleLookupChildren.length === 0 ? (
+                <p className="config-panel__empty">{t("noStructuredFieldsMatch")}</p>
+              ) : null}
+              <div className="config-panel__field-list">
+                {visibleLookupChildren.map((child) => {
+                  const childPath = schemaChildPath(child);
+                  const childValue = readConfigPath(parsedConfig, childPath);
+                  const childSchema = schemaChildSchema(lookupResult, child);
+                  const enumOptions = structuredEnumOptions(child, childSchema);
+                  const enumValue = enumInputValue(childValue) ?? "";
+                  const fieldKind = structuredFieldKind(child, childValue, enumOptions);
+                  const isSensitive = isSensitiveChild(child);
+                  const isSensitiveVisible = visibleSensitiveFields[childPath];
+                  const label = hintString(child, "label") ?? child.key;
+                  const placeholder = hintString(child, "placeholder") ?? childPath;
+                  return (
+                    <article key={childPath} className="config-panel__field-card">
+                      <div className="config-panel__field-head">
+                        <div>
+                          <strong>{label}</strong>
+                          <p className="config-panel__meta">{childPath}</p>
+                        </div>
+                        <div className="config-panel__pill-row">
+                          {child.required ? (
+                            <span className="config-panel__pill is-warning">{t("required")}</span>
+                          ) : null}
+                          <span className="config-panel__pill">
+                            {schemaChildType(child) ?? fieldKind}
+                          </span>
+                          {isSensitive ? (
+                            <span className="config-panel__pill is-warning">{t("sensitive")}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {fieldKind === "boolean" ? (
+                        <label className="config-panel__check">
+                          <input
+                            aria-label={`Edit ${childPath}`}
+                            type="checkbox"
+                            checked={childValue === true}
+                            onChange={(event) =>
+                              updateStructuredPath(childPath, event.target.checked)
+                            }
+                          />
+                          <span>{childValue === true ? t("enabled") : t("disabled")}</span>
+                        </label>
+                      ) : null}
+                      {fieldKind === "enum" ? (
+                        <select
+                          aria-label={`Edit ${childPath}`}
+                          className="config-panel__input"
+                          value={enumValue}
+                          onChange={(event) => {
+                            const selectedOption = enumOptions.find(
+                              (option) => option.inputValue === event.target.value,
+                            );
+                            if (selectedOption) {
+                              updateStructuredPath(childPath, selectedOption.value);
+                            }
+                          }}
+                        >
+                          {enumOptions.map((option) => (
+                            <option key={option.inputValue} value={option.inputValue}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : null}
+                      {fieldKind === "number" ? (
+                        <input
+                          aria-label={`Edit ${childPath}`}
+                          className="config-panel__input"
+                          type="number"
+                          value={formatStructuredInputValue(childValue)}
+                          onChange={(event) =>
+                            updateStructuredNumberPath(childPath, event.target.value)
+                          }
+                          placeholder={placeholder}
+                        />
+                      ) : null}
+                      {fieldKind === "string" ? (
+                        <div className="config-panel__inline-actions">
+                          <input
+                            aria-label={`Edit ${childPath}`}
+                            className="config-panel__input"
+                            type={isSensitive && !isSensitiveVisible ? "password" : "text"}
+                            value={formatStructuredInputValue(childValue)}
+                            onChange={(event) =>
+                              updateStructuredPath(childPath, event.target.value)
+                            }
+                            placeholder={placeholder}
+                          />
+                          {isSensitive ? (
+                            <button
+                              aria-label={`Toggle visibility ${childPath}`}
+                              className="config-panel__button"
+                              type="button"
+                              onClick={() => toggleSensitiveVisibility(childPath)}
+                            >
+                              {isSensitiveVisible ? t("hidePassword") : t("showPassword")}
+                            </button>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {fieldKind === "readonly" ? (
+                        <div className="config-panel__json-field">
+                          <p className="config-panel__meta">{t("jsonFieldDescription")}</p>
+                          <textarea
+                            aria-label={`Edit JSON ${childPath}`}
+                            className="config-panel__textarea"
+                            rows={6}
+                            value={
+                              structuredJsonDrafts[childPath] ??
+                              formatStructuredJsonValue(childValue)
+                            }
+                            onChange={(event) =>
+                              updateStructuredJsonDraft(childPath, event.target.value)
+                            }
+                          />
+                          <div className="config-panel__actions">
+                            <button
+                              aria-label={`Apply JSON ${childPath}`}
+                              className="config-panel__button"
+                              type="button"
+                              onClick={() => applyStructuredJsonPath(childPath, childValue)}
+                            >
+                              {t("applyJsonField")}
+                            </button>
+                            <button
+                              aria-label={`Reset JSON ${childPath}`}
+                              className="config-panel__button"
+                              type="button"
+                              onClick={() =>
+                                updateStructuredJsonDraft(
+                                  childPath,
+                                  formatStructuredJsonValue(childValue),
+                                )
+                              }
+                            >
+                              {t("resetJsonField")}
+                            </button>
+                          </div>
+                          <JsonDetails
+                            title={t("valuePayload", { path: childPath })}
+                            payload={childValue}
+                          />
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="config-panel__empty">{t("runSchemaLookup")}</p>
+          )}
+
+          <footer className="config-panel__form-footer">
+            <button
+              className="config-panel__button"
+              type="button"
+              onClick={() => {
+                setRawConfig(lastLoadedRawConfig);
+                setPendingDiffEntries(null);
+                setConflictPreview(null);
+                setStructuredJsonDrafts({});
+                setVisibleSensitiveFields({});
+              }}
+              disabled={!isDirty || actionState !== "idle"}
+            >
+              {t("resetEdits")}
+            </button>
+            <button
+              className="config-panel__button is-primary"
+              type="button"
+              onClick={() => previewSaveAction()}
+              disabled={!isDirty || !rawConfigWritable || actionState !== "idle"}
+            >
+              {actionState === "saving" ? t("saving") : t("applyConfig")}
+            </button>
+          </footer>
+        </section>
+
+        <aside className="config-panel__preview-pane" aria-label={t("draftPreview")}>
+          <div className="config-panel__preview-head">
+            <div>
+              <p className="config-panel__eyebrow">{t("draftPreview")}</p>
+              <h3>
+                {previewPaneMode === "diff"
+                  ? t("diff")
+                  : previewPaneMode === "raw"
+                    ? t("rawConfig")
+                    : t("history")}
+              </h3>
+              <p className="config-panel__meta">
+                {previewPaneMode === "diff"
+                  ? t("pathsChanged", { count: diffEntries.length })
+                  : previewPaneMode === "raw"
+                    ? t(
+                        rawConfigWritable
+                          ? rawDraftValid
+                            ? "jsonValid"
+                            : "jsonInvalid"
+                          : "rawConfigUnavailable",
+                      )
+                    : t("historyUnavailable")}
+              </p>
+            </div>
+            <div className="config-panel__mode-tabs" role="tablist">
+              {(["diff", "raw", "history"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  className={`config-panel__mode-tab ${
+                    previewPaneMode === mode ? "is-selected" : ""
+                  }`}
+                  type="button"
+                  role="tab"
+                  aria-selected={previewPaneMode === mode}
+                  onClick={() => setPreviewPaneMode(mode)}
+                >
+                  {mode === "diff" ? t("diff") : mode === "raw" ? t("raw") : t("history")}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="config-panel__preview-body">
+            {previewPaneMode === "diff" ? (
+              diffEntries.length === 0 ? (
+                <div className="config-panel__preview-empty">
+                  <span>✓</span>
+                  <p>{t("draftMatchesBase")}</p>
+                </div>
+              ) : (
+                <ul className="config-panel__diff-list">
+                  {diffEntries.slice(0, 80).map((entry) => (
+                    <li key={entry.path} className={`config-panel__diff-row is-${entry.type}`}>
+                      <button
+                        className="config-panel__diff-path"
+                        type="button"
+                        onClick={() => {
+                          const top = entry.path.split(".")[0];
+                          if (top) {
+                            setSelectedSection(top);
+                            void lookupAction(top);
+                          }
+                        }}
+                      >
+                        <code>{entry.path}</code>
+                      </button>
+                      <span className="config-panel__pill">{t(diffTypeLabel(entry.type))}</span>
+                      <p className="config-panel__meta">
+                        {formatDiffValue(entry.oldValue)} -&gt; {formatDiffValue(entry.newValue)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : null}
+            {previewPaneMode === "raw" ? (
+              <label className="config-panel__raw-editor">
+                <span>{t("rawConfig")}</span>
+                <textarea
+                  className="config-panel__textarea"
+                  data-testid="config-raw-editor"
+                  readOnly={!rawConfigWritable}
+                  rows={24}
+                  value={rawConfig}
+                  onChange={(event) => {
+                    setRawConfig(event.target.value);
+                    setPendingDiffEntries(null);
+                    setConflictPreview(null);
+                    setStructuredJsonDrafts({});
+                  }}
+                />
+              </label>
+            ) : null}
+            {previewPaneMode === "history" ? (
+              <div className="config-panel__history">
+                <p className="config-panel__notice">{t("historyUnavailable")}</p>
+                {actionResult ? (
+                  <JsonDetails title={t("lastApplyResult")} payload={actionResult} />
+                ) : null}
+                {selectedSection ? (
+                  <JsonDetails
+                    title={t("configSectionPayload", { section: selectedSection })}
+                    payload={selectedSectionValue}
+                  />
+                ) : null}
+                {lookupResult ? (
+                  <JsonDetails title={t("schemaLookupPayload")} payload={lookupResult} />
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="config-panel__preview-footer">
+            <button
+              className="config-panel__button"
+              type="button"
+              onClick={() => setPreviewPaneMode("history")}
+            >
+              {t("viewSnapshot")}
+            </button>
+          </div>
+        </aside>
+      </main>
+
+      {pendingDiffEntries ? (
+        <div className="config-panel__modal" role="dialog" aria-label={t("configDiffPreview")}>
+          <div className="config-panel__dialog">
+            <div className="config-panel__field-head">
+              <div>
+                <p className="config-panel__label">{t("configDiffPreview")}</p>
+                <strong>{t("pendingConfigChanges", { count: pendingDiffEntries.length })}</strong>
+                <p className="config-panel__meta">{t("configDiffDescription")}</p>
+              </div>
+            </div>
+            <ul className="config-panel__diff-list">
+              {pendingDiffEntries.slice(0, 50).map((entry) => (
+                <li key={entry.path} className={`config-panel__diff-row is-${entry.type}`}>
+                  <code>{entry.path}</code>
+                  <span className="config-panel__pill">{t(diffTypeLabel(entry.type))}</span>
+                  <p className="config-panel__meta">
+                    {formatDiffValue(entry.oldValue)} -&gt; {formatDiffValue(entry.newValue)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            {pendingDiffEntries.length > 50 ? (
+              <p className="config-panel__meta">
+                {t("additionalChangesHidden", { count: pendingDiffEntries.length - 50 })}
+              </p>
+            ) : null}
+            <div className="config-panel__actions">
               <button
                 className="config-panel__button is-primary"
                 type="button"
-                onClick={() => previewSaveAction()}
-                disabled={!isDirty || actionState !== "idle"}
+                onClick={() => void saveAction()}
+                disabled={actionState !== "idle"}
               >
-                {actionState === "saving" ? t("saving") : t("applyConfig")}
+                {t("confirmApplyConfig")}
               </button>
               <button
                 className="config-panel__button"
                 type="button"
-                onClick={() => {
-                  setRawConfig(lastLoadedRawConfig);
-                  setPendingDiffEntries(null);
-                  setConflictPreview(null);
-                  setStructuredJsonDrafts({});
-                  setVisibleSensitiveFields({});
-                }}
-                disabled={!isDirty || actionState !== "idle"}
+                onClick={() => setPendingDiffEntries(null)}
+                disabled={actionState !== "idle"}
               >
-                {t("resetEdits")}
+                {t("cancelDiffPreview")}
               </button>
             </div>
-            {error ? <p className="config-panel__error">{error}</p> : null}
-            {pendingDiffEntries ? (
-              <div
-                className="config-panel__surface config-panel__dialog"
-                role="dialog"
-                aria-label={t("configDiffPreview")}
-              >
-                <div className="config-panel__card-head">
-                  <div>
-                    <p className="config-panel__label">{t("configDiffPreview")}</p>
-                    <strong>
-                      {t("pendingConfigChanges", { count: pendingDiffEntries.length })}
-                    </strong>
-                    <p className="config-panel__meta">{t("configDiffDescription")}</p>
-                  </div>
-                </div>
-                <ul className="config-panel__list">
-                  {pendingDiffEntries.slice(0, 50).map((entry) => (
-                    <li key={entry.path}>
-                      <div className="config-panel__row">
-                        <div className="config-panel__card-head">
-                          <div>
-                            <strong>{entry.path}</strong>
-                            <p className="config-panel__meta">
-                              {formatDiffValue(entry.oldValue)} -&gt;{" "}
-                              {formatDiffValue(entry.newValue)}
-                            </p>
-                          </div>
-                          <span className="config-panel__pill">{t(diffTypeLabel(entry.type))}</span>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-                {pendingDiffEntries.length > 50 ? (
-                  <p className="config-panel__meta">
-                    {t("additionalChangesHidden", { count: pendingDiffEntries.length - 50 })}
-                  </p>
-                ) : null}
-                <div className="config-panel__actions">
-                  <button
-                    className="config-panel__button is-primary"
-                    type="button"
-                    onClick={() => void saveAction()}
-                    disabled={actionState !== "idle"}
-                  >
-                    {t("confirmApplyConfig")}
-                  </button>
-                  <button
-                    className="config-panel__button"
-                    type="button"
-                    onClick={() => setPendingDiffEntries(null)}
-                    disabled={actionState !== "idle"}
-                  >
-                    {t("cancelDiffPreview")}
-                  </button>
-                </div>
+          </div>
+        </div>
+      ) : null}
+
+      {conflictPreview ? (
+        <div className="config-panel__modal" role="dialog" aria-label={t("configApplyConflict")}>
+          <div className="config-panel__dialog">
+            <div className="config-panel__field-head">
+              <div>
+                <p className="config-panel__label">{t("configApplyConflict")}</p>
+                <strong>{t("remoteConfigChanged")}</strong>
+                <p className="config-panel__meta">{conflictPreview.message}</p>
+                <p className="config-panel__meta">
+                  {t("latestHashDescription", {
+                    hash: conflictPreview.remoteHash || t("notAvailable"),
+                  })}
+                </p>
               </div>
-            ) : null}
-            {conflictPreview ? (
-              <div
-                className="config-panel__surface config-panel__dialog"
-                role="dialog"
-                aria-label={t("configApplyConflict")}
-              >
-                <div className="config-panel__card-head">
-                  <div>
-                    <p className="config-panel__label">{t("configApplyConflict")}</p>
-                    <strong>{t("remoteConfigChanged")}</strong>
-                    <p className="config-panel__meta">{conflictPreview.message}</p>
+              <span className="config-panel__pill is-warning">
+                {t("diffsCount", { count: conflictPreview.entries.length })}
+              </span>
+            </div>
+            {conflictPreview.entries.length === 0 ? (
+              <p className="config-panel__meta">{t("noConflictDiffComputed")}</p>
+            ) : (
+              <ul className="config-panel__diff-list">
+                {conflictPreview.entries.slice(0, 50).map((entry) => (
+                  <li key={entry.path} className={`config-panel__diff-row is-${entry.type}`}>
+                    <code>{entry.path}</code>
+                    <span className="config-panel__pill">{t(diffTypeLabel(entry.type))}</span>
                     <p className="config-panel__meta">
-                      {t("latestHashDescription", {
-                        hash: conflictPreview.remoteHash || t("notAvailable"),
+                      {t("remoteToLocalDiff", {
+                        remote: formatDiffValue(entry.oldValue),
+                        local: formatDiffValue(entry.newValue),
                       })}
                     </p>
-                  </div>
-                  <span className="config-panel__pill is-warning">
-                    {t("diffsCount", { count: conflictPreview.entries.length })}
-                  </span>
-                </div>
-                {conflictPreview.entries.length === 0 ? (
-                  <p className="config-panel__meta">{t("noConflictDiffComputed")}</p>
-                ) : (
-                  <ul className="config-panel__list">
-                    {conflictPreview.entries.slice(0, 50).map((entry) => (
-                      <li key={entry.path}>
-                        <div className="config-panel__row">
-                          <div className="config-panel__card-head">
-                            <div>
-                              <strong>{entry.path}</strong>
-                              <p className="config-panel__meta">
-                                {t("remoteToLocalDiff", {
-                                  remote: formatDiffValue(entry.oldValue),
-                                  local: formatDiffValue(entry.newValue),
-                                })}
-                              </p>
-                            </div>
-                            <span className="config-panel__pill">
-                              {t(diffTypeLabel(entry.type))}
-                            </span>
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {conflictPreview.entries.length > 50 ? (
-                  <p className="config-panel__meta">
-                    {t("additionalConflictDiffsHidden", {
-                      count: conflictPreview.entries.length - 50,
-                    })}
-                  </p>
-                ) : null}
-                <div className="config-panel__actions">
-                  <button
-                    className="config-panel__button"
-                    type="button"
-                    onClick={() => reloadConflictRemote()}
-                    disabled={actionState !== "idle"}
-                  >
-                    {t("reloadLatestConfig")}
-                  </button>
-                  <button
-                    className="config-panel__button is-primary"
-                    type="button"
-                    onClick={() => void saveAction(conflictPreview.remoteHash)}
-                    disabled={!conflictPreview.remoteHash || actionState !== "idle"}
-                  >
-                    {t("retryLocalWithLatestHash")}
-                  </button>
-                  <button
-                    className="config-panel__button"
-                    type="button"
-                    onClick={() => setConflictPreview(null)}
-                    disabled={actionState !== "idle"}
-                  >
-                    {t("dismissConflict")}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-            <label className="config-panel__field">
-              <span>{t("rawConfig")}</span>
-              <textarea
-                className="config-panel__textarea"
-                rows={20}
-                value={rawConfig}
-                onChange={(event) => {
-                  setRawConfig(event.target.value);
-                  setPendingDiffEntries(null);
-                  setConflictPreview(null);
-                  setStructuredJsonDrafts({});
-                }}
-              />
-            </label>
-          </div>
-        </article>
-      </div>
-
-      <div className="config-panel__column config-panel__column--main">
-        <article className="config-panel__card">
-          <div className="config-panel__card-head">
-            <h2 className="config-panel__card-title">{t("configDetail")}</h2>
-          </div>
-          <p className="config-panel__description">{t("configDetailDescription")}</p>
-          <div className="config-panel__body">
-            <div className="config-panel__surface">
-              <p className="config-panel__label">{t("schemaSections")}</p>
-              <input
-                className="config-panel__input"
-                value={sectionFilter}
-                onChange={(event) => setSectionFilter(event.target.value)}
-                placeholder={t("filterSections")}
-              />
-              <div className="config-panel__actions">
-                {filteredSchemaSections.length === 0 ? (
-                  <span className="config-panel__empty">{t("noMatchingSchemaSections")}</span>
-                ) : (
-                  filteredSchemaSections.map((section) => (
-                    <button
-                      key={section}
-                      className={`config-panel__button ${selectedSection === section ? "is-primary" : ""}`}
-                      type="button"
-                      onClick={() => {
-                        setSelectedSection(section);
-                        void lookupAction(section);
-                      }}
-                      disabled={actionState !== "idle"}
-                    >
-                      {section}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-            <div className="config-panel__surface">
-              <p className="config-panel__label">{t("lookupConfigPath")}</p>
-              <div className="config-panel__actions">
-                <input
-                  className="config-panel__input"
-                  value={schemaPath}
-                  onChange={(event) => setSchemaPath(event.target.value)}
-                  placeholder={t("configPath")}
-                />
-                <button
-                  className="config-panel__button"
-                  type="button"
-                  onClick={() => void lookupAction()}
-                  disabled={actionState !== "idle"}
-                >
-                  {actionState === "lookup" ? t("lookingUp") : t("lookupSchema")}
-                </button>
-              </div>
-            </div>
-            <div className="config-panel__surface">
-              <p className="config-panel__label">{t("structuredSectionEditor")}</p>
-              {lookupResult ? (
-                <>
-                  <p className="config-panel__meta">
-                    {t("editingSchemaChildren", { path: lookupResult.path })}
-                  </p>
-                  {lookupResult.children.length === 0 ? (
-                    <p className="config-panel__empty">{t("noEditableChildFields")}</p>
-                  ) : (
-                    <>
-                      <div className="config-panel__actions">
-                        <input
-                          className="config-panel__input"
-                          value={structuredFieldFilter}
-                          onChange={(event) => setStructuredFieldFilter(event.target.value)}
-                          placeholder={t("filterStructuredFields")}
-                        />
-                        {structuredFieldTags.length > 0 ? (
-                          <>
-                            <button
-                              className={`config-panel__button ${
-                                structuredFieldTag ? "" : "is-primary"
-                              }`}
-                              type="button"
-                              onClick={() => setStructuredFieldTag("")}
-                            >
-                              {t("allTags")}
-                            </button>
-                            {structuredFieldTags.map((tag) => (
-                              <button
-                                key={tag}
-                                className={`config-panel__button ${
-                                  structuredFieldTag === tag ? "is-primary" : ""
-                                }`}
-                                type="button"
-                                onClick={() => setStructuredFieldTag(tag)}
-                              >
-                                {tag}
-                              </button>
-                            ))}
-                          </>
-                        ) : null}
-                      </div>
-                      <p className="config-panel__meta">
-                        {t("showingStructuredFields", {
-                          visible: visibleLookupChildren.length,
-                          total: lookupResult.children.length,
-                        })}
-                      </p>
-                      {visibleLookupChildren.length === 0 ? (
-                        <p className="config-panel__empty">{t("noStructuredFieldsMatch")}</p>
-                      ) : null}
-                      <div className="config-panel__list config-panel__field-list">
-                        {visibleLookupChildren.map((child) => {
-                          const childPath = schemaChildPath(child);
-                          const childValue = readConfigPath(parsedConfig, childPath);
-                          const childSchema = schemaChildSchema(lookupResult, child);
-                          const enumOptions = structuredEnumOptions(child, childSchema);
-                          const enumValue = enumInputValue(childValue) ?? "";
-                          const fieldKind = structuredFieldKind(child, childValue, enumOptions);
-                          const isSensitive = isSensitiveChild(child);
-                          const isSensitiveVisible = visibleSensitiveFields[childPath];
-                          const label = hintString(child, "label") ?? child.key;
-                          const placeholder = hintString(child, "placeholder") ?? childPath;
-                          return (
-                            <div
-                              key={childPath}
-                              className="config-panel__row config-panel__field-card"
-                            >
-                              <div className="config-panel__card-head">
-                                <div>
-                                  <strong>{label}</strong>
-                                  <p className="config-panel__meta">{childPath}</p>
-                                </div>
-                                <span className="config-panel__pill">
-                                  {schemaChildType(child) ?? fieldKind}
-                                </span>
-                                {isSensitive ? (
-                                  <span className="config-panel__pill is-warning">
-                                    {t("sensitive")}
-                                  </span>
-                                ) : null}
-                              </div>
-                              {fieldKind === "boolean" ? (
-                                <label className="config-panel__check">
-                                  <input
-                                    aria-label={`Edit ${childPath}`}
-                                    type="checkbox"
-                                    checked={childValue === true}
-                                    onChange={(event) =>
-                                      updateStructuredPath(childPath, event.target.checked)
-                                    }
-                                  />
-                                  <span>{childValue === true ? t("enabled") : t("disabled")}</span>
-                                </label>
-                              ) : null}
-                              {fieldKind === "enum" ? (
-                                <select
-                                  aria-label={`Edit ${childPath}`}
-                                  className="config-panel__input"
-                                  value={enumValue}
-                                  onChange={(event) => {
-                                    const selectedOption = enumOptions.find(
-                                      (option) => option.inputValue === event.target.value,
-                                    );
-                                    if (selectedOption) {
-                                      updateStructuredPath(childPath, selectedOption.value);
-                                    }
-                                  }}
-                                >
-                                  {enumOptions.map((option) => (
-                                    <option key={option.inputValue} value={option.inputValue}>
-                                      {option.label}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : null}
-                              {fieldKind === "number" ? (
-                                <input
-                                  aria-label={`Edit ${childPath}`}
-                                  className="config-panel__input"
-                                  type="number"
-                                  value={formatStructuredInputValue(childValue)}
-                                  onChange={(event) =>
-                                    updateStructuredNumberPath(childPath, event.target.value)
-                                  }
-                                  placeholder={placeholder}
-                                />
-                              ) : null}
-                              {fieldKind === "string" ? (
-                                <div className="config-panel__actions">
-                                  <input
-                                    aria-label={`Edit ${childPath}`}
-                                    className="config-panel__input"
-                                    type={isSensitive && !isSensitiveVisible ? "password" : "text"}
-                                    value={formatStructuredInputValue(childValue)}
-                                    onChange={(event) =>
-                                      updateStructuredPath(childPath, event.target.value)
-                                    }
-                                    placeholder={placeholder}
-                                  />
-                                  {isSensitive ? (
-                                    <button
-                                      aria-label={`Toggle visibility ${childPath}`}
-                                      className="config-panel__button"
-                                      type="button"
-                                      onClick={() => toggleSensitiveVisibility(childPath)}
-                                    >
-                                      {isSensitiveVisible ? t("hidePassword") : t("showPassword")}
-                                    </button>
-                                  ) : null}
-                                </div>
-                              ) : null}
-                              {fieldKind === "readonly" ? (
-                                <div>
-                                  <p className="config-panel__meta">{t("jsonFieldDescription")}</p>
-                                  <textarea
-                                    aria-label={`Edit JSON ${childPath}`}
-                                    className="config-panel__textarea"
-                                    rows={6}
-                                    value={
-                                      structuredJsonDrafts[childPath] ??
-                                      formatStructuredJsonValue(childValue)
-                                    }
-                                    onChange={(event) =>
-                                      updateStructuredJsonDraft(childPath, event.target.value)
-                                    }
-                                  />
-                                  <div className="config-panel__actions">
-                                    <button
-                                      aria-label={`Apply JSON ${childPath}`}
-                                      className="config-panel__button"
-                                      type="button"
-                                      onClick={() => applyStructuredJsonPath(childPath, childValue)}
-                                    >
-                                      {t("applyJsonField")}
-                                    </button>
-                                    <button
-                                      aria-label={`Reset JSON ${childPath}`}
-                                      className="config-panel__button"
-                                      type="button"
-                                      onClick={() =>
-                                        updateStructuredJsonDraft(
-                                          childPath,
-                                          formatStructuredJsonValue(childValue),
-                                        )
-                                      }
-                                    >
-                                      {t("resetJsonField")}
-                                    </button>
-                                  </div>
-                                  <JsonDetails
-                                    title={t("valuePayload", { path: childPath })}
-                                    payload={childValue}
-                                  />
-                                </div>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="config-panel__empty">{t("runSchemaLookup")}</p>
-              )}
-            </div>
-            <div className="config-panel__hero">
-              <div>
-                <p className="config-panel__eyebrow">{t("topLevelSections")}</p>
-                <strong>{selectedSection || topLevelKeys[0] || t("noConfigKeys")}</strong>
-                <p className="config-panel__meta">{t("currentSectionValueDescription")}</p>
-              </div>
-              <div className="config-panel__pill-row">
-                <span className="config-panel__pill">
-                  {t("sectionsCount", { count: topLevelKeys.length })}
-                </span>
-                <span className="config-panel__pill">
-                  {t("schemaChildrenCount", { count: lookupResult?.children.length ?? 0 })}
-                </span>
-              </div>
-            </div>
-            {topLevelKeys.length === 0 ? (
-              <p className="config-panel__empty">{t("noTopLevelKeys")}</p>
-            ) : (
-              <ul className="config-panel__list">
-                {topLevelKeys.map((key) => (
-                  <li key={key}>
-                    <div className="config-panel__row">
-                      <strong>{key}</strong>
-                    </div>
                   </li>
                 ))}
               </ul>
             )}
-            {selectedSection ? (
-              selectedSectionValue === undefined ? (
-                <p className="config-panel__empty">{t("selectedSectionMissing")}</p>
-              ) : (
-                <JsonDetails
-                  title={t("configSectionPayload", { section: selectedSection })}
-                  payload={selectedSectionValue}
-                />
-              )
+            {conflictPreview.entries.length > 50 ? (
+              <p className="config-panel__meta">
+                {t("additionalConflictDiffsHidden", {
+                  count: conflictPreview.entries.length - 50,
+                })}
+              </p>
             ) : null}
-            {lookupResult ? (
-              <JsonDetails title={t("schemaLookupPayload")} payload={lookupResult} />
-            ) : null}
-            {actionResult ? (
-              <JsonDetails title={t("lastApplyResult")} payload={actionResult} />
-            ) : null}
+            <div className="config-panel__actions">
+              <button
+                className="config-panel__button"
+                type="button"
+                onClick={() => reloadConflictRemote()}
+                disabled={actionState !== "idle"}
+              >
+                {t("reloadLatestConfig")}
+              </button>
+              <button
+                className="config-panel__button is-primary"
+                type="button"
+                onClick={() => void saveAction(conflictPreview.remoteHash)}
+                disabled={!conflictPreview.remoteHash || actionState !== "idle"}
+              >
+                {t("retryLocalWithLatestHash")}
+              </button>
+              <button
+                className="config-panel__button"
+                type="button"
+                onClick={() => setConflictPreview(null)}
+                disabled={actionState !== "idle"}
+              >
+                {t("dismissConflict")}
+              </button>
+            </div>
           </div>
-        </article>
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

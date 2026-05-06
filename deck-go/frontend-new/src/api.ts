@@ -32,6 +32,7 @@ import type {
   DeckGoApprovalPolicy,
   DeckGoApprovalPolicyDefaults,
   DeckGoApprovalPolicyResponse,
+  DeckGoApprovalResolutionResponse,
   DeckGoBootstrapStatusResponse,
   DeckGoBudgetDimension,
   DeckGoBudgetEvaluation,
@@ -41,6 +42,7 @@ import type {
   DeckGoBudgetStatus,
   DeckGoBundledRuntimeGatewayStatus,
   DeckGoCatalogProvider,
+  DeckGoChannelLogoutResponse,
   DeckGoChannelsStatusResponse,
   DeckGoChannelTestResponse,
   DeckGoChannelThroughputBucket,
@@ -60,13 +62,16 @@ import type {
   DeckGoConfigLookupResponse,
   DeckGoConfigSchemaLookupRequest,
   DeckGoConfigSnapshotResponse,
+  DeckGoControlAuditEventsResponse,
   DeckGoContextWeightReport,
+  DeckGoCronDeleteResponse,
   DeckGoCronJob,
   DeckGoCronJobInput,
   DeckGoCronJobsParams,
   DeckGoCronJobsResponse,
   DeckGoCronRunEntry,
   DeckGoCronRunParams,
+  DeckGoCronRunResponse,
   DeckGoCronRunsParams,
   DeckGoCronRunsResponse,
   DeckGoCronSchedule,
@@ -76,18 +81,27 @@ import type {
   DeckGoDeviceTokenSummary,
   DeckGoDoc,
   DeckGoDocCategory,
+  DeckGoDocDeleteResponse,
   DeckGoDocsExtractResponse,
   DeckGoDocsResponse,
   DeckGoEffectiveTool,
   DeckGoEffectiveToolGroup,
   DeckGoEffectiveToolsResponse,
+  DeckGoGatewayBatchCall,
+  DeckGoGatewayBatchError,
+  DeckGoGatewayBatchOptions,
+  DeckGoGatewayBatchRequest,
+  DeckGoGatewayBatchResponse,
+  DeckGoGatewayBatchResultEntry,
   DeckGoGatewayDescribeEvent,
   DeckGoGatewayDescribeMethod,
   DeckGoGatewayDescribeResponse,
   DeckGoGatewayHealthResponse,
+  DeckGoGatewayInvokeResult,
   DeckGoGatewayStatusResponse,
   DeckGoIdentityLink,
   DeckGoIdentityLinksResponse,
+  DeckGoIdentityMutationResponse,
   DeckGoIdentityPeer,
   DeckGoLogsTailResponse,
   DeckGoLogStreamEvent,
@@ -116,13 +130,19 @@ import type {
   DeckGoMonitorStatsResponse,
   DeckGoMonitorTopAgent,
   DeckGoNodeInvokeResponse,
+  DeckGoNodePairApproveResponse,
   DeckGoNodePairingResponse,
+  DeckGoNodePairRejectResponse,
   DeckGoNodePairRequestInput,
   DeckGoNodePairRequestResponse,
+  DeckGoNodePairVerifyResponse,
   DeckGoNodePendingEnqueueResponse,
+  DeckGoNodePendingWorkItem,
+  DeckGoNodePendingWorkItemPriority,
   DeckGoNodePendingWorkPriority,
   DeckGoNodePendingWorkType,
   DeckGoNodesResponse,
+  DeckGoNodeRenameResponse,
   DeckGoNodeSummary,
   DeckGoPairedDevice,
   DeckGoPairingRequest,
@@ -176,6 +196,7 @@ import type {
   DeckGoSkillHubMutationResponse,
   DeckGoSkillHubSearchResponse,
   DeckGoSkillHubSearchResult,
+  DeckGoSkillInstallResponse,
   DeckGoSkillInstallOption,
   DeckGoSkillsResponse,
   DeckGoSkillStatus,
@@ -213,6 +234,7 @@ import type {
   DeckGoWebhook,
   DeckGoWebhookDeliveriesResponse,
   DeckGoWebhookDelivery,
+  DeckGoWebhookTestResponse,
   DeckGoWebhooksResponse,
 } from "./api-types";
 export type {
@@ -248,6 +270,7 @@ export type {
   DeckGoApprovalPolicy,
   DeckGoApprovalPolicyDefaults,
   DeckGoApprovalPolicyResponse,
+  DeckGoApprovalResolutionResponse,
   DeckGoBootstrapStatusResponse,
   DeckGoBudgetDimension,
   DeckGoBudgetEvaluation,
@@ -257,6 +280,7 @@ export type {
   DeckGoBudgetStatus,
   DeckGoBundledRuntimeGatewayStatus,
   DeckGoCatalogProvider,
+  DeckGoChannelLogoutResponse,
   DeckGoChannelsStatusResponse,
   DeckGoChannelTestResponse,
   DeckGoChannelThroughputBucket,
@@ -276,13 +300,16 @@ export type {
   DeckGoConfigLookupResponse,
   DeckGoConfigSchemaLookupRequest,
   DeckGoConfigSnapshotResponse,
+  DeckGoControlAuditEventsResponse,
   DeckGoContextWeightReport,
+  DeckGoCronDeleteResponse,
   DeckGoCronJob,
   DeckGoCronJobInput,
   DeckGoCronJobsParams,
   DeckGoCronJobsResponse,
   DeckGoCronRunEntry,
   DeckGoCronRunParams,
+  DeckGoCronRunResponse,
   DeckGoCronRunsParams,
   DeckGoCronRunsResponse,
   DeckGoCronSchedule,
@@ -292,18 +319,27 @@ export type {
   DeckGoDeviceTokenSummary,
   DeckGoDoc,
   DeckGoDocCategory,
+  DeckGoDocDeleteResponse,
   DeckGoDocsExtractResponse,
   DeckGoDocsResponse,
   DeckGoEffectiveTool,
   DeckGoEffectiveToolGroup,
   DeckGoEffectiveToolsResponse,
+  DeckGoGatewayBatchCall,
+  DeckGoGatewayBatchError,
+  DeckGoGatewayBatchOptions,
+  DeckGoGatewayBatchRequest,
+  DeckGoGatewayBatchResponse,
+  DeckGoGatewayBatchResultEntry,
   DeckGoGatewayDescribeEvent,
   DeckGoGatewayDescribeMethod,
   DeckGoGatewayDescribeResponse,
   DeckGoGatewayHealthResponse,
+  DeckGoGatewayInvokeResult,
   DeckGoGatewayStatusResponse,
   DeckGoIdentityLink,
   DeckGoIdentityLinksResponse,
+  DeckGoIdentityMutationResponse,
   DeckGoIdentityPeer,
   DeckGoLogsTailResponse,
   DeckGoLogStreamEvent,
@@ -332,13 +368,19 @@ export type {
   DeckGoMonitorStatsResponse,
   DeckGoMonitorTopAgent,
   DeckGoNodeInvokeResponse,
+  DeckGoNodePairApproveResponse,
   DeckGoNodePairingResponse,
+  DeckGoNodePairRejectResponse,
   DeckGoNodePairRequestInput,
   DeckGoNodePairRequestResponse,
+  DeckGoNodePairVerifyResponse,
   DeckGoNodePendingEnqueueResponse,
+  DeckGoNodePendingWorkItem,
+  DeckGoNodePendingWorkItemPriority,
   DeckGoNodePendingWorkPriority,
   DeckGoNodePendingWorkType,
   DeckGoNodesResponse,
+  DeckGoNodeRenameResponse,
   DeckGoNodeSummary,
   DeckGoPairedDevice,
   DeckGoPairingRequest,
@@ -392,6 +434,7 @@ export type {
   DeckGoSkillHubMutationResponse,
   DeckGoSkillHubSearchResponse,
   DeckGoSkillHubSearchResult,
+  DeckGoSkillInstallResponse,
   DeckGoSkillInstallOption,
   DeckGoSkillsResponse,
   DeckGoSkillStatus,
@@ -429,11 +472,14 @@ export type {
   DeckGoWebhook,
   DeckGoWebhookDeliveriesResponse,
   DeckGoWebhookDelivery,
+  DeckGoWebhookTestResponse,
   DeckGoWebhooksResponse,
 } from "./api-types";
 import { writeStoredDeckAccessToken } from "./lib/deck-auth-storage";
 import { deckFetch, deckStream, type DeckEvent } from "./lib/deck-client";
 import { createDeckGatewayClient } from "./lib/gateway-client";
+import { buildListQueryString, withListQuery } from "./lib/list-query-contract";
+import { acknowledgeMutationResponse } from "./lib/mutation-evidence";
 import type { A2UIState } from "./stores/chat-types";
 
 export function isBundledRuntimeStatus(
@@ -526,6 +572,21 @@ async function fetchDeckJsonNoPrompt<T>(
     throw new Error(await readErrorMessage(res, fallback));
   }
   return (await res.json()) as T;
+}
+
+async function acknowledgeResponseMutation(
+  id: Parameters<typeof acknowledgeMutationResponse>[0],
+  response: Response,
+  fallbackPayload: Record<string, unknown>,
+  options?: { routeParams?: Record<string, string> },
+) {
+  let payload: unknown = fallbackPayload;
+  try {
+    payload = await response.clone().json();
+  } catch {
+    payload = fallbackPayload;
+  }
+  acknowledgeMutationResponse(id, payload ?? fallbackPayload, options);
 }
 
 type PersistedA2UIState = Omit<A2UIState, "bridgeStatus" | "treeData">;
@@ -729,7 +790,7 @@ export async function fetchGatewayStatus() {
 }
 
 export async function postConfigSchemaLookup(body: DeckGoConfigSchemaLookupRequest) {
-  return fetchDeckJson<Record<string, unknown>>(
+  return fetchDeckJson<DeckGoConfigLookupResponse>(
     "/config/schema-lookup",
     {
       method: "POST",
@@ -741,11 +802,12 @@ export async function postConfigSchemaLookup(body: DeckGoConfigSchemaLookupReque
 }
 
 export async function logoutChannel(channelId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoChannelLogoutResponse>(
     `/channels/${encodeURIComponent(channelId)}/logout`,
     { method: "POST" },
     "channel logout failed",
   );
+  return acknowledgeMutationResponse("channels.logout", response, { routeParams: { channelId } });
 }
 
 export async function fetchChannels() {
@@ -764,13 +826,14 @@ export async function testChannel(channelId: string) {
   });
   const payload = (await res.json().catch(() => ({}))) as DeckGoChannelTestResponse;
   if (!res.ok) {
-    return {
+    const response = {
       ...payload,
       ok: false,
       error: payload.error || `channel test failed (${res.status})`,
     } satisfies DeckGoChannelTestResponse;
+    return acknowledgeMutationResponse("channels.probe", response, { routeParams: { channelId } });
   }
-  return payload;
+  return acknowledgeMutationResponse("channels.probe", payload, { routeParams: { channelId } });
 }
 
 export async function fetchChannelThroughput(channelId: string, window = "1h") {
@@ -782,7 +845,7 @@ export async function fetchChannelThroughput(channelId: string, window = "1h") {
 }
 
 export async function patchChannelConfig(channelId: string, patch: Record<string, unknown>) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoConfigApplyResponse>(
     `/channels/${encodeURIComponent(channelId)}`,
     {
       method: "PATCH",
@@ -791,6 +854,9 @@ export async function patchChannelConfig(channelId: string, patch: Record<string
     },
     "channel config patch failed",
   );
+  return acknowledgeMutationResponse("channels.config.patch", response, {
+    routeParams: { channelId },
+  });
 }
 
 export async function fetchPlugins() {
@@ -875,18 +941,11 @@ export async function fetchLogsTail(params?: {
   limit?: number;
   maxBytes?: number;
 }) {
-  const query = new URLSearchParams();
-  if (typeof params?.cursor === "number") {
-    query.set("cursor", String(params.cursor));
-  }
-  if (typeof params?.limit === "number") {
-    query.set("limit", String(params.limit));
-  }
-  if (typeof params?.maxBytes === "number") {
-    query.set("maxBytes", String(params.maxBytes));
-  }
-  const suffix = query.toString() ? `?${query.toString()}` : "";
-  return fetchDeckJson<DeckGoLogsTailResponse>(`/logs${suffix}`, undefined, "logs tail failed");
+  return fetchDeckJson<DeckGoLogsTailResponse>(
+    withListQuery("/logs", "logs-tail", params ?? {}),
+    undefined,
+    "logs tail failed",
+  );
 }
 
 export async function fetchGatewayDescribe() {
@@ -895,6 +954,62 @@ export async function fetchGatewayDescribe() {
     undefined,
     "gateway describe failed",
   );
+}
+
+export async function submitGatewayBatch(
+  request: DeckGoGatewayBatchRequest,
+  options?: { runtimeId?: string },
+) {
+  const runtimeId = options?.runtimeId?.trim() || "rt_local";
+  return fetchDeckJson<DeckGoGatewayBatchResponse>(
+    `/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/batch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    },
+    "gateway batch failed",
+  );
+}
+
+export async function invokeGatewayMethod(
+  method: string,
+  params: Record<string, unknown>,
+  options?: { runtimeId?: string; timeoutMs?: number },
+): Promise<DeckGoGatewayInvokeResult> {
+  const runtimeId = options?.runtimeId?.trim() || "rt_local";
+  const response = await deckFetch(
+    buildApiPath(`/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/rpc`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        method,
+        params,
+        ...(options?.timeoutMs != null ? { timeoutMs: options.timeoutMs } : {}),
+      }),
+    },
+  );
+  const headers = Object.fromEntries(response.headers.entries());
+  let envelope: Record<string, unknown> = {};
+  try {
+    envelope = (await response.json()) as Record<string, unknown>;
+  } catch {
+    envelope = {};
+  }
+  const errorPayload =
+    envelope.error && typeof envelope.error === "object"
+      ? (envelope.error as { message?: string; code?: string })
+      : null;
+  const error = errorPayload?.message || errorPayload?.code;
+  return {
+    body: envelope.result ?? envelope.payload ?? envelope,
+    error,
+    headers,
+    ok: response.ok && !error,
+    requestId: typeof envelope.requestId === "string" ? envelope.requestId : undefined,
+    statusCode: response.status,
+  };
 }
 
 export async function fetchApprovalsPolicy() {
@@ -917,7 +1032,7 @@ export async function resolveApproval(
   id: string,
   decision: "allow-once" | "allow-always" | "deny",
 ) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoApprovalResolutionResponse>(
     "/approvals",
     {
       method: "POST",
@@ -926,10 +1041,13 @@ export async function resolveApproval(
     },
     "approval resolution failed",
   );
+  return acknowledgeMutationResponse("approvals.exec.resolve", response, {
+    routeParams: { approvalId: id },
+  });
 }
 
 export async function updateApprovalsPolicy(file: DeckGoApprovalPolicy, baseHash?: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoApprovalPolicyResponse>(
     "/approvals/policy",
     {
       method: "PUT",
@@ -941,6 +1059,7 @@ export async function updateApprovalsPolicy(file: DeckGoApprovalPolicy, baseHash
     },
     "approval policy update failed",
   );
+  return acknowledgeMutationResponse("approvals.policy.save", response);
 }
 
 export async function fetchPluginApprovals() {
@@ -955,7 +1074,7 @@ export async function resolvePluginApproval(
   id: string,
   decision: "allow-once" | "allow-always" | "deny",
 ) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoApprovalResolutionResponse>(
     "/approvals/plugins",
     {
       method: "POST",
@@ -964,6 +1083,9 @@ export async function resolvePluginApproval(
     },
     "plugin approval resolution failed",
   );
+  return acknowledgeMutationResponse("approvals.plugin.resolve", response, {
+    routeParams: { approvalId: id },
+  });
 }
 
 export async function fetchSkills(agentId?: string) {
@@ -975,7 +1097,7 @@ export async function updateSkill(
   skillKey: string,
   patch: { enabled?: boolean; apiKey?: string; env?: Record<string, string> },
 ) {
-  return fetchDeckJson<DeckGoSkillUpdateResponse>(
+  const response = await fetchDeckJson<DeckGoSkillUpdateResponse>(
     `/skills/${encodeURIComponent(skillKey)}`,
     {
       method: "PATCH",
@@ -984,10 +1106,11 @@ export async function updateSkill(
     },
     "skill update failed",
   );
+  return acknowledgeMutationResponse("skills.update", response, { routeParams: { skillKey } });
 }
 
 export async function installSkill(name: string, installId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoSkillInstallResponse>(
     "/skills/install",
     {
       method: "POST",
@@ -996,6 +1119,7 @@ export async function installSkill(name: string, installId: string) {
     },
     "skill install failed",
   );
+  return acknowledgeMutationResponse("skills.install", response);
 }
 
 export async function fetchSkillHubBins() {
@@ -1039,7 +1163,7 @@ export async function installSkillHub(slug: string, version?: string) {
   if (version) {
     body.version = version;
   }
-  return fetchDeckJson<DeckGoSkillHubMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSkillHubMutationResponse>(
     "/skills/hub",
     {
       method: "POST",
@@ -1048,6 +1172,7 @@ export async function installSkillHub(slug: string, version?: string) {
     },
     "skill hub install failed",
   );
+  return acknowledgeMutationResponse("skills.hub.install", response);
 }
 
 export async function updateSkillHub(slug?: string) {
@@ -1055,7 +1180,7 @@ export async function updateSkillHub(slug?: string) {
   if (slug) {
     body.slug = slug;
   }
-  return fetchDeckJson<DeckGoSkillHubMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSkillHubMutationResponse>(
     "/skills/hub",
     {
       method: "POST",
@@ -1064,6 +1189,7 @@ export async function updateSkillHub(slug?: string) {
     },
     "skill hub update failed",
   );
+  return acknowledgeMutationResponse("skills.hub.update", response);
 }
 
 type CronJobWithGatewayState = DeckGoCronJob & {
@@ -1084,31 +1210,8 @@ function normalizeCronJob(job: CronJobWithGatewayState): DeckGoCronJob {
 }
 
 export async function fetchCronJobs(params?: DeckGoCronJobsParams) {
-  const search = new URLSearchParams();
-  if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
-    search.set("limit", String(params.limit));
-  }
-  if (typeof params?.offset === "number" && Number.isFinite(params.offset)) {
-    search.set("offset", String(params.offset));
-  }
-  if (params?.query?.trim()) {
-    search.set("query", params.query.trim());
-  }
-  if (params?.enabled) {
-    search.set("enabled", params.enabled);
-  }
-  if (params?.sortBy) {
-    search.set("sortBy", params.sortBy);
-  }
-  if (params?.sortDir) {
-    search.set("sortDir", params.sortDir);
-  }
-  if (params?.includeDisabled != null) {
-    search.set("includeDisabled", String(params.includeDisabled));
-  }
-  const suffix = search.toString() ? `?${search.toString()}` : "";
   const response = await fetchDeckJson<CronJobsResponseWithGatewayState>(
-    `/cron${suffix}`,
+    withListQuery("/cron", "cron-jobs", params ?? {}),
     undefined,
     "cron jobs fetch failed",
   );
@@ -1135,29 +1238,15 @@ export async function fetchCronStatus() {
 }
 
 export async function fetchCronRuns(jobId: string, params?: DeckGoCronRunsParams) {
-  const search = new URLSearchParams();
-  if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
-    search.set("limit", String(params.limit));
-  }
-  if (typeof params?.offset === "number" && Number.isFinite(params.offset)) {
-    search.set("offset", String(params.offset));
-  }
-  if (params?.sortDir) {
-    search.set("sortDir", params.sortDir);
-  }
-  if (params?.statuses?.length) {
-    search.set("statuses", params.statuses.join(","));
-  }
-  const suffix = search.toString() ? `?${search.toString()}` : "";
   return fetchDeckJson<DeckGoCronRunsResponse>(
-    `/cron/${encodeURIComponent(jobId)}/runs${suffix}`,
+    withListQuery(`/cron/${encodeURIComponent(jobId)}/runs`, "cron-runs", params ?? {}),
     undefined,
     "cron runs fetch failed",
   );
 }
 
 export async function createCronJob(input: DeckGoCronJobInput) {
-  const job = await fetchDeckJson<CronJobWithGatewayState>(
+  const response = await fetchDeckJson<CronJobWithGatewayState>(
     "/cron",
     {
       method: "POST",
@@ -1166,11 +1255,12 @@ export async function createCronJob(input: DeckGoCronJobInput) {
     },
     "cron create failed",
   );
-  return normalizeCronJob(job);
+  const job = normalizeCronJob(response);
+  return acknowledgeMutationResponse("cron.create", job);
 }
 
 export async function updateCronJob(jobId: string, input: Partial<DeckGoCronJobInput>) {
-  const job = await fetchDeckJson<CronJobWithGatewayState>(
+  const response = await fetchDeckJson<CronJobWithGatewayState>(
     `/cron/${encodeURIComponent(jobId)}`,
     {
       method: "PATCH",
@@ -1179,7 +1269,8 @@ export async function updateCronJob(jobId: string, input: Partial<DeckGoCronJobI
     },
     "cron update failed",
   );
-  return normalizeCronJob(job);
+  const job = normalizeCronJob(response);
+  return acknowledgeMutationResponse("cron.update", job, { routeParams: { jobId } });
 }
 
 export async function runCronJob(jobId: string, params?: DeckGoCronRunParams) {
@@ -1188,31 +1279,29 @@ export async function runCronJob(jobId: string, params?: DeckGoCronRunParams) {
     init.headers = { "Content-Type": "application/json" };
     init.body = JSON.stringify({ mode: params.mode });
   }
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoCronRunResponse>(
     `/cron/${encodeURIComponent(jobId)}/run`,
     init,
     "cron run failed",
   );
+  return acknowledgeMutationResponse("cron.run", response, { routeParams: { jobId } });
 }
 
 export async function deleteCronJob(jobId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoCronDeleteResponse>(
     `/cron/${encodeURIComponent(jobId)}`,
     { method: "DELETE" },
     "cron delete failed",
   );
+  return acknowledgeMutationResponse("cron.delete", response, { routeParams: { jobId } });
 }
 
 export async function fetchDocs(params?: { category?: DeckGoDocCategory | null; query?: string }) {
-  const search = new URLSearchParams();
-  if (params?.category) {
-    search.set("category", params.category);
-  }
-  if (params?.query?.trim()) {
-    search.set("q", params.query.trim());
-  }
-  const suffix = search.toString() ? `?${search.toString()}` : "";
-  return fetchDeckJson<DeckGoDocsResponse>(`/docs${suffix}`, undefined, "docs fetch failed");
+  return fetchDeckJson<DeckGoDocsResponse>(
+    withListQuery("/docs", "docs-list", params ?? {}),
+    undefined,
+    "docs fetch failed",
+  );
 }
 
 export async function fetchDoc(docId: string) {
@@ -1224,7 +1313,7 @@ export async function fetchDoc(docId: string) {
 }
 
 export async function extractDocs(sessionKey: string) {
-  return fetchDeckJson<DeckGoDocsExtractResponse>(
+  const response = await fetchDeckJson<DeckGoDocsExtractResponse>(
     "/docs/extract",
     {
       method: "POST",
@@ -1233,14 +1322,28 @@ export async function extractDocs(sessionKey: string) {
     },
     "docs extract failed",
   );
+  return acknowledgeMutationResponse("docs.extract", response);
 }
 
 export async function deleteDoc(docId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
-    `/docs/${encodeURIComponent(docId)}`,
-    { method: "DELETE" },
-    "doc delete failed",
-  );
+  const encodedDocId = encodeURIComponent(docId);
+  const res = await deckFetch(buildApiPath(`/docs/${encodedDocId}`), { method: "DELETE" });
+  let response: DeckGoDocDeleteResponse;
+  if (res.status === 404) {
+    response = { ok: true, id: docId, missing: true };
+  } else if (!res.ok) {
+    throw new Error(await readErrorMessage(res, "doc delete failed"));
+  } else if (res.status === 204) {
+    response = { ok: true, id: docId };
+  } else {
+    try {
+      const payload = (await res.json()) as Partial<DeckGoDocDeleteResponse>;
+      response = { ...payload, ok: payload.ok ?? true, id: payload.id ?? docId };
+    } catch {
+      response = { ok: true, id: docId };
+    }
+  }
+  return acknowledgeMutationResponse("docs.delete", response, { routeParams: { docId } });
 }
 
 export async function fetchAlertRules() {
@@ -1250,7 +1353,7 @@ export async function fetchAlertRules() {
 export async function createAlertRule(
   rule: Omit<DeckGoAlertRule, "id" | "lastFiredAt" | "createdAt" | "updatedAt">,
 ) {
-  return fetchDeckJson<DeckGoAlertRuleResponse>(
+  const response = await fetchDeckJson<DeckGoAlertRuleResponse>(
     "/alerts",
     {
       method: "POST",
@@ -1259,10 +1362,11 @@ export async function createAlertRule(
     },
     "alert rule create failed",
   );
+  return acknowledgeMutationResponse("alert.rule.create", response);
 }
 
 export async function updateAlertRule(id: string, patch: Partial<DeckGoAlertRule>) {
-  return fetchDeckJson<DeckGoAlertRuleResponse>(
+  const response = await fetchDeckJson<DeckGoAlertRuleResponse>(
     `/alerts/${encodeURIComponent(id)}`,
     {
       method: "PATCH",
@@ -1271,14 +1375,16 @@ export async function updateAlertRule(id: string, patch: Partial<DeckGoAlertRule
     },
     "alert rule update failed",
   );
+  return acknowledgeMutationResponse("alert.rule.update", response, { routeParams: { id } });
 }
 
 export async function deleteAlertRule(id: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<Record<string, unknown>>(
     `/alerts/${encodeURIComponent(id)}`,
     { method: "DELETE" },
     "alert rule delete failed",
   );
+  return acknowledgeMutationResponse("alert.rule.delete", response, { routeParams: { id } });
 }
 
 export async function fetchWebhooks() {
@@ -1292,7 +1398,7 @@ export async function createWebhook(input: {
   events: string[];
   enabled?: boolean;
 }) {
-  return fetchDeckJson<DeckGoWebhook>(
+  const response = await fetchDeckJson<DeckGoWebhook>(
     "/webhooks",
     {
       method: "POST",
@@ -1301,6 +1407,7 @@ export async function createWebhook(input: {
     },
     "webhook create failed",
   );
+  return acknowledgeMutationResponse("webhook.create", response);
 }
 
 export async function updateWebhook(
@@ -1313,7 +1420,7 @@ export async function updateWebhook(
     enabled?: boolean;
   }>,
 ) {
-  return fetchDeckJson<DeckGoWebhook>(
+  const response = await fetchDeckJson<DeckGoWebhook>(
     `/webhooks/${encodeURIComponent(id)}`,
     {
       method: "PATCH",
@@ -1322,14 +1429,16 @@ export async function updateWebhook(
     },
     "webhook update failed",
   );
+  return acknowledgeMutationResponse("webhook.update", response, { routeParams: { id } });
 }
 
 export async function deleteWebhook(id: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<Record<string, unknown>>(
     `/webhooks/${encodeURIComponent(id)}`,
     { method: "DELETE" },
     "webhook delete failed",
   );
+  return acknowledgeMutationResponse("webhook.delete", response, { routeParams: { id } });
 }
 
 export async function fetchWebhookDeliveries(id: string) {
@@ -1341,11 +1450,12 @@ export async function fetchWebhookDeliveries(id: string) {
 }
 
 export async function testWebhook(id: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoWebhookTestResponse>(
     `/webhooks/${encodeURIComponent(id)}/test`,
     { method: "POST" },
     "webhook test failed",
   );
+  return acknowledgeMutationResponse("webhook.test-delivery", response, { routeParams: { id } });
 }
 
 export async function fetchNodes() {
@@ -1373,7 +1483,7 @@ export async function describeNode(nodeId: string) {
 }
 
 export async function renameNode(nodeId: string, displayName: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoNodeRenameResponse>(
     "/nodes",
     {
       method: "POST",
@@ -1382,6 +1492,7 @@ export async function renameNode(nodeId: string, displayName: string) {
     },
     "node rename failed",
   );
+  return acknowledgeMutationResponse("nodes.rename", response, { routeParams: { nodeId } });
 }
 
 function createIdempotencyKey() {
@@ -1407,7 +1518,7 @@ export async function invokeNodeCommand(
   if (timeoutMs != null && Number.isFinite(timeoutMs) && timeoutMs > 0) {
     body.timeoutMs = timeoutMs;
   }
-  return fetchDeckJson<DeckGoNodeInvokeResponse>(
+  const response = await fetchDeckJson<DeckGoNodeInvokeResponse>(
     "/nodes",
     {
       method: "POST",
@@ -1416,6 +1527,7 @@ export async function invokeNodeCommand(
     },
     "node invoke failed",
   );
+  return acknowledgeMutationResponse("nodes.invoke", response, { routeParams: { nodeId } });
 }
 
 export async function enqueueNodePendingWork(params: {
@@ -1424,7 +1536,7 @@ export async function enqueueNodePendingWork(params: {
   type: DeckGoNodePendingWorkType;
   wake?: boolean;
 }) {
-  return fetchDeckJson<DeckGoNodePendingEnqueueResponse>(
+  const response = await fetchDeckJson<DeckGoNodePendingEnqueueResponse>(
     "/nodes",
     {
       method: "POST",
@@ -1433,10 +1545,13 @@ export async function enqueueNodePendingWork(params: {
     },
     "node pending enqueue failed",
   );
+  return acknowledgeMutationResponse("nodes.pending.enqueue", response, {
+    routeParams: { nodeId: params.nodeId },
+  });
 }
 
 export async function approveNodePairing(requestId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoNodePairApproveResponse>(
     "/nodes/pair",
     {
       method: "POST",
@@ -1445,10 +1560,13 @@ export async function approveNodePairing(requestId: string) {
     },
     "node pairing approve failed",
   );
+  return acknowledgeMutationResponse("nodes.pair.approve", response, {
+    routeParams: { requestId },
+  });
 }
 
 export async function requestNodePairing(params: DeckGoNodePairRequestInput) {
-  return fetchDeckJson<DeckGoNodePairRequestResponse>(
+  const response = await fetchDeckJson<DeckGoNodePairRequestResponse>(
     "/nodes/pair",
     {
       method: "POST",
@@ -1457,10 +1575,11 @@ export async function requestNodePairing(params: DeckGoNodePairRequestInput) {
     },
     "node pairing request failed",
   );
+  return acknowledgeMutationResponse("nodes.pair.request", response);
 }
 
 export async function rejectNodePairing(requestId: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoNodePairRejectResponse>(
     "/nodes/pair",
     {
       method: "POST",
@@ -1469,10 +1588,11 @@ export async function rejectNodePairing(requestId: string) {
     },
     "node pairing reject failed",
   );
+  return acknowledgeMutationResponse("nodes.pair.reject", response, { routeParams: { requestId } });
 }
 
 export async function verifyNodePairing(nodeId: string, token: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoNodePairVerifyResponse>(
     "/nodes/pair",
     {
       method: "POST",
@@ -1481,6 +1601,7 @@ export async function verifyNodePairing(nodeId: string, token: string) {
     },
     "node pairing verify failed",
   );
+  return acknowledgeMutationResponse("nodes.pair.verify", response, { routeParams: { nodeId } });
 }
 
 export async function browseMemory(agentId: string, path?: string) {
@@ -1517,15 +1638,20 @@ export async function searchMemory(params: {
   agentId?: string;
   scope?: DeckGoMemorySearchScope;
 }) {
-  const search = new URLSearchParams();
-  search.set("q", params.query);
+  const body: { query: string; agentId?: string; scope?: DeckGoMemorySearchScope } = {
+    query: params.query,
+  };
   if (params.agentId?.trim()) {
-    search.set("agentId", params.agentId.trim());
+    body.agentId = params.agentId.trim();
   }
   if (params.scope && params.scope !== "all") {
-    search.set("scope", params.scope);
+    body.scope = params.scope;
   }
-  const res = await deckFetch(buildApiPath(`/memory/search?${search.toString()}`), undefined);
+  const res = await deckFetch(buildApiPath("/memory/search"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   if (!res.ok) {
     const message = await readErrorMessage(res, "memory search failed");
     if (res.status === 501) {
@@ -1546,13 +1672,17 @@ export async function searchMemory(params: {
   } satisfies DeckGoMemorySearchResponse;
 }
 
-export async function runMemoryDreams(action: DeckGoMemoryDreamAction) {
+export async function runMemoryDreams(action: DeckGoMemoryDreamAction, agentId?: string) {
+  const body: { action: DeckGoMemoryDreamAction; agentId?: string } = { action };
+  if (agentId?.trim()) {
+    body.agentId = agentId.trim();
+  }
   return fetchDeckJson<DeckGoMemoryDreamsResult>(
     "/memory/dreams",
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify(body),
     },
     "memory dreams action failed",
   );
@@ -1569,7 +1699,7 @@ export async function fetchBudgetRules() {
 export async function createBudgetRule(
   input: Omit<DeckGoBudgetRule, "id" | "createdAt" | "updatedAt">,
 ) {
-  return fetchDeckJson<DeckGoBudgetRule>(
+  const response = await fetchDeckJson<DeckGoBudgetRule>(
     "/usage/budget",
     {
       method: "POST",
@@ -1578,10 +1708,11 @@ export async function createBudgetRule(
     },
     "budget rule create failed",
   );
+  return acknowledgeMutationResponse("budget.rule.create", response);
 }
 
 export async function updateBudgetRule(id: string, input: Partial<DeckGoBudgetRule>) {
-  return fetchDeckJson<DeckGoBudgetRule>(
+  const response = await fetchDeckJson<DeckGoBudgetRule>(
     `/usage/budget/${encodeURIComponent(id)}`,
     {
       method: "PATCH",
@@ -1590,14 +1721,16 @@ export async function updateBudgetRule(id: string, input: Partial<DeckGoBudgetRu
     },
     "budget rule update failed",
   );
+  return acknowledgeMutationResponse("budget.rule.update", response, { routeParams: { id } });
 }
 
 export async function deleteBudgetRule(id: string) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<Record<string, unknown>>(
     `/usage/budget/${encodeURIComponent(id)}`,
     { method: "DELETE" },
     "budget rule delete failed",
   );
+  return acknowledgeMutationResponse("budget.rule.delete", response, { routeParams: { id } });
 }
 
 export async function evaluateBudgetRules() {
@@ -1625,7 +1758,7 @@ export async function linkIdentityPeer(
   peerId: string,
   baseHash: string,
 ) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoIdentityMutationResponse>(
     "/deck/identity",
     {
       method: "POST",
@@ -1634,6 +1767,7 @@ export async function linkIdentityPeer(
     },
     "identity link failed",
   );
+  return acknowledgeMutationResponse("identity.link", response, { routeParams: { canonical } });
 }
 
 export async function unlinkIdentityPeer(
@@ -1642,7 +1776,7 @@ export async function unlinkIdentityPeer(
   peerId: string,
   baseHash: string,
 ) {
-  return fetchDeckJson<Record<string, unknown>>(
+  const response = await fetchDeckJson<DeckGoIdentityMutationResponse>(
     "/deck/identity",
     {
       method: "POST",
@@ -1651,6 +1785,7 @@ export async function unlinkIdentityPeer(
     },
     "identity unlink failed",
   );
+  return acknowledgeMutationResponse("identity.unlink", response, { routeParams: { canonical } });
 }
 
 export async function fetchThreads(params?: {
@@ -1721,7 +1856,7 @@ export async function addRoutingBinding(params: {
   comment?: string;
   position?: number;
 }) {
-  return fetchDeckJson<DeckGoRoutingAddResponse>(
+  const response = await fetchDeckJson<DeckGoRoutingAddResponse>(
     "/deck/routing",
     {
       method: "POST",
@@ -1730,10 +1865,11 @@ export async function addRoutingBinding(params: {
     },
     "routing add failed",
   );
+  return acknowledgeMutationResponse("routing.add", response);
 }
 
 export async function removeRoutingBinding(params: { id: string; baseHash: string }) {
-  return fetchDeckJson<DeckGoRoutingRemoveResponse>(
+  const response = await fetchDeckJson<DeckGoRoutingRemoveResponse>(
     "/deck/routing",
     {
       method: "POST",
@@ -1742,6 +1878,7 @@ export async function removeRoutingBinding(params: { id: string; baseHash: strin
     },
     "routing remove failed",
   );
+  return acknowledgeMutationResponse("routing.remove", response);
 }
 
 export async function simulateRouting(params: {
@@ -1761,6 +1898,11 @@ export async function simulateRouting(params: {
     },
     "routing simulate failed",
   );
+}
+
+export async function patchRoutingDmScope(scope: string, baseHash: string) {
+  const response = await patchDeckConfig({ session: { dmScope: scope } }, baseHash);
+  return acknowledgeMutationResponse("routing.dm-scope.patch", response);
 }
 
 export async function fetchSubagentRuns(params?: {
@@ -1807,7 +1949,7 @@ export async function fetchSubagentLineage(params: { runId?: string; sessionKey?
 }
 
 export async function killSubagentRun(runId: string) {
-  return fetchDeckJson<DeckGoSubagentKillResponse>(
+  const response = await fetchDeckJson<DeckGoSubagentKillResponse>(
     "/deck/subagents",
     {
       method: "POST",
@@ -1816,10 +1958,11 @@ export async function killSubagentRun(runId: string) {
     },
     "subagent kill failed",
   );
+  return acknowledgeMutationResponse("subagents.kill", response, { routeParams: { runId } });
 }
 
 export async function steerSubagentRun(runId: string, instruction: string) {
-  return fetchDeckJson<DeckGoSubagentSteerResponse>(
+  const response = await fetchDeckJson<DeckGoSubagentSteerResponse>(
     "/deck/subagents",
     {
       method: "POST",
@@ -1828,15 +1971,22 @@ export async function steerSubagentRun(runId: string, instruction: string) {
     },
     "subagent steer failed",
   );
+  return acknowledgeMutationResponse("subagents.steer", response, { routeParams: { runId } });
 }
 
 export async function fetchActivityEvents(limit = 100) {
-  const search = new URLSearchParams();
-  search.set("limit", String(limit));
   return fetchDeckJson<DeckGoActivityResponse>(
-    `/activity?${search.toString()}`,
+    withListQuery("/activity", "activity-events", { limit }),
     undefined,
     "activity fetch failed",
+  );
+}
+
+export async function fetchControlAuditEvents(limit = 100) {
+  return fetchDeckJson<DeckGoControlAuditEventsResponse>(
+    withListQuery("/audit/events", "control-audit-events", { limit }),
+    undefined,
+    "audit history fetch failed",
   );
 }
 
@@ -1849,28 +1999,8 @@ export async function fetchMonitorRuns(params?: {
   status?: string;
   until?: string;
 }) {
-  const search = new URLSearchParams();
-  search.set("limit", String(params?.limit ?? 50));
-  if (params?.agentId) {
-    search.set("agentId", params.agentId);
-  }
-  if (params?.cursor) {
-    search.set("cursor", params.cursor);
-  }
-  if (params?.sessionKey) {
-    search.set("sessionKey", params.sessionKey);
-  }
-  if (params?.since) {
-    search.set("since", params.since);
-  }
-  if (params?.status) {
-    search.set("status", params.status);
-  }
-  if (params?.until) {
-    search.set("until", params.until);
-  }
   return fetchDeckJson<DeckGoMonitorRunsResponse>(
-    `/monitor/runs?${search.toString()}`,
+    withListQuery("/monitor/runs", "monitor-runs", { limit: 50, ...params }),
     undefined,
     "monitor runs fetch failed",
   );
@@ -1899,7 +2029,7 @@ export async function fetchModelUsageCost(days?: number) {
   }
   const suffix = search.toString() ? `?${search.toString()}` : "";
   return fetchDeckJson<DeckGoUsageCostResponse>(
-    `/models/usage/cost${suffix}`,
+    `/usage/cost${suffix}`,
     undefined,
     "usage cost fetch failed",
   );
@@ -1907,7 +2037,7 @@ export async function fetchModelUsageCost(days?: number) {
 
 export async function fetchModelUsageProviders() {
   return fetchDeckJson<DeckGoUsageProvidersResponse>(
-    "/models/usage/providers",
+    "/usage/providers",
     undefined,
     "usage providers fetch failed",
   );
@@ -1920,38 +2050,16 @@ export async function fetchUsageSessions(params?: {
   includeContextWeight?: boolean;
   limit?: number;
 }) {
-  const search = new URLSearchParams();
-  if (params?.startDate?.trim()) {
-    search.set("startDate", params.startDate.trim());
-  }
-  if (params?.endDate?.trim()) {
-    search.set("endDate", params.endDate.trim());
-  }
-  if (params?.key?.trim()) {
-    search.set("key", params.key.trim());
-  }
-  if (params?.includeContextWeight) {
-    search.set("includeContextWeight", "true");
-  }
-  if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
-    search.set("limit", String(params.limit));
-  }
-  const suffix = search.toString() ? `?${search.toString()}` : "";
   return fetchDeckJson<DeckGoUsageSessionsResponse>(
-    `/usage/sessions${suffix}`,
+    withListQuery("/usage/sessions", "usage-sessions", params ?? {}),
     undefined,
     "usage sessions fetch failed",
   );
 }
 
 export async function fetchUsageSessionLogs(params: { key: string; limit?: number }) {
-  const search = new URLSearchParams();
-  search.set("key", params.key);
-  if (typeof params.limit === "number" && Number.isFinite(params.limit)) {
-    search.set("limit", String(params.limit));
-  }
   return fetchDeckJson<DeckGoUsageSessionLogsResponse>(
-    `/usage/sessions/logs?${search.toString()}`,
+    withListQuery("/usage/sessions/logs", "usage-session-logs", params),
     undefined,
     "usage session logs fetch failed",
   );
@@ -2137,15 +2245,16 @@ export async function probeRuntimeModelAuth(
 ): Promise<DeckGoModelProbeResponse> {
   const payload = await createDeckGatewayClient({ runtimeId }).deck.auth.probe({ provider });
   const responsePayload: DeckGoModelProbeResponse["payload"] = { ...payload };
-  return {
+  const response = {
     ...responsePayload,
     runtimeId,
     payload: responsePayload,
   };
+  return acknowledgeMutationResponse("models.auth.probe", response);
 }
 
 export async function saveModelsConfig(raw: string, baseHash?: string) {
-  return fetchDeckJson<DeckGoConfigApplyResponse>(
+  const response = await fetchDeckJson<DeckGoConfigApplyResponse>(
     "/models/config",
     {
       method: "PATCH",
@@ -2154,18 +2263,11 @@ export async function saveModelsConfig(raw: string, baseHash?: string) {
     },
     "models config save failed",
   );
+  return acknowledgeMutationResponse("models.config.save", response);
 }
 
 export async function lookupConfigPath(path: string) {
-  return fetchDeckJson<DeckGoConfigLookupResponse>(
-    "/config/schema-lookup",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    },
-    "config schema lookup failed",
-  );
+  return postConfigSchemaLookup({ path });
 }
 
 export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
@@ -2213,7 +2315,7 @@ export async function updateAgentEventStreams(
   eventStreams: string[],
   baseHash: string,
 ) {
-  return fetchDeckJson<DeckGoAgentEventStreamsSetResponse>(
+  const response = await fetchDeckJson<DeckGoAgentEventStreamsSetResponse>(
     "/deck/agents",
     {
       method: "POST",
@@ -2222,6 +2324,9 @@ export async function updateAgentEventStreams(
     },
     "agent event streams update failed",
   );
+  return acknowledgeMutationResponse("agents.eventStreams.save", response, {
+    routeParams: { agentId },
+  });
 }
 
 export async function fetchAgentSkills(agentId: string) {
@@ -2240,7 +2345,7 @@ export async function updateAgentSkills(
   agentId: string,
   params: { mode: "all" | "whitelist"; skills: string[]; baseHash: string },
 ) {
-  return fetchDeckJson<DeckGoAgentSkillsSetResponse>(
+  const response = await fetchDeckJson<DeckGoAgentSkillsSetResponse>(
     "/deck/agents",
     {
       method: "POST",
@@ -2255,6 +2360,7 @@ export async function updateAgentSkills(
     },
     "agent skills update failed",
   );
+  return acknowledgeMutationResponse("agents.skills.save", response, { routeParams: { agentId } });
 }
 
 export async function fetchAgentSubagentConfig(agentId: string) {
@@ -2291,7 +2397,7 @@ export async function updateAgentSubagentConfig(
   agentId: string,
   params: { allowAgents: string[]; model?: string; baseHash: string },
 ) {
-  return fetchDeckJson<DeckGoAgentSubagentConfigSetResponse>(
+  const response = await fetchDeckJson<DeckGoAgentSubagentConfigSetResponse>(
     "/deck/agents",
     {
       method: "POST",
@@ -2306,6 +2412,9 @@ export async function updateAgentSubagentConfig(
     },
     "agent subagent config update failed",
   );
+  return acknowledgeMutationResponse("agents.subagents.save", response, {
+    routeParams: { agentId },
+  });
 }
 
 export async function fetchAgentToolPolicyPreview(agentId: string) {
@@ -2357,7 +2466,7 @@ export async function fetchAgentIdentity(agentId: string) {
 }
 
 export async function saveAgentFile(agentId: string, name: string, content: string) {
-  return fetchDeckJson<DeckGoAgentFileResponse>(
+  const response = await fetchDeckJson<DeckGoAgentFileResponse>(
     `/agents/${encodeURIComponent(agentId)}/files`,
     {
       method: "POST",
@@ -2366,6 +2475,7 @@ export async function saveAgentFile(agentId: string, name: string, content: stri
     },
     "agent file save failed",
   );
+  return acknowledgeMutationResponse("agents.files.save", response, { routeParams: { agentId } });
 }
 
 export async function fetchToolsCatalog(agentId: string) {
@@ -2393,7 +2503,7 @@ export async function fetchEffectiveTools(params: { agentId: string; sessionKey:
 }
 
 export async function createAgent(params: DeckApi.DeckGoAgentCreateRequest) {
-  return fetchDeckJson<DeckGoAgentMutationResponse>(
+  const response = await fetchDeckJson<DeckGoAgentMutationResponse>(
     "/agents",
     {
       method: "POST",
@@ -2402,10 +2512,11 @@ export async function createAgent(params: DeckApi.DeckGoAgentCreateRequest) {
     },
     "agent create failed",
   );
+  return acknowledgeMutationResponse("agents.create", response);
 }
 
 export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPatchRequest) {
-  return fetchDeckJson<DeckGoAgentMutationResponse>(
+  const response = await fetchDeckJson<DeckGoAgentMutationResponse>(
     `/agents/${encodeURIComponent(agentId)}`,
     {
       method: "PATCH",
@@ -2414,14 +2525,16 @@ export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPa
     },
     "agent update failed",
   );
+  return acknowledgeMutationResponse("agents.update", response, { routeParams: { agentId } });
 }
 
 export async function deleteAgent(agentId: string) {
-  return fetchDeckJson<DeckGoAgentMutationResponse>(
+  const response = await fetchDeckJson<DeckGoAgentMutationResponse>(
     `/agents?agentId=${encodeURIComponent(agentId)}`,
     { method: "DELETE" },
     "agent delete failed",
   );
+  return acknowledgeMutationResponse("agents.delete", response, { routeParams: { agentId } });
 }
 
 type FetchSessionsParams = {
@@ -2431,27 +2544,9 @@ type FetchSessionsParams = {
   activeMinutes?: number;
 };
 
-function buildSessionsQuery(params?: FetchSessionsParams) {
-  const search = new URLSearchParams();
-  if (params?.agentId) {
-    search.set("agentId", params.agentId);
-  }
-  if (params?.search) {
-    search.set("search", params.search);
-  }
-  if (typeof params?.limit === "number") {
-    search.set("limit", String(params.limit));
-  }
-  if (typeof params?.activeMinutes === "number") {
-    search.set("activeMinutes", String(params.activeMinutes));
-  }
-  const query = search.toString();
-  return query ? `?${query}` : "";
-}
-
 export async function fetchSessions(params?: FetchSessionsParams) {
   return fetchDeckJson<DeckGoSessionsListResponse>(
-    `/sessions${buildSessionsQuery(params)}`,
+    withListQuery("/sessions", "sessions-list", params ?? {}),
     undefined,
     "sessions fetch failed",
   );
@@ -2470,14 +2565,7 @@ export async function fetchSessionPreviews(keys: string[]) {
 }
 
 function buildSessionQuery(params: { sessionKey: string; agentId?: string; limit?: number }) {
-  const search = new URLSearchParams();
-  if (params.agentId) {
-    search.set("agentId", params.agentId);
-  }
-  if (typeof params.limit === "number") {
-    search.set("limit", String(params.limit));
-  }
-  return search.toString();
+  return buildListQueryString("session-detail", params);
 }
 
 export async function fetchSessionDetail(params: {
@@ -2514,19 +2602,15 @@ export async function fetchChatSnapshot(params: {
 }
 
 export async function fetchChatHistory(params: { sessionKey: string; limit?: number }) {
-  const query = new URLSearchParams({ sessionKey: params.sessionKey });
-  if (typeof params.limit === "number") {
-    query.set("limit", String(params.limit));
-  }
   return fetchDeckJson<DeckGoChatHistoryResponse>(
-    `/chat/history?${query.toString()}`,
+    withListQuery("/chat/history", "chat-history", params),
     undefined,
     "chat history failed",
   );
 }
 
 export async function createChatSession(body: DeckGoChatSessionCreateRequest) {
-  return fetchDeckJson<DeckGoSessionCreateResponse>(
+  const response = await fetchDeckJson<DeckGoSessionCreateResponse>(
     "/chat/sessions/create",
     {
       method: "POST",
@@ -2535,10 +2619,11 @@ export async function createChatSession(body: DeckGoChatSessionCreateRequest) {
     },
     "chat session create failed",
   );
+  return acknowledgeMutationResponse("chat.session.create", response);
 }
 
 export async function sendChatMessage(body: DeckGoChatSendRequest) {
-  return fetchDeckJson<DeckGoSessionSendResponse>(
+  const response = await fetchDeckJson<DeckGoSessionSendResponse>(
     "/chat/send",
     {
       method: "POST",
@@ -2547,10 +2632,13 @@ export async function sendChatMessage(body: DeckGoChatSendRequest) {
     },
     "chat send failed",
   );
+  return acknowledgeMutationResponse("chat.send", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function abortChatRun(body: DeckGoChatAbortRequest) {
-  return fetchDeckJson<DeckGoSessionAbortResponse>(
+  const response = await fetchDeckJson<DeckGoSessionAbortResponse>(
     "/chat/abort",
     {
       method: "POST",
@@ -2559,10 +2647,13 @@ export async function abortChatRun(body: DeckGoChatAbortRequest) {
     },
     "chat abort failed",
   );
+  return acknowledgeMutationResponse("chat.abort", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function steerChatSession(body: DeckGoChatSteerRequest) {
-  return fetchDeckJson<DeckGoChatSteerResponse>(
+  const response = await fetchDeckJson<DeckGoChatSteerResponse>(
     "/chat/steer",
     {
       method: "POST",
@@ -2571,10 +2662,13 @@ export async function steerChatSession(body: DeckGoChatSteerRequest) {
     },
     "chat steer failed",
   );
+  return acknowledgeMutationResponse("chat.steer", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function resetSession(body: DeckApi.DeckGoChatSessionResetRequest) {
-  return fetchDeckJson<DeckGoSessionMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/reset",
     {
       method: "POST",
@@ -2583,10 +2677,13 @@ export async function resetSession(body: DeckApi.DeckGoChatSessionResetRequest) 
     },
     "session reset failed",
   );
+  return acknowledgeMutationResponse("chat.session.reset", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function clearSession(body: DeckApi.DeckGoChatSessionClearRequest) {
-  return fetchDeckJson<DeckGoSessionMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/clear",
     {
       method: "POST",
@@ -2595,10 +2692,13 @@ export async function clearSession(body: DeckApi.DeckGoChatSessionClearRequest) 
     },
     "session clear failed",
   );
+  return acknowledgeMutationResponse("chat.session.clear", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function deleteSession(body: DeckApi.DeckGoChatSessionDeleteRequest) {
-  return fetchDeckJson<DeckGoSessionMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions",
     {
       method: "DELETE",
@@ -2607,10 +2707,13 @@ export async function deleteSession(body: DeckApi.DeckGoChatSessionDeleteRequest
     },
     "session delete failed",
   );
+  return acknowledgeMutationResponse("chat.session.delete", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function patchSession(body: DeckApi.DeckGoChatSessionPatchRequest) {
-  return fetchDeckJson<DeckGoSessionMutationResponse>(
+  const response = await fetchDeckJson<DeckGoSessionMutationResponse>(
     "/chat/sessions/patch",
     {
       method: "POST",
@@ -2619,6 +2722,9 @@ export async function patchSession(body: DeckApi.DeckGoChatSessionPatchRequest) 
     },
     "session patch failed",
   );
+  return acknowledgeMutationResponse("chat.session.patch", response, {
+    routeParams: { sessionKey: body.sessionKey },
+  });
 }
 
 export async function patchChatSession(body: Record<string, unknown>) {
@@ -2630,18 +2736,35 @@ export async function patchChatSession(body: Record<string, unknown>) {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "session patch failed"));
   }
+  const routeParams =
+    typeof body.sessionKey === "string" ? { sessionKey: body.sessionKey } : undefined;
+  await acknowledgeResponseMutation(
+    "chat.session.patch",
+    response,
+    { ok: response.ok, key: typeof body.sessionKey === "string" ? body.sessionKey : "" },
+    routeParams ? { routeParams } : undefined,
+  );
   return response;
 }
 
 export async function compactChatSession(sessionKey: string) {
+  const body: DeckApi.DeckGoChatCompactRequest = { sessionKey };
   const response = await deckFetch(buildApiPath("/chat/compact"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ sessionKey }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "chat compact failed"));
   }
+  await acknowledgeResponseMutation(
+    "chat.compact",
+    response,
+    { ok: response.ok },
+    {
+      routeParams: { sessionKey },
+    },
+  );
   return response;
 }
 
@@ -2664,7 +2787,7 @@ export async function branchCompactionCheckpoint(sessionKey: string, checkpointI
     key: sessionKey,
     checkpointId,
   };
-  return fetchDeckJson<DeckGoCompactionActionResponse>(
+  const response = await fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
@@ -2673,6 +2796,9 @@ export async function branchCompactionCheckpoint(sessionKey: string, checkpointI
     },
     "compaction branch failed",
   );
+  return acknowledgeMutationResponse("chat.compaction.branch", response, {
+    routeParams: { sessionKey },
+  });
 }
 
 export async function restoreCompactionCheckpoint(sessionKey: string, checkpointId: string) {
@@ -2681,7 +2807,7 @@ export async function restoreCompactionCheckpoint(sessionKey: string, checkpoint
     key: sessionKey,
     checkpointId,
   };
-  return fetchDeckJson<DeckGoCompactionActionResponse>(
+  const response = await fetchDeckJson<DeckGoCompactionActionResponse>(
     "/chat/compaction",
     {
       method: "POST",
@@ -2690,6 +2816,9 @@ export async function restoreCompactionCheckpoint(sessionKey: string, checkpoint
     },
     "compaction restore failed",
   );
+  return acknowledgeMutationResponse("chat.compaction.restore", response, {
+    routeParams: { sessionKey },
+  });
 }
 
 export async function setSessionEventsSubscription(body: DeckGoSessionEventsRequest) {
@@ -2720,6 +2849,14 @@ export async function persistChatProjection(input: {
   if (!response.ok) {
     throw new Error(await readErrorMessage(response, "chat projection failed"));
   }
+  await acknowledgeResponseMutation(
+    "chat.projection.persist",
+    response,
+    { ok: response.ok },
+    {
+      routeParams: { sessionKey: input.sessionKey },
+    },
+  );
 }
 
 export async function setCanvasBridgeReady(input: { sessionKey: string; ready: boolean }) {
