@@ -149,7 +149,13 @@ ship
 
 - `mock functional`：mock-backed 页面、关键交互、console/page/API 错误检查和截图采集通过。
 - `mock prototype parity`：active `../frontend-handoff/modules/<module>/prototype.html` 与当前 `frontend-new` 页面在同一 viewport / locale / theme / nav 状态下 side-by-side 对比并记录 verdict。
-- `real Gateway evidence`：真实 Gateway/BFF 链路验证。环境或 seed 问题可按 OpenSpec 熔断记录；确定性代码缺陷不能熔断跳过。
+- `real Gateway evidence`：真实 Gateway/BFF 链路验证。最低证据要覆盖从 Deck shell 导航进入模块、深浅色模式、中文/英文模式、关键子页面/标签/弹窗可交互、浏览器不直连 Gateway、unexpected console/page/BFF API error 为空，并在安全可写的数据源上创建 run-scoped 真实测试数据。环境或 seed 问题可按 OpenSpec 熔断记录；确定性代码缺陷不能熔断跳过。
+
+**Real E2E fixture rule**：
+
+- 优先通过 Gateway RPC 或 Deck BFF route 创建测试数据；必要时可在隔离测试环境中直接 seed `openclaw.json`、workspace files、sessions 等 OpenClaw 数据源。
+- 测试数据名称必须包含当前 run id；cleanup 必须拒绝删除或修改不含 run id 的对象。
+- 外部账号、已安装 skill、device token、用户 memory 等影响面大的资源可以标记 `skipped-safe`，但仍要跑可读 UI/链路验证并记录缺口。
 
 模块不能只凭 mock 截图或测试通过宣称高保真视觉对齐。若 verdict 存在 material mismatch，必须修复或记录 source-linked accepted exception。
 

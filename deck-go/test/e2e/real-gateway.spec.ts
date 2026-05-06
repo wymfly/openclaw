@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   authHeaders,
-  createChatSession,
   openDeck,
+  seedRealGatewayChat,
   startRealGatewayStack,
   type E2EStack,
 } from "./helpers";
@@ -25,7 +25,9 @@ test.describe("real OpenClaw Gateway", () => {
     await stack?.stop();
   });
 
-  test("exercises the real Gateway control plane through deck-go", async ({ request }) => {
+  test("exercises the real Gateway control plane through deck-go", async ({
+    request,
+  }, testInfo) => {
     const headers = authHeaders(stack.accessToken);
 
     const runtime = await request.get(`${stack.backendBase}/api/runtime/gateway`, { headers });
@@ -50,15 +52,8 @@ test.describe("real OpenClaw Gateway", () => {
     const agentsPayload = (await agents.json()) as { result?: { agents?: unknown[] } };
     expect(Array.isArray(agentsPayload.result?.agents)).toBe(true);
 
-    const session = await createChatSession(
-      request,
-      stack.backendBase,
-      "hello from real gateway e2e",
-      stack.accessToken,
-    );
-    expect(session.ok).toBe(true);
-    expect(typeof session.key).toBe("string");
-    expect(typeof session.runStarted).toBe("boolean");
+    const seed = await seedRealGatewayChat(request, stack, testInfo);
+    expect(seed.sessionStatus).toBe("passed");
   });
 
   test("renders Chat and Agents against the real Gateway without API disconnects", async ({

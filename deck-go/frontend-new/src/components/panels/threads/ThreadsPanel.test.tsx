@@ -43,10 +43,10 @@ function threadEntries() {
   return [
     {
       threadId: "thread-main",
-      channelId: "discord",
+      channelId: "discord:ops-zone#alerts",
       agentId: "main",
       targetSessionKey: "agent:main:web-main",
-      targetKind: "session",
+      targetKind: "claude-code-session",
       boundAt: baseTime - 30_000,
       lastActivityAt: baseTime - 10_000,
       accountId: "acct-main",
@@ -55,10 +55,10 @@ function threadEntries() {
     },
     {
       threadId: "thread-builder",
-      channelId: "telegram",
+      channelId: "telegram:1284912934",
       agentId: "builder",
       targetSessionKey: "agent:builder:web-build",
-      targetKind: "session",
+      targetKind: "agent-loop",
       boundAt: baseTime - 60_000,
       lastActivityAt: baseTime - 20_000,
       accountId: "acct-builder",
@@ -115,6 +115,8 @@ describe("ThreadsPanel", () => {
     expect(container.querySelector(".threads-panel__relationship")).not.toBeNull();
     expect(container.textContent).toContain("Threads ready");
     expect(container.textContent).toContain("2 results");
+    expect(container.textContent).toContain("Active 24h");
+    expect(container.textContent).toContain("auto-bound");
     expect(container.textContent).toContain("Main support thread");
     expect(container.textContent).toContain("Builder escalation");
     expect(container.textContent).toContain("thread-main");
@@ -124,7 +126,7 @@ describe("ThreadsPanel", () => {
       (button) => button.textContent ?? "",
     );
     expect(threadRows[0]).toContain("Main support thread");
-    expect(threadRows[0]).toContain("last activity: 10s ago");
+    expect(threadRows[0]).toContain("10s ago");
   });
 
   it("debounces agent/channel filters, applies status immediately, and preserves selection", async () => {
@@ -190,7 +192,7 @@ describe("ThreadsPanel", () => {
 
     expect(container.textContent).toContain("Selected relationship");
     expect(container.textContent).toContain(
-      "Thread thread-main on discord routes session agent:main:web-main to agent main; bound by operator for account acct-main.",
+      "Thread thread-main on discord:ops-zone#alerts routes claude-code-session agent:main:web-main to agent main; bound by operator for account acct-main.",
     );
 
     const copyButton = Array.from(container.querySelectorAll("button")).find(
@@ -229,6 +231,53 @@ describe("ThreadsPanel", () => {
       agentId: "main",
     });
     expect(container.textContent).toContain("Opened Agents panel; target agent: main");
+  });
+
+  it("supports prototype-inspired local filters and unsupported projection tabs honestly", async () => {
+    await act(async () => {
+      renderThreadsPanel();
+    });
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search thread / channel / agent / session / label / account"]',
+    );
+    expect(searchInput).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "builder" } });
+    });
+
+    expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(1);
+    expect(container.textContent).toContain("Builder escalation");
+    expect(container.textContent).not.toContain("Main support thread");
+
+    const activityTab = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Recent activity",
+    );
+    const auditTab = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Audit",
+    );
+    const rawTab = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent === "Raw entry",
+    );
+    expect(activityTab).toBeTruthy();
+    expect(auditTab).toBeTruthy();
+    expect(rawTab).toBeTruthy();
+
+    await act(async () => {
+      activityTab?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("No thread activity projection");
+
+    await act(async () => {
+      auditTab?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("No thread audit projection");
+
+    await act(async () => {
+      rawTab?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("Thread payload");
   });
 
   it("shows a visible session key when clipboard is unavailable", async () => {

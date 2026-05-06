@@ -6,9 +6,10 @@
 
 ## Source of truth
 
-The settings module reads bindings from the deck-go BFF, which forwards to
-upstream OpenClaw `gateway.settings.*` and the runtime supervisor (when
-bundled). Browser code never calls Gateway directly.
+The settings module reads bindings from the deck-go BFF. Local preferences
+come from deck-go settings storage, runtime endpoint/status comes from the
+runtime facade/supervisor, and device pairing/token operations go through the
+Gateway adapter. Browser code never calls Gateway directly.
 
 ## Deck-facing API
 
@@ -42,7 +43,7 @@ The contract is **open** for `appearance` / `notifications` / `pairedDevices`.
 The prototype assumes specific keys (theme/density/desktop/quietHours,
 etc.); production should align on a typed shape if possible (open question §2).
 
-### `POST /api/settings`
+### `PUT /api/settings`
 
 Wrapper:
 
@@ -181,7 +182,7 @@ Persists the new endpoint config to `deck-go-settings.json`. **In bundled
 mode this endpoint must reject with 4xx** — the supervisor owns the
 endpoint, not the operator.
 
-### `POST /api/runtime/endpoint/test`
+### `POST /api/runtime/endpoint:test`
 
 Wrapper:
 
@@ -296,23 +297,31 @@ returning the raw token from `GET /api/settings`; mask in BFF if possible.
 
 ### Token-rotation simulation
 
-The prototype's `RotateTokenDialog` simulates a rotate via a local
-`Math.random()` token. Production needs a real endpoint (open question §3
-in README) — likely `POST /api/settings/rotate-token` returning the new
-token in plaintext (for one-time copy).
+The prototype's global `RotateTokenDialog` simulates access-token rotation
+with a local `Math.random()` token. Current production does **not** have an
+access-token rotation endpoint. Per-device token rotation is supported
+through `POST /api/devices/token/rotate` and returns a one-time token in the
+Settings panel.
 
 ## Endpoint summary
 
 | Endpoint                        | Method | When                                       | DTO                                 |
 | ------------------------------- | ------ | ------------------------------------------ | ----------------------------------- |
 | `/api/settings`                 | GET    | Initial load + Refresh                     | `DeckGoSettingsResponse`            |
-| `/api/settings`                 | POST   | Save dialog confirm                        | `DeckGoSettingsSaveResponse`        |
+| `/api/settings`                 | PUT    | Save dialog confirm                        | `DeckGoSettingsSaveResponse`        |
 | `/api/settings/test-connection` | POST   | (production) Identity verify-access        | `DeckGoSettingsConnectionResponse`  |
 | `/api/settings/version`         | GET    | Version section initial load               | `DeckGoSettingsVersionResponse`     |
 | `/api/bootstrap/status`         | GET    | Page load + 30s poll                       | `DeckGoBootstrapStatusResponse`     |
 | `/api/runtime/endpoint`         | GET    | Runtime section initial load (remote-mode) | `DeckGoRuntimeEndpointResponse`     |
 | `/api/runtime/endpoint`         | PUT    | Save dialog (remote-mode + endpointDirty)  | `DeckGoRuntimeEndpointResponse`     |
-| `/api/runtime/endpoint/test`    | POST   | Test connection dialog                     | `DeckGoRuntimeEndpointTestResponse` |
+| `/api/runtime/endpoint:test`    | POST   | Test connection dialog                     | `DeckGoRuntimeEndpointTestResponse` |
+| `/api/devices`                  | GET    | Devices group refresh                      | `DeckGoDevicesResponse`             |
+| `/api/devices/self`             | GET    | Identify current device                    | `DeckGoSelfDeviceResponse`          |
+| `/api/devices/approve`          | POST   | Approve pending device request             | Gateway projection                  |
+| `/api/devices/reject`           | POST   | Reject pending device request              | Gateway projection                  |
+| `/api/devices/remove`           | POST   | Remove paired device                       | Gateway projection                  |
+| `/api/devices/token/rotate`     | POST   | Rotate one paired-device role token        | `DeckGoDeviceTokenRotateResponse`   |
+| `/api/devices/token/revoke`     | POST   | Revoke one paired-device role token        | Gateway projection                  |
 
 ## Backend chain
 
@@ -320,10 +329,11 @@ token in plaintext (for one-time copy).
 SettingsApp
   → frontend-new/src/api/settings.ts + frontend-new/src/api/runtime.ts
   → deck-go Go BFF routes
-    ├── Gateway RPC settings.snapshot / settings.save
+    ├── Deck settings store: settings read/save/version/test projection
     ├── Runtime supervisor (bundled): owns env config + lifecycle
     ├── Runtime client (remote): forwards to remote Gateway
-    └── BFF projection: recentSaves (mutation log)
+    ├── Gateway adapter: device.pair.* + device.token.* methods
+    └── BFF projection: recentSaves (prototype-only mutation log)
   → Gateway (only via the BFF / runtime boundary)
 ```
 
@@ -344,15 +354,16 @@ SettingsApp
 
 ## Open contract assumptions
 
-- **`pairedDevices`** is `Array<Record<string, unknown>>`. The prototype
-  assumes `{ id, name, lastSeen, ip, platform, version }`. Should the
-  contract declare a typed `DeckGoPairedDevice`?
+- **`settings.pairedDevices`** is `Array<Record<string, unknown>>` in the
+  local settings payload. Runtime device management uses typed
+  `DeckGoPairedDevice`, `DeckGoPendingDeviceRequest`, and
+  `DeckGoDevicesResponse` through `/api/devices*`.
 - **Quiet hours** schema — the prototype assumes
   `notifications.quietHoursEnabled / quietHoursStart / quietHoursEnd`.
   The contract is open. Should hours be normalized to a
   `{ enabled, range: [start, end] }` object?
-- **Token rotation** has no contract endpoint. Production needs
-  `POST /api/settings/rotate-token`.
+- **Access-token rotation** has no contract endpoint. Device-token rotation
+  is supported at `POST /api/devices/token/rotate`.
 - **Save audit log** is BFF-projected. Should the contract gain
   `GET /api/settings/saves?limit=N`?
 - **Bundled-mode supervised restart** — to apply `.env` changes without a

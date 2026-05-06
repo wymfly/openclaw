@@ -1,9 +1,10 @@
 # settings — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
+**Verification notes:** [`./implementation-notes.md`](./implementation-notes.md)
 
 `settings/` is the **deck-go operator preferences panel**. It pairs identity
 & access (token + source provenance), runtime (bundled vs remote Gateway),
@@ -91,13 +92,13 @@ export interface DeckGoRuntimeEndpointTestResponse {
 Endpoints:
 
 - `GET  /api/settings` → `DeckGoSettingsResponse`
-- `POST /api/settings` → `DeckGoSettingsSaveResponse`
+- `PUT  /api/settings` → `DeckGoSettingsSaveResponse`
 - `POST /api/settings/test-connection` → `DeckGoSettingsConnectionResponse`
 - `GET  /api/settings/version` → `DeckGoSettingsVersionResponse`
 - `GET  /api/bootstrap/status` → `DeckGoBootstrapStatusResponse`
 - `GET  /api/runtime/endpoint` → `DeckGoRuntimeEndpointResponse`
 - `PUT  /api/runtime/endpoint` → updates remote endpoint config
-- `POST /api/runtime/endpoint/test` → `DeckGoRuntimeEndpointTestResponse`
+- `POST /api/runtime/endpoint:test` → `DeckGoRuntimeEndpointTestResponse`
 
 ## Runtime-mode contract (CRITICAL)
 
@@ -167,12 +168,13 @@ visual cue.
    `device-row__*`, `version-grid__*`, `mode-badge--*`).
 3. Wire real fetcher in `frontend-new/src/api/settings.ts`:
    - `fetchSettings()` → `GET /api/settings`
-   - `saveSettings(draft)` → `POST /api/settings`
-   - `testConnection(url, token, tlsVerify)` → `POST /api/settings/test-connection`
+   - `saveSettings(draft)` → `PUT /api/settings`
+   - `testSettingsConnection(url, token)` → `POST /api/settings/test-connection`
    - `fetchVersion()` → `GET /api/settings/version`
    - `fetchBootstrap()` → `GET /api/bootstrap/status`
    - `fetchRuntimeEndpoint()` → `GET /api/runtime/endpoint`
    - `setRuntimeEndpoint({url, token, tlsVerify})` → `PUT /api/runtime/endpoint`
+   - `testEndpoint(payload?)` → `POST /api/runtime/endpoint:test`
 4. Hardcoded literal strings get extracted to `frontend-new/src/i18n/{en,zh}.json`.
 5. **Bundled mode read-only enforcement** must happen in the
    `RuntimeGroup` component AND on the BFF — UI is not a source of truth.
@@ -188,8 +190,9 @@ visual cue.
 2. **`pairedDevices`** is `Array<Record<string, unknown>>`. The prototype
    assumes `{ id, name, lastSeen, ip, platform, version }`. Should the
    contract declare a typed `DeckGoPairedDevice`?
-3. **Token rotation** has no contract endpoint. The prototype simulates it.
-   Production will need `POST /api/settings/rotate-token` or similar.
+3. **Access-token rotation** has no contract endpoint. Device-token
+   rotation is supported through `POST /api/devices/token/rotate`, but
+   rotating the deck access token itself remains a future contract.
 4. **Quiet hours** — the prototype assumes `notifications.quietHoursEnabled
 / quietHoursStart / quietHoursEnd` keys. The contract is open
    (`Record<string, unknown>`). Should hours be normalized to a single

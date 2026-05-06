@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { getLiveProjectionContract } from "@/hooks/useLiveProjectionSubscription";
 import { deckStream } from "@/lib/deck-client";
 import { setCachedTranscript } from "@/lib/transcript-cache";
 import { useApprovalsStore } from "@/stores/approvals";
@@ -26,6 +27,8 @@ const BROWSER_ONLINE_RECOVERY_RELOAD_DELAY_MS = 8_000;
 const STREAM_RECOVERY_RELOAD_COOLDOWN_MS = 60_000;
 const STREAM_RECOVERY_QUERY_PARAM = "__deck_recover";
 const STREAM_RECOVERY_RELOAD_AT_KEY = "deckGoStreamRecoveryReloadAt";
+const TRANSIENT_STREAM_RECONNECT_GRACE_MS = 1_200;
+const CHAT_LIVE_PROJECTION_CONTRACT = getLiveProjectionContract("chat-session");
 
 interface CanvasCommand {
   action: string;
@@ -208,6 +211,9 @@ export async function recoverActiveChatAfterReconnect(): Promise<void> {
 }
 
 export async function handleProjectionGap(): Promise<void> {
+  if (CHAT_LIVE_PROJECTION_CONTRACT.gapPolicy === "none") {
+    return;
+  }
   if (projectionGapRecoveryInFlight) {
     return;
   }
@@ -229,19 +235,48 @@ export function useChatSSE() {
   const streamControllerRef = useRef<AbortController | null>(null);
   const pendingBrowserRecoveryRef = useRef(false);
   const hasConnectedStreamRef = useRef(false);
+  const reconnectStatusTimerRef = useRef<number | null>(null);
   const [streamRestartNonce, setStreamRestartNonce] = useState(0);
   const sseStatus = useChatStore((state) => state.sseStatus);
+
+  const clearReconnectStatusTimer = () => {
+    if (reconnectStatusTimerRef.current !== null) {
+      window.clearTimeout(reconnectStatusTimerRef.current);
+      reconnectStatusTimerRef.current = null;
+    }
+  };
+
+  const markReconnecting = (immediate = false) => {
+    if (immediate) {
+      clearReconnectStatusTimer();
+      useChatStore.getState().setSSEStatus("reconnecting");
+      return;
+    }
+    if (reconnectStatusTimerRef.current !== null) {
+      return;
+    }
+    reconnectStatusTimerRef.current = window.setTimeout(() => {
+      reconnectStatusTimerRef.current = null;
+      useChatStore.getState().setSSEStatus("reconnecting");
+    }, TRANSIENT_STREAM_RECONNECT_GRACE_MS);
+  };
+
+  const markConnected = () => {
+    clearReconnectStatusTimer();
+    hasConnectedStreamRef.current = true;
+    useChatStore.getState().setSSEStatus("connected");
+  };
 
   useEffect(() => {
     const onOffline = () => {
       pendingBrowserRecoveryRef.current = true;
       streamControllerRef.current?.abort();
-      useChatStore.getState().setSSEStatus("reconnecting");
+      markReconnecting(true);
     };
 
     const onOnline = () => {
       pendingBrowserRecoveryRef.current = true;
-      useChatStore.getState().setSSEStatus("reconnecting");
+      markReconnecting(true);
       setStreamRestartNonce((current) => current + 1);
     };
 
@@ -324,15 +359,14 @@ export function useChatSSE() {
       signal: controller.signal,
       reconnect: true,
       onOpen() {
-        hasConnectedStreamRef.current = true;
-        useChatStore.getState().setSSEStatus("connected");
+        markConnected();
         if (pendingBrowserRecoveryRef.current) {
           pendingBrowserRecoveryRef.current = false;
           void recoverActiveChatAfterReconnect().catch(() => {});
         }
       },
       onRetry() {
-        useChatStore.getState().setSSEStatus("reconnecting");
+        markReconnecting();
       },
       onEvent(event) {
         if (!event.event || !event.data) {
@@ -442,6 +476,7 @@ export function useChatSSE() {
     document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
+      clearReconnectStatusTimer();
       if (streamControllerRef.current === controller) {
         streamControllerRef.current = null;
       }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { waitFor } from "@testing-library/react";
+import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,15 +40,15 @@ function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
   });
 }
 
-function buttonByText(text: string) {
-  return Array.from(container.querySelectorAll("button")).find(
-    (button) => button.textContent === text,
+function buttonByText(text: string | RegExp) {
+  return Array.from(container.querySelectorAll("button")).find((button) =>
+    typeof text === "string" ? button.textContent === text : text.test(button.textContent ?? ""),
   );
 }
 
-function cardByText(text: string) {
-  return Array.from(container.querySelectorAll<HTMLElement>(".plugins-panel__row")).find((card) =>
-    card.textContent?.includes(text),
+function rowByText(text: string) {
+  return Array.from(container.querySelectorAll<HTMLElement>(".row")).find((row) =>
+    row.textContent?.includes(text),
   );
 }
 
@@ -63,6 +63,8 @@ function pluginsPayload() {
         status: "ready",
         enabled: true,
         version: "1.2.3",
+        imported: true,
+        activated: true,
         activationSource: "config",
         activationReason: "channel enabled in config",
         configPath: "plugins.entries.github.config",
@@ -84,6 +86,19 @@ function pluginsPayload() {
         channelIds: ["slack"],
         providerIds: [],
         toolNames: [],
+        diagnostics: [],
+      },
+      {
+        id: "docs-tools",
+        name: "Docs Tools",
+        origin: "managed",
+        status: "ready",
+        enabled: true,
+        configPath: "plugins.entries.docs-tools.config",
+        capabilityKinds: ["tool"],
+        channelIds: [],
+        providerIds: ["docs-provider"],
+        toolNames: ["docs.search"],
         diagnostics: [],
       },
     ],
@@ -114,6 +129,7 @@ function wecomPluginsPayload() {
         channelIds: ["wecom"],
         providerIds: [],
         toolNames: [],
+        deckActionCapabilities: { qrCodeAuth: true },
         diagnostics: [],
       },
     ],
@@ -133,6 +149,11 @@ function wecomChannelsPayload() {
       },
     ],
   };
+}
+
+async function waitForInventory() {
+  await waitFor(() => expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"));
+  await waitFor(() => expect(container.textContent).toContain("GitHub"));
 }
 
 describe("PluginsPanel", () => {
@@ -159,131 +180,141 @@ describe("PluginsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads plugin inventory and selects the first plugin by default", async () => {
+  it("loads plugin inventory into the prototype-shaped list view", async () => {
     renderPanel();
+    await waitForInventory();
 
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
-    );
-
-    expect(container.textContent).toContain("Inventory ready");
+    expect(container.querySelector(".list-view")).toBeTruthy();
+    expect(container.querySelector(".kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".toolbar")).toBeTruthy();
+    expect(container.querySelector(".row-head")?.textContent).toContain("Plugin");
     expect(container.textContent).toContain("Inventory Scope: workspace");
-    expect(container.textContent).toContain("Plugin inventory");
-    expect(container.textContent).toContain("Selected plugin");
-    expect(container.textContent).toContain("Channel plugins");
-    expect(container.textContent).toContain("All plugins");
-    expect(container.textContent).toContain("2");
-    expect(container.textContent).toContain("ready: 1");
-    expect(container.textContent).toContain("error: 1");
-    expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).toContain("Slack");
-    expect(container.textContent).toContain("channel, tool");
-    expect(container.textContent).toContain("github, teams");
-    expect(container.querySelector(".plugins-panel")).toBeTruthy();
-    expect(container.querySelector(".plugins-panel__workspace")).toBeTruthy();
-    expect(container.querySelector(".plugins-panel__metrics")).toBeTruthy();
-    expect(container.querySelector(".plugins-panel__actions")).toBeTruthy();
-    expect(container.querySelectorAll(".plugins-panel__button").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelector(".plugins-panel__catalog")).toBeTruthy();
-    expect(container.querySelectorAll(".plugins-panel__row")).toHaveLength(2);
-    expect(container.querySelector(".plugins-panel__field-grid")).toBeTruthy();
-    expect(container.querySelector(".plugins-panel__surface")).toBeTruthy();
-    expect(container.querySelector(".plugins-panel__diagnostics")).toBeTruthy();
-
-    const selectedCard = cardByText("GitHub");
-    expect(selectedCard?.className).toContain("is-selected");
+    expect(container.textContent).toContain("runtime inventory");
+    expect(container.textContent).toContain("Channel-capable");
+    expect(container.textContent).toContain("Tool-capable");
+    expect(rowByText("GitHub")?.className).toContain("row--selected");
+    expect(rowByText("Slack")?.textContent).toContain("error");
+    expect(rowByText("Docs Tools")?.textContent).toContain("Tool");
   });
 
-  it("renders selected plugin metadata when the operator changes selection", async () => {
+  it("filters by search, origin, and capability without mutating loaded inventory", async () => {
     renderPanel();
+    await waitForInventory();
 
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search plugins by id, name, capability, channel, tool..."]',
     );
-
-    const slackCard = cardByText("Slack");
-    expect(slackCard).toBeTruthy();
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "docs" } });
+    });
+    expect(container.querySelector(".list")?.textContent).toContain("Docs Tools");
+    expect(container.querySelector(".list")?.textContent).not.toContain("GitHub");
 
     await act(async () => {
-      slackCard?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.change(search as HTMLInputElement, { target: { value: "" } });
+      fireEvent.click(buttonByText("bundled") as HTMLButtonElement);
+      fireEvent.click(buttonByText("Channel") as HTMLButtonElement);
     });
-
-    expect(cardByText("Slack")?.className).toContain("is-selected");
-    expect(container.textContent).toContain("workspace");
-    expect(container.textContent).toContain("error");
-    expect(container.textContent).toContain("No");
-    expect(container.textContent).toContain("plugins.entries.slack.config");
+    expect(container.querySelector(".list")?.textContent).toContain("GitHub");
+    expect(container.querySelector(".list")?.textContent).not.toContain("Slack");
+    expect(container.textContent).toContain("runtime inventory");
   });
 
-  it("selects the plugin requested by cross-panel navigation params", async () => {
+  it("selects navigation targets and exposes prototype detail tabs", async () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=plugins&pluginId=slack");
-
     renderPanel();
+    await waitFor(() => expect(rowByText("Slack")?.className).toContain("row--selected"));
 
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
-    );
-
-    await waitFor(() => expect(cardByText("Slack")?.className).toContain("is-selected"));
+    await act(async () => {
+      fireEvent.click(rowByText("Slack") as HTMLElement);
+    });
+    expect(container.querySelector(".detail")).toBeTruthy();
     expect(container.textContent).toContain("plugins.entries.slack.config");
+
+    for (const tab of ["Capabilities", "Diagnostics", "Activation", "Manifest", "Audit"]) {
+      await act(async () => {
+        fireEvent.click(buttonByText(tab) as HTMLButtonElement);
+      });
+      expect(container.textContent).toContain(tab === "Activation" ? "State chain" : tab);
+    }
+
+    await act(async () => {
+      fireEvent.click(buttonByText("Plugins") as HTMLButtonElement);
+    });
+    expect(container.querySelector(".list-view")).toBeTruthy();
   });
 
   it("switches between channel and all capability inventory modes", async () => {
     renderPanel();
-
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
-    );
+    await waitForInventory();
 
     await act(async () => {
-      buttonByText("All plugins")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonByText("scope=all") as HTMLButtonElement);
     });
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenLastCalledWith("all"),
     );
-    expect(buttonByText("All plugins")?.className).toContain("is-primary");
+    expect(buttonByText("scope=all")?.className).toContain("seg__btn--active");
   });
 
-  it("renders plugin capability diagnostics and cross-panel handoffs", async () => {
+  it("renders diagnostics and cross-panel handoffs without implying plugin mutation", async () => {
     renderPanel();
+    await waitForInventory();
 
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
-    );
+    await act(async () => {
+      fireEvent.click(rowByText("GitHub") as HTMLElement);
+    });
 
-    expect(container.textContent).toContain("Version");
-    expect(container.textContent).toContain("1.2.3");
     expect(container.textContent).toContain("Plugin Config Key");
     expect(container.textContent).toContain("plugins.entries.github.config");
     expect(container.textContent).toContain("Deck Actions");
-    expect(container.textContent).toContain("login, probe");
-    expect(container.textContent).toContain("Activation Source: config");
-    expect(container.textContent).toContain("Activation Reason: channel enabled in config");
-    expect(container.textContent).toContain("[warn] token missing");
-    expect(container.textContent).toContain("Lifecycle controls deferred");
+    expect(container.textContent).toContain("Activation Source");
     expect(container.textContent).toContain("Not visible in Channels: teams");
-    expect(container.textContent).not.toContain("Open teams");
 
     await act(async () => {
-      buttonByText("Open github")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonByText("Diagnostics") as HTMLButtonElement);
+    });
+    expect(container.textContent).toContain("token missing");
+    await act(async () => {
+      fireEvent.click(buttonByText(/token missing/) as HTMLButtonElement);
+    });
+    expect(container.textContent).toContain("Diagnostic detail");
+    expect(container.textContent).toContain("Remediation hint");
+    await act(async () => {
+      fireEvent.click(buttonByText("Close") as HTMLButtonElement);
     });
 
+    await act(async () => {
+      fireEvent.click(buttonByText("Overview") as HTMLButtonElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonByText("Open github") as HTMLButtonElement);
+    });
     expect(deckUIMocks.navigateToChannel).toHaveBeenCalledWith(deckUIMocks.ui, {
       channelId: "github",
     });
     expect(container.textContent).toContain("Opened Channels panel; target channel: github");
 
     await act(async () => {
-      buttonByText("Open routing for github")?.dispatchEvent(
-        new MouseEvent("click", { bubbles: true }),
-      );
+      fireEvent.click(buttonByText("Open routing for github") as HTMLButtonElement);
     });
-
     expect(deckUIMocks.navigateToRouting).toHaveBeenCalledWith(deckUIMocks.ui, {
       channelId: "github",
     });
-    expect(container.textContent).toContain("Opened Routing panel; target channel: github");
+
+    await act(async () => {
+      fireEvent.click(buttonByText("Manifest") as HTMLButtonElement);
+    });
+    expect(container.textContent).toContain("Manifest preview");
+    await act(async () => {
+      fireEvent.click(buttonByText("Close") as HTMLButtonElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonByText("Raw") as HTMLButtonElement);
+    });
+    expect(container.textContent).toContain("Raw inventory entry");
   });
 
   it("offers WeCom access handoff for channels with access controls", async () => {
@@ -291,15 +322,13 @@ describe("PluginsPanel", () => {
     apiMocks.fetchPluginsWithCapability.mockResolvedValue(wecomPluginsPayload());
 
     renderPanel();
-
-    await waitFor(() =>
-      expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
-    );
+    await waitFor(() => expect(rowByText("WeCom")).toBeTruthy());
 
     await act(async () => {
-      buttonByText("Open access for wecom")?.dispatchEvent(
-        new MouseEvent("click", { bubbles: true }),
-      );
+      fireEvent.click(rowByText("WeCom") as HTMLElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonByText("Open access for wecom") as HTMLButtonElement);
     });
 
     expect(deckUIMocks.navigateToChannelAccess).toHaveBeenCalledWith(deckUIMocks.ui, {
@@ -308,20 +337,19 @@ describe("PluginsPanel", () => {
     expect(container.textContent).toContain("Opened Channels access controls for wecom");
   });
 
-  it("renders the migrated plugin inventory shell in Chinese", async () => {
+  it("renders the plugin product flow in Chinese", async () => {
     renderPanel("zh");
 
     await waitFor(() =>
       expect(apiMocks.fetchPluginsWithCapability).toHaveBeenCalledWith("channel"),
     );
+    await waitFor(() => expect(container.textContent).toContain("GitHub"));
 
-    await waitFor(() => expect(container.textContent).toContain("清单就绪"));
     expect(container.textContent).toContain("清单范围");
     expect(container.textContent).toContain("workspace");
-    expect(container.textContent).toContain("插件清单");
-    expect(container.textContent).toContain("选中插件");
-    expect(container.textContent).toContain("渠道插件");
-    expect(container.textContent).toContain("全部插件");
-    expect(container.textContent).toContain("2 个插件");
+    expect(container.textContent).toContain("渠道能力");
+    expect(container.textContent).toContain("scope=channel");
+    expect(container.textContent).toContain("插件");
+    expect(container.textContent).toContain("能力");
   });
 });

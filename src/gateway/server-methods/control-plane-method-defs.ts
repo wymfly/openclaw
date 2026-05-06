@@ -48,6 +48,8 @@ import {
 } from "../protocol/schema/cron.js";
 import {
   ExecApprovalGetParamsSchema,
+  ExecApprovalListParamsSchema,
+  ExecApprovalListResultSchema,
   ExecApprovalRequestParamsSchema,
   ExecApprovalRequestResultSchema,
   ExecApprovalResolveParamsSchema,
@@ -60,8 +62,11 @@ import {
   ExecApprovalsSnapshotSchema,
 } from "../protocol/schema/exec-approvals.js";
 import {
+  PluginApprovalListParamsSchema,
+  PluginApprovalListResultSchema,
   PluginApprovalRequestParamsSchema,
   PluginApprovalResolveParamsSchema,
+  PluginApprovalResolveResultSchema,
 } from "../protocol/schema/plugin-approvals.js";
 import {
   UsageCostResultSchema,
@@ -212,6 +217,11 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
     result: ExecApprovalWaitDecisionResultSchema,
     scope: APPROVALS_SCOPE,
   },
+  "exec.approval.list": {
+    params: ExecApprovalListParamsSchema,
+    result: ExecApprovalListResultSchema,
+    scope: APPROVALS_SCOPE,
+  },
   // doctor.memory dream methods
   "doctor.memory.dreamDiary": {
     result: DoctorMemoryDreamDiaryResultSchema,
@@ -239,9 +249,8 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   // plugin.approval methods
   "plugin.approval.list": {
-    // Handler responds with a raw array; codegen requires Type.Object at
-    // top-level, so result is left untyped until a wrapper is introduced.
-    result: undefined,
+    params: PluginApprovalListParamsSchema,
+    result: PluginApprovalListResultSchema,
     scope: APPROVALS_SCOPE,
   },
   "plugin.approval.request": {
@@ -256,7 +265,7 @@ export const controlPlaneMethodDefs: Record<string, MethodMetadata> = {
   },
   "plugin.approval.resolve": {
     params: PluginApprovalResolveParamsSchema,
-    result: undefined,
+    result: PluginApprovalResolveResultSchema,
     scope: APPROVALS_SCOPE,
   },
 };

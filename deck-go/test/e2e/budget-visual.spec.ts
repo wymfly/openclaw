@@ -26,21 +26,28 @@ test.describe("budget mock visual handoff alignment", () => {
     const unexpected = collectUnexpectedErrors(page);
     await seedBudgetRules(request, stack);
 
-    await openDeck(page, stack.frontendBase, "budget", stack.accessToken, {
+    await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+      deckVisualState: "chat-rich",
       locale: "en",
       nav: "expanded",
       theme: "dark",
     });
+    await page
+      .locator(".deck-ui-rail")
+      .getByRole("button", { exact: true, name: "Budget" })
+      .click();
+    await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "budget");
 
-    await expect(page.getByTestId("budget-panel")).toBeVisible();
+    const panel = page.getByTestId("budget-panel");
+    await expect(panel).toBeVisible();
     await waitForGatewayMethod(stack.requestLog, "usage.cost");
-    await expect(page.getByRole("heading", { name: "Budget" }).first()).toBeVisible();
-    await expect(page.getByText("Budget ready").first()).toBeVisible();
-    await expect(page.getByText("3 rules").first()).toBeVisible();
-    await expect(page.getByText("Monthly cost cap").first()).toBeVisible();
-    await expect(page.getByText("Main agent token ceiling").first()).toBeVisible();
-    await expect(page.getByText("Over limit").first()).toBeVisible();
-    await expect(page.getByText("$4.13").first()).toBeVisible();
+    await expect(panel.getByRole("heading", { name: "Budget" }).first()).toBeVisible();
+    await expect(panel.getByText("Budget ready").first()).toBeVisible();
+    await expect(panel.getByText("7 rules").first()).toBeVisible();
+    await expect(panel.getByText("Monthly workspace cost cap").first()).toBeVisible();
+    await expect(panel.getByText("Main agent token ceiling").first()).toBeVisible();
+    await expect(panel.getByText("Definition").first()).toBeVisible();
+    await expect(panel.getByText("Recent changes").first()).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true);
@@ -51,22 +58,76 @@ test.describe("budget mock visual handoff alignment", () => {
       path: testInfo.outputPath("budget-workbench-ready.png"),
     });
 
-    await page.getByRole("button", { name: "Create" }).click();
-    await expect(page.getByText("New Rule").first()).toBeVisible();
-    await page.getByRole("button", { name: "Save" }).click();
-    await expect(page.getByText("Rule name is required").first()).toBeVisible();
+    await panel.getByLabel("budget rule search").fill("agent");
+    await expect(panel.getByText("Main agent token ceiling").first()).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-filtered-list.png"),
+    });
+
+    await panel.getByLabel("budget rule search").fill("");
+    await panel.getByRole("tab", { name: /Over/ }).click();
+    await expect(panel.getByText("Main agent token ceiling").first()).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-over-filter.png"),
+    });
+
+    await panel.getByRole("tab", { name: /All/ }).click();
+    await panel.getByRole("button", { name: /Monthly workspace cost cap/ }).click();
+    await expect(panel.getByText("Threshold progress").first()).toBeVisible();
+    await expect(panel.getByText("No durable recent changes are exposed").first()).toBeVisible();
+
+    await panel.getByRole("button", { name: "Edit" }).click();
+    await expect(page.getByRole("dialog", { name: "Edit Rule" })).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-edit-dialog.png"),
+    });
+    await page
+      .getByRole("dialog", { name: "Edit Rule" })
+      .getByRole("button", { name: "Cancel" })
+      .click();
+
+    await panel.getByRole("button", { name: "Disable rule" }).click();
+    await expect(page.getByRole("dialog", { name: "Disable rule" })).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-toggle-dialog.png"),
+    });
+    await page
+      .getByRole("dialog", { name: "Disable rule" })
+      .getByRole("button", { name: "Cancel" })
+      .click();
+
+    await panel.getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("dialog", { name: "Delete Rule" })).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-delete-dialog.png"),
+    });
+    await page
+      .getByRole("dialog", { name: "Delete Rule" })
+      .getByRole("button", { name: "Cancel" })
+      .click();
+
+    await panel.getByRole("button", { name: "Create" }).click();
+    const createDialog = page.getByRole("dialog", { name: "New Rule" });
+    await expect(createDialog).toBeVisible();
+    await createDialog.getByRole("button", { name: "Save" }).click();
+    await expect(createDialog.getByText("Rule name is required")).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("budget-validation-state.png"),
     });
 
-    await page.getByLabel("budget rule name").fill("Daily research input cap");
-    await page.getByRole("button", { name: "Per Task", exact: true }).click();
-    await page.getByLabel("budget task id").fill("research-summary");
-    await page.getByRole("button", { name: "Input Tokens", exact: true }).click();
-    await page.getByRole("button", { name: "Daily", exact: true }).click();
-    await page.getByLabel("budget warn threshold").fill("100000");
-    await page.getByLabel("budget over threshold").fill("180000");
+    await createDialog.getByLabel("budget rule name").fill("Daily research input cap");
+    await createDialog.getByRole("button", { name: "Per Task", exact: true }).click();
+    await createDialog.getByLabel("budget task id").fill("research-summary");
+    await createDialog.getByRole("button", { name: "Input Tokens", exact: true }).click();
+    await createDialog.getByRole("button", { name: "Daily", exact: true }).click();
+    await createDialog.getByLabel("budget warn threshold").fill("100000");
+    await createDialog.getByLabel("budget over threshold").fill("180000");
 
     await Promise.all([
       page.waitForResponse((response) => {
@@ -76,14 +137,32 @@ test.describe("budget mock visual handoff alignment", () => {
           response.ok()
         );
       }),
-      page.getByRole("button", { name: "Save" }).click(),
+      createDialog.getByRole("button", { name: "Save" }).click(),
     ]);
 
-    await expect(page.getByText("Daily research input cap").first()).toBeVisible();
-    await expect(page.getByText("Last budget action: created").first()).toBeVisible();
+    await expect(panel.getByText("Daily research input cap").first()).toBeVisible();
+    await expect(panel.getByText("Last budget action: created").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("budget-create-state.png"),
+    });
+
+    await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+      deckVisualState: "chat-rich",
+      locale: "zh",
+      nav: "expanded",
+      theme: "light",
+    });
+    await page.locator(".deck-ui-rail").getByRole("button", { exact: true, name: "预算" }).click();
+    await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "budget");
+    const zhPanel = page.getByTestId("budget-panel");
+    await expect(zhPanel.getByText("预算管理").first()).toBeVisible();
+    await expect(zhPanel.getByText("8 条规则").first()).toBeVisible();
+    await zhPanel.getByLabel("budget rule search").fill("token");
+    await expect(zhPanel.getByText("Main agent token ceiling").first()).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("budget-zh-light-list.png"),
     });
 
     expect(unexpected).toEqual([]);
@@ -93,7 +172,7 @@ test.describe("budget mock visual handoff alignment", () => {
 async function seedBudgetRules(request: APIRequestContext, stack: E2EStack) {
   for (const payload of [
     {
-      name: "Monthly cost cap",
+      name: "Monthly workspace cost cap",
       scope: "global",
       dimension: "cost",
       warnThreshold: 4,
@@ -120,6 +199,45 @@ async function seedBudgetRules(request: APIRequestContext, stack: E2EStack) {
       overThreshold: 120_000,
       period: "daily",
       enabled: false,
+    },
+    {
+      name: "Daily all-agent cost guardrail",
+      scope: "global",
+      dimension: "cost",
+      warnThreshold: 8,
+      overThreshold: 12,
+      period: "daily",
+      enabled: true,
+    },
+    {
+      name: "Review task cost ceiling",
+      scope: "task",
+      taskId: "review-pool",
+      dimension: "cost",
+      warnThreshold: 0.4,
+      overThreshold: 0.75,
+      period: "daily",
+      enabled: true,
+    },
+    {
+      name: "Build bot input token budget",
+      scope: "agent",
+      agentId: "build-bot",
+      dimension: "tokensIn",
+      warnThreshold: 600_000,
+      overThreshold: 900_000,
+      period: "daily",
+      enabled: false,
+    },
+    {
+      name: "Output token weekly cap",
+      scope: "agent",
+      agentId: "review-pool",
+      dimension: "tokensOut",
+      warnThreshold: 30_000,
+      overThreshold: 60_000,
+      period: "weekly",
+      enabled: true,
     },
   ]) {
     const response = await request.post(`${stack.backendBase}/api/usage/budget`, {

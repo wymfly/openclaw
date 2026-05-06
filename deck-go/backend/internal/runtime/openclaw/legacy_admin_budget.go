@@ -55,6 +55,9 @@ func (m *ManagedRuntime) CreateBudgetRule(ctx context.Context, input BudgetCreat
 	if !validPeriod[period] {
 		return map[string]any{"error": "Invalid period"}, http.StatusBadRequest, nil
 	}
+	if message := validateBudgetThresholds(input.WarnThreshold, input.OverThreshold); message != "" {
+		return map[string]any{"error": message}, http.StatusBadRequest, nil
+	}
 	enabled := true
 	if input.Enabled != nil {
 		enabled = *input.Enabled
@@ -93,6 +96,18 @@ func (m *ManagedRuntime) UpdateBudgetRule(ctx context.Context, ruleID string, pa
 	}
 	if patch.Name == nil && patch.Scope == nil && patch.AgentID == nil && patch.TaskID == nil && patch.Dimension == nil && patch.WarnThreshold == nil && patch.OverThreshold == nil && patch.Period == nil && patch.Enabled == nil {
 		return map[string]any{"error": "No fields to update"}, true, http.StatusBadRequest, nil
+	}
+	current, _ := store.Find(func(item localstore.BudgetRule) bool { return item.ID == ruleID })
+	nextWarnThreshold := current.WarnThreshold
+	if patch.WarnThreshold != nil {
+		nextWarnThreshold = patch.WarnThreshold
+	}
+	nextOverThreshold := current.OverThreshold
+	if patch.OverThreshold != nil {
+		nextOverThreshold = patch.OverThreshold
+	}
+	if message := validateBudgetThresholds(nextWarnThreshold, nextOverThreshold); message != "" {
+		return map[string]any{"error": message}, true, http.StatusBadRequest, nil
 	}
 	store.UpdateItem(func(item localstore.BudgetRule) bool { return item.ID == ruleID }, func(item localstore.BudgetRule) localstore.BudgetRule {
 		item.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
@@ -164,7 +179,7 @@ func (m *ManagedRuntime) EvaluateBudgetRules(ctx context.Context) (any, int, err
 			"ruleName":      rule.Name,
 			"dimension":     rule.Dimension,
 			"status":        status,
-			"currentValue":  currentValue,
+			"current":       currentValue,
 			"warnThreshold": rule.WarnThreshold,
 			"overThreshold": rule.OverThreshold,
 		}
@@ -216,4 +231,17 @@ func defaultString(value string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func validateBudgetThresholds(warnThreshold *float64, overThreshold *float64) string {
+	if warnThreshold != nil && *warnThreshold < 0 {
+		return "Warn threshold must be zero or greater"
+	}
+	if overThreshold != nil && *overThreshold < 0 {
+		return "Over threshold must be zero or greater"
+	}
+	if warnThreshold != nil && overThreshold != nil && *warnThreshold >= *overThreshold {
+		return "Warn threshold must be less than over threshold"
+	}
+	return ""
 }

@@ -1,0 +1,58 @@
+change: frontend-usage-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway usage data, session detail, provider quota windows, or context-weight reports may be empty-valid or handoff-blocked when the real stack has no data after bounded attempts."
+entries:
+  - scenarioId: baseline.usage-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/usage/prototype.html and inspect frontend-usage-hifi-redesign evidence"
+    evidence: "Prototype smoke passed: HTTP 200, title deck-go · usage (v2), H1 Cost & quota cockpit, 4 provider cards, 8 session rows, 9 tabs, and no browser errors. v2 package includes README/api/components/states/interactions plus multi-file React/Babel prototype files."
+  - scenarioId: audit.usage-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF/runtime routes, Gateway method mapping, frontend wrappers, and production Usage code"
+    evidence: "Inspected deck-api.contract.ts DTOs, deck-endpoints.contract.json, deck-ui.contract.json, frontend api.ts and Usage panel files, Go active /api inventory routes, admin /api/v1 routes, ManagedRuntime, LegacyInventorySurface, GatewayQueries, generated Gateway allowlist/types, mock fixture methods, and usage tests."
+  - scenarioId: contract.usage-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/runtime/Gateway -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/usage/implementation-notes.md. Supported: bootstrap, cost, providers, sessions, logs/timeseries/context when data exists, range refresh, search/filter/sort, detail tabs, navigation, read-only behavior. Handoff-blocked: recharts-grade charts and cost forecast. Unsupported claims: real billing accuracy and tenant accounting."
+  - scenarioId: implementation.usage-v2-and-scoped-fixes
+    ownerTask: "3.2-3.5"
+    status: passed
+    verificationCommand: "Implement deterministic route/wrapper/BFF/UI/docs/test fixes and verify unsupported prototype workflows remain inactive or degraded"
+    evidence: "Added canonical /api/usage/cost and /api/usage/providers active BFF routes, preserved /api/models/usage/* aliases, added /api/v1/usage/providers, switched frontend wrappers to canonical routes, updated endpoint/UI metadata sources and generated artifacts, added bootstrap pill/filter/sort/detail tabs/quota bars, and documented recharts as dependency-gated."
+  - scenarioId: frontend.usage-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Usage"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/usage/UsagePanel.test.tsx src/api.chat-helpers.test.ts passed 51 tests."
+  - scenarioId: backend.usage-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for usage routes and legacy aliases"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/api/http ./internal/runtime/openclaw -run 'TestGatewayFacade_UsageCostProviderRoutes|TestGatewayFacade_UsageSessionRoutes|TestMountAdminRoutes|TestContractAdapters|TestGatewayQueries' passed."
+  - scenarioId: visual.usage-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Usage mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/usage-visual.spec.ts --config playwright.config.ts passed 1 test. Evidence is L1 mock/local visual coverage with contract-shaped cost/provider/session/log/timeseries/context data and tabbed drilldown interactions."
+  - scenarioId: l2.usage-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for bootstrap, canonical usage routes, optional detail routes, production render, and no direct browser HTTP/WebSocket calls to real Gateway"
+    evidence: "Attempt 1 exposed selector ambiguity after API passed; scoped test fix narrowed text assertions. Attempt 2 passed: cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/usage-real-gateway.spec.ts --config playwright.config.ts passed 2 tests. API verifies bootstrap, canonical usage cost/providers, legacy aliases, sessions, and optional logs/timeseries when a session exists. UI verifies Usage panel render and no direct browser HTTP/WebSocket calls to real Gateway."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Usage panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Usage wrappers, route aliases, ManagedRuntime interface, active and admin Go routes, frontend local state, tabbed detail behavior, CSS quota bars, contract source/generated drift, mock and real E2E selectors, and handoff docs. Residual risks recorded in implementation-notes.md."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-usage-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate frontend-usage-real-contract-verification --strict passed. cd deck-go && make endpoint-classification-check ui-metadata-check passed. cd deck-go && make frontend-build passed. git diff --check passed."

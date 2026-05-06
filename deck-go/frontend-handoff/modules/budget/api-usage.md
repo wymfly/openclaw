@@ -6,9 +6,11 @@
 
 ## Source of truth
 
-The budget module reads rules + evaluations from the deck-go BFF, which
-forwards to upstream OpenClaw `gateway.usage.budget.*` Gateway methods.
-Browser code never calls Gateway directly.
+The budget module reads rules + evaluations from the deck-go BFF. Budget
+rule CRUD is a Deck-local policy layer stored in `localstore`, and
+evaluation combines enabled local rules with managed runtime `usage.cost`
+totals. Browser code never calls Gateway directly, and current code does
+not implement upstream OpenClaw `gateway.usage.budget.*` Gateway methods.
 
 ## Deck-facing API
 
@@ -32,21 +34,22 @@ type DeckGoBudgetRulesResponse = { rules: DeckGoBudgetRule[] };
 type DeckGoBudgetRule = {
   id: string;
   name: string;
-  scope: string; // "global" | "workspace" | "agent" | "task" | "channel"
+  scope: string; // open string; production UI currently authors "global" | "agent" | "task"
   agentId: string | null;
   taskId: string | null;
   dimension: "tokensIn" | "tokensOut" | "totalTokens" | "cost";
   warnThreshold: number | null;
   overThreshold: number | null;
-  period: string; // "minute" | "hour" | "day" | "week" | "month" | "task"
+  period: string; // open string; Go BFF currently validates "daily" | "weekly" | "monthly"
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
 };
 ```
 
-The contract leaves `scope` and `period` as open strings; the prototype
-hardcodes the 5/6 enums it expects.
+The contract leaves `scope` and `period` as open strings. The prototype
+explores broader scope/period values, but production support is currently
+`global | agent | task` plus `daily | weekly | monthly`.
 
 ### `GET /api/usage/budget/evaluate`
 
@@ -131,7 +134,7 @@ Wrapper:
 deleteBudgetRule(id: string): Promise<void>
 ```
 
-Response: 204 No Content.
+Response: HTTP 200 with `{ "deleted": true }`.
 
 After successful delete, the panel refetches `rules` + `evaluate`. The
 selected rule is replaced with the first remaining rule (or `null` if
@@ -139,8 +142,9 @@ list is empty).
 
 ### `GET /api/bootstrap/status`
 
-The budget module reads `bootstrap.ok` to gate mutations (see
-`states.md`). Same shape as in settings panel.
+The prototype models `bootstrap.ok` to gate mutations. Production Budget
+does not currently depend on a Budget-specific bootstrap contract beyond
+normal deck-go runtime readiness and API authorization.
 
 ## DTO shapes (canonical)
 
@@ -177,8 +181,8 @@ interface ChangeEvent {
 }
 ```
 
-BFF projection over the BFF audit log. The prototype shows the last 8
-entries scoped to the selected rule.
+Prototype/local-only state. There is no durable Budget recent-changes
+BFF endpoint or audit projection in the current contract.
 
 ### `agentDirectory: { id; label }[]`
 
@@ -194,22 +198,27 @@ join, not a contract-required field.
 | `/api/usage/budget/evaluate` | GET    | Initial load + per-mutation refresh       | `DeckGoBudgetEvaluationsResponse` |
 | `/api/usage/budget`          | POST   | CreateRuleDialog confirm                  | `DeckGoBudgetRule` (refreshed)    |
 | `/api/usage/budget/{ruleId}` | PATCH  | EditRuleDialog / ToggleRuleDialog confirm | `DeckGoBudgetRule` (refreshed)    |
-| `/api/usage/budget/{ruleId}` | DELETE | DeleteRuleDialog confirm                  | (204 No Content)                  |
+| `/api/usage/budget/{ruleId}` | DELETE | DeleteRuleDialog confirm                  | `{deleted:true}`                  |
 | `/api/bootstrap/status`      | GET    | Page load + 30s poll                      | `DeckGoBootstrapStatusResponse`   |
 
 ## Backend chain
 
 ```
 BudgetApp
-  → frontend-new/src/api/budget.ts
+  → frontend-new/src/api.ts
   → deck-go Go BFF routes
-    ├── deck-go/backend/internal/server/budget.go (rule CRUD handlers)
-    ├── Gateway typed client: usage.budget.list / usage.budget.evaluate / usage.budget.upsert / usage.budget.delete
-    └── BFF projection: recentChanges (audit log) + agentDirectory join
-  → Gateway (only via the BFF / runtime boundary)
+    ├── deck-go/backend/internal/server/budget.go (Deck-local rule CRUD handlers)
+    ├── deck-go/backend/internal/localstore/budget.go (budget-rules.json)
+    ├── managed runtime UsageCost(ctx, { days: 30 }) for evaluation totals
+    └── events bus publishes budget.warn / budget.over when evaluations cross thresholds
+  → Gateway only through managed runtime usage.cost for evaluation data
 ```
 
 ## Mock requirements
+
+These requirements describe the high-fidelity prototype breadth. Production
+mock/E2E fixtures should stay inside current BFF-supported values unless a
+contract change adds the broader periods/scopes.
 
 - 7 rules across 4 dimensions × 5 scopes × 6 periods. At minimum:
   - 1 cost rule (workspace, monthly) — boundary: large numeric range.

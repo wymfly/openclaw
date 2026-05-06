@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,11 +32,15 @@ func (a webhookAdapter) ListWebhooks(ctx context.Context) (map[string]any, error
 			return 0
 		}
 	})
-	return map[string]any{"webhooks": webhooks}, nil
+	items := make([]map[string]any, 0, len(webhooks))
+	for _, webhook := range webhooks {
+		items = append(items, webhookToMap(webhook))
+	}
+	return map[string]any{"webhooks": items}, nil
 }
 
 func (a webhookAdapter) CreateWebhook(ctx context.Context, input httpapi.WebhookCreateInput) (map[string]any, error) {
-	if _, err := url.Parse(input.URL); err != nil {
+	if err := validateWebhookURL(input.URL); err != nil {
 		return nil, err
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -66,7 +71,7 @@ func (a webhookAdapter) UpdateWebhook(ctx context.Context, webhookID string, pat
 		return nil, false, nil
 	}
 	if patch.URL != nil {
-		if _, err := url.Parse(*patch.URL); err != nil {
+		if err := validateWebhookURL(*patch.URL); err != nil {
 			return nil, true, err
 		}
 	}
@@ -233,11 +238,15 @@ func deliverWebhookNow(webhook localstore.Webhook, eventType string, payload map
 }
 
 func webhookToMap(webhook localstore.Webhook) map[string]any {
+	var secret any
+	if webhook.Secret != nil && *webhook.Secret != "" {
+		secret = "***redacted"
+	}
 	return map[string]any{
 		"id":                  webhook.ID,
 		"name":                webhook.Name,
 		"url":                 webhook.URL,
-		"secret":              webhook.Secret,
+		"secret":              secret,
 		"events":              webhook.Events,
 		"enabled":             webhook.Enabled,
 		"consecutiveFailures": webhook.ConsecutiveFailures,
@@ -246,6 +255,17 @@ func webhookToMap(webhook localstore.Webhook) map[string]any {
 		"createdAt":           webhook.CreatedAt,
 		"updatedAt":           webhook.UpdatedAt,
 	}
+}
+
+func validateWebhookURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return err
+	}
+	if parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return errors.New("webhook url must be http or https")
+	}
+	return nil
 }
 
 func webhookDeliveryToMap(delivery localstore.WebhookDelivery) map[string]any {

@@ -66,3 +66,21 @@ The sessions rewrite SHALL include focused mock visual verification that exercis
 - **THEN** it SHALL load session data through the frontend API path
 - **AND** it SHALL capture or assert the ready workbench state and at least one interaction state such as transcript export, filter state, compaction confirmation, patch result, or delete confirmation
 - **AND** closeout evidence SHALL label the test as mock visual coverage, not real Gateway/LLM E2E
+
+### Requirement: Sessions handoff distinguishes product target from verified contract truth
+
+The Sessions high-fidelity handoff SHALL separate product intent from currently
+verified session inventory, preview, detail, history, usage, compaction,
+lineage, mutation, cache, export, and frontend behavior.
+
+#### Scenario: Handoff notes record verified and projected behavior
+
+- **WHEN** the Sessions real-contract verification pass completes
+- **THEN** the handoff package SHALL record which workflows are supported by
+  current wrappers, routes, DTOs, mocks, and tests
+- **AND** server-side cursor pagination, exhaustive patch schema fields,
+  real-time panel refresh, and destructive real Gateway mutation proof SHALL be
+  labelled as projected, degraded, unsupported, skipped-safe, or
+  handoff-blocked rather than guaranteed
+- **AND** route truth SHALL distinguish current BFF routes from direct Gateway
+  method names and prototype-only UI assumptions

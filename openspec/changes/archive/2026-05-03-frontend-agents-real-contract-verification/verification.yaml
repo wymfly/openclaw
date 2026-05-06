@@ -1,0 +1,65 @@
+change: frontend-agents-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway scenarios may be handoff-blocked after bounded attempts with evidence."
+entries:
+  - scenarioId: baseline.agents-v2-handoff
+    ownerTask: "1.2-1.3"
+    status: verified
+    verificationCommand: "Serve or open deck-go/frontend-handoff/modules/agents/prototype.html and inspect browser console"
+    evidence: "2026-05-04: local prototype smoke loaded title `deck-go agents — interactive prototype`, rendered Main/Ops/Research/Legacy and create action, with no browser console errors."
+  - scenarioId: audit.gateway-capability
+    ownerTask: "2.1-2.5"
+    status: verified
+    verificationCommand: "Inspect generated Gateway artifacts, contracts/source files, gateway.describe, and exception registry"
+    evidence: "Generated TS/Go Gateway artifacts include agents.* and deck.agents.* typed methods; real L2 spec verified gateway.describe exposes these methods and they are absent from untyped exceptions."
+  - scenarioId: contract.agents-chain-matrix
+    ownerTask: "3.1-3.6"
+    status: verified
+    verificationCommand: "Record workflow -> API wrapper -> Deck endpoint/DTO -> Go adapter -> Gateway method matrix"
+    evidence: "Matrix recorded in deck-go/frontend-handoff/modules/agents/implementation-notes.md under `Real contract verification pilot`."
+  - scenarioId: frontend.agents-focused-tests
+    ownerTask: "6.1-6.3,9.2"
+    status: verified
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new agents"
+    evidence: "2026-05-04: `npm run test:deck-ui -- src/components/panels/agents/__tests__/agents-panel-state.test.ts src/components/panels/agents/__tests__/AgentsPanel.test.tsx src/api.chat-helpers.test.ts` passed, 53 tests."
+  - scenarioId: backend.agents-adapter-tests
+    ownerTask: "4.1-4.4,9.3"
+    status: verified
+    verificationCommand: "Run focused Go tests for touched agents backend adapters/routes"
+    evidence: "2026-05-04: clean-cache focused Go test passed for runtime/openclaw and server agents routes/adapters. Initial stale /tmp module cache failed dependency resolution; clean cache passed."
+  - scenarioId: visual.agents-mock-e2e
+    ownerTask: "6.4-6.5,9.4"
+    status: verified
+    verificationCommand: "Run agents mock visual Playwright E2E and label evidence as L1 mock visual coverage"
+    evidence: "2026-05-04: `pnpm exec playwright test --config deck-go/playwright.config.ts deck-go/test/e2e/agents-visual.spec.ts` passed, 1 test. L1 mock visual coverage only."
+  - scenarioId: l2.real-api-smoke
+    ownerTask: "7.1-7.2"
+    status: verified
+    maxAttempts: 3
+    verificationCommand: "Real stack API smoke for runtime health, gateway.describe, agents.list, agents detail, and safe section read"
+    evidence: "2026-05-04 attempt 1: `DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config deck-go/playwright.config.ts deck-go/test/e2e/agents-real-gateway.spec.ts` passed API scenario."
+  - scenarioId: l2.real-ui-smoke
+    ownerTask: "7.1,7.3"
+    status: verified
+    maxAttempts: 3
+    verificationCommand: "Playwright real-stack UI smoke for agents render, selection, section switch, and bad response/pageerror monitoring"
+    evidence: "2026-05-04 attempt 1: same agents real Gateway Playwright spec passed UI scenario with no API 4xx/5xx or page errors."
+  - scenarioId: l2.real-safe-mutation
+    ownerTask: "7.4-7.6"
+    status: handoff-blocked
+    maxAttempts: 3
+    verificationCommand: "Attempt only with disposable or reversible agent state; otherwise mark handoff-blocked"
+    evidence: "Not attempted: no disposable/reversible real agent state was available. Mutations could alter the user's OpenClaw config, so create/update/delete/save are deferred to the later real E2E audit."
+  - scenarioId: review.code-level
+    ownerTask: "8.1-8.3"
+    status: verified
+    verificationCommand: "Manual code review of agents panel, API facade, Go adapters, contract drift, tests, and mock assumptions"
+    evidence: "Review recorded in implementation-notes.md. No raw Gateway access in panel components; agents API calls go through facade/store; no agents entries in untyped exception registry; residual risk is safe mutation isolation."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "9.1,9.5-9.8"
+    status: verified
+    verificationCommand: "openspec validate frontend-agents-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "2026-05-04: `openspec validate frontend-agents-real-contract-verification --strict`, `make contract-gate`, `make frontend-build`, and `git diff --check` passed. Generated contract docs were synced to satisfy contract-gate."

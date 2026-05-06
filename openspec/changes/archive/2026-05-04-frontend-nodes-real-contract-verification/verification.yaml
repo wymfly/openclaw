@@ -1,0 +1,58 @@
+change: frontend-nodes-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway node inventory, pairing state, dynamic remote commands, or destructive pairing mutations may be empty-valid, degraded, skipped-safe, or handoff-blocked when bounded attempts show an environment or safety blocker."
+entries:
+  - scenarioId: baseline.nodes-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/nodes/prototype.html and inspect frontend-nodes-hifi-redesign evidence"
+    evidence: "Inspected refreshed v2 multi-file nodes handoff package, current frontend-nodes-hifi-redesign spec, and production Nodes implementation. Prototype smoke loaded through local static server with title 'Nodes — operations workbench', Alpha Control Mac/invoke UI visible, and no browser console/page errors."
+  - scenarioId: audit.nodes-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF/runtime routes, Gateway method mapping, frontend wrappers, and production Nodes code"
+    evidence: "Audited DeckGoNode DTOs, endpoint classification, dynamic exceptions for node.invoke/node.pending.enqueue, Go /api/nodes and /api/nodes/pair routes, ManagedRuntime/GatewayQueries mapping, generated Gateway node methods, frontend wrappers, production panel, mock Gateway fixtures, and focused tests."
+  - scenarioId: contract.nodes-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/runtime/Gateway -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/nodes/implementation-notes.md. Inventory/describe/rename/pairing actions are typed and supported; invoke/pending enqueue are supported as dynamic envelopes; orphan pairing is supported; real destructive mutations are skipped-safe."
+  - scenarioId: implementation.nodes-v2-and-scoped-fixes
+    ownerTask: "3.2-3.5"
+    status: passed
+    verificationCommand: "Implement deterministic UI/docs/test/BFF fixes and verify unsupported prototype workflows remain inactive, degraded, or documented"
+    evidence: "Refactored NodesPanel to inline confirmation for all mutating actions, JSON-first invoke validation, pairing token length guard, pending-first selection, expanded KPI rail, platform/capability pills, API facade request payload coverage, nodes visual E2E confirm flow, real Gateway E2E, and corrected handoff API docs for flattened pair.request payload."
+  - scenarioId: frontend.nodes-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Nodes"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/nodes/NodesPanel.test.tsx src/api.chat-helpers.test.ts passed: 2 files, 55 tests."
+  - scenarioId: backend.nodes-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for nodes routes and action envelopes"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw -run 'TestGatewayFacade_CommandsAndNodesRoutes|TestGatewayQueriesTyped' passed."
+  - scenarioId: visual.nodes-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Nodes mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "L1 mock/local visual coverage passed: cd deck-go && pnpm exec playwright test test/e2e/nodes-visual.spec.ts --config playwright.config.ts. Covered ready workbench, pending repair selection, inline invoke confirm/result, and inline pending enqueue confirm/result."
+  - scenarioId: l2.nodes-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for nodes inventory, pairing list, safe action shapes, production render, and no direct browser HTTP/WebSocket calls to real Gateway"
+    evidence: "L2 real Gateway E2E passed on first fresh attempt: cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/nodes-real-gateway.spec.ts --config playwright.config.ts. Verified nodes/pair route shapes, safe describe/invoke/reject/verify shapes, production UI render, and BFF-only browser access."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Nodes panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Nodes panel/API/BFF/runtime/contracts/mocks/e2e changes. Remaining items are documented capability/product gaps: dynamic command schemas, real destructive pairing mutations, polling/WS refresh, audit feed, QR token UX, bulk actions, and generated command forms."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-nodes-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate frontend-nodes-real-contract-verification --strict passed; cd deck-go && make endpoint-classification-check passed; cd deck-go && make frontend-build passed; git diff --check passed."

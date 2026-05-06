@@ -133,7 +133,11 @@ func (q *GatewayQueries) AgentFilesGet(ctx context.Context, agentID string, name
 }
 
 func (q *GatewayQueries) ToolsCatalog(ctx context.Context, body map[string]any) (any, error) {
-	return q.requester.Request(ctx, "tools.catalog", body) // gateway:allow-untyped reason: upstream missing schema for tools.catalog, tracked in openspec D12
+	params, err := typedParamsFromMap[generated.ToolsCatalogParams](body)
+	if err != nil {
+		return nil, err
+	}
+	return q.typed.ToolsCatalog(ctx, params)
 }
 
 func (q *GatewayQueries) SkillsStatus(ctx context.Context, params map[string]any) (generated.SkillsStatusResult, error) {
@@ -422,11 +426,15 @@ func (q *GatewayQueries) DeckCommandsDiscover(ctx context.Context, body map[stri
 }
 
 func (q *GatewayQueries) ToolsEffective(ctx context.Context, body map[string]any) (any, error) {
-	return q.requester.Request(ctx, "tools.effective", body) // gateway:allow-untyped reason: upstream missing schema for tools.effective, tracked in openspec D12
+	params, err := typedParamsFromMap[generated.ToolsEffectiveParams](body)
+	if err != nil {
+		return nil, err
+	}
+	return q.typed.ToolsEffective(ctx, params)
 }
 
 func (q *GatewayQueries) ExecApprovalList(ctx context.Context) (any, error) {
-	return q.requester.Request(ctx, "exec.approval.list", map[string]any{}) // gateway:allow-untyped reason: upstream missing schema for exec.approval.list, tracked in openspec D12
+	return q.typed.ExecApprovalList(ctx, generated.ExecApprovalListParams{})
 }
 
 func (q *GatewayQueries) ExecApprovalsGet(ctx context.Context) (generated.ExecApprovalsGetResult, error) {
@@ -450,7 +458,7 @@ func (q *GatewayQueries) ExecApprovalsSet(ctx context.Context, body map[string]a
 }
 
 func (q *GatewayQueries) PluginApprovalList(ctx context.Context) (any, error) {
-	return q.requester.Request(ctx, "plugin.approval.list", map[string]any{}) // gateway:allow-untyped reason: upstream missing schema for plugin.approval.list, tracked in openspec D12
+	return q.typed.PluginApprovalList(ctx, generated.PluginApprovalListParams{})
 }
 
 func (q *GatewayQueries) PluginApprovalResolve(ctx context.Context, body map[string]any) (any, error) {
@@ -562,7 +570,11 @@ func (q *GatewayQueries) DeckThreadsList(ctx context.Context, params map[string]
 }
 
 func (q *GatewayQueries) LogsTail(ctx context.Context, params map[string]any) (any, error) {
-	return q.requester.Request(ctx, "logs.tail", params) // gateway:allow-untyped reason: upstream missing schema for logs.tail, tracked in openspec D12
+	typedParams, err := typedParamsFromMap[generated.LogsTailParams](params)
+	if err != nil {
+		return nil, err
+	}
+	return q.typed.LogsTail(ctx, typedParams)
 }
 
 func (q *GatewayQueries) SessionsDelete(ctx context.Context, sessionKey string) (generated.SessionsDeleteResult, error) {
@@ -695,7 +707,7 @@ func (q *GatewayQueries) SessionsSteer(ctx context.Context, sessionKey string, m
 }
 
 func (q *GatewayQueries) CommandsList(ctx context.Context) (any, error) {
-	return q.requester.Request(ctx, "commands.list", map[string]any{}) // gateway:allow-untyped reason: upstream missing schema for commands.list, tracked in openspec D12
+	return q.typed.CommandsList(ctx, generated.CommandsListParams{})
 }
 
 func (q *GatewayQueries) NodeList(ctx context.Context) (generated.NodeListResult, error) {
@@ -719,11 +731,19 @@ func (q *GatewayQueries) NodeRename(ctx context.Context, body map[string]any) (g
 }
 
 func (q *GatewayQueries) NodeInvoke(ctx context.Context, body map[string]any) (any, error) {
-	return q.requester.Request(ctx, "node.invoke", body) // gateway:allow-untyped reason: upstream missing schema for node.invoke, tracked in openspec D12
+	params, err := typedParamsFromMap[generated.NodeInvokeParams](body)
+	if err != nil {
+		return nil, err
+	}
+	return q.typed.NodeInvoke(ctx, params)
 }
 
 func (q *GatewayQueries) NodePendingEnqueue(ctx context.Context, body map[string]any) (any, error) {
-	return q.requester.Request(ctx, "node.pending.enqueue", body) // gateway:allow-untyped reason: upstream missing schema for node.pending.enqueue, tracked in openspec D12
+	params, err := typedParamsFromMap[generated.NodePendingEnqueueParams](body)
+	if err != nil {
+		return nil, err
+	}
+	return q.typed.NodePendingEnqueue(ctx, params)
 }
 
 func (q *GatewayQueries) NodePairList(ctx context.Context) (generated.NodePairListResult, error) {

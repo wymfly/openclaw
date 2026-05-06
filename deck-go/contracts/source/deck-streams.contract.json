@@ -15,6 +15,27 @@
           "notes": "Emitted when Last-Event-ID is older than the retained event buffer."
         },
         {
+          "event": "chat",
+          "payload": "{ sessionKey?: string; runId?: string; state?: string; [key: string]: unknown }",
+          "status": "documented-dynamic",
+          "source": "deck-go/backend/internal/runtime/projection/activity.go",
+          "notes": "Legacy chat event bus frame consumed by the specialized chat dispatcher and activity projection until all Gateway session events are canonicalized."
+        },
+        {
+          "event": "agent",
+          "payload": "{ sessionKey?: string; runId?: string; stream?: string; data?: Record<string, unknown> }",
+          "status": "documented-dynamic",
+          "source": "deck-go/backend/internal/runtime/projection/activity.go",
+          "notes": "Legacy agent tool/lifecycle frame consumed by chat and activity projections."
+        },
+        {
+          "event": "canvas",
+          "payload": "{ action?: string; params?: Record<string, unknown>; [key: string]: unknown }",
+          "status": "documented-dynamic",
+          "source": "deck-go/frontend-new/src/components/panels/chat/useChatSSE.ts",
+          "notes": "Canvas/A2UI bridge frame consumed by the specialized chat dispatcher."
+        },
+        {
           "event": "runtime.gateway.status",
           "payload": "DeckGoRuntimeGatewayStatus",
           "status": "temporary-frontend-dto",
@@ -43,6 +64,13 @@
           "notes": "Session message projection update consumed by chat panels."
         },
         {
+          "event": "session-msg",
+          "payload": "DeckGoSessionMessageStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Legacy alias accepted by the chat dispatcher while Gateway session event naming converges."
+        },
+        {
           "event": "session.tool",
           "payload": "DeckGoSessionToolStreamEvent",
           "status": "generated-dto",
@@ -50,11 +78,60 @@
           "notes": "Tool activity projection update consumed by chat panels."
         },
         {
+          "event": "session-tool",
+          "payload": "DeckGoSessionToolStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Legacy alias accepted by the chat dispatcher while Gateway session event naming converges."
+        },
+        {
           "event": "sessions.changed",
           "payload": "DeckGoSessionsChangedStreamEvent",
           "status": "generated-dto",
           "source": "deck-go/contracts/source/deck-api.contract.ts",
           "notes": "Session lifecycle update consumed by chat/session projections."
+        },
+        {
+          "event": "session-state",
+          "payload": "DeckGoSessionsChangedStreamEvent",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Legacy alias accepted by the chat dispatcher while Gateway session event naming converges."
+        },
+        {
+          "event": "approval.pending",
+          "payload": "DeckGoPendingApproval",
+          "status": "generated-dto",
+          "source": "deck-go/contracts/source/deck-api.contract.ts",
+          "notes": "Pending approval projection consumed by chat and approvals panels."
+        },
+        {
+          "event": "approval.resolved",
+          "payload": "{ id?: string; sessionKey?: string }",
+          "status": "documented-dynamic",
+          "source": "deck-go/frontend-new/src/components/panels/approvals/useApprovalsStream.ts",
+          "notes": "Approval resolution projection; the current BFF only needs id/sessionKey for removal and chat approval cleanup."
+        },
+        {
+          "event": "device.pair.requested",
+          "payload": "{ deviceId?: string; name?: string; label?: string; actor?: string; [key: string]: unknown }",
+          "status": "documented-dynamic",
+          "source": "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx",
+          "notes": "Device pairing advisory update; GET /devices remains authoritative."
+        },
+        {
+          "event": "device.pair.resolved",
+          "payload": "{ deviceId?: string; name?: string; label?: string; actor?: string; [key: string]: unknown }",
+          "status": "documented-dynamic",
+          "source": "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx",
+          "notes": "Device pairing resolution advisory update; GET /devices remains authoritative."
+        },
+        {
+          "event": "commands.changed",
+          "payload": "{ version?: string; agentId?: string; [key: string]: unknown }",
+          "status": "documented-dynamic",
+          "source": "deck-go/frontend-new/src/hooks/use-command-discovery.ts",
+          "notes": "Command registry invalidation event; POST /deck/commands/discover remains authoritative."
         },
         {
           "event": "activity.event",

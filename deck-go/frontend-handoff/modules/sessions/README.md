@@ -1,15 +1,21 @@
 # sessions - high-fidelity handoff
 
-**Status:** `ready-for-implementation`
+**Status:** `implemented - real-contract verified`
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
-**OpenSpec change:** `frontend-sessions-hifi-contract-redesign`
+**OpenSpec changes:** `frontend-sessions-hifi-contract-redesign`,
+`frontend-sessions-real-contract-verification`
 
 This package defines the visual and interaction target for the `sessions/`
 module rewrite in `frontend-new`. The current panel is behavior-rich and
 already goes through the Deck BFF contract chain, but this package is the visual
 truth for the high-fidelity pass. Code and contracts remain the final authority
 when a handoff note drifts.
+
+Implementation and real-stack verification notes live in
+[`implementation-notes.md`](./implementation-notes.md). Treat code, source
+contracts, and generated contract checks as the final truth if this package
+drifts again.
 
 ## What this module does
 
@@ -100,8 +106,8 @@ No canonical atom or token is required by this handoff. Local molecules:
 4. Restyle session-only helper components as part of this module pass.
 5. Add mock visual E2E with contract-shaped data and label evidence as mock
    visual coverage.
-6. Update `implementation-notes.md` with production divergence and
-   design-system feedback.
+6. Update `implementation-notes.md` with production divergence, verification
+   evidence, and design-system feedback.
 
 ## Open questions for follow-up
 

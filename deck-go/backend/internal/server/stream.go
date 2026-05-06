@@ -115,8 +115,8 @@ func serveLogsStream(w http.ResponseWriter, r *http.Request, managed openclawrt.
 		if err != nil {
 			return err
 		}
-		record, ok := payload.(map[string]any)
-		if !ok {
+		record := recordFromAny(payload)
+		if len(record) == 0 {
 			return nil
 		}
 		if reset, _ := record["reset"].(bool); reset {
@@ -156,6 +156,24 @@ func serveLogsStream(w http.ResponseWriter, r *http.Request, managed openclawrt.
 			flusher.Flush()
 		}
 	}
+}
+
+func recordFromAny(value any) map[string]any {
+	if value == nil {
+		return nil
+	}
+	if record, ok := value.(map[string]any); ok {
+		return record
+	}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil
+	}
+	var record map[string]any
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return nil
+	}
+	return record
 }
 
 func writeSSEEvent(w http.ResponseWriter, id int64, eventType string, data []byte) {

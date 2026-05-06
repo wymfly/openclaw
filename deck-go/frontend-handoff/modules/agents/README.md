@@ -1,9 +1,9 @@
 # agents - high-fidelity handoff
 
-**Status:** `revised v2 - pending implementation`
+**Status:** `revised v2 - implemented in real-contract pilot`
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
-**OpenSpec change:** `frontend-agents-hifi-contract-redesign`
+**OpenSpec change:** `frontend-agents-real-contract-verification`
 
 This package replaces the earlier agents visual target for the current high-fidelity pass. The prior `deck-go-frontend-agents-rebuild` implementation remains the engineering baseline, but this package is the visual and interaction target for the next production rewrite.
 
@@ -53,6 +53,7 @@ No canonical atom or token is required by this handoff. Local molecules:
 4. Keep raw endpoint/action strings inside `frontend-new/src/api.ts` or tests only.
 5. Add mock visual E2E with contract-shaped data and label the evidence as mock visual coverage.
 6. Update `implementation-notes.md` with any production divergence and design-system feedback.
+7. Keep L2 real Gateway API/UI evidence separate from L1 mock visual evidence; safe mutations require disposable or reversible agent state.
 
 ## Open questions for follow-up
 

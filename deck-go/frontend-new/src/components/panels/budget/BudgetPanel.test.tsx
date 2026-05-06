@@ -82,6 +82,13 @@ function formButtonWithText(text: string) {
   );
 }
 
+function modalButtonWithText(text: string) {
+  const modal = container.querySelector(".budget-panel__modal");
+  return Array.from(modal?.querySelectorAll("button") ?? []).find((button) =>
+    button.textContent?.includes(text),
+  );
+}
+
 describe("BudgetPanel", () => {
   beforeEach(() => {
     (
@@ -117,7 +124,7 @@ describe("BudgetPanel", () => {
     expect(container.querySelector(".budget-panel")).toBeTruthy();
     expect(container.querySelector(".budget-panel__workspace")).toBeTruthy();
     expect(container.querySelector(".budget-panel__metrics")).toBeTruthy();
-    expect(container.querySelector(".budget-panel__status-list")).toBeTruthy();
+    expect(container.querySelector(".budget-panel__definition")).toBeTruthy();
     expect(apiMocks.evaluateBudgetRules).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Spend and token guardrails");
     expect(container.textContent).toContain("2 rules");
@@ -125,7 +132,20 @@ describe("BudgetPanel", () => {
     expect(container.textContent).toContain("Cost cap");
     expect(container.textContent).toContain("Token cap");
     expect(container.textContent).toContain("$12.00");
-    expect(container.textContent).toContain("Over Threshold: $20.00");
+    expect(container.textContent).toContain("Over Threshold$20.00");
+  });
+
+  it("keeps rules visible when budget evaluation is temporarily unavailable", async () => {
+    apiMocks.evaluateBudgetRules.mockRejectedValueOnce(new Error("usage cost unavailable"));
+
+    renderBudget();
+
+    await waitFor(() => expect(apiMocks.fetchBudgetRules).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
+
+    expect(container.textContent).toContain("Cost cap");
+    expect(container.textContent).toContain("Token cap");
+    expect(container.textContent).toContain("usage cost unavailable");
   });
 
   it("creates a per-agent rule through the restored rule form", async () => {
@@ -188,6 +208,81 @@ describe("BudgetPanel", () => {
     expect(container.textContent).toContain("Created budget");
   });
 
+  it("filters rule inventory by search text and status", async () => {
+    renderBudget();
+
+    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
+
+    const catalog = container.querySelector(".budget-panel__catalog") as HTMLElement;
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="budget rule search"]',
+    );
+
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "Token" } });
+    });
+    expect(catalog.textContent).toContain("Token cap");
+    expect(catalog.textContent).not.toContain("Cost cap");
+
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "" } });
+      fireEvent.click(buttonWithText("Disabled") as HTMLButtonElement);
+    });
+    expect(catalog.textContent).toContain("Token cap");
+    expect(catalog.textContent).not.toContain("Cost cap");
+  });
+
+  it("keeps invalid warn and over threshold ordering local", async () => {
+    renderBudget();
+
+    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Create") as HTMLButtonElement);
+    });
+
+    const nameInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="budget rule name"]',
+    );
+    const warnInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="budget warn threshold"]',
+    );
+    const overInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="budget over threshold"]',
+    );
+
+    await act(async () => {
+      fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Invalid budget" } });
+      fireEvent.change(warnInput as HTMLInputElement, { target: { value: "20" } });
+      fireEvent.change(overInput as HTMLInputElement, { target: { value: "10" } });
+      fireEvent.submit(container.querySelector("form") as HTMLFormElement);
+    });
+
+    expect(container.textContent).toContain("Warn threshold must be lower than over threshold");
+    expect(apiMocks.createBudgetRule).not.toHaveBeenCalled();
+  });
+
+  it("toggles a selected rule through the current patch route", async () => {
+    renderBudget();
+
+    await waitFor(() => expect(container.textContent).toContain("Budget ready"));
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
+    });
+    await act(async () => {
+      fireEvent.click(buttonWithText("Enable rule") as HTMLButtonElement);
+    });
+    expect(container.textContent).toContain("Enable Token cap?");
+    await act(async () => {
+      fireEvent.click(modalButtonWithText("Enable rule") as HTMLButtonElement);
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.updateBudgetRule).toHaveBeenCalledWith("budget-b", { enabled: true }),
+    );
+  });
+
   it("edits and deletes a selected rule with inline confirmation", async () => {
     renderBudget();
 
@@ -235,15 +330,12 @@ describe("BudgetPanel", () => {
       fireEvent.click(buttonWithText("Token cap") as HTMLButtonElement);
     });
     await act(async () => {
-      fireEvent.click(buttonWithText("Edit") as HTMLButtonElement);
-    });
-    await act(async () => {
       fireEvent.click(buttonWithText("Delete") as HTMLButtonElement);
     });
     expect(apiMocks.deleteBudgetRule).not.toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(buttonWithText("Delete this rule?") as HTMLButtonElement);
+      fireEvent.click(modalButtonWithText("Delete this rule?") as HTMLButtonElement);
     });
 
     await waitFor(() => expect(apiMocks.deleteBudgetRule).toHaveBeenCalledWith("budget-b"));

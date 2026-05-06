@@ -17,17 +17,17 @@ export type AlertRuleInput = Omit<
   "id" | "lastFiredAt" | "createdAt" | "updatedAt"
 >;
 
-const ENTITY_TYPES = ["usage", "cron", "approval", "agent"];
 const ACTIONS: DeckGoAlertAction[] = ["toast", "activity", "webhook"];
+const COOLDOWN_PRESETS = [1, 5, 10, 30, 60, 240, 1440];
 
-function draftFromRule(rule: DeckGoAlertRule | undefined): RuleDraft {
+function draftFromRule(rule: DeckGoAlertRule | undefined, fallbackEntity: string): RuleDraft {
   return {
     name: rule?.name ?? "",
-    entityType: rule?.entityType ?? "usage",
+    entityType: rule?.entityType ?? fallbackEntity,
     condition: rule?.condition ?? "",
     threshold: rule ? String(rule.threshold) : "0",
     action: rule?.action ?? "toast",
-    cooldownMinutes: rule ? String(Math.round(rule.cooldownMs / 60_000)) : "5",
+    cooldownMinutes: rule ? String(Math.max(0, Math.round(rule.cooldownMs / 60_000))) : "5",
     enabled: rule?.enabled ?? true,
   };
 }
@@ -45,6 +45,7 @@ function inputFromDraft(draft: RuleDraft): AlertRuleInput {
 }
 
 export function RuleForm(props: {
+  entityTypes: string[];
   rule?: DeckGoAlertRule;
   saving: boolean;
   onSubmit: (input: AlertRuleInput) => Promise<void>;
@@ -52,7 +53,8 @@ export function RuleForm(props: {
 }) {
   const t = useTranslations("alerts");
   const tc = useTranslations("common");
-  const [draft, setDraft] = useState<RuleDraft>(() => draftFromRule(props.rule));
+  const entityTypes = props.entityTypes.length > 0 ? props.entityTypes : ["usage"];
+  const [draft, setDraft] = useState<RuleDraft>(() => draftFromRule(props.rule, entityTypes[0]));
   const [validationMessage, setValidationMessage] = useState("");
 
   const validate = () => {
@@ -94,51 +96,29 @@ export function RuleForm(props: {
         />
       </label>
 
-      <div className="alerts-panel__field-grid">
-        <label className="alerts-panel__field">
-          <span>{t("entityType")}</span>
-          <select
-            aria-label="alert entity type"
-            className="alerts-panel__select"
-            value={draft.entityType}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, entityType: event.target.value }))
-            }
-          >
-            {ENTITY_TYPES.map((entityType) => (
-              <option key={entityType} value={entityType}>
-                {entityType}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="alerts-panel__field">
-          <span>{t("action")}</span>
-          <select
-            aria-label="alert action"
-            className="alerts-panel__select"
-            value={draft.action}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                action: event.target.value as DeckGoAlertAction,
-              }))
-            }
-          >
-            {ACTIONS.map((action) => (
-              <option key={action} value={action}>
-                {t(action)}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="alerts-panel__form-block">
+        <p className="alerts-panel__label">{t("entityType")}</p>
+        <div className="alerts-panel__entity-grid">
+          {entityTypes.map((entityType) => (
+            <button
+              aria-pressed={draft.entityType === entityType}
+              className={`alerts-panel__entity-tile ${draft.entityType === entityType ? "is-active" : ""}`}
+              key={entityType}
+              type="button"
+              onClick={() => setDraft((current) => ({ ...current, entityType }))}
+            >
+              <span aria-hidden="true">{entityType.slice(0, 2).toUpperCase()}</span>
+              {entityType}
+            </button>
+          ))}
+        </div>
       </div>
 
       <label className="alerts-panel__field">
         <span>{t("condition")}</span>
         <input
           aria-label="alert condition"
-          className="alerts-panel__input"
+          className="alerts-panel__input alerts-panel__input--mono"
           value={draft.condition}
           onChange={(event) =>
             setDraft((current) => ({ ...current, condition: event.target.value }))
@@ -177,6 +157,44 @@ export function RuleForm(props: {
         </label>
       </div>
 
+      <div className="alerts-panel__form-block">
+        <p className="alerts-panel__label">{t("action")}</p>
+        <div className="alerts-panel__action-grid">
+          {ACTIONS.map((action) => (
+            <button
+              aria-pressed={draft.action === action}
+              className={`alerts-panel__action-tile alerts-panel__action-tile--${action} ${draft.action === action ? "is-active" : ""}`}
+              key={action}
+              type="button"
+              onClick={() => setDraft((current) => ({ ...current, action }))}
+            >
+              <strong>{t(action)}</strong>
+              <span>{t(`${action}Description`)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="alerts-panel__form-block">
+        <p className="alerts-panel__label">{t("cooldownPresets")}</p>
+        <div className="alerts-panel__seg alerts-panel__seg--cooldown" role="tablist">
+          {COOLDOWN_PRESETS.map((minutes) => (
+            <button
+              aria-selected={draft.cooldownMinutes === String(minutes)}
+              className={draft.cooldownMinutes === String(minutes) ? "is-active" : ""}
+              key={minutes}
+              role="tab"
+              type="button"
+              onClick={() =>
+                setDraft((current) => ({ ...current, cooldownMinutes: String(minutes) }))
+              }
+            >
+              {minutes >= 60 ? `${minutes / 60}h` : `${minutes}m`}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <button
         type="button"
         className={`alerts-panel__switch ${draft.enabled ? "is-on" : ""}`}
@@ -190,7 +208,11 @@ export function RuleForm(props: {
         </span>
       </button>
 
-      {validationMessage ? <p className="alerts-panel__error">{validationMessage}</p> : null}
+      {validationMessage ? (
+        <p className="alerts-panel__error" aria-live="polite">
+          {validationMessage}
+        </p>
+      ) : null}
 
       <div className="alerts-panel__actions">
         <button className="alerts-panel__button is-primary" disabled={props.saving} type="submit">

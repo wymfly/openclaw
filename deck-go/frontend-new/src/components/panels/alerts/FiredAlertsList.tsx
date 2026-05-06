@@ -1,45 +1,51 @@
 import type { DeckGoAlertRule } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
 
-export function FiredAlertsList(props: { rules: DeckGoAlertRule[] }) {
+function formatDate(value: string | null | undefined, fallback: string) {
+  if (!value) {
+    return fallback;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function FiredAlertsList(props: { rule: DeckGoAlertRule }) {
   const t = useTranslations("alerts");
-  const firedSnapshots = props.rules.filter((rule) => rule.lastFiredAt);
+  const firedAt = formatDate(props.rule.lastFiredAt, t("never"));
 
   return (
-    <section className="alerts-panel__card">
-      <div className="alerts-panel__card-head">
+    <div className="alerts-panel__fires">
+      <div className="alerts-panel__unsupported">
+        <span className="alerts-panel__info-icon" aria-hidden="true">
+          i
+        </span>
         <div>
-          <h3 className="alerts-panel__card-title">{t("firedAlerts")}</h3>
-          <p className="alerts-panel__meta">{t("firedHistoryUnavailableDescription")}</p>
-        </div>
-        <span className="alerts-panel__pill is-warning">{t("unavailable")}</span>
-      </div>
-
-      <div className="alerts-panel__body alerts-panel__fired-list">
-        <div className="alerts-panel__surface">
           <strong>{t("firedHistoryUnavailableTitle")}</strong>
-          <p className="alerts-panel__note">{t("firedFallbackNote")}</p>
+          <p>{t("firedHistoryUnavailableDescription")}</p>
         </div>
-
-        {firedSnapshots.length === 0 ? (
-          <p className="alerts-panel__empty">{t("noFiredAlerts")}</p>
-        ) : (
-          firedSnapshots.map((rule) => (
-            <article className="alerts-panel__fired-row" key={rule.id}>
-              <div className="alerts-panel__row-head">
-                <strong>{rule.name}</strong>
-                <span className="alerts-panel__pill">{t(rule.action)}</span>
-              </div>
-              <p className="alerts-panel__meta">
-                {t("triggerDetails")}: {rule.entityType} · {rule.condition} {rule.threshold}
-              </p>
-              <p className="alerts-panel__meta">
-                {t("lastFired")}: {rule.lastFiredAt}
-              </p>
-            </article>
-          ))
-        )}
       </div>
-    </section>
+
+      <article className="alerts-panel__timeline-row">
+        <span className="alerts-panel__event-pill">{t("lastFired")}</span>
+        <div>
+          <strong>{props.rule.name}</strong>
+          <p>
+            {t("triggerDetails")}: {props.rule.entityType} · {props.rule.condition}{" "}
+            {props.rule.threshold}
+          </p>
+          <p>
+            {t("lastFired")}: {firedAt}
+          </p>
+        </div>
+      </article>
+    </div>
   );
 }

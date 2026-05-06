@@ -13,7 +13,7 @@ test.describe("models mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders models workbench and contract-shaped interaction states", async ({
+  test("renders prototype-shaped model registry, detail tabs, and dialogs", async ({
     page,
   }, testInfo) => {
     const unexpected = collectUnexpectedErrors(page);
@@ -24,58 +24,76 @@ test.describe("models mock visual handoff alignment", () => {
       theme: "dark",
     });
 
-    await expect(page.getByTestId("models-panel")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Model operations workbench" })).toBeVisible();
-    await expect(page.getByText("Runtime model catalog").first()).toBeVisible();
-    await expect(page.getByText("Provider overview").first()).toBeVisible();
-    await expect(
-      page.locator("#deck-ui-models-catalog").getByText("GPT-5.4").first(),
-    ).toBeVisible();
-    await expect(
-      page.locator("#deck-ui-models-catalog").getByText("Claude Sonnet 4.6").first(),
-    ).toBeVisible();
-    await page.waitForTimeout(500);
-
+    const panel = page.getByTestId("models-panel");
+    await expect(panel).toBeVisible();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(panel.getByRole("heading", { name: "Models" })).toBeVisible();
+    await expect(panel.getByText("Inspect runtime-configured models").first()).toBeVisible();
+    await expect(panel.getByLabel("Search models")).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Add from catalog" })).toBeVisible();
+    await expect(panel.getByText("GPT-5.4").first()).toBeVisible();
+    await expect(panel.getByText("Claude Sonnet 4.6").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("models-workbench-ready.png"),
     });
 
-    await page.getByRole("tab", { name: "Global Provider Config" }).click();
-    await expect(page.getByText("Provider config editor")).toBeVisible();
-    await expect(page.getByText("AWS Bedrock Discovery")).toBeVisible();
+    await panel.getByLabel("Search models").fill("sonnet");
+    await expect(panel.getByText("Claude Sonnet 4.6").first()).toBeVisible();
+    await expect(panel.getByText("GPT-4o").first()).toBeHidden();
     await page.screenshot({
       fullPage: false,
-      path: testInfo.outputPath("models-provider-config-state.png"),
+      path: testInfo.outputPath("models-list-filtered.png"),
     });
 
-    await page.getByRole("tab", { name: "Fallbacks" }).click();
-    await expect(page.getByText("Default model chain")).toBeVisible();
-    await expect(page.getByText("Model Allowlist")).toBeVisible();
+    await panel.getByText("Claude Sonnet 4.6").first().click();
+    await expect(panel.getByRole("heading", { name: "Claude Sonnet 4.6" })).toBeVisible();
+    for (const tab of ["Overview", "Limits", "Pricing", "Usage", "Auth", "Audit"]) {
+      await expect(panel.getByRole("tab", { name: tab })).toBeVisible();
+    }
+    await expect(panel.getByRole("heading", { name: "Runtime snapshot" })).toBeVisible();
     await page.screenshot({
       fullPage: false,
-      path: testInfo.outputPath("models-fallback-state.png"),
+      path: testInfo.outputPath("models-detail-overview.png"),
     });
 
-    await page.getByRole("tab", { name: "Usage" }).click();
-    await expect(page.getByText("Model usage summary")).toBeVisible();
-    await expect(page.getByText("Provider Quota")).toBeVisible();
-    await expect(page.getByText("highest pressure")).toBeVisible();
+    await clickDetailTab(panel, "Pricing", "Pricing and spend");
     await page.screenshot({
       fullPage: false,
-      path: testInfo.outputPath("models-usage-state.png"),
+      path: testInfo.outputPath("models-detail-pricing.png"),
     });
 
-    await page.getByRole("tab", { name: "Runtime Inventory" }).click();
-    await page
-      .getByRole("button", { name: /Open provider config/ })
-      .first()
-      .click();
-    await expect(page.getByText("Provider config editor")).toBeVisible();
+    await clickDetailTab(panel, "Usage", "Usage pressure");
+    await clickDetailTab(panel, "Auth", "Auth configuration");
+    await expect(panel.getByRole("button", { name: "Configure auth" })).toBeVisible();
+    await clickDetailTab(panel, "Audit", "Audit history");
+    await expect(panel.getByText("No audit contract").first()).toBeVisible();
+
+    await panel.getByRole("button", { name: "Models" }).click();
+    await panel.getByRole("button", { name: "Add from catalog" }).click();
+    await expect(page.getByRole("dialog", { name: "Add model from catalog" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /OpenAI Catalog/ })).toBeVisible();
+    await page.getByRole("button", { name: /OpenAI Catalog/ }).click();
+    await expect(page.getByRole("button", { name: /GPT-5.4 Mini/ })).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("models-catalog-dialog.png"),
+    });
 
     expect(unexpected).toEqual([]);
   });
 });
+
+async function clickDetailTab(
+  panel: ReturnType<Page["getByTestId"]>,
+  tab: string,
+  heading: string,
+) {
+  const tabButton = panel.getByRole("tab", { name: tab });
+  await tabButton.click();
+  await expect(tabButton).toHaveAttribute("aria-selected", "true");
+  await expect(panel.getByRole("heading", { name: heading })).toBeVisible();
+}
 
 function collectUnexpectedErrors(page: Page) {
   const unexpected: string[] = [];

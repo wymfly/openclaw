@@ -1,6 +1,75 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openDeck, startBundledStack, type E2EStack } from "./helpers";
 
+type Variant = {
+  byModel: string;
+  context: string;
+  logs: string;
+  navLabel: string;
+  ready: RegExp;
+  searchPlaceholder: string;
+  theme: "dark" | "light";
+  locale: "en" | "zh";
+  timeseries: string;
+  title: string;
+  windowSummary: string;
+};
+
+const VARIANTS: Variant[] = [
+  {
+    byModel: "By model",
+    context: "Context",
+    logs: "Logs",
+    navLabel: "Usage",
+    ready: /Usage ready/,
+    searchPlaceholder: "search usage sessions",
+    theme: "dark",
+    locale: "en",
+    timeseries: "Timeseries",
+    title: "Usage operations cockpit",
+    windowSummary: "14 days",
+  },
+  {
+    byModel: "按模型",
+    context: "上下文",
+    logs: "日志",
+    navLabel: "用量",
+    ready: /用量.*就绪/,
+    searchPlaceholder: "搜索用量会话",
+    theme: "dark",
+    locale: "zh",
+    timeseries: "时间序列",
+    title: "用量运营驾驶舱",
+    windowSummary: "14 天",
+  },
+  {
+    byModel: "By model",
+    context: "Context",
+    logs: "Logs",
+    navLabel: "Usage",
+    ready: /Usage ready/,
+    searchPlaceholder: "search usage sessions",
+    theme: "light",
+    locale: "en",
+    timeseries: "Timeseries",
+    title: "Usage operations cockpit",
+    windowSummary: "14 days",
+  },
+  {
+    byModel: "按模型",
+    context: "上下文",
+    logs: "日志",
+    navLabel: "用量",
+    ready: /用量.*就绪/,
+    searchPlaceholder: "搜索用量会话",
+    theme: "light",
+    locale: "zh",
+    timeseries: "时间序列",
+    title: "用量运营驾驶舱",
+    windowSummary: "14 天",
+  },
+];
+
 test.describe("usage mock visual handoff alignment", () => {
   let stack: E2EStack;
 
@@ -13,58 +82,105 @@ test.describe("usage mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders usage cockpit and contract-shaped interaction states", async ({
-    page,
+  test("renders usage cockpit variants with contract-shaped mock data", async ({
+    browser,
   }, testInfo) => {
-    const unexpected = collectUnexpectedErrors(page);
+    for (const variant of VARIANTS) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const unexpected = collectUnexpectedErrors(page);
 
-    await openDeck(page, stack.frontendBase, "usage", stack.accessToken, {
-      locale: "en",
-      nav: "expanded",
-      theme: "dark",
-    });
+      try {
+        await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+          locale: variant.locale,
+          nav: "expanded",
+          theme: variant.theme,
+        });
 
-    await expect(page.getByTestId("usage-panel")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Usage operations cockpit" })).toBeVisible();
-    await expect(page.getByText("Spend and token movement")).toBeVisible();
-    await expect(page.getByText("Quota pressure")).toBeVisible();
-    await expect(page.getByText("Main production review")).toBeVisible();
-    await expect(page.getByText("OpenAI").first()).toBeVisible();
-    await page.waitForTimeout(500);
+        const usageNav = page
+          .locator(".deck-ui-rail")
+          .getByRole("button", { exact: true, name: variant.navLabel });
+        await usageNav.scrollIntoViewIfNeeded();
+        await usageNav.click();
 
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("usage-cockpit-ready.png"),
-    });
+        await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "usage");
+        await expect(page.locator("html")).toHaveAttribute("data-theme", variant.theme);
 
-    await page.getByRole("button", { name: "By model" }).click();
-    await expect(page.getByText("gpt-5.4-mini")).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("usage-trend-by-model.png"),
-    });
+        const panel = page.getByTestId("usage-panel");
+        await expect(panel).toBeVisible();
+        await expect(panel.getByRole("heading", { name: variant.title })).toBeVisible();
+        await expect(panel.getByText(variant.ready)).toBeVisible();
+        await expect(panel.getByText(variant.windowSummary).first()).toBeVisible();
+        await expect(panel.getByText(/4 providers|4 个供应商/).first()).toBeVisible();
+        await expect(panel.getByText("Anthropic").first()).toBeVisible();
+        await expect(panel.getByText("OpenAI").first()).toBeVisible();
+        await expect(panel.getByText("Google AI").first()).toBeVisible();
+        await expect(panel.getByText(/Local fallback|Local/).first()).toBeVisible();
+        await expect(panel.locator(".usage-panel__sessions > .usage-panel__list > li")).toHaveCount(
+          8,
+        );
+        await expect
+          .poll(() =>
+            page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+          )
+          .toBe(true);
 
-    await page.getByRole("button", { name: /Anthropic/ }).click();
-    await expect(
-      page.locator(".usage-panel__provider .deckgo-stat-value").getByText("anthropic"),
-    ).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("usage-provider-selected.png"),
-    });
+        await page.screenshot({
+          fullPage: false,
+          path: testInfo.outputPath(
+            variant.theme === "dark" && variant.locale === "en"
+              ? "usage-cockpit-ready.png"
+              : `usage-cockpit-${variant.theme}-${variant.locale}.png`,
+          ),
+        });
 
-    await page.getByPlaceholder("search usage sessions").fill("builder");
-    await expect(page.getByText("Builder validation")).toBeVisible();
-    await page.getByRole("button", { name: /Builder validation/ }).click();
-    await expect(page.getByText("Session logs")).toBeVisible();
-    await expect(page.getByText("Usage timeseries")).toBeVisible();
-    await expect(page.getByText("Context weight", { exact: true })).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("usage-session-drilldown.png"),
-    });
+        if (variant.theme === "dark" && variant.locale === "en") {
+          await panel.getByRole("button", { name: variant.byModel }).click();
+          await expect(
+            panel.getByTestId("usage-trend-chart").getByText("gpt-5.4-mini"),
+          ).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("usage-trend-by-model.png"),
+          });
 
-    expect(unexpected).toEqual([]);
+          await panel.getByRole("button", { name: /OpenAI/ }).click();
+          await expect(
+            panel.locator(".usage-panel__provider .deckgo-stat-value").getByText("openai"),
+          ).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("usage-provider-selected.png"),
+          });
+
+          await page.keyboard.press(process.platform === "darwin" ? "Meta+K" : "Control+K");
+          await expect(panel.getByPlaceholder(variant.searchPlaceholder)).toBeFocused();
+          await panel.getByPlaceholder(variant.searchPlaceholder).fill("validation");
+          await expect(panel.getByText("Builder validation")).toBeVisible();
+          await expect(
+            panel.locator(".usage-panel__sessions > .usage-panel__list > li"),
+          ).toHaveCount(1);
+          await panel.getByRole("button", { name: /Builder validation/ }).click();
+          await panel.getByRole("tab", { name: variant.logs }).click();
+          await expect(panel.getByText("usage log detail")).toBeVisible();
+          await panel.getByRole("tab", { name: variant.timeseries }).click();
+          await expect(panel.getByText("Usage timeseries")).toBeVisible();
+          await panel.getByRole("tab", { name: variant.context }).click();
+          await expect(panel.getByText("Context weight", { exact: true })).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("usage-session-drilldown.png"),
+          });
+
+          await page.keyboard.press("Escape");
+          await expect(panel.getByText("Open usage session")).toHaveCount(0);
+        }
+
+        expect(unexpected).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    }
   });
 });
 

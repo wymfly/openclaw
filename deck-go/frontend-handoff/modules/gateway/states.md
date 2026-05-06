@@ -1,5 +1,14 @@
 # gateway — states (v2)
 
+## Production delta
+
+The prototype still describes a modal "dry-run" composer in a few lower
+sections. The implemented `frontend-new` panel uses an inline bundled-only
+batch composer backed by `POST /api/v1/runtimes/{runtimeId}/gateway/batch`.
+Because `gateway.batch` executes real upstream calls, production filters child
+methods to read-only describe entries, excludes nested batch/subscription calls,
+and disables submission in remote mode.
+
 ## Top-level state
 
 ```ts
@@ -67,8 +76,8 @@ Tweaks-driven (design-time only):
 | `describe.untyped === undefined` or `[]` | Untyped footer hidden.                                                                                          |
 | Search filters all out                   | Empty card "No entries match. Try clearing search / scope filter."                                              |
 | `recentBatches === []`                   | BatchConsole list empty — head still shows summary stats (0 / 0 / 0).                                           |
-| Batch dry-run runtime mode = remote      | Composer trigger button hidden / disabled with tooltip.                                                         |
-| Batch dry-run network 5xx                | Composer phase → `error` with retry button (production target). Prototype simulates per-call failures only.     |
+| Batch runtime mode = remote              | Composer visible but disabled with explanatory locked state.                                                    |
+| Batch network 5xx                        | Inline error alert with retry by resubmitting after correction.                                                 |
 | Activity audit empty                     | (production target) "No recent activity." inline message. Prototype always seeds 8 entries.                     |
 | Bootstrap not ready                      | Bootstrap pill flips error tone. Read-only panel — no action gating beyond visual signal.                       |
 | Throughput points all zero               | Cards still render; spark primitives draw 1px baseline.                                                         |
@@ -107,25 +116,20 @@ Tweaks-driven (design-time only):
 | Per-call `ok === true`        | Status td-tag green "ok".                                                    |
 | Per-call `ok === false`       | Status td-tag red with error code; meta cell shows message + retryable hint. |
 
-## Composer wizard lifecycle
+## Composer lifecycle
 
 ```
-opened (phase: idle)
-  ─[Cancel]─▶ closed
-  ─[Submit]─▶ running ─(720-1080ms timer)─▶ done
-                                              ─[Close]─▶ closed
-                                              ─[Run again]─▶ running again
+idle
+  ─[Run batch]─▶ submitting ─(BFF response)─▶ recent batch inserted + expanded
+                                      └────▶ inline error alert
 ```
 
 Notes:
 
-- `running` phase locks composer inputs + close button + Cancel.
-- `done` phase shows green status pill + per-call results (8%
-  per-call simulated failure).
-- Re-clicking Submit while in `done` phase resets results and goes
-  back to `running`.
-- Composer modal uses `role="dialog" aria-modal="true"` + focus trap on
-  mount.
+- `submitting` locks composer inputs.
+- Results are real BFF responses, not simulated.
+- Invalid JSON and unsafe method selection fail locally before the route is
+  called.
 
 ## Describe explorer states
 
@@ -139,18 +143,18 @@ Notes:
 
 ## Tab states
 
-| Tab        | Behavior                                                                             |
-| ---------- | ------------------------------------------------------------------------------------ |
-| `describe` | DescribeExplorer mounts. Mode + filter + selection persist for the session.          |
-| `batch`    | BatchConsole mounts. `expandedBatch` persists; `composer.open` closes on tab switch. |
-| `activity` | ActivityList mounts.                                                                 |
+| Tab        | Behavior                                                                    |
+| ---------- | --------------------------------------------------------------------------- |
+| `describe` | DescribeExplorer mounts. Mode + filter + selection persist for the session. |
+| `batch`    | BatchConsole mounts. `expandedBatch` persists for local recent submissions. |
+| `activity` | ActivityList mounts.                                                        |
 
 ## Refresh states
 
 - **Topbar Refresh**: re-fetches health + status (production); prototype
   bumps `health.ts` for visual feedback.
-- Refresh does NOT re-fetch describe (rare to change at runtime; manual
-  trigger only).
+- Refresh re-fetches runtime summary, health, status, describe, activity, and
+  monitor projections.
 - Refresh does NOT clear composer state.
 
 ## A11y / focus rules
@@ -158,13 +162,11 @@ Notes:
 - After tab click → focus stays on the tab.
 - After Refresh → focus stays on Refresh.
 - After batch row expand → focus stays on the batch head.
-- After composer open → focus moves to the first composer input
-  (production target — focus trap on mount).
-- After composer close → focus returns to the trigger button.
+- Inline composer keeps focus on the button/input the operator used.
 - Tab strip uses `role="tablist"` + `aria-selected`.
 - Batch head uses `aria-expanded` reflecting expansion state.
-- Composer modal uses `role="dialog" aria-modal="true"`; close button
-  has `aria-label="Close composer"`.
+- Inline batch composer uses regular form controls plus `role="alert"` for
+  validation/submission failures.
 
 ## Boundary cases
 

@@ -1,5 +1,5 @@
 import type { MethodMetadata } from "../method-registry.js";
-import { PAIRING_SCOPE, READ_SCOPE } from "../method-scopes.js";
+import { PAIRING_SCOPE, READ_SCOPE, WRITE_SCOPE } from "../method-scopes.js";
 import {
   NodeDescribeParamsSchema,
   NodeDescribeResultSchema,
@@ -15,6 +15,8 @@ import {
   NodePairRequestResultSchema,
   NodePairVerifyParamsSchema,
   NodePairVerifyResultSchema,
+  NodeInvokeParamsSchema,
+  NodeInvokeResultSchema,
   NodeRenameParamsSchema,
   NodeRenameResultSchema,
 } from "../protocol/schema/nodes.js";
@@ -29,6 +31,11 @@ export const nodeMethodDefs: Record<string, MethodMetadata> = {
     params: NodeDescribeParamsSchema,
     result: NodeDescribeResultSchema,
     scope: READ_SCOPE,
+  },
+  "node.invoke": {
+    params: NodeInvokeParamsSchema,
+    result: NodeInvokeResultSchema,
+    scope: WRITE_SCOPE,
   },
   "node.pair.list": {
     params: NodePairListParamsSchema,

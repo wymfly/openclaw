@@ -59,6 +59,9 @@ func registerInventoryRoutes(mux interface {
 		if avatar, _ := body["avatar"].(string); avatar != "" {
 			params["avatar"] = avatar
 		}
+		if model, _ := body["model"].(string); strings.TrimSpace(model) != "" {
+			params["model"] = strings.TrimSpace(model)
+		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 		payload, err := adapter.AgentsCreate(ctx, params)
@@ -278,7 +281,7 @@ func registerInventoryRoutes(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "skills.status", "error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, payload)
+		writeJSON(w, http.StatusOK, normalizeSkillsResponse(payload))
 	})
 
 	mux.MethodFunc("PATCH", "/skills/{skillKey}", func(w http.ResponseWriter, r *http.Request) {
@@ -818,39 +821,47 @@ func registerInventoryRoutes(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "cron.status", "error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, payload)
+		writeJSON(w, http.StatusOK, normalizeCronStatusResponse(payload))
 	})
 
-	mux.MethodFunc("GET", "/models/usage/cost", func(w http.ResponseWriter, r *http.Request) {
-		params := map[string]any{}
-		if daysRaw := r.URL.Query().Get("days"); daysRaw != "" {
-			if days, err := strconv.Atoi(daysRaw); err == nil {
-				params["days"] = days
+	registerUsageCostRoute := func(path string) {
+		mux.MethodFunc("GET", path, func(w http.ResponseWriter, r *http.Request) {
+			params := map[string]any{}
+			if daysRaw := r.URL.Query().Get("days"); daysRaw != "" {
+				if days, err := strconv.Atoi(daysRaw); err == nil {
+					params["days"] = days
+				}
 			}
-		}
-		if len(params) == 0 {
-			params["days"] = 7
-		}
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
-		defer cancel()
-		payload, err := adapter.UsageCost(ctx, params)
-		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "usage.cost", "error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, payload)
-	})
+			if len(params) == 0 {
+				params["days"] = 7
+			}
+			ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+			defer cancel()
+			payload, err := adapter.UsageCost(ctx, params)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "usage.cost", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		})
+	}
+	registerUsageCostRoute("/usage/cost")
+	registerUsageCostRoute("/models/usage/cost")
 
-	mux.MethodFunc("GET", "/models/usage/providers", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
-		defer cancel()
-		payload, err := adapter.UsageStatus(ctx)
-		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "usage.status", "error": err.Error()})
-			return
-		}
-		writeJSON(w, http.StatusOK, payload)
-	})
+	registerUsageProvidersRoute := func(path string) {
+		mux.MethodFunc("GET", path, func(w http.ResponseWriter, r *http.Request) {
+			ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+			defer cancel()
+			payload, err := adapter.UsageStatus(ctx)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "usage.status", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		})
+	}
+	registerUsageProvidersRoute("/usage/providers")
+	registerUsageProvidersRoute("/models/usage/providers")
 
 	mux.MethodFunc("GET", "/usage/sessions", func(w http.ResponseWriter, r *http.Request) {
 		params := map[string]any{}
@@ -1709,6 +1720,191 @@ func registerInventoryRoutes(mux interface {
 		}
 		writeJSON(w, http.StatusOK, payload)
 	})
+}
+
+func normalizeCronStatusResponse(payload any) deckapi.DeckGoCronStatus {
+	switch result := payload.(type) {
+	case generated.CronStatusResult:
+		return deckapi.DeckGoCronStatus{
+			Running:     result.Enabled,
+			JobCount:    result.Jobs,
+			NextRunAtMs: float64(result.NextWakeAtMs),
+			StorePath:   result.StorePath,
+		}
+	case map[string]any:
+		return deckapi.DeckGoCronStatus{
+			Running:     coerce.Bool(result["running"]) || coerce.Bool(result["enabled"]),
+			JobCount:    coerce.FirstNumber(result["jobCount"], result["jobs"]),
+			NextRunAtMs: coerce.FirstNumber(result["nextRunAtMs"], result["nextWakeAtMs"]),
+			StorePath:   coerce.String(result["storePath"], ""),
+		}
+	default:
+		return deckapi.DeckGoCronStatus{}
+	}
+}
+
+func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {
+	switch result := payload.(type) {
+	case generated.SkillsStatusResult:
+		skills := make([]deckapi.DeckGoSkillEntry, 0, len(result.Skills))
+		for _, skill := range result.Skills {
+			missing := appendSkillMissingRequirements(nil, "anyBins", skill.Missing.AnyBins)
+			missing = appendSkillMissingRequirements(missing, "bins", skill.Missing.Bins)
+			missing = appendSkillMissingRequirements(missing, "config", skill.Missing.Config)
+			missing = appendSkillMissingRequirements(missing, "env", skill.Missing.Env)
+			missing = appendSkillMissingRequirements(missing, "os", skill.Missing.Os)
+
+			installOptions := make([]deckapi.DeckGoSkillInstallOption, 0, len(skill.Install))
+			for _, option := range skill.Install {
+				installOptions = append(installOptions, deckapi.DeckGoSkillInstallOption{
+					Id:    option.Id,
+					Label: option.Label,
+					Bins:  option.Bins,
+				})
+			}
+
+			key := coerce.FirstString(skill.SkillKey, skill.Name)
+			name := coerce.FirstString(skill.Name, skill.SkillKey)
+			skills = append(skills, deckapi.DeckGoSkillEntry{
+				Key:                 key,
+				Name:                name,
+				Status:              normalizedDeckSkillStatus(skill.Disabled, skill.Eligible, len(missing) > 0),
+				Source:              normalizedDeckSkillSource(skill.Source),
+				Enabled:             !skill.Disabled,
+				MissingRequirements: missing,
+				Description:         skill.Description,
+				Emoji:               skill.Emoji,
+				Homepage:            skill.Homepage,
+				InstallOptions:      installOptions,
+				PrimaryEnv:          skill.PrimaryEnv,
+			})
+		}
+		return deckapi.DeckGoSkillsResponse{Skills: skills}
+	case map[string]any:
+		rawSkills, _ := result["skills"].([]any)
+		skills := make([]deckapi.DeckGoSkillEntry, 0, len(rawSkills))
+		for _, rawSkill := range rawSkills {
+			if record := coerce.Map(rawSkill); record != nil {
+				skills = append(skills, deckSkillEntryFromMap(record))
+			}
+		}
+		return deckapi.DeckGoSkillsResponse{Skills: skills}
+	default:
+		return deckapi.DeckGoSkillsResponse{}
+	}
+}
+
+func deckSkillEntryFromMap(record map[string]any) deckapi.DeckGoSkillEntry {
+	missing := skillMissingRequirementsFromAny(record["missing"])
+	disabled := coerce.Bool(record["disabled"])
+	eligible := true
+	if value, ok := record["eligible"].(bool); ok {
+		eligible = value
+	}
+	key := coerce.FirstString(record["key"], record["skillKey"], record["name"])
+	name := coerce.FirstString(record["name"], record["skillKey"], record["key"])
+	return deckapi.DeckGoSkillEntry{
+		Key:                 key,
+		Name:                name,
+		Status:              normalizedDeckSkillStatus(disabled, eligible, len(missing) > 0),
+		Source:              normalizedDeckSkillSource(coerce.String(record["source"], "")),
+		Enabled:             !disabled,
+		MissingRequirements: missing,
+		Config:              coerce.Map(record["config"]),
+		Description:         coerce.String(record["description"], ""),
+		Emoji:               coerce.String(record["emoji"], ""),
+		Homepage:            coerce.String(record["homepage"], ""),
+		InstallOptions:      deckSkillInstallOptionsFromAny(record["install"]),
+		PrimaryEnv:          coerce.String(record["primaryEnv"], ""),
+	}
+}
+
+func normalizedDeckSkillStatus(disabled bool, eligible bool, hasMissing bool) deckapi.DeckGoSkillStatus {
+	if disabled {
+		return deckapi.DeckGoSkillStatus("disabled")
+	}
+	if !eligible || hasMissing {
+		return deckapi.DeckGoSkillStatus("needs-setup")
+	}
+	return deckapi.DeckGoSkillStatus("ready")
+}
+
+func normalizedDeckSkillSource(source string) string {
+	switch source {
+	case "managed", "plugin":
+		return source
+	default:
+		return "bundled"
+	}
+}
+
+func appendSkillMissingRequirements(values []string, group string, entries []string) []string {
+	for _, entry := range entries {
+		trimmed := strings.TrimSpace(entry)
+		if trimmed == "" {
+			continue
+		}
+		values = append(values, group+": "+trimmed)
+	}
+	return values
+}
+
+func skillMissingRequirementsFromAny(value any) []string {
+	if entries, ok := value.([]any); ok {
+		missing := make([]string, 0, len(entries))
+		for _, entry := range entries {
+			trimmed := strings.TrimSpace(coerce.String(entry, ""))
+			if trimmed != "" {
+				missing = append(missing, trimmed)
+			}
+		}
+		return missing
+	}
+	record := coerce.Map(value)
+	if record == nil {
+		return nil
+	}
+	groups := []string{"anyBins", "bins", "config", "env", "os"}
+	var missing []string
+	for _, group := range groups {
+		if entries, ok := record[group].([]any); ok {
+			for _, entry := range entries {
+				trimmed := strings.TrimSpace(coerce.String(entry, ""))
+				if trimmed != "" {
+					missing = append(missing, group+": "+trimmed)
+				}
+			}
+		}
+	}
+	return missing
+}
+
+func deckSkillInstallOptionsFromAny(value any) []deckapi.DeckGoSkillInstallOption {
+	entries, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	options := make([]deckapi.DeckGoSkillInstallOption, 0, len(entries))
+	for _, entry := range entries {
+		record := coerce.Map(entry)
+		if record == nil {
+			continue
+		}
+		var bins []string
+		if rawBins, ok := record["bins"].([]any); ok {
+			for _, rawBin := range rawBins {
+				if bin := strings.TrimSpace(coerce.String(rawBin, "")); bin != "" {
+					bins = append(bins, bin)
+				}
+			}
+		}
+		options = append(options, deckapi.DeckGoSkillInstallOption{
+			Id:    coerce.String(record["id"], ""),
+			Label: coerce.String(record["label"], ""),
+			Bins:  bins,
+		})
+	}
+	return options
 }
 
 func buildNestedPatch(path string, value any) map[string]any {

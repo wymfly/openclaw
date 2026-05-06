@@ -1,6 +1,6 @@
 # Activity (Unified Feed)
 
-**Status**: revised v2 — pending implementation
+**Status**: implemented — hifi archived; real-contract verified
 **Design completed**: 2026-05-04
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, KbdHint, Avatar, EmptyState

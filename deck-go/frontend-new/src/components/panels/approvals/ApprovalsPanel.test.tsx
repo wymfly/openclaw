@@ -166,25 +166,26 @@ describe("ApprovalsPanel", () => {
     expect(apiMocks.fetchApprovalsPolicy).toHaveBeenCalledTimes(1);
     expect(apiMocks.fetchPluginApprovals).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Approvals ready");
-    expect(container.textContent).toContain("2 pending");
-    expect(container.textContent).toContain("1 plugin pending");
-    expect(container.textContent).toContain("allowlist 2");
+    expect(container.textContent).toContain("Pending exec2");
+    expect(container.textContent).toContain("Pending plugin1");
+    expect(container.textContent).toContain("Allowlist2");
     expect(container.textContent).toContain("pnpm test");
     expect(container.textContent).toContain("pnpm build");
     expect(container.textContent).not.toContain("rm stale");
-    expect(container.textContent).toContain("Run: run-main");
+    expect(container.textContent).toContain("Runrun-main");
     expect(container.querySelector(".approvals-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".approvals-panel__card").length).toBe(2);
-    expect(container.querySelectorAll(".approvals-panel__row").length).toBe(2);
-    expect(container.querySelectorAll(".approvals-panel__input").length).toBeGreaterThanOrEqual(8);
+    expect(container.querySelectorAll(".approvals-panel__card").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".approvals-panel__row").length).toBe(3);
+    expect(container.querySelectorAll(".approvals-panel__input").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".approvals-panel__button").length).toBeGreaterThanOrEqual(
-      12,
+      10,
     );
     expect(container.querySelectorAll(".approvals-panel__hero").length).toBe(1);
     expect(container.querySelectorAll(".approvals-panel__surface").length).toBeGreaterThanOrEqual(
-      3,
+      2,
     );
-    expect(container.querySelector(".approvals-panel__textarea")).toBeTruthy();
+    expect(container.textContent).toContain("Recent decisions");
+    expect(container.querySelector('input[aria-label="search approvals"]')).toBeTruthy();
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),
@@ -210,6 +211,15 @@ describe("ApprovalsPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Plan")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("Decision scope");
+    expect(container.textContent).toContain("full SystemRunApprovalPlan");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
         .find((button) => button.textContent === "Allow always")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -218,6 +228,8 @@ describe("ApprovalsPanel", () => {
       expect(apiMocks.resolveApproval).toHaveBeenCalledWith("approval-build", "allow-always"),
     );
     expect(container.textContent).toContain("Last approval action");
+    expect(container.textContent).toContain("Recent decisions");
+    expect(container.textContent).toContain("allow always");
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),
     );
@@ -267,15 +279,21 @@ describe("ApprovalsPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Plugin approvals")
+        .find((button) => button.textContent?.startsWith("Plugin "))
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain("wecom");
     expect(container.textContent).toContain("connect workspace");
     expect(container.textContent).toContain("Plugin approval payload");
-    expect(container.textContent).toContain("discord");
-    expect(container.textContent).toContain("allow-once");
+    expect(container.textContent).not.toContain("Already resolved.");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Scopes")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("requested scopes");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -295,6 +313,12 @@ describe("ApprovalsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchApprovalsPolicy).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Approval policy editor")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     const editor = container.querySelector<HTMLTextAreaElement>(
       'textarea[aria-label="approval policy json"]',
@@ -330,6 +354,12 @@ describe("ApprovalsPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchApprovalsPolicy).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Approval policy editor")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     const globalSecurity = container.querySelector<HTMLSelectElement>(
       'select[aria-label="global security"]',
@@ -420,7 +450,7 @@ describe("ApprovalsPanel", () => {
       });
     });
 
-    expect(container.textContent).toContain("3 pending");
+    expect(container.textContent).toContain("Pending exec3");
     expect(container.textContent).toContain("pnpm lint");
 
     await act(async () => {
@@ -434,7 +464,7 @@ describe("ApprovalsPanel", () => {
       });
     });
 
-    expect(container.textContent).toContain("2 pending");
+    expect(container.textContent).toContain("Pending exec2");
     expect(container.textContent).not.toContain("pnpm test");
     expect(container.textContent).toContain("pnpm lint");
 

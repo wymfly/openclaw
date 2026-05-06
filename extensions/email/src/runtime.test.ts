@@ -10,7 +10,12 @@ import {
 } from "./config.js";
 import { ImapClient, parseFetchMetadata, parseSearchUids } from "./imap-client.js";
 import { parseMimeMessage } from "./mime.js";
-import { createEmailDownloadAttachmentsTool, createEmailReadTool } from "./tools.js";
+import {
+  createEmailDownloadAttachmentsTool,
+  createEmailDownloadMatchingAttachmentsTool,
+  createEmailReadTool,
+  createEmailSearchTool,
+} from "./tools.js";
 
 const createdDirs: string[] = [];
 
@@ -102,6 +107,30 @@ describe("email MIME parsing", () => {
       contentType: "application/pdf",
     });
     expect(parsed.attachments[0]?.content.toString("utf8")).toBe("pdf-data");
+  });
+
+  it("decodes RFC 2047 header and attachment filename words", () => {
+    const encodedFilename = "=?utf-8?B?UlRJVzI0MDg2NDUwMCAgIEZDLVdXMjQwOC0xMzg2LnBkZg==?=";
+    const raw = Buffer.from(
+      [
+        `Subject: ${encodedFilename}`,
+        'Content-Type: multipart/mixed; boundary="mix"',
+        "",
+        "--mix",
+        `Content-Type: application/pdf; name="${encodedFilename}"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${encodedFilename}"`,
+        "",
+        Buffer.from("pdf-data").toString("base64"),
+        "--mix--",
+        "",
+      ].join("\r\n"),
+      "utf8",
+    );
+
+    const parsed = parseMimeMessage(raw);
+    expect(parsed.subject).toBe("RTIW240864500   FC-WW2408-1386.pdf");
+    expect(parsed.attachments[0]?.filename).toBe("RTIW240864500   FC-WW2408-1386.pdf");
   });
 });
 
@@ -235,6 +264,163 @@ describe("email tools", () => {
     const savedPath = payload.savedFiles[0]?.path;
     expect(typeof savedPath).toBe("string");
     expect(await fs.readFile(savedPath, "utf8")).toBe("attachment-text");
+  });
+
+  it("searches mailbox messages with header and attachment filename filters", async () => {
+    const raw = Buffer.from(
+      [
+        "Subject: Daily invoice",
+        "From: Vendor <vendor@example.com>",
+        "To: Ops <ops@example.com>",
+        "Date: Mon, 27 Apr 2026 09:00:00 +0000",
+        "Message-ID: <invoice@example.com>",
+        'Content-Type: multipart/mixed; boundary="mix"',
+        "",
+        "--mix",
+        'Content-Type: text/csv; name="invoice.csv"',
+        "Content-Transfer-Encoding: base64",
+        'Content-Disposition: attachment; filename="invoice.csv"',
+        "",
+        Buffer.from("invoice-data").toString("base64"),
+        "--mix--",
+        "",
+      ].join("\r\n"),
+      "utf8",
+    );
+    const fakeClient = {
+      searchUids: vi.fn(async () => [10, 11, 12]),
+      fetchMessageHeader: vi.fn(async (_params: { mailbox: string; uid: number }) => ({
+        uid: _params.uid,
+        subject: _params.uid === 11 ? "Daily invoice" : "Other message",
+        from: "Vendor <vendor@example.com>",
+        to: "Ops <ops@example.com>",
+        date: "Mon, 27 Apr 2026 09:00:00 +0000",
+        messageId: `<${_params.uid}@example.com>`,
+        flags: [],
+        size: raw.length,
+        hasAttachments: _params.uid === 11,
+      })),
+      fetchRawMessage: vi.fn(async () => ({
+        uid: 11,
+        subject: "Daily invoice",
+        from: "Vendor <vendor@example.com>",
+        to: "Ops <ops@example.com>",
+        date: "Mon, 27 Apr 2026 09:00:00 +0000",
+        messageId: "<invoice@example.com>",
+        flags: [],
+        size: raw.length,
+        hasAttachments: true,
+        raw,
+      })),
+      close: vi.fn(async () => {}),
+    } as unknown as ImapClient;
+    vi.spyOn(ImapClient, "connect").mockResolvedValue(fakeClient);
+
+    const tool = createEmailSearchTool(fakeApi());
+    const result = await tool.execute("call-3", {
+      onDate: "2026-04-27",
+      subjectContains: "invoice",
+      attachmentFilenameContains: "invoice",
+      includeAttachmentInventory: true,
+      maxScanMessages: 10,
+    });
+    const payload = JSON.parse(readToolText(result));
+    expect(payload).toMatchObject({
+      count: 1,
+      scannedMessages: 3,
+      candidateMessages: 3,
+    });
+    expect(payload.messages[0]).toMatchObject({
+      uid: 11,
+      subject: "Daily invoice",
+      hasAttachments: true,
+    });
+    expect(payload.messages[0].attachments[0]).toMatchObject({
+      filename: "invoice.csv",
+    });
+    expect(fakeClient.searchUids).toHaveBeenCalledWith(
+      expect.objectContaining({
+        since: new Date(2026, 3, 27),
+        before: new Date(2026, 3, 28),
+      }),
+    );
+  });
+
+  it("downloads attachments from matching mailbox messages", async () => {
+    const outputRoot = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-email-bulk-"));
+    createdDirs.push(outputRoot);
+    const raw = Buffer.from(
+      [
+        "Subject: Daily report",
+        "From: Reports <reports@example.com>",
+        "To: Ops <ops@example.com>",
+        "Date: Mon, 27 Apr 2026 09:00:00 +0000",
+        "Message-ID: <report@example.com>",
+        'Content-Type: multipart/mixed; boundary="mix"',
+        "",
+        "--mix",
+        'Content-Type: text/csv; name="report.csv"',
+        "Content-Transfer-Encoding: base64",
+        'Content-Disposition: attachment; filename="report.csv"',
+        "",
+        Buffer.from("report-data").toString("base64"),
+        "--mix--",
+        "",
+      ].join("\r\n"),
+      "utf8",
+    );
+    const fakeClient = {
+      searchUids: vi.fn(async () => [21, 22]),
+      fetchMessageHeader: vi.fn(async (_params: { mailbox: string; uid: number }) => ({
+        uid: _params.uid,
+        subject: _params.uid === 22 ? "Daily report" : "Other message",
+        from: "Reports <reports@example.com>",
+        to: "Ops <ops@example.com>",
+        date: "Mon, 27 Apr 2026 09:00:00 +0000",
+        messageId: `<${_params.uid}@example.com>`,
+        flags: [],
+        size: raw.length,
+        hasAttachments: _params.uid === 22,
+      })),
+      fetchRawMessage: vi.fn(async () => ({
+        uid: 22,
+        subject: "Daily report",
+        from: "Reports <reports@example.com>",
+        to: "Ops <ops@example.com>",
+        date: "Mon, 27 Apr 2026 09:00:00 +0000",
+        messageId: "<report@example.com>",
+        flags: [],
+        size: raw.length,
+        hasAttachments: true,
+        raw,
+      })),
+      close: vi.fn(async () => {}),
+    } as unknown as ImapClient;
+    vi.spyOn(ImapClient, "connect").mockResolvedValue(fakeClient);
+
+    const tool = createEmailDownloadMatchingAttachmentsTool(
+      fakeApi({
+        downloadPolicy: {
+          allowedWriteRoots: [outputRoot],
+        },
+      }),
+    );
+    const result = await tool.execute("call-4", {
+      outputDir: outputRoot,
+      onDate: "2026-04-27",
+      subjectContains: "report",
+      attachmentFilenameContains: "report",
+    });
+    const payload = JSON.parse(readToolText(result));
+    expect(payload).toMatchObject({
+      matchedMessages: 1,
+      downloadedMessages: 1,
+      downloadedFiles: 1,
+      failedCount: 0,
+    });
+    const savedPath = payload.downloaded[0]?.savedFiles[0]?.path;
+    expect(typeof savedPath).toBe("string");
+    expect(await fs.readFile(savedPath, "utf8")).toBe("report-data");
   });
 });
 

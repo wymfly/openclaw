@@ -37,6 +37,7 @@ test.describe("approvals mock visual handoff alignment", () => {
     await expect(page.getByText("Approvals ready").first()).toBeVisible();
     await expect(page.getByText("npm test").first()).toBeVisible();
     await expect(page.getByText("pnpm build").first()).toBeVisible();
+    await expect(page.getByText("Recent decisions").first()).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true);
@@ -58,9 +59,12 @@ test.describe("approvals mock visual handoff alignment", () => {
     await page.getByRole("tab", { name: /Exec 2/ }).click();
     await page.getByRole("button", { name: /pnpm build/ }).click();
     await expect(page.getByText("run:mock:2").first()).toBeVisible();
+    await page.getByRole("tab", { name: "Plan" }).click();
+    await expect(page.getByText("Decision scope").first()).toBeVisible();
     await page.getByRole("button", { name: "Allow always" }).click();
     await waitForGatewayMethod(stack.requestLog, "exec.approval.resolve");
     await expect(page.getByText("Last approval action").first()).toBeVisible();
+    await expect(page.getByText("allow always").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("approvals-decision-result.png"),

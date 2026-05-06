@@ -60,6 +60,8 @@
 /* Dark theme (default) */
 :root,
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --ds-bg-0: #0a0b0d;
   --ds-bg-1: #0f1115;
   --ds-bg-2: #14171c;
@@ -95,6 +97,10 @@
   --ds-diff-del: #3a1c1f;
   --ds-diff-del-text: #e6928f;
 
+  --ds-scrollbar-track: #0f1115;
+  --ds-scrollbar-thumb: #313947;
+  --ds-scrollbar-thumb-hover: #4a5160;
+
   --ds-cursor: #7aa2ff;
   --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --ds-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
@@ -102,6 +108,8 @@
 
 /* Light theme */
 [data-theme="light"] {
+  color-scheme: light;
+
   --ds-bg-0: #f7f7f5;
   --ds-bg-1: #ffffff;
   --ds-bg-2: #f3f4f1;
@@ -136,6 +144,10 @@
   --ds-diff-add-text: #1f5a32;
   --ds-diff-del: #f6dcdc;
   --ds-diff-del-text: #8a2424;
+
+  --ds-scrollbar-track: #f3f4f1;
+  --ds-scrollbar-thumb: #b7bcaf;
+  --ds-scrollbar-thumb-hover: #8d9587;
 
   --ds-cursor: #3357d4;
   --ds-shadow-md: 0 4px 14px rgba(20, 20, 30, 0.08);

@@ -1,48 +1,129 @@
 import type { DeckGoAlertRule } from "../../../api";
+import { IconBolt, IconCheck } from "../../../design-system/icons";
 import { useTranslations } from "../../../i18n/provider";
 
 function formatCooldown(cooldownMs: number) {
-  return Math.round(cooldownMs / 60_000);
+  const minutes = Math.max(0, Math.round(cooldownMs / 60_000));
+  if (minutes >= 60 && minutes % 60 === 0) {
+    return `${minutes / 60}h`;
+  }
+  return `${minutes}m`;
+}
+
+function formatLastFired(value: string | null, never: string) {
+  if (!value) {
+    return never;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export function RuleList(props: {
   rules: DeckGoAlertRule[];
   selectedRuleId: string | null;
+  loading: boolean;
+  onCreate: () => void;
   onSelect: (rule: DeckGoAlertRule) => void;
+  onToggleEnabled: (rule: DeckGoAlertRule) => void;
+  onTestFire: (rule: DeckGoAlertRule) => void;
 }) {
   const t = useTranslations("alerts");
 
+  if (props.loading) {
+    return <p className="alerts-panel__empty">{t("loadingRules")}</p>;
+  }
+
   if (props.rules.length === 0) {
-    return <p className="alerts-panel__empty">{t("noRules")}</p>;
+    return (
+      <div className="alerts-panel__empty-state">
+        <strong>{t("noMatchingRules")}</strong>
+        <p>{t("emptyFilterDescription")}</p>
+        <button className="alerts-panel__button is-primary" type="button" onClick={props.onCreate}>
+          {t("addRule")}
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="alerts-panel__catalog">
+    <div className="alerts-panel__rule-table" role="list">
+      <div className="alerts-panel__rule-header" aria-hidden="true">
+        <span />
+        <span>{t("ruleColumn")}</span>
+        <span>{t("conditionColumn")}</span>
+        <span>{t("thresholdColumn")}</span>
+        <span>{t("actionColumn")}</span>
+        <span>{t("cooldownColumn")}</span>
+        <span>{t("lastFiredColumn")}</span>
+        <span />
+      </div>
       {props.rules.map((rule) => (
-        <button
+        <div
+          aria-label={rule.name}
+          aria-selected={props.selectedRuleId === rule.id}
           className={`alerts-panel__row ${props.selectedRuleId === rule.id ? "is-selected" : ""}`}
           key={rule.id}
-          type="button"
-          aria-pressed={props.selectedRuleId === rule.id}
+          role="button"
+          tabIndex={0}
           onClick={() => props.onSelect(rule)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              props.onSelect(rule);
+            }
+          }}
         >
-          <span className="alerts-panel__row-head">
+          <span className="alerts-panel__entity-glyph" aria-hidden="true">
+            {rule.entityType.slice(0, 2).toUpperCase()}
+          </span>
+          <span className="alerts-panel__row-main">
             <strong>{rule.name}</strong>
-            <span className="alerts-panel__pill-row">
-              <span className={`alerts-panel__pill ${rule.enabled ? "is-positive" : "is-muted"}`}>
-                {rule.enabled ? t("enabled") : t("disabled")}
-              </span>
-              <span className="alerts-panel__pill">{t(rule.action)}</span>
+            <span>
+              {rule.id} · {rule.entityType}
             </span>
           </span>
-          <span className="alerts-panel__meta">
-            {rule.entityType} · {rule.condition} {rule.threshold}
+          <code className="alerts-panel__row-condition">{rule.condition}</code>
+          <span className="alerts-panel__threshold-tag">{rule.threshold}</span>
+          <span className={`alerts-panel__action-pill alerts-panel__action-pill--${rule.action}`}>
+            {t(rule.action)}
           </span>
-          <span className="alerts-panel__meta">
-            {t("cooldown")}: {formatCooldown(rule.cooldownMs)} {t("cooldownMinutes")} ·{" "}
-            {t("lastFired")}: {rule.lastFiredAt ?? t("never")}
+          <span className="alerts-panel__time-mono">{formatCooldown(rule.cooldownMs)}</span>
+          <span className="alerts-panel__time-mono">
+            {formatLastFired(rule.lastFiredAt, t("never"))}
           </span>
-        </button>
+          <span className="alerts-panel__row-actions">
+            <button
+              aria-label={`${t("testFirePreview")} ${rule.name}`}
+              className="alerts-panel__icon-btn"
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onTestFire(rule);
+              }}
+            >
+              <IconBolt size={14} />
+            </button>
+            <button
+              aria-label={`${rule.enabled ? t("disableRule") : t("enableRule")} ${rule.name}`}
+              className={`alerts-panel__icon-btn ${rule.enabled ? "is-on" : ""}`}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                props.onToggleEnabled(rule);
+              }}
+            >
+              <IconCheck size={14} />
+            </button>
+          </span>
+        </div>
       ))}
     </div>
   );

@@ -19,13 +19,14 @@ The nodes module SHALL have a complete handoff package under `deck-go/frontend-h
 
 ### Requirement: Nodes production panel follows Deck BFF node workflows
 
-The production nodes panel SHALL render and operate from contract-backed Deck node data while preserving the existing panel registry and API facade boundaries.
+The production nodes panel SHALL render and operate from contract-backed Deck node data while preserving the existing panel registry and API facade boundaries. The refreshed v2 handoff SHALL be used as the visual/product target only where it is consistent with those contracts.
 
 #### Scenario: Node inventory and pairing are loaded
 
 - **WHEN** `fetchNodes`, `fetchNodePairing`, and `describeNode` resolve with contract-shaped data
 - **THEN** the panel SHALL show load state, node count, pending count, selected node, connection state, pairing state, lifecycle evidence, platform/version/remote identity evidence, capabilities, commands, permissions, node payload, and pending pairing payload where applicable
 - **AND** missing optional fields such as display name, platform, version, remote IP, path env, permissions, capabilities, commands, connected timestamp, or selected detail SHALL render as unavailable evidence or empty states rather than fabricated values
+- **AND** the inventory rail and selected-detail workspace SHALL follow the refreshed v2 handoff unless doing so would hide contract-backed state
 
 #### Scenario: Pairing actions are used
 
@@ -56,6 +57,7 @@ The nodes panel SHALL use the current settled frontend design-system posture: In
 - **WHEN** the nodes panel is rendered with contract-shaped mock/local data
 - **THEN** the first viewport SHALL expose node inventory, pending pairing signal, selected node lifecycle, connection/pairing evidence, guarded actions, and raw payload disclosures without overlapping text or nested decorative cards
 - **AND** long node IDs, request IDs, command names, path values, remote IPs, permissions, JSON params, and action errors SHALL wrap or truncate in stable constrained regions without shifting the layout
+- **AND** v2 local molecules such as platform pills, lifecycle rows, confirm rows, action cards, and raw JSON blocks SHALL either map to existing atoms or remain module-local
 
 ### Requirement: Nodes mock visual verification is available
 

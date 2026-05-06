@@ -225,6 +225,15 @@ type DeckGoGatewayBatchResponse struct {
 	Results []DeckGoGatewayBatchResultEntry `json:"results"`
 }
 
+type DeckGoGatewayInvokeResult struct {
+	Body any `json:"body"`
+	Error string `json:"error,omitempty"`
+	Headers map[string]string `json:"headers"`
+	Ok bool `json:"ok"`
+	RequestId string `json:"requestId,omitempty"`
+	StatusCode float64 `json:"statusCode"`
+}
+
 type DeckGoConfigSchemaLookupRequest struct {
 	Path string `json:"path"`
 }
@@ -507,6 +516,16 @@ type DeckGoChannelTestResponse struct {
 	CheckedAt float64 `json:"checkedAt,omitempty"`
 }
 
+type DeckGoChannelLogoutResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	Channel string `json:"channel,omitempty"`
+	ChannelId string `json:"channelId,omitempty"`
+	AccountId string `json:"accountId,omitempty"`
+	Cleared bool `json:"cleared,omitempty"`
+	Message string `json:"message,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
 type DeckGoChannelThroughputBucket struct {
 	Time float64 `json:"time,omitempty"`
 	In float64 `json:"in,omitempty"`
@@ -648,8 +667,11 @@ type DeckGoSessionsPreviewResponse struct {
 
 type DeckGoLogsTailResponse struct {
 	Cursor float64 `json:"cursor,omitempty"`
-	Lines []any `json:"lines,omitempty"`
+	File string `json:"file,omitempty"`
+	Lines []string `json:"lines,omitempty"`
 	Reset bool `json:"reset,omitempty"`
+	Size float64 `json:"size,omitempty"`
+	Truncated bool `json:"truncated,omitempty"`
 }
 
 type DeckGoCompactionCheckpoint struct {
@@ -698,12 +720,25 @@ type DeckGoSkillEntry struct {
 }
 
 type DeckGoSkillsResponse struct {
-	Skills []map[string]any `json:"skills,omitempty"`
+	Skills []DeckGoSkillEntry `json:"skills,omitempty"`
 }
 
 type DeckGoSkillUpdateResponse struct {
 	Ok bool `json:"ok,omitempty"`
+	SkillKey string `json:"skillKey,omitempty"`
 	Config map[string]any `json:"config,omitempty"`
+}
+
+type DeckGoSkillInstallResponse struct {
+	Ok bool `json:"ok"`
+	Message string `json:"message"`
+	Stdout string `json:"stdout"`
+	Stderr string `json:"stderr"`
+	Code float64 `json:"code"`
+	Slug string `json:"slug,omitempty"`
+	Version string `json:"version,omitempty"`
+	TargetDir string `json:"targetDir,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 type DeckGoSkillHubSearchResult struct {
@@ -730,10 +765,27 @@ type DeckGoSkillHubBinsResponse struct {
 	Bins []string `json:"bins,omitempty"`
 }
 
+type DeckGoSkillHubMutationResult struct {
+	Ok bool `json:"ok,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	Version string `json:"version,omitempty"`
+	TargetDir string `json:"targetDir,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
 type DeckGoSkillHubMutationResponse struct {
 	Ok bool `json:"ok,omitempty"`
 	Message string `json:"message,omitempty"`
 	Error string `json:"error,omitempty"`
+	Stdout string `json:"stdout,omitempty"`
+	Stderr string `json:"stderr,omitempty"`
+	Code float64 `json:"code,omitempty"`
+	Slug string `json:"slug,omitempty"`
+	Version string `json:"version,omitempty"`
+	TargetDir string `json:"targetDir,omitempty"`
+	SkillKey string `json:"skillKey,omitempty"`
+	Config map[string]any `json:"config,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 type DeckGoRoutingPeer struct {
@@ -1251,6 +1303,11 @@ type DeckGoPendingApprovalsResponse struct {
 	Pending []DeckGoPendingApproval `json:"pending,omitempty"`
 }
 
+type DeckGoApprovalResolutionResponse struct {
+	Ok bool `json:"ok"`
+	Error string `json:"error,omitempty"`
+}
+
 type DeckGoCronSchedule struct {
 	Kind string `json:"kind"`
 	At string `json:"at,omitempty"`
@@ -1305,6 +1362,7 @@ type DeckGoCronStatus struct {
 	Running bool `json:"running"`
 	JobCount float64 `json:"jobCount,omitempty"`
 	NextRunAtMs float64 `json:"nextRunAtMs,omitempty"`
+	StorePath string `json:"storePath,omitempty"`
 }
 
 type DeckGoCronJobsResponse struct {
@@ -1336,6 +1394,19 @@ type DeckGoCronRunParams struct {
 	Mode string `json:"mode,omitempty"`
 }
 
+type DeckGoCronDeleteResponse struct {
+	Ok bool `json:"ok"`
+	Removed bool `json:"removed,omitempty"`
+}
+
+type DeckGoCronRunResponse struct {
+	Ok bool `json:"ok"`
+	Enqueued bool `json:"enqueued,omitempty"`
+	RunId string `json:"runId,omitempty"`
+	Ran bool `json:"ran,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
 type DeckGoDocCategory string
 
 type DeckGoDoc struct {
@@ -1358,6 +1429,12 @@ type DeckGoDocsResponse struct {
 type DeckGoDocsExtractResponse struct {
 	Extracted float64 `json:"extracted,omitempty"`
 	Docs []DeckGoDoc `json:"docs,omitempty"`
+}
+
+type DeckGoDocDeleteResponse struct {
+	Ok bool `json:"ok"`
+	Id string `json:"id,omitempty"`
+	Missing bool `json:"missing,omitempty"`
 }
 
 type DeckGoAlertAction string
@@ -1423,6 +1500,14 @@ type DeckGoWebhookDeliveriesResponse struct {
 	Deliveries []DeckGoWebhookDelivery `json:"deliveries"`
 }
 
+type DeckGoWebhookTestResponse struct {
+	Success bool `json:"success"`
+	StatusCode float64 `json:"statusCode,omitempty"`
+	DurationMs float64 `json:"durationMs,omitempty"`
+	Error string `json:"error,omitempty"`
+	DeliveryId string `json:"deliveryId"`
+}
+
 type DeckGoNodeSummary struct {
 	NodeId string `json:"nodeId"`
 	DisplayName string `json:"displayName,omitempty"`
@@ -1481,6 +1566,45 @@ type DeckGoNodePairRequestResponse struct {
 	Created bool `json:"created,omitempty"`
 }
 
+type DeckGoNodePairingPairedNode struct {
+	NodeId string `json:"nodeId"`
+	DisplayName string `json:"displayName,omitempty"`
+	Platform string `json:"platform,omitempty"`
+	Version string `json:"version,omitempty"`
+	CoreVersion string `json:"coreVersion,omitempty"`
+	UiVersion string `json:"uiVersion,omitempty"`
+	DeviceFamily string `json:"deviceFamily,omitempty"`
+	ModelIdentifier string `json:"modelIdentifier,omitempty"`
+	Caps []string `json:"caps,omitempty"`
+	Commands []string `json:"commands,omitempty"`
+	Bins []string `json:"bins,omitempty"`
+	RemoteIp string `json:"remoteIp,omitempty"`
+	Token string `json:"token,omitempty"`
+	CreatedAtMs float64 `json:"createdAtMs,omitempty"`
+	ApprovedAtMs float64 `json:"approvedAtMs,omitempty"`
+	LastConnectedAtMs float64 `json:"lastConnectedAtMs,omitempty"`
+}
+
+type DeckGoNodeRenameResponse struct {
+	NodeId string `json:"nodeId"`
+	DisplayName string `json:"displayName"`
+}
+
+type DeckGoNodePairApproveResponse struct {
+	RequestId string `json:"requestId"`
+	Node DeckGoNodePairingPairedNode `json:"node"`
+}
+
+type DeckGoNodePairRejectResponse struct {
+	RequestId string `json:"requestId"`
+	NodeId string `json:"nodeId"`
+}
+
+type DeckGoNodePairVerifyResponse struct {
+	Ok bool `json:"ok"`
+	Node DeckGoNodePairingPairedNode `json:"node,omitempty"`
+}
+
 type DeckGoNodeInvokeResponse struct {
 	Ok bool `json:"ok,omitempty"`
 	NodeId string `json:"nodeId,omitempty"`
@@ -1493,10 +1617,21 @@ type DeckGoNodePendingWorkType string
 
 type DeckGoNodePendingWorkPriority string
 
+type DeckGoNodePendingWorkItemPriority string
+
+type DeckGoNodePendingWorkItem struct {
+	Id string `json:"id"`
+	Type DeckGoNodePendingWorkType `json:"type"`
+	Priority DeckGoNodePendingWorkItemPriority `json:"priority"`
+	CreatedAtMs float64 `json:"createdAtMs"`
+	ExpiresAtMs float64 `json:"expiresAtMs,omitempty"`
+	Payload map[string]any `json:"payload,omitempty"`
+}
+
 type DeckGoNodePendingEnqueueResponse struct {
 	NodeId string `json:"nodeId,omitempty"`
 	Revision float64 `json:"revision,omitempty"`
-	Queued map[string]any `json:"queued,omitempty"`
+	Queued DeckGoNodePendingWorkItem `json:"queued,omitempty"`
 	WakeTriggered bool `json:"wakeTriggered,omitempty"`
 }
 
@@ -1630,6 +1765,11 @@ type DeckGoIdentityLinksResponse struct {
 	ConfigHash string `json:"configHash,omitempty"`
 }
 
+type DeckGoIdentityMutationResponse struct {
+	Ok bool `json:"ok"`
+	ConfigHash string `json:"configHash"`
+}
+
 type DeckGoThreadEntry struct {
 	ThreadId string `json:"threadId"`
 	ChannelId string `json:"channelId"`
@@ -1661,12 +1801,37 @@ type DeckGoActivityResponse struct {
 	Events []DeckGoActivityEvent `json:"events"`
 }
 
+type DeckGoControlAuditEntry struct {
+	Id string `json:"id"`
+	RequestId string `json:"requestId"`
+	Actor string `json:"actor"`
+	Method string `json:"method"`
+	Path string `json:"path"`
+	Action string `json:"action"`
+	Target string `json:"target"`
+	StatusCode float64 `json:"statusCode"`
+	Ok bool `json:"ok"`
+	DurationMs float64 `json:"durationMs"`
+	Timestamp string `json:"timestamp"`
+	Summary string `json:"summary,omitempty"`
+}
+
+type DeckGoControlAuditRetention struct {
+	Mode string `json:"mode"`
+	MaxEntries float64 `json:"maxEntries"`
+}
+
+type DeckGoControlAuditEventsResponse struct {
+	Events []DeckGoControlAuditEntry `json:"events"`
+	Retention DeckGoControlAuditRetention `json:"retention"`
+}
+
 type DeckGoMonitorRunStatus string
 
 type DeckGoMonitorRun struct {
 	RunId string `json:"runId"`
-	AgentId string `json:"agentId"`
-	SessionKey string `json:"sessionKey"`
+	AgentId string `json:"agentId,omitempty"`
+	SessionKey string `json:"sessionKey,omitempty"`
 	FirstEventAt string `json:"firstEventAt"`
 	LastEventAt string `json:"lastEventAt"`
 	EventCount float64 `json:"eventCount"`
@@ -1699,8 +1864,8 @@ type DeckGoMonitorRunEvent struct {
 	Seq float64 `json:"seq"`
 	Stream string `json:"stream"`
 	Data string `json:"data"`
-	AgentId string `json:"agent_id"`
-	SessionKey string `json:"session_key"`
+	AgentId string `json:"agent_id,omitempty"`
+	SessionKey string `json:"session_key,omitempty"`
 	CreatedAt string `json:"created_at"`
 }
 
@@ -1964,6 +2129,10 @@ type DeckGoChatSessionPatchRequest struct {
 	ReasoningLevel string `json:"reasoningLevel,omitempty"`
 	ResponseUsage string `json:"responseUsage,omitempty"`
 	SendPolicy string `json:"sendPolicy,omitempty"`
+}
+
+type DeckGoChatCompactRequest struct {
+	SessionKey string `json:"sessionKey"`
 }
 
 type DeckGoChatProjectionRequest struct {

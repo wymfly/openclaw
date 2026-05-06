@@ -1,0 +1,400 @@
+{
+  "schemaVersion": 1,
+  "sourceAudited": "deck-go/frontend-new/src/api.ts",
+  "owners": [
+    {
+      "id": "activity-monitor",
+      "module": "activity",
+      "matches": [{ "pathPrefix": "/api/activity" }, { "pathPrefix": "/api/monitor" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.test.tsx",
+        "deck-go/test/e2e/activity-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"]
+    },
+    {
+      "id": "audit-history",
+      "module": "audit",
+      "matches": [{ "pathPrefix": "/api/audit" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/backend/internal/server/audit_test.go"],
+      "realEvidence": [
+        "deferred: audit read-path real evidence will be covered by module mutation proposals"
+      ]
+    },
+    {
+      "id": "agents",
+      "module": "agents",
+      "matches": [{ "pathPrefix": "/api/agents" }, { "pathPrefix": "/api/deck/agents" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
+        "deck-go/test/e2e/agents-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "alerts",
+      "module": "alerts",
+      "matches": [{ "pathPrefix": "/api/alerts" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
+        "deck-go/test/e2e/alerts-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"]
+    },
+    {
+      "id": "approvals",
+      "module": "approvals",
+      "matches": [{ "pathPrefix": "/api/approvals" }, { "pathPrefix": "/api/exec/approval" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
+        "deck-go/test/e2e/approvals-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"]
+    },
+    {
+      "id": "bootstrap-runtime",
+      "module": "runtime",
+      "matches": [{ "pathPrefix": "/api/bootstrap" }, { "pathPrefix": "/api/runtime" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"],
+      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"]
+    },
+    {
+      "id": "budget",
+      "module": "budget",
+      "matches": [{ "pathPrefix": "/api/usage/budget" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
+        "deck-go/test/e2e/budget-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"]
+    },
+    {
+      "id": "canvas-assets",
+      "module": "chat",
+      "matches": [{ "pathPrefix": "/api/canvas" }, { "pathPrefix": "/api/deck/canvas" }],
+      "contractAuthority": "binary-static",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"],
+      "realEvidence": [
+        "deferred: canvas bridge real evidence belongs to the chat/session real E2E follow-up"
+      ]
+    },
+    {
+      "id": "channels",
+      "module": "channels",
+      "matches": [{ "pathPrefix": "/api/channels" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
+        "deck-go/test/e2e/channels-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"]
+    },
+    {
+      "id": "chat-sessions",
+      "module": "chat",
+      "matches": [{ "pathPrefix": "/api/chat" }, { "pathPrefix": "/api/sessions" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-streams.contract.json"
+      ],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"],
+      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"]
+    },
+    {
+      "id": "commands-tools",
+      "module": "tools",
+      "matches": [
+        { "pathPrefix": "/api/commands" },
+        { "pathPrefix": "/api/tools" },
+        { "pathPrefix": "/api/deck/commands" },
+        { "pathPrefix": "/api/deck/tools" }
+      ],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-exceptions.contract.json"
+      ],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "config",
+      "module": "config",
+      "matches": [{ "pathPrefix": "/api/config" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
+        "deck-go/test/e2e/config-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"]
+    },
+    {
+      "id": "cron",
+      "module": "cron",
+      "matches": [{ "pathPrefix": "/api/cron" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
+        "deck-go/test/e2e/cron-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"]
+    },
+    {
+      "id": "devices",
+      "module": "identity",
+      "matches": [{ "pathPrefix": "/api/devices" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"]
+    },
+    {
+      "id": "docs",
+      "module": "docs",
+      "matches": [{ "pathPrefix": "/api/docs" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
+        "deck-go/test/e2e/docs-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"]
+    },
+    {
+      "id": "gateway-diagnostics",
+      "module": "gateway",
+      "matches": [{ "pathPrefix": "/api/gateway" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-exceptions.contract.json"
+      ],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.test.tsx",
+        "deck-go/test/e2e/gateway-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/gateway-real-gateway.spec.ts"]
+    },
+    {
+      "id": "identity-routing",
+      "module": "identity",
+      "matches": [
+        { "pathPrefix": "/api/deck/identity" },
+        { "pathPrefix": "/api/deck/routing" },
+        { "pathPrefix": "/api/deck/threads" }
+      ],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx",
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts",
+        "deck-go/test/e2e/routing-real-gateway.spec.ts"
+      ]
+    },
+    {
+      "id": "logs",
+      "module": "logs",
+      "matches": [{ "pathPrefix": "/api/logs" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-streams.contract.json"
+      ],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/logs/LogsPanel.test.tsx",
+        "deck-go/test/e2e/logs-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/logs-real-gateway.spec.ts"]
+    },
+    {
+      "id": "media-assets",
+      "module": "media",
+      "matches": [{ "pathPrefix": "/api/media" }],
+      "contractAuthority": "binary-static",
+      "contractRefs": ["deck-go/contracts/source/deck-endpoints.contract.json"],
+      "frontendFacade": ["none: direct browser URL for binary media"],
+      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "realEvidence": [
+        "deferred: binary media real evidence is covered by module-specific media/canvas follow-up"
+      ]
+    },
+    {
+      "id": "memory",
+      "module": "memory",
+      "matches": [{ "pathPrefix": "/api/memory" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
+        "deck-go/test/e2e/memory-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"]
+    },
+    {
+      "id": "models",
+      "module": "models",
+      "matches": [{ "pathPrefix": "/api/models" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx",
+        "deck-go/test/e2e/models-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"]
+    },
+    {
+      "id": "nodes",
+      "module": "nodes",
+      "matches": [{ "pathPrefix": "/api/nodes" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
+        "deck-go/test/e2e/nodes-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"]
+    },
+    {
+      "id": "onboarding",
+      "module": "settings",
+      "matches": [{ "pathPrefix": "/api/onboarding" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"]
+    },
+    {
+      "id": "plugins",
+      "module": "plugins",
+      "matches": [{ "pathPrefix": "/api/deck/plugins" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/plugins/PluginsPanel.test.tsx",
+        "deck-go/test/e2e/plugins-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/plugins-real-gateway.spec.ts"]
+    },
+    {
+      "id": "settings",
+      "module": "settings",
+      "matches": [{ "pathPrefix": "/api/settings" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"]
+    },
+    {
+      "id": "skills",
+      "module": "skills",
+      "matches": [{ "pathPrefix": "/api/skills" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
+        "deck-go/test/e2e/skills-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"]
+    },
+    {
+      "id": "streams",
+      "module": "runtime",
+      "matches": [{ "pathPrefix": "/api/stream" }],
+      "contractAuthority": "deck-stream",
+      "contractRefs": ["deck-go/contracts/source/deck-streams.contract.json"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/backend/internal/server/stream_test.go"],
+      "realEvidence": [
+        "deferred: stream real evidence is module-specific and covered by real E2E follow-ups"
+      ]
+    },
+    {
+      "id": "subagents",
+      "module": "subagents",
+      "matches": [{ "pathPrefix": "/api/deck/subagents" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.test.tsx",
+        "deck-go/test/e2e/subagents-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/subagents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "usage",
+      "module": "usage",
+      "matches": [{ "pathPrefix": "/api/usage" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/usage/UsagePanel.test.tsx",
+        "deck-go/test/e2e/usage-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/usage-real-gateway.spec.ts"]
+    },
+    {
+      "id": "webhooks",
+      "module": "webhooks",
+      "matches": [{ "pathPrefix": "/api/webhooks" }],
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
+        "deck-go/test/e2e/webhooks-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"]
+    }
+  ]
+}

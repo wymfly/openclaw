@@ -1,0 +1,462 @@
+{
+  "schemaVersion": 1,
+  "source": "deck-go/contracts/source/deck-api.contract.ts",
+  "purpose": "Classify every intentional dynamic leaf in the Deck-facing API contract.",
+  "classifications": [
+    {
+      "surface": "DeckGoActivityStreamEvent.<index-signature>",
+      "classification": "sse-extension-envelope",
+      "owner": "activity",
+      "reason": "Activity stream events carry upstream event fields beyond the stable agentId/type pair.",
+      "exitCriteria": "Replace with event-specific DTOs when activity stream payload schemas are productized."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.sandbox",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent sandbox settings mirror user config and may include mode-specific keys.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable sandbox config schema for agents."
+    },
+    {
+      "surface": "DeckGoAgentHealthSnapshot.<type>.<index-signature>",
+      "classification": "gateway-status-envelope",
+      "owner": "agents",
+      "reason": "Health snapshots preserve Gateway diagnostic fields not yet modeled as product KPIs.",
+      "exitCriteria": "Retire after the agents health panel consumes named Gateway health DTO fields only."
+    },
+    {
+      "surface": "DeckGoAgentHealthSnapshot.<type>.agents",
+      "classification": "gateway-status-envelope",
+      "owner": "agents",
+      "reason": "Per-agent health details are passed through from Gateway health/status data.",
+      "exitCriteria": "Replace with named agent health DTOs when the product view fixes the required metrics."
+    },
+    {
+      "surface": "DeckGoAgentRawConfig.<type>.defaults",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Raw agent config exposes editable OpenClaw config fragments.",
+      "exitCriteria": "Remove from the product surface or type field-by-field when raw config editing is redesigned."
+    },
+    {
+      "surface": "DeckGoAgentRawConfig.<type>.entry",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Raw agent config entry preserves arbitrary OpenClaw agent config keys.",
+      "exitCriteria": "Remove from the product surface or type field-by-field when raw config editing is redesigned."
+    },
+    {
+      "surface": "DeckGoAgentRawConfig.<type>.list",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Raw agent config list preserves arbitrary OpenClaw agent config entries.",
+      "exitCriteria": "Remove from the product surface or type field-by-field when raw config editing is redesigned."
+    },
+    {
+      "surface": "DeckGoAgentSubagentConfigResponse.<type>.effectiveThinking",
+      "classification": "config-fragment",
+      "owner": "subagents",
+      "reason": "Effective thinking config is derived from upstream agent config and may vary by model/provider.",
+      "exitCriteria": "Narrow when OpenClaw exposes a stable thinking config schema."
+    },
+    {
+      "surface": "DeckGoCanvasBridgeEvalRequest.result",
+      "classification": "action-result-envelope",
+      "owner": "chat",
+      "reason": "Canvas bridge evaluation results are emitted by arbitrary canvas hosts.",
+      "exitCriteria": "Introduce discriminated result DTOs if canvas host result kinds become fixed product features."
+    },
+    {
+      "surface": "DeckGoCatalogProvider.<type>.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Provider catalog entries keep upstream and provider-specific metadata.",
+      "exitCriteria": "Remove after provider catalog metadata is fully modeled in Deck product DTOs."
+    },
+    {
+      "surface": "DeckGoChannelsStatusResponse.channelAccounts",
+      "classification": "gateway-status-envelope",
+      "owner": "channels",
+      "reason": "Channel account state is currently a Gateway status map keyed by channel.",
+      "exitCriteria": "Replace with named channel account DTOs when channel account management is productized."
+    },
+    {
+      "surface": "DeckGoChannelsStatusResponse.channels",
+      "classification": "gateway-status-envelope",
+      "owner": "channels",
+      "reason": "Channel status is currently a Gateway status map keyed by channel.",
+      "exitCriteria": "Replace with named channel status DTOs when all channel state fields are fixed."
+    },
+    {
+      "surface": "DeckGoChatProjectionRequest.a2uiState",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "A2UI state is a frontend/runtime projection payload passed through until the projection handler is fixed.",
+      "exitCriteria": "Narrow in the chat projection handler follow-up after persistence semantics are implemented."
+    },
+    {
+      "surface": "DeckGoChatSendRequest.attachments",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "Chat attachments carry multimodal and channel-specific payload fragments.",
+      "exitCriteria": "Replace with an attachment discriminated union after supported attachment kinds are fixed."
+    },
+    {
+      "surface": "DeckGoChatSessionPatchRequest.<index-signature>",
+      "classification": "gateway-forward-compatible-envelope",
+      "owner": "chat",
+      "reason": "Session patch forwards known fields plus upstream-compatible extra session metadata keys.",
+      "exitCriteria": "Remove when sessions.patch accepts only the named Deck product fields."
+    },
+    {
+      "surface": "DeckGoChatSnapshotResponse.a2uiState",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "A2UI state comes from upstream timeline detail and is not yet a Deck-owned schema.",
+      "exitCriteria": "Narrow after upstream timeline/A2UI state schema is documented and adopted."
+    },
+    {
+      "surface": "DeckGoCompactionActionResponse.<type>",
+      "classification": "action-result-envelope",
+      "owner": "chat",
+      "reason": "Compaction action responses vary by action and currently share a broad result envelope.",
+      "exitCriteria": "Replace with action-discriminated response DTOs when compaction UX requires per-action fields."
+    },
+    {
+      "surface": "DeckGoConfigLookupChild.<type>.hint",
+      "classification": "gateway-schema-envelope",
+      "owner": "config",
+      "reason": "Config lookup hints are schema fragments derived from OpenClaw config metadata.",
+      "exitCriteria": "Narrow only if OpenClaw publishes a stable hint schema."
+    },
+    {
+      "surface": "DeckGoConfigLookupResponse.<type>.hint",
+      "classification": "gateway-schema-envelope",
+      "owner": "config",
+      "reason": "Config lookup hints are schema fragments derived from OpenClaw config metadata.",
+      "exitCriteria": "Narrow only if OpenClaw publishes a stable hint schema."
+    },
+    {
+      "surface": "DeckGoConfigLookupResponse.<type>.schema",
+      "classification": "gateway-schema-envelope",
+      "owner": "config",
+      "reason": "Config lookup schema is a JSON schema fragment rather than a fixed product DTO.",
+      "exitCriteria": "Keep dynamic unless the config editor moves to a fixed form schema."
+    },
+    {
+      "surface": "DeckGoConfigSnapshotResponse.<type>.config",
+      "classification": "config-fragment",
+      "owner": "config",
+      "reason": "Config snapshot exposes arbitrary openclaw.json content.",
+      "exitCriteria": "Replace with a typed product projection if raw config snapshot stops being exposed."
+    },
+    {
+      "surface": "DeckGoContextWeightReport.<type>.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "usage",
+      "reason": "Context weight reports allow extra measurement fields from runtime analysis.",
+      "exitCriteria": "Remove when context weight reporting has a frozen metric set."
+    },
+    {
+      "surface": "DeckGoCronJob.<type>.delivery",
+      "classification": "action-result-envelope",
+      "owner": "cron",
+      "reason": "Cron delivery output depends on wake mode and downstream delivery path.",
+      "exitCriteria": "Replace with delivery-kind DTOs when cron delivery modes are productized."
+    },
+    {
+      "surface": "DeckGoCronJob.<type>.payload.<index-signature>",
+      "classification": "action-payload-envelope",
+      "owner": "cron",
+      "reason": "Cron payload carries action-specific systemEvent or agentTurn fields.",
+      "exitCriteria": "Replace with discriminated cron payload DTOs when all wake payload fields are fixed."
+    },
+    {
+      "surface": "DeckGoCronJobInput.<type>.payload.<index-signature>",
+      "classification": "action-payload-envelope",
+      "owner": "cron",
+      "reason": "Cron input payload carries action-specific systemEvent or agentTurn fields.",
+      "exitCriteria": "Replace with discriminated cron payload DTOs when all wake payload fields are fixed."
+    },
+    {
+      "surface": "DeckGoCronRunEntry.<type>.delivery",
+      "classification": "action-result-envelope",
+      "owner": "cron",
+      "reason": "Cron run delivery result depends on the executed delivery path.",
+      "exitCriteria": "Replace with delivery-kind DTOs when cron delivery modes are productized."
+    },
+    {
+      "surface": "DeckGoDeviceTokenRotateResponse.<type>",
+      "classification": "action-result-envelope",
+      "owner": "identity",
+      "reason": "Device token rotation currently returns token plus compatibility metadata.",
+      "exitCriteria": "Narrow to token-only or a named token rotation DTO after identity APIs settle."
+    },
+    {
+      "surface": "DeckGoGatewayBatchCall.params",
+      "classification": "gateway-rpc-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway batch params must carry arbitrary method params selected at runtime.",
+      "exitCriteria": "Keep dynamic; per-method typing belongs to generated Gateway clients, not the batch envelope."
+    },
+    {
+      "surface": "DeckGoGatewayBatchError.details",
+      "classification": "gateway-rpc-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway error details vary by method and failure source.",
+      "exitCriteria": "Narrow only if Gateway standardizes error detail schemas."
+    },
+    {
+      "surface": "DeckGoGatewayBatchResultEntry.result",
+      "classification": "gateway-rpc-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway batch results return arbitrary method results selected at runtime.",
+      "exitCriteria": "Keep dynamic; per-method typing belongs to generated Gateway clients, not the batch envelope."
+    },
+    {
+      "surface": "DeckGoGatewayInvokeResult.body",
+      "classification": "gateway-rpc-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway single-method RPC results return arbitrary method results selected at runtime.",
+      "exitCriteria": "Keep dynamic; per-method typing belongs to generated Gateway clients, not the single-method RPC envelope."
+    },
+    {
+      "surface": "DeckGoGatewayDescribeEvent.payload",
+      "classification": "gateway-schema-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway describe event payloads are JSON schema objects.",
+      "exitCriteria": "Keep dynamic unless JSON schema itself is modeled as a first-class DTO."
+    },
+    {
+      "surface": "DeckGoGatewayDescribeMethod.params",
+      "classification": "gateway-schema-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway describe method params are JSON schema objects.",
+      "exitCriteria": "Keep dynamic unless JSON schema itself is modeled as a first-class DTO."
+    },
+    {
+      "surface": "DeckGoGatewayDescribeMethod.result",
+      "classification": "gateway-schema-envelope",
+      "owner": "api-explorer",
+      "reason": "Gateway describe method results are JSON schema objects.",
+      "exitCriteria": "Keep dynamic unless JSON schema itself is modeled as a first-class DTO."
+    },
+    {
+      "surface": "DeckGoGatewayHealthResponse.agents",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Gateway health agent details remain a status envelope for mixed Gateway versions.",
+      "exitCriteria": "Replace after health response schema becomes stable enough for product DTOs."
+    },
+    {
+      "surface": "DeckGoGatewayHealthResponse.channels",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Gateway health channel details remain a status envelope for mixed Gateway versions.",
+      "exitCriteria": "Replace after health response schema becomes stable enough for product DTOs."
+    },
+    {
+      "surface": "DeckGoGatewayHealthResponse.sessions.recent",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Recent session health rows are pass-through diagnostics.",
+      "exitCriteria": "Replace with named session health rows when the gateway panel fixes its metrics."
+    },
+    {
+      "surface": "DeckGoGatewayStatusResponse.channels",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Gateway status channels are keyed runtime diagnostics.",
+      "exitCriteria": "Replace after status channel diagnostics are productized."
+    },
+    {
+      "surface": "DeckGoGatewayStatusResponse.heartbeat.agents",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Heartbeat agents may include extra runtime status fields across Gateway versions.",
+      "exitCriteria": "Replace after heartbeat agent rows have a stable Gateway schema."
+    },
+    {
+      "surface": "DeckGoGatewayStatusResponse.sessions.byAgent",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Session by-agent diagnostics are pass-through Gateway status rows.",
+      "exitCriteria": "Replace with named rows when Gateway status exposes stable session aggregates."
+    },
+    {
+      "surface": "DeckGoGatewayStatusResponse.sessions.recent",
+      "classification": "gateway-status-envelope",
+      "owner": "gateway",
+      "reason": "Recent session diagnostics are pass-through Gateway status rows.",
+      "exitCriteria": "Replace with named rows when Gateway status exposes stable session summaries."
+    },
+    {
+      "surface": "DeckGoLogStreamEvent.json",
+      "classification": "sse-json-envelope",
+      "owner": "logs",
+      "reason": "Log stream JSON payload varies by upstream event kind.",
+      "exitCriteria": "Replace with event-specific log stream DTOs when log event kinds are fixed."
+    },
+    {
+      "surface": "DeckGoModelAuthOverviewResponse.<type>.payload.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Model auth payload may include provider-specific diagnostics.",
+      "exitCriteria": "Remove after model auth overview fields are fully named."
+    },
+    {
+      "surface": "DeckGoModelAuthProvider.<type>.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Provider auth rows may include provider-specific metadata.",
+      "exitCriteria": "Remove after provider auth rows are fully productized."
+    },
+    {
+      "surface": "DeckGoModelCatalogProvidersResponse.<type>.payload.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Model catalog payload may include provider-specific metadata.",
+      "exitCriteria": "Remove after catalog response payloads are fully named."
+    },
+    {
+      "surface": "DeckGoModelProbeResponse.<type>.payload.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Model probe payload may include provider-specific diagnostics.",
+      "exitCriteria": "Remove after probe response payloads are fully named."
+    },
+    {
+      "surface": "DeckGoNodeInvokeResponse.<type>.payload",
+      "classification": "action-result-envelope",
+      "owner": "nodes",
+      "reason": "Node command invoke payload depends on command and node implementation.",
+      "exitCriteria": "Introduce command-specific result DTOs if node commands become fixed product actions."
+    },
+    {
+      "surface": "DeckGoNodePendingWorkItem.<type>.payload",
+      "classification": "action-payload-envelope",
+      "owner": "nodes",
+      "reason": "Pending node work payload is optional and action-specific.",
+      "exitCriteria": "Narrow when pending work types have stable payload schemas."
+    },
+    {
+      "surface": "DeckGoRuntimeConfiguredModel.metadata",
+      "classification": "extension-envelope",
+      "owner": "models",
+      "reason": "Configured model metadata carries provider-specific fields.",
+      "exitCriteria": "Remove after all displayed model metadata fields are promoted to named DTO fields."
+    },
+    {
+      "surface": "DeckGoServerEvent.json",
+      "classification": "sse-json-envelope",
+      "owner": "runtime",
+      "reason": "Generic server event JSON carries event-specific payloads.",
+      "exitCriteria": "Replace with event-specific SSE DTOs for routes that have stable event kinds."
+    },
+    {
+      "surface": "DeckGoSessionCreateResponse.entry",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "Session create entry is a Gateway session record pass-through.",
+      "exitCriteria": "Replace with DeckGoSessionMeta when session create response no longer needs raw entry data."
+    },
+    {
+      "surface": "DeckGoSessionCreateResponse.runError",
+      "classification": "action-result-envelope",
+      "owner": "chat",
+      "reason": "Run startup error can carry upstream error payloads.",
+      "exitCriteria": "Narrow after run startup errors are normalized by the BFF."
+    },
+    {
+      "surface": "DeckGoSessionDetailResponse.a2uiState",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "A2UI state comes from upstream timeline detail and is not yet a Deck-owned schema.",
+      "exitCriteria": "Narrow after upstream timeline/A2UI state schema is documented and adopted."
+    },
+    {
+      "surface": "DeckGoSessionMutationResponse.entry",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "Session mutation entry is a Gateway session record pass-through.",
+      "exitCriteria": "Replace with DeckGoSessionMeta when mutation responses no longer expose raw entries."
+    },
+    {
+      "surface": "DeckGoSessionToolStreamEvent.data",
+      "classification": "sse-json-envelope",
+      "owner": "chat",
+      "reason": "Tool stream data carries tool-specific event payloads.",
+      "exitCriteria": "Introduce tool-event DTOs when tool stream event kinds are fixed."
+    },
+    {
+      "surface": "DeckGoSettings.appearance",
+      "classification": "config-fragment",
+      "owner": "settings",
+      "reason": "Appearance settings preserve open UI config fragments.",
+      "exitCriteria": "Narrow when settings UI owns a fixed appearance schema."
+    },
+    {
+      "surface": "DeckGoSettings.notifications",
+      "classification": "config-fragment",
+      "owner": "settings",
+      "reason": "Notification settings preserve open UI config fragments.",
+      "exitCriteria": "Narrow when settings UI owns a fixed notification schema."
+    },
+    {
+      "surface": "DeckGoSettings.pairedDevices",
+      "classification": "config-fragment",
+      "owner": "settings",
+      "reason": "Paired device settings may include legacy or client-specific config fields.",
+      "exitCriteria": "Replace with DeckGoPairedDevice if settings stops exposing raw paired device config."
+    },
+    {
+      "surface": "DeckGoSkillEntry.<type>.config",
+      "classification": "config-fragment",
+      "owner": "skills",
+      "reason": "Skill config carries skill-specific options.",
+      "exitCriteria": "Narrow with per-skill config schemas if skills become fixed product forms."
+    },
+    {
+      "surface": "DeckGoSkillUpdateResponse.<type>.config",
+      "classification": "config-fragment",
+      "owner": "skills",
+      "reason": "Skill update response returns the skill-specific config fragment.",
+      "exitCriteria": "Narrow with per-skill config schemas if skills become fixed product forms."
+    },
+    {
+      "surface": "DeckGoSubagentRun.<type>.outcome",
+      "classification": "action-result-envelope",
+      "owner": "subagents",
+      "reason": "Subagent run outcome depends on child agent task execution.",
+      "exitCriteria": "Replace with named outcome DTOs after subagent completion states are productized."
+    },
+    {
+      "surface": "DeckGoTranscriptToolUseBlock.input",
+      "classification": "action-payload-envelope",
+      "owner": "chat",
+      "reason": "Tool input payload depends on the invoked tool schema.",
+      "exitCriteria": "Keep dynamic; tool-specific schema rendering belongs to tool metadata."
+    },
+    {
+      "surface": "DeckGoTranscriptUnknownBlock.summary",
+      "classification": "chat-runtime-envelope",
+      "owner": "chat",
+      "reason": "Unknown transcript blocks intentionally preserve a summarized unsupported raw block.",
+      "exitCriteria": "Remove when all upstream transcript block types have DeckGoTranscriptBlock variants."
+    },
+    {
+      "surface": "DeckGoUsageSessionsResponse.<type>.aggregates.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "usage",
+      "reason": "Usage aggregates allow future aggregate dimensions while named dimensions are already typed.",
+      "exitCriteria": "Remove when usage aggregate dimensions are frozen."
+    },
+    {
+      "surface": "DeckGoUsageTotals.<type>.<index-signature>",
+      "classification": "extension-envelope",
+      "owner": "usage",
+      "reason": "Usage totals allow additional token/cost counters beyond currently displayed fields.",
+      "exitCriteria": "Remove when the usage totals metric set is frozen."
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # approvals — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -73,17 +73,16 @@ export type DeckGoPendingApprovalsResponse = {
   pending?: DeckGoPendingApproval[];
 };
 
-export type DeckGoPluginApprovalEntry = {
+export interface DeckGoPluginApprovalEntry {
   id: string;
-  pluginId: string;
-  pluginName?: string;
-  capabilityKind: "channel" | "tool" | "agent" | "provider";
-  requestedScopes?: string[];
-  origin: "bundled" | "extension";
-  sourceUrl?: string;
-  createdAtMs: number;
-  requester?: string;
-};
+  pluginId?: string;
+  command?: string;
+  description?: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+  status?: string;
+  decision?: string | null;
+}
 
 export type DeckGoPluginApprovalsResponse =
   | DeckGoPluginApprovalEntry[]
@@ -95,12 +94,12 @@ Endpoints:
 - `GET    /api/approvals/policy` → `DeckGoApprovalPolicyResponse`
 - `PUT    /api/approvals/policy` → mutation (replace policy, returns new hash)
 - `GET    /api/approvals/pending` → `DeckGoPendingApprovalsResponse`
-- `POST   /api/approvals` → resolve exec approval (`{ id, decision, reason? }`)
+- `POST   /api/approvals` → resolve exec approval (`{ id, decision }`)
 - `GET    /api/approvals/plugins` → `DeckGoPluginApprovalsResponse`
-- `POST   /api/approvals/plugins` → resolve plugin approval (`{ id, decision, reason? }`)
+- `POST   /api/approvals/plugins` → resolve plugin approval (`{ id, decision }`)
 
-Stream events (typed): `approval.pending` and `approval.resolved` arrive
-through `useApprovalsStream`.
+Stream events arrive through Deck BFF `GET /api/stream` and are consumed by
+`useApprovalsStream` for `approval.pending` and `approval.resolved`.
 
 Typed Gateway methods: `exec.approvals.get`, `exec.approvals.set`,
 `exec.approval.resolve`, `plugin.approval.resolve`.
@@ -172,9 +171,9 @@ all need the same live-ticking pattern.
    - `fetchApprovalsPolicy()` → `GET /api/approvals/policy`
    - `updateApprovalsPolicy(file)` → `PUT /api/approvals/policy`
    - `fetchPendingApprovals()` → `GET /api/approvals/pending`
-   - `resolveApproval(id, decision, reason?)` → `POST /api/approvals`
+   - `resolveApproval(id, decision)` → `POST /api/approvals`
    - `fetchPluginApprovals()` → `GET /api/approvals/plugins`
-   - `resolvePluginApproval(id, decision, reason?)` → `POST /api/approvals/plugins`
+   - `resolvePluginApproval(id, decision)` → `POST /api/approvals/plugins`
 4. Wire `useApprovalsStream` over `streamEvents` for `approval.pending` /
    `approval.resolved` to push real-time queue updates.
 5. `CountdownTimer` uses `setInterval(force, 500)` for half-second granularity;
@@ -209,8 +208,8 @@ all need the same live-ticking pattern.
 1. **Stream event shape** — `approval.pending` and `approval.resolved` are
    typed but their `payload` field is partially open. Should the contract
    tighten to a closed union per kind (exec vs plugin)?
-2. **Reason field length cap** — the contract doesn't specify max length.
-   200 chars seems sane; should it be enforced server-side?
+2. **Reason field support** — current generated Gateway resolve params only
+   contain `id` and `decision`; reason capture remains a follow-up contract.
 3. **Allow-always scope** — does it scope to (agent, command) tuple or just
    command? Current behavior is global allowlist (just command); consider
    per-agent allowlist.

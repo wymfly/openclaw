@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/websocket"
+	httpapi "github.com/openclaw/openclaw/deck-go/backend/internal/api/http"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
@@ -183,6 +184,80 @@ func TestNewHandlerWithDependencies_CorsAllowsStreamResumeHeader(t *testing.T) {
 	}
 	if !strings.Contains(strings.ToLower(allowHeaders), "x-request-id") {
 		t.Fatalf("X-Request-Id not allowed in CORS headers: %q", allowHeaders)
+	}
+}
+
+func TestNewHandlerWithDependencies_CorsAllowsDelete(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewHandlerWithDependencies(&Dependencies{
+		Store:   store,
+		Runtime: openclawrt.NewManagedRuntime(store, events.NewBus(4)),
+	})
+
+	req := httptest.NewRequest(http.MethodOptions, "/api/alerts/ar-test", nil)
+	req.Header.Set("Origin", "http://127.0.0.1:4174")
+	req.Header.Set("Access-Control-Request-Method", http.MethodDelete)
+	req.Header.Set("Access-Control-Request-Headers", "x-deck-token")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("unexpected preflight status: %d", rec.Code)
+	}
+	allowMethods := rec.Header().Get("Access-Control-Allow-Methods")
+	if !strings.Contains(allowMethods, http.MethodDelete) {
+		t.Fatalf("DELETE not allowed in CORS methods: %q", allowMethods)
+	}
+}
+
+func TestWebhookAdapter_RedactsSecretsInReadResponses(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	secret := "receiver-secret"
+	enabled := true
+	adapter := webhookAdapter{}
+
+	created, err := adapter.CreateWebhook(context.Background(), httpapi.WebhookCreateInput{
+		Name:    "Audit",
+		URL:     "https://example.test/hook",
+		Secret:  &secret,
+		Events:  []string{"alert.fired"},
+		Enabled: &enabled,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created["secret"] != "***redacted" {
+		t.Fatalf("expected redacted create payload, got %#v", created)
+	}
+
+	listed, err := adapter.ListWebhooks(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	webhooks, ok := listed["webhooks"].([]map[string]any)
+	if !ok || len(webhooks) != 1 {
+		t.Fatalf("unexpected webhooks payload: %#v", listed)
+	}
+	if webhooks[0]["secret"] != "***redacted" {
+		t.Fatalf("expected redacted list payload, got %#v", webhooks[0])
+	}
+}
+
+func TestWebhookAdapter_RejectsNonHTTPReceiverURL(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	adapter := webhookAdapter{}
+
+	_, err := adapter.CreateWebhook(context.Background(), httpapi.WebhookCreateInput{
+		Name:   "Audit",
+		URL:    "not-a-receiver",
+		Events: []string{"alert.fired"},
+	})
+	if err == nil {
+		t.Fatal("expected non-http receiver URL to be rejected")
 	}
 }
 

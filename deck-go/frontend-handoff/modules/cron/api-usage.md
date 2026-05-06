@@ -12,34 +12,33 @@ Endpoint classification lives in:
 
 - `contracts/source/deck-endpoints.contract.json`
 
-Cron-related Gateway methods (typed): `cron.status`, `cron.jobs.list`,
-`cron.jobs.create`, `cron.jobs.update`, `cron.jobs.delete`,
-`cron.jobs.run`, `cron.runs.list`.
+Cron-related Gateway methods (typed): `cron.status`, `cron.list`,
+`cron.add`, `cron.update`, `cron.remove`, `cron.run`, `cron.runs`.
 
 ## Frontend wrappers
 
 `CronPanel` should use:
 
 - `fetchCronStatus()` → `GET /api/cron/status`
-- `fetchCronJobs(params)` → `GET /api/cron/jobs`
-- `createCronJob(input)` → `POST /api/cron/jobs`
-- `updateCronJob(id, input)` → `PUT /api/cron/jobs/:id`
-- `deleteCronJob(id)` → `DELETE /api/cron/jobs/:id`
-- `runCronJob(id, mode?)` → `POST /api/cron/jobs/:id/run`
-- `fetchCronRuns(params)` → `GET /api/cron/runs`
+- `fetchCronJobs(params)` → `GET /api/cron`
+- `createCronJob(input)` → `POST /api/cron`
+- `updateCronJob(id, input)` → `PATCH /api/cron/:id`
+- `deleteCronJob(id)` → `DELETE /api/cron/:id`
+- `runCronJob(id, mode?)` → `POST /api/cron/:id/run`
+- `fetchCronRuns(jobId, params)` → `GET /api/cron/:id/runs`
 
 ## Backend routes
 
-| UI need               | Frontend wrapper                              | Deck route                    | Notes                                                                |
-| --------------------- | --------------------------------------------- | ----------------------------- | -------------------------------------------------------------------- | ----------- |
-| Cron scheduler status | `fetchCronStatus()`                           | `GET /api/cron/status`        | Returns `DeckGoCronStatus { running, jobCount, nextRunAtMs }`.       |
-| Job list              | `fetchCronJobs(params)`                       | `GET /api/cron/jobs`          | Returns `DeckGoCronJobsResponse`. Filter via `DeckGoCronJobsParams`. |
-| Create job            | `createCronJob(input)`                        | `POST /api/cron/jobs`         | Body: `DeckGoCronJobInput`. Returns the created `DeckGoCronJob`.     |
-| Update job            | `updateCronJob(id, input)`                    | `PUT /api/cron/jobs/:id`      | Body: partial `DeckGoCronJobInput` (or full). Returns updated job.   |
-| Delete job            | `deleteCronJob(id)`                           | `DELETE /api/cron/jobs/:id`   | No body. 204 on success.                                             |
-| Run now               | `runCronJob(id, mode)`                        | `POST /api/cron/jobs/:id/run` | Body: `DeckGoCronRunParams { mode: "due"                             | "force" }`. |
-| Run history           | `fetchCronRuns(params)`                       | `GET /api/cron/runs`          | Returns `DeckGoCronRunsResponse`. Filter via `DeckGoCronRunsParams`. |
-| Bootstrap             | `useDeckUI()` / `fetchRuntimeGatewayStatus()` | `GET /api/bootstrap/status`   | Runtime version + heartbeat seconds for topbar subtitle.             |
+| UI need               | Frontend wrapper                              | Deck route                  | Notes                                                                |
+| --------------------- | --------------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
+| Cron scheduler status | `fetchCronStatus()`                           | `GET /api/cron/status`      | Returns `DeckGoCronStatus { running, jobCount, nextRunAtMs }`.       |
+| Job list              | `fetchCronJobs(params)`                       | `GET /api/cron`             | Returns `DeckGoCronJobsResponse`. Filter via `DeckGoCronJobsParams`. |
+| Create job            | `createCronJob(input)`                        | `POST /api/cron`            | Body: `DeckGoCronJobInput`. Returns the created `DeckGoCronJob`.     |
+| Update job            | `updateCronJob(id, input)`                    | `PATCH /api/cron/:id`       | Body: partial `DeckGoCronJobInput` (or full). Returns updated job.   |
+| Delete job            | `deleteCronJob(id)`                           | `DELETE /api/cron/:id`      | No body. Returns the Gateway/BFF delete payload.                     |
+| Run now               | `runCronJob(id, mode)`                        | `POST /api/cron/:id/run`    | Body: `DeckGoCronRunParams { mode: "due" \| "force" }`.              |
+| Run history           | `fetchCronRuns(jobId, params)`                | `GET /api/cron/:id/runs`    | Returns `DeckGoCronRunsResponse`. Filter via `DeckGoCronRunsParams`. |
+| Bootstrap             | `useDeckUI()` / `fetchRuntimeGatewayStatus()` | `GET /api/bootstrap/status` | Runtime version + heartbeat seconds for topbar subtitle.             |
 
 ## DTO summary
 
@@ -61,7 +60,7 @@ export type DeckGoCronJob = {
   name: string;
   schedule: DeckGoCronSchedule;
   sessionTarget?: string;
-  wakeMode?: string; // "wake" | "background"
+  wakeMode?: string; // "now" | "next-heartbeat"
   payload: { kind: "systemEvent" | "agentTurn"; [key: string]: unknown };
   delivery?: unknown; // Untyped — per-payload-kind
   failureAlert?: boolean;
@@ -164,9 +163,9 @@ which IS part of the contract.
 - **Live history stream** — prototype polls runs. Production may want
   `cron.runs.subscribe` stream so new run entries push without polling.
 - **Bulk operations** — bulk enable/disable/delete is a real ops need; not
-  in current contract. Consider `POST /api/cron/jobs/bulk` accepting array
+  in current contract. Consider a future typed bulk endpoint accepting an array
   of `{ id, action }`.
-- **Optimistic concurrency** — `PUT /api/cron/jobs/:id` doesn't take a
+- **Optimistic concurrency** — `PATCH /api/cron/:id` doesn't take a
   version/etag. Two operators editing simultaneously: last-write-wins.
 
 ## Open contract assumptions

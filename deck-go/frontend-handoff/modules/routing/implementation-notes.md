@@ -1,133 +1,98 @@
-# Implementation notes
+# Routing Implementation Notes
 
-> Author: design agent (Claude). Audience: future Claude Code (this fork) reading the v2 routing handoff.
+Status: implemented - real-contract verified.
 
-This file is the design agent's running diary on the routing prototype. It captures the **why** behind decisions that aren't visible from the file tree alone.
+## Contract Matrix
 
-## Contract reconciliation — DTO scope
+| Workflow        | Frontend wrapper                                       | BFF route                                  | Gateway / backend source                       | Classification                                                   |
+| --------------- | ------------------------------------------------------ | ------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------- |
+| List bindings   | `fetchRoutingBindings(filters)`                        | `GET /api/deck/routing`                    | `deck.routing.list` via Go BFF/runtime adapter | supported; empty-valid when no bindings exist                    |
+| Validate draft  | `validateRoutingBinding({ agentId, match })`           | `POST /api/deck/routing` action=`validate` | `deck.routing.validate`                        | supported; `ok=false` is advisory                                |
+| Add binding     | `addRoutingBinding({ agentId, match, baseHash, ... })` | `POST /api/deck/routing` action=`add`      | `deck.routing.add`                             | supported; inline confirmation required before wrapper call      |
+| Remove binding  | `removeRoutingBinding({ id, baseHash })`               | `POST /api/deck/routing` action=`remove`   | `deck.routing.remove`                          | supported; inline confirmation required before wrapper call      |
+| Reorder binding | remove + add wrappers                                  | two `POST /api/deck/routing` calls         | `deck.routing.remove` then `deck.routing.add`  | supported as two-step workaround; no first-class reorder method  |
+| Simulate route  | `simulateRouting(payload)`                             | `POST /api/deck/routing` action=`simulate` | `deck.routing.simulate`                        | supported; default fallback is legitimate                        |
+| Patch DM scope  | `patchRoutingDmScope(dmScope, baseHash)`               | config patch route                         | `deck.config.patch` / config hash path         | supported; inline confirmation required; mutation-evidence known |
+| Activity        | `fetchActivityEvents(20)`                              | shared activity endpoint                   | Deck activity BFF/event feed                   | empty-valid/degraded; not a durable routing hit log              |
 
-The PRD framing referred to routing as a "rules-list / condition-builder" panel. The real `deck-go/contracts/source/deck-api.contract.ts:815-882` exposes a tier-specificity binding queue (`peer` → `guild+roles` → `guild` → `team` → `channel`) with **action-discriminated POSTs** and a **simulator** that walks the chain. The prototype reflects the contract verbatim:
+## Fixes Made
 
-- Bindings are tier-typed, not free-form rules.
-- The "condition builder" is a flat 9-field draft (channel / accountId / peer.kind / peer.id / guildId / teamId / roles / comment) — operators don't compose Boolean conditions; they fill the match dimensions and the BFF auto-detects the tier.
-- The simulator walks `["peer", "guild+roles", "guild", "team", "channel"]` in priority order and returns the first match — same algorithm as `deck.routing.simulate`.
+- Preserved the existing contract-backed production panel rather than rewriting the module from scratch.
+- Added the v2 inline confirmation gate for hash-affecting actions: add, remove, reorder, and DM scope patch.
+- Changed Add Binding from an always-visible form into a collapsed draft drawer to reduce initial density and match the v2 workbench.
+- Kept raw `/deck/routing` action strings inside API wrappers/tests, not view code.
+- Expanded focused Go route coverage from list/simulate to list/validate/add/remove/simulate forwarding.
+- Refreshed mock visual E2E to cover ready state, draft drawer open/close, remove confirmation cancel, and simulation.
+- Added real Gateway Routing E2E for route shapes, safe invalid-hash mutation shape, production render, and BFF-only browser access.
 
-Mismatch resolution policy (per protocol-v1 §5 "no silent distortion"): when the PRD framing diverged from the contract, the contract won. The PRD's "rules-list" terminology was retired in `README.md` in favor of "binding queue" / "tier specificity" — the same vocabulary the BFF uses.
+## Residual Risks
 
-## Stack lock — JSON viewer
+- Reorder is still remove + add because no first-class Gateway reorder method exists. A backend transaction or `deck.routing.reorder` would remove the partial-failure window.
+- Conflict severity remains client-side/advisory. Gateway does not expose `severity: blocker | warn | info`.
+- Simulation tiers do not include human-readable `reason` text; the UI only renders matched/checked/skipped.
+- Binding IDs are still whatever the backend returns; the UI does not assume stable semantic IDs.
+- Activity is filtered from the shared activity feed and may be empty. It is not a durable route history until the backend exposes one.
+- Real E2E avoids committing user config mutations; destructive/persistent add/remove validation is limited to safe invalid-hash route-shape evidence.
 
-The `<JsonView />` component (icons.jsx) is a **plain `<pre>` + click-to-copy button**. The prototype decided **against** CodeMirror / Monaco / json-tree-view here. Reasons:
+## Verification Evidence
 
-1. The selected-binding-hero JSON view is **read-only** — operators don't edit JSON, they edit via the form fields above.
-2. Routing surfaces 4-line bindings (`{ id, agentId, tier, match: {...} }`) — a 70 KB editor for a 4-line preview is wasteful.
-3. JsonView is now used by **memory + nodes + routing** (3rd use). It met the design-system gate; promote to `@/design-system/molecules/JsonView` in the next DS batch.
+- Prototype smoke: `deck-go/frontend-handoff/modules/routing/prototype.html` loaded via local static server; queue, simulator, and buttons rendered without browser errors.
+- Focused frontend tests: `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/routing/RoutingPanel.test.tsx src/api.chat-helpers.test.ts` passed.
+- Focused backend tests: `cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw -run 'TestGatewayFacade_DeckRouting|TestGatewayQueriesTyped'` passed.
+- Mock visual E2E: `cd deck-go && pnpm exec playwright test test/e2e/routing-visual.spec.ts --config playwright.config.ts` passed.
+- Real Gateway E2E: `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/routing-real-gateway.spec.ts --config playwright.config.ts` passed.
+- OpenSpec validation: `openspec validate frontend-routing-real-contract-verification --strict` passed.
+- Endpoint classification: `cd deck-go && make endpoint-classification-check` passed.
+- Frontend build: `cd deck-go && make frontend-build` passed.
+- Diff hygiene: `git diff --check` passed.
 
-If a future binding shape grows past ~30 lines, revisit this — but the contract says "tier + match dimensions", which caps the JSON depth at 2.
+## Review Result
 
-## Stack lock — local advisory conflict heuristic
+No additional Routing-scoped defects were found in the final code review. The remaining items above are capability/product gaps rather than implementation regressions in this proposal.
 
-`data.js#LOCAL_CONFLICTS` is a **fixture map keyed by binding id** that statically describes "this binding is a subset of binding X" / "this binding is shadowed by binding Y". The production frontend has two ways to compute conflicts:
+## Codex contract completion closeout - 2026-05-05
 
-1. **Local heuristic** — diff each binding against the rest of the queue using a simple subset/duplicate detector. Cheap, immediate, but advisory only.
-2. **Server-side** — `POST /deck/routing { action: "validate", agentId, match }` returns a `DeckGoRoutingValidateResponse` with `conflicts: []`. Authoritative.
+- Added mutation evidence rows for `routing.add`, `routing.remove`, and
+  `routing.dm-scope.patch`; all are config-write-safety governed and real
+  config writes remain deferred until reversible routing/config fixtures exist.
+- Routed `addRoutingBinding()` and `removeRoutingBinding()` through shared
+  mutation evidence helpers.
+- Added the product-specific `patchRoutingDmScope()` facade so Routing can
+  acknowledge its own mutation action without making generic `patchDeckConfig()`
+  product-specific.
+- Kept validation and simulation read/advisory. They remain typed Routing
+  workflows, not mutation evidence rows.
+- Focused checks passed:
+  `make deck-api-check mutation-evidence-contract-test mutation-evidence-contract-check`
+  and `npm run test:deck-ui -- src/lib/mutation-evidence.test.ts src/api.chat-helpers.test.ts src/components/panels/routing/RoutingPanel.test.tsx src/components/panels/identity/IdentityPanel.test.tsx`.
 
-The prototype uses **(1) for the queue** (so operators see the warn pill instantly without round-tripping for every row) and **(2) for the draft** (so adds are gated by the BFF's view of the queue). This split is intentional:
+## Prototype parity remediation closeout - 2026-05-05
 
-- Advisory conflicts in the queue help operators **plan** ("this binding is shadowed; should I move it up?") — speed > authority.
-- Authoritative conflicts on add help operators **commit** — authority > speed.
-
-The advisory marker is **never a gate** — operator can always proceed. This matches the contract's `validate.ok: false` being advisory, not blocking.
-
-## Stack lock — in-process simulator
-
-`data.js#simulateRoute(input, bindings)` walks the queue in priority order and returns the first match. It's a **client-side mock** of `deck.routing.simulate` so the prototype stays self-contained (no BFF needed for visual smoke-test).
-
-Production must replace this with `simulateRouting()` (the typed wrapper) — the response shape (`DeckGoRoutingSimulateResponse`) is byte-identical to what the prototype mock returns. The simulator algorithm is documented in `states.md` for production parity.
-
-## Pattern emerging — hash-aware mutation lifecycle
-
-This is the **first deck-go module where every interaction visibly advances a hash**. The pattern:
-
-1. Operator edits something (scope / add / remove / move).
-2. Two-step gate (ConfirmRow) — operator sees what's about to change + the current `configHash`.
-3. Confirm → BFF returns new hash → MutationStrip echoes it → `<HashChip>` re-renders with the new value.
-
-This makes the panel feel **transactional** rather than declarative. Operators see the version cursor advance and gain confidence that their change landed.
-
-`<HashChip>` (icons.jsx) and `<MutationStrip>` (routing-detail.jsx) are the two new molecules that materialize this pattern. Both are reusable — promotion candidates as soon as a 2nd module needs hash-aware mutation UX (gateway config? settings?).
-
-## Pattern emerging — 2-card workbench shell
-
-Routing is the **second deck-go module to use the 2-card workbench** (after gateway). The shell:
-
-```
-[ rail card (left) ]    [ detail card (right) ]
-  metric strip
-  filter row              ConfirmRow / MutationStrip stack
-  scope panel             SelectedBindingHero
-  add-draft drawer        SimulatorPanel
-  binding list            ActivityList
-  count summary
-```
-
-Same vertical narrative as gateway: "what's selected" → "what can I do" → "what just happened". Pattern is canonical — promote to `@/design-system/patterns/2CardWorkbench` after the 3rd use.
-
-## Component reuse cascade — DS gate triggers
-
-This panel pushes three components past the design-system promotion gate (3rd use):
-
-| Component    | Used by                            | Status                                |
-| ------------ | ---------------------------------- | ------------------------------------- |
-| `JsonView`   | memory / nodes / routing           | **Gate met (3rd use)** — promote      |
-| `AgentChip`  | docs / memory / activity / routing | **Gate exceeded (4th use)** — overdue |
-| `ConfirmRow` | docs / memory / nodes / routing    | **Gate exceeded (4th use)** — overdue |
-
-Two new molecules (`HashChip`, `MutationStrip`) are 1st-use here — flag them as promotion candidates so they're visible when the 2nd module needs them (likely settings / gateway).
-
-## Tone system across the action surface
-
-Routing has **5 distinct tones** in the v2 prototype, each tied to a specific intent:
-
-| Tone           | Surfaces                                                                     | Reason                                                 |
-| -------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `ok` (success) | matched simulation, validated draft, successful add/scope-patch              | Standard positive feedback                             |
-| `warn`         | advisory conflict, fall-through to default, removed binding (impact summary) | "Operator should look but isn't blocked"               |
-| `danger`       | Remove confirm only                                                          | Reserved for irreversible (or hard-to-reverse) actions |
-| `neutral`      | checked-but-not-matched simulator tier, idle state                           | Default surface                                        |
-| `accent`       | active selection, focused input, primary action button                       | "This is what you're operating on"                     |
-
-The discipline: `danger` is only on Remove (and remove inside Move). Add is `warn` (high-friction confirm but not red). Scope patch is `warn` (hash advances; user should double-check). Simulate is non-destructive — `ok` or `warn` based on outcome, never `danger`.
-
-## Notes on benign Babel-standalone diagnostics
-
-Several TypeScript diagnostics fire when reading the `.jsx` files in isolation:
-
-- `Property 'BINDINGS' may not exist on type 'Window'` — globals are exported via `Object.assign(window, { BINDINGS, ... })` in `data.js`; the analyzer can't see runtime augmentation.
-- `Could not find name 'IconRoute' / 'TierBadge' / 'AgentChip' / ...` — these are exported via `Object.assign(window, { IconRoute, ... })` in `icons.jsx` and resolved at runtime.
-- `Could not find name 'React'` — Babel-standalone exposes `React` globally from the `<script>` tag in `prototype.html`.
-
-These are expected for the multi-script-tag pattern. Production code uses normal ES module imports and the diagnostics disappear.
-
-## Outstanding open questions
-
-The v1 codex prototype already documented these in `api-discrepancy.md`. They survive into v2 unchanged — none were resolved during this rebuild:
-
-1. **Reorder action**: the contract uses remove + add (two POSTs). Should Gateway expose `node.routing.reorder` as a single typed call to eliminate the partial-failure window?
-2. **Conflict severity**: `DeckGoRoutingConflict.type` is an open enum. Should it grow `severity: "blocker" | "warn" | "info"` for stronger gating?
-3. **Conflict ownership**: who computes advisory conflicts — Deck (BFF) or Gateway (Deck view)? Prototype computes locally for fast feedback.
-4. **Simulation explanation**: the tier timeline shows `matched / checked / skipped` but no "why" string. Should the contract grow `tiers[].reason: string` for human-readable explanation?
-5. **Stable binding IDs**: prototype uses `id` from the contract, computed as a hash of match content. Reordering changes order but not id. But the BFF can re-compute on add — UI shouldn't assume id stability across reorders if the backend chooses to recompute.
-6. **DM scope dependency**: scope changes can affect existing sessions (per-channel-peer → per-peer changes session-key derivation). Prototype just patches; production may want a "what changes" diff before commit.
-7. **Filter persistence**: filters are per-session in the prototype. Should they persist to URL hash so reload preserves them?
-8. **Bulk operations**: bulk delete, bulk move, bulk validate. Deferred — too risky without a "what would happen" preview.
-9. **Activity filter ownership**: prototype filters client-side. Production should add a server-side filter param to keep the payload small for high-traffic deployments.
-
-## Status of the V1 codex prototype
-
-Preserved as `prototype-v1-codex.html` (672 lines, single-file). Useful for:
-
-- Visual regression check against v2's component-extracted version.
-- Reference if a v2 component decision needs second-guessing — "what did v1 do here?"
-- Source-of-truth for the `api-discrepancy.md` open questions (verbatim from v1).
-
-The v2 multi-file rebuild does not deviate visually from v1 — it only refactors the implementation into the standard 6-file structure (prototype.html / data.js / icons.jsx / routing-queue.jsx / routing-detail.jsx / app.jsx + styles.css + tokens.css + tweaks-panel.jsx) so each file maps 1:1 to a component boundary that Claude Code will materialize as a `.tsx` in `../frontend-new/src/components/panels/routing/`.
+- Confirmed `frontend-handoff/modules/routing/prototype.html` as the active
+  target. The supported product flow remains the contract-backed two-card route
+  workbench: binding queue, selected binding detail, simulator, activity
+  projection, config hash, DM scope, and confirmation-gated mutations.
+- Fixed deterministic drift by aligning the production title/detail copy with
+  the prototype and expanding the mock Gateway fixture to eight
+  prototype-shaped bindings with config hash `9af31c2d80ab`.
+- Strengthened mock visual evidence now covers Chat -> Routing navigation,
+  dark/en, dark/zh, light/en, light/zh, selected queue detail, add draft,
+  remove confirmation cancellation, DM scope confirmation cancellation, and
+  simulation result. The parity report lives under
+  `.local/routing-prototype-remediation-parity-report/`.
+- Strengthened real Gateway evidence covers runtime readiness, list, validate,
+  simulate, add, post-add list, invalid remove/hash-mismatch shape, cleanup
+  attempt, Chat -> Routing navigation, all four theme/locale variants,
+  simulator, degraded empty/fixture state, BFF-only browser transport, and
+  unexpected console/page/API error recording.
+- Real mutation fixture evidence is degraded: `deck.routing.add` returned OK
+  with run-scoped binding id `b24ef8343a8d`, but a follow-up
+  `deck.routing.list` did not include that binding and cleanup by id returned
+  `NOT_FOUND`. The UI therefore records the real surface as empty/degraded
+  instead of claiming successful persistent add/remove round-trip behavior.
+- Accepted exceptions: Deck shell chrome differs from the standalone prototype;
+  production conflict detection is stricter and reports three conflicts for the
+  prototype-shaped fixture where the static prototype shows two; reorder remains
+  remove+add; conflict severity, simulation reasons, stable semantic binding
+  IDs, dedicated routing activity, bulk actions, and server-side route history
+  remain follow-up contract questions.

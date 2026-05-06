@@ -121,3 +121,101 @@ See `README.md#open-questions-for-implementation`. Notable items:
 - `isRepair` semantic — does the operator distinction matter?
 - Pending work payload typing (when does `queued` grow a real shape?)
 - Optimistic UI vs pessimistic for approve/reject — depends on Gateway latency
+
+## Codex implementation closeout — 2026-05-04
+
+Implemented under OpenSpec change `frontend-nodes-real-contract-verification`.
+
+### Contract-chain matrix
+
+| Workflow                 | Frontend wrapper                   | BFF route                                  | Gateway method                 | Classification                                                              |
+| ------------------------ | ---------------------------------- | ------------------------------------------ | ------------------------------ | --------------------------------------------------------------------------- |
+| inventory list           | `fetchNodes()`                     | `GET /api/nodes`                           | `node.list`                    | supported                                                                   |
+| selected detail          | `describeNode(nodeId)`             | `POST /api/nodes` action=`describe`        | `node.describe`                | supported                                                                   |
+| rename                   | `renameNode(nodeId, displayName)`  | `POST /api/nodes` action=`rename`          | `node.rename`                  | supported, confirm-gated                                                    |
+| invoke command           | `invokeNodeCommand(...)`           | `POST /api/nodes` action=`invoke`          | `node.invoke`                  | supported as dynamic envelope, confirm-gated                                |
+| pending enqueue          | `enqueueNodePendingWork(...)`      | `POST /api/nodes` action=`pending.enqueue` | `node.pending.enqueue`         | supported as dynamic envelope, confirm-gated                                |
+| pairing list             | `fetchNodePairing()`               | `GET /api/nodes/pair`                      | `node.pair.list`               | supported                                                                   |
+| pairing request          | `requestNodePairing(input)`        | `POST /api/nodes/pair` action=`request`    | `node.pair.request`            | supported, confirm-gated; body is flattened to match Go typed params        |
+| pairing approve          | `approveNodePairing(requestId)`    | `POST /api/nodes/pair` action=`approve`    | `node.pair.approve`            | supported, confirm-gated                                                    |
+| pairing reject           | `rejectNodePairing(requestId)`     | `POST /api/nodes/pair` action=`reject`     | `node.pair.reject`             | supported, danger confirm-gated; real E2E uses non-existent request id only |
+| pairing verify           | `verifyNodePairing(nodeId, token)` | `POST /api/nodes/pair` action=`verify`     | `node.pair.verify`             | supported, confirm-gated with client-side token length guard                |
+| orphan pairing selection | same pairing wrappers              | same pairing route                         | same pairing methods           | supported without `node.describe`                                           |
+| BFF-only browser access  | `fetchDeckJson` wrappers           | Deck Go backend only                       | Gateway only behind Go runtime | supported by mock and real browser request checks                           |
+| empty/error handling     | panel local state                  | route errors surfaced in panel             | Gateway may return 4xx/5xx     | supported/degraded depending on real Gateway state                          |
+
+### Fixes applied
+
+- Replaced browser-native `window.confirm` with an inline `ConfirmRow` for every mutating action: rename, invoke, pending enqueue, pairing request, approve, reject, and verify.
+- Moved `node.invoke` JSON validation before the confirm gate, so invalid params never open a confirmation or call the wrapper.
+- Added a 6-character client-side minimum for pairing token verification.
+- Default selection now prioritizes the first pending pairing request, matching the v2 workbench state model.
+- Expanded the rail KPI strip to nodes / connected / paired / pending and added compact platform/capability pills.
+- Fixed the handoff API drift for `node.pair.request`: the live Go BFF and generated Gateway params use flattened fields after `action` is removed, not an `input` wrapper.
+- Added API facade regression coverage for flattened `requestNodePairing` payloads.
+- Added `nodes-real-gateway.spec.ts` for bounded L2 route-shape and BFF-only UI evidence.
+
+### Verification evidence
+
+- Prototype smoke: `deck-go/frontend-handoff/modules/nodes/prototype.html` loaded through a local static server; title `Nodes — operations workbench`; no browser console/page errors.
+- Focused frontend tests: `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/nodes/NodesPanel.test.tsx src/api.chat-helpers.test.ts` passed, 2 files / 55 tests.
+- Focused Go tests: `cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw -run 'TestGatewayFacade_CommandsAndNodesRoutes|TestGatewayQueriesTyped'` passed.
+- L1 mock visual E2E: `cd deck-go && pnpm exec playwright test test/e2e/nodes-visual.spec.ts --config playwright.config.ts` passed.
+- L2 real Gateway E2E: `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/nodes-real-gateway.spec.ts --config playwright.config.ts` passed, including safe route-shape checks and no direct browser Gateway calls.
+- Endpoint classification: `cd deck-go && make endpoint-classification-check` passed.
+- Frontend build: `cd deck-go && make frontend-build` passed.
+- OpenSpec validation: `openspec validate frontend-nodes-real-contract-verification --strict` passed.
+- Whitespace check: `git diff --check` passed.
+
+### Residual risks / handoff
+
+- `node.invoke` and `node.pending.enqueue` now have typed Gateway/Deck outer envelopes; command-specific `payload` leaves remain dynamic until Gateway provides command-specific schemas.
+- Real E2E deliberately avoids destructive approve/reject against real pending device state; it uses non-existent IDs for safe action-shape checks.
+- Polling/WS refresh, pairing audit feed integration, QR/camera token UX, bulk actions, and generated command forms remain product gaps, not implementation omissions in this change.
+
+## Codex contract completion closeout — 2026-05-05
+
+Implemented under OpenSpec change `deck-go-nodes-command-contract-completion`.
+
+### Contract completion applied
+
+- Confirmed the previous matrix gap was stale: `node.invoke` and `node.pending.enqueue` have typed Gateway params/result outer envelopes in generated TypeScript and Go artifacts.
+- Kept `DeckGoNodeInvokeResponse.payload` and `DeckGoNodePendingWorkItem.payload` as documented dynamic leaves in `deck-api-dynamic-surfaces`.
+- Added Deck-facing action response DTOs for node rename and pairing approve/reject/verify.
+- Added mutation evidence for `nodes.rename`, `nodes.invoke`, `nodes.pending.enqueue`, `nodes.pair.request`, `nodes.pair.approve`, `nodes.pair.reject`, and `nodes.pair.verify`.
+- Routed representative Nodes API facades through shared mutation evidence helpers while preserving the browser-to-BFF transport boundary.
+
+### Completion verification evidence
+
+- Contract checks: `cd deck-go && make deck-api-check mutation-evidence-contract-test mutation-evidence-contract-check` passed.
+- Dynamic surface sync: `cd deck-go && make deck-api-dynamic-surfaces-sync` refreshed generated dynamic-surface docs for the new action DTOs.
+- Focused frontend: `cd deck-go/frontend-new && npm run test:deck-ui -- src/lib/mutation-evidence.test.ts src/api.chat-helpers.test.ts src/components/panels/nodes/NodesPanel.test.tsx` -> 72 tests passed.
+
+### Remaining product gaps
+
+- Command-specific forms still need Gateway command schemas before they can be generated safely.
+- Real node rename/invoke/pending/pairing mutations remain skipped-safe without disposable node/device fixtures.
+- Pairing audit feed integration, QR/camera token UX, bulk actions, and live refresh remain product follow-ups.
+
+## Prototype parity remediation closeout - 2026-05-06
+
+### Visual and product alignment
+
+- Confirmed `frontend-handoff/modules/nodes/prototype.html` is the active target: two-pane device trust and remote-control workbench with KPI rail, pending pairing, inventory, selected detail, pairing actions, invoke, pending work, and raw/dynamic payload affordances.
+- Fixed the deterministic mock fixture density drift: mock Gateway now exposes five prototype-shaped nodes, three connected nodes, four paired nodes, and two pending pairing requests.
+- Mock visual evidence now covers Chat -> Nodes shell navigation, dark/en, dark/zh, light/en, light/zh, repair pairing selected state, invoke confirmation/result, pending-work confirmation/result, BFF-only route traffic, and zero unexpected console/page/API errors.
+
+### Real Gateway evidence
+
+- Real E2E verified `/api/runtime/gateway`, `/api/nodes`, `/api/nodes/pair`, describe, invoke, pending enqueue, pair request, approve, reject, and verify route shapes through the Deck BFF.
+- Real E2E created a run-scoped pairing request in the isolated real stack, verified it was visible in all four UI variants, exercised the reject confirmation gate and canceled it, then rejected the run-scoped request through the BFF for cleanup.
+- Real UI evidence covered Chat -> Nodes navigation, dark/en, dark/zh, light/en, light/zh, BFF-only browser transport, and zero unexpected console/page/API errors.
+
+### Accepted exceptions
+
+- Deck shell chrome and the production "Selected node" heading/description differ from the standalone prototype but preserve the same two-pane operational layout.
+- Command-specific invoke forms remain unsupported because Gateway exposes dynamic payload leaves rather than per-command schemas.
+- Real rename, invoke side effects, pending enqueue side effects, approve, and verify remain skipped-safe unless a disposable paired device fixture exists.
+- Pairing audit feed, QR/camera token UX, bulk actions, and live refresh remain follow-up product contracts.
+
+Code truth remains authoritative over this note. If Gateway node command schemas or disposable node fixtures are added, update the BFF route contracts, dynamic-surface ledger, frontend wrappers, and this matrix before widening Nodes UI claims.

@@ -45,7 +45,7 @@ GET /api/docs?category={category}&q={query}
 The Go BFF supports optional `category` (matches `DeckGoDocCategory`) and `q` (free-text query) filter params. The panel may filter locally for immediate visual feedback (the prototype does), but it MUST NOT invent fields or shapes beyond `DeckGoDoc`.
 
 ```ts
-const response = await fetchDocs({ category: "summary", q: "webhook" });
+const response = await fetchDocs({ category: "summary", query: "webhook" });
 const docs = response.docs ?? [];
 ```
 
@@ -91,8 +91,9 @@ The UI MUST disable the Extract button when there is no active session. The prot
 
 ```
 DELETE /api/docs/{id}
-→ 204 on success
-→ 404 if already gone (treat as success — refresh list and continue)
+→ 200 `{ ok: true }` on current BFF success
+→ 204 is tolerated by the frontend wrapper if a future BFF switches to empty success
+→ 404 if already gone; the production `deleteDoc` wrapper treats this as success with `{ missing: true }` so the UI can refresh and continue
 → 401 if scope insufficient
 ```
 
@@ -102,15 +103,15 @@ Delete is a local store mutation. The UI MUST require confirmation (two-click or
 await deleteDoc(docId);
 ```
 
-## Caching strategy (production)
+## Caching strategy (future production)
 
-The list response is small enough to cache for the panel's lifetime. The detail response (when it stops being inlined in list) is cached per `id` until either:
+The current implementation caches only in React state for the panel lifetime. A future production cache can persist the list/detail response with the following invalidation rules:
 
 - `extractedAt` / `updatedAt` change in a subsequent list refresh
 - The user explicitly reloads
 - The local store is invalidated by a delete or extract
 
-Persist cache to localStorage with a 1-hour TTL so reloads are instant. Invalidate on:
+If persisted later, use a bounded TTL and invalidate on:
 
 - Successful `POST /api/docs/extract` (new docs invalidate list)
 - Successful `DELETE /api/docs/{id}` (drop the entry, refresh list)
@@ -121,7 +122,7 @@ Not applicable. Docs are static once extracted. The extract action is a fire-and
 
 ## Drift gate
 
-Run `cd deck-go && make contract-gate` after any DTO source edit. CI blocks merges that desync `deckapi.generated.go` and `deck-api.generated.ts` from `deck-api.contract.ts`. The frontend MUST consume types via `import type { DeckGoDoc } from "@/types/deck-api"` — do not redeclare the shape locally.
+Run `cd deck-go && make contract-gate` after any DTO source edit. CI blocks merges that desync `deckapi.generated.go` and `deck-api.generated.ts` from `deck-api.contract.ts`. The current frontend consumes generated Deck types through the `frontend-new/src/api.ts` facade/re-export path — do not redeclare the shape locally.
 
 ## BFF projection
 
@@ -138,11 +139,11 @@ The BFF transparently forwards requests to its docs store handler — there is n
 
 ## Scope & audit
 
-| Action                   | Required scope   | Audit row                              |
-| ------------------------ | ---------------- | -------------------------------------- |
-| `GET /api/docs`          | `operator.read`  | none                                   |
-| `GET /api/docs/{id}`     | `operator.read`  | none                                   |
-| `POST /api/docs/extract` | `operator.write` | yes (sessionKey + extracted count)     |
-| `DELETE /api/docs/{id}`  | `operator.admin` | yes (doc id + title at time of delete) |
+| Action                   | Current implementation                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/docs`          | Requires the deck-go access token; no per-action scope gate is exposed in the UI contract yet             |
+| `GET /api/docs/{id}`     | Requires the deck-go access token; returns 404 when absent                                                |
+| `POST /api/docs/extract` | Requires a non-empty `sessionKey`; calls managed runtime `chat.history`; no durable audit feed is exposed |
+| `DELETE /api/docs/{id}`  | Hard-deletes from the local store; UI requires confirmation; no durable audit feed is exposed             |
 
-The deck-go session token must carry the right scope. If the operator's grant is below `operator.write`, the Extract CTA MUST be hidden (not just disabled). Same rule for Delete.
+Future operator scopes can hide Extract/Delete based on `operator.write` / `operator.admin`, but that scope signal is not part of the current docs panel contract chain.

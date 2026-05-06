@@ -1,0 +1,42 @@
+scenarios:
+  active-prototype:
+    status: passed
+    evidence:
+      - deck-go/frontend-handoff/modules/logs/README.md
+      - deck-go/frontend-handoff/modules/logs/prototype.html
+      - deck-go/frontend-handoff/modules/logs/prototype-v1-codex.html
+  mock-prototype-parity:
+    status: passed
+    evidence:
+      - deck-go/.local/logs-remediation-mock-visual/logs-visual-logs-mock-visu-4b5b7-h-contract-shaped-mock-data/logs-workbench-ready.png
+      - deck-go/.local/logs-prototype-remediation-parity-report/sheet-14.png
+      - deck-go/.local/logs-prototype-remediation-parity-report/verdict.md
+  focused-frontend:
+    status: passed
+    evidence:
+      - cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/logs/LogsPanel.test.tsx src/hooks/useLiveProjectionSubscription.test.tsx
+  focused-backend-or-contract:
+    status: skipped-safe
+    evidence:
+      - No backend or source contract files were changed; contract truth was read from generated/source artifacts and documented in handoff.
+  real-gateway-safe-reads:
+    status: passed
+    evidence:
+      - cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/logs-real-gateway.spec.ts --config playwright.config.ts --output .local/logs-remediation-real-e2e-strengthened --reporter=line
+      - deck-go/.local/logs-remediation-real-e2e-strengthened/logs-real-gateway-logs-rea-aa5e7--through-the-real-stack-BFF/attachments/logs-api-safe-activity-b76fc081b1afb413cd551538eae51566998ba8e4.json
+  real-gateway-product-surface:
+    status: passed
+    evidence:
+      - deck-go/.local/logs-remediation-real-e2e-strengthened/logs-real-gateway-logs-rea-73758-and-safe-child-interactions/attachments/logs-ui-product-surface-c43ba69f6d46103e43b0a997e4a633e06696b0b8.json
+  real-gateway-safe-activity:
+    status: passed
+    evidence:
+      - Runtime, describe, activity, logs, and agents.list safe activity all returned 200 before UI validation.
+  real-stream-reachability:
+    status: passed
+    evidence:
+      - /api/logs/stream emitted a real log.batch event in logs-api-safe-activity evidence.
+  bff-only-browser-transport:
+    status: passed
+    evidence:
+      - logs-real-gateway.spec.ts records page requests/websockets to the real Gateway URL and failed if any direct Gateway browser traffic occurred.

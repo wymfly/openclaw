@@ -3,6 +3,7 @@ import type { GatewayMethodMetadataModule } from "../method-registry.js";
 import { gatewayMethodMetadataModule as agentMetadataModule } from "./agent.method-defs.js";
 import { gatewayMethodMetadataModule as agentsMetadataModule } from "./agents.method-defs.js";
 import { gatewayMethodMetadataModule as chatMetadataModule } from "./chat.method-defs.js";
+import { gatewayMethodMetadataModule as commandsMetadataModule } from "./commands.method-defs.js";
 import { gatewayMethodMetadataModule as configMetadataModule } from "./config.method-defs.js";
 import { gatewayMethodMetadataModule as controlPlaneMetadataModule } from "./control-plane.method-defs.js";
 import { gatewayMethodMetadataModule as deckAuthMetadataModule } from "./deck-auth.method-defs.js";
@@ -23,19 +24,24 @@ import { gatewayMethodMetadataModule as describeMetadataModule } from "./describ
 import { gatewayMethodMetadataModule as deviceMetadataModule } from "./device.method-defs.js";
 import { gatewayMethodMetadataModule as eventsMetadataModule } from "./events.method-defs.js";
 import { gatewayMethodMetadataModule as gatewayBatchMetadataModule } from "./gateway-batch.method-defs.js";
+import { gatewayMethodMetadataModule as logsMetadataModule } from "./logs.method-defs.js";
 import { gatewayMethodMetadataModule as modelsCatalogProvidersMetadataModule } from "./models-catalog-providers.method-defs.js";
 import { gatewayMethodMetadataModule as modelsConfiguredMetadataModule } from "./models-configured.method-defs.js";
 import { gatewayMethodMetadataModule as modelsListMetadataModule } from "./models-list.method-defs.js";
 import { gatewayMethodMetadataModule as nodeMetadataModule } from "./node.method-defs.js";
+import { gatewayMethodMetadataModule as nodesPendingMetadataModule } from "./nodes-pending.method-defs.js";
 import { gatewayMethodMetadataModule as sessionsMetadataModule } from "./sessions.method-defs.js";
 import { gatewayMethodMetadataModule as skillsMetadataModule } from "./skills.method-defs.js";
 import { gatewayMethodMetadataModule as talkMetadataModule } from "./talk.method-defs.js";
+import { gatewayMethodMetadataModule as toolsCatalogMetadataModule } from "./tools-catalog.method-defs.js";
+import { gatewayMethodMetadataModule as toolsEffectiveMetadataModule } from "./tools-effective.method-defs.js";
 import { gatewayMethodMetadataModule as wizardMetadataModule } from "./wizard.method-defs.js";
 
 export const gatewayMethodMetadataModules: readonly GatewayMethodMetadataModule[] = [
   agentMetadataModule,
   agentsMetadataModule,
   chatMetadataModule,
+  commandsMetadataModule,
   configMetadataModule,
   controlPlaneMetadataModule,
   deckAuthMetadataModule,
@@ -56,12 +62,16 @@ export const gatewayMethodMetadataModules: readonly GatewayMethodMetadataModule[
   deviceMetadataModule,
   eventsMetadataModule,
   gatewayBatchMetadataModule,
+  logsMetadataModule,
   modelsCatalogProvidersMetadataModule,
   modelsConfiguredMetadataModule,
   modelsListMetadataModule,
   nodeMetadataModule,
+  nodesPendingMetadataModule,
   sessionsMetadataModule,
   skillsMetadataModule,
   talkMetadataModule,
+  toolsCatalogMetadataModule,
+  toolsEffectiveMetadataModule,
   wizardMetadataModule,
 ];

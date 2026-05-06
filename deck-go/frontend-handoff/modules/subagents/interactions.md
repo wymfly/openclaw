@@ -2,6 +2,9 @@
 
 > Pointer, keyboard, hover, empty, error, and dialog flows.
 
+> Production note: Steer/Kill are implemented through `POST /api/deck/subagents` action envelopes.
+> Real E2E treats live mutations as skipped-safe unless a disposable run fixture exists.
+
 ## Keyboard
 
 | Key                 | Context                | Behavior                                                |

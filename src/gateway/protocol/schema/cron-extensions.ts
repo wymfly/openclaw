@@ -55,7 +55,13 @@ export const CronRunResultSchema = Type.Object(
     enqueued: Type.Optional(Type.Boolean()),
     runId: Type.Optional(Type.String()),
     ran: Type.Optional(Type.Boolean()),
-    reason: Type.Optional(Type.Union([Type.Literal("already-running"), Type.Literal("not-due")])),
+    reason: Type.Optional(
+      Type.Union([
+        Type.Literal("already-running"),
+        Type.Literal("not-due"),
+        Type.Literal("invalid-spec"),
+      ]),
+    ),
   },
   { additionalProperties: false },
 );

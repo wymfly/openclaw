@@ -1,38 +1,43 @@
 # gateway — interactions (v2)
 
+## Production delta
+
+The implemented panel keeps the v2 tab/describe/batch/product model, but the
+batch composer is inline rather than a modal. The production route is
+`POST /api/v1/runtimes/{runtimeId}/gateway/batch`; it executes real calls, so
+only read-only child methods from `gateway.describe` are selectable and remote
+mode locks submission.
+
 ## Pointer
 
-- **Topbar Refresh click** → bumps `health.ts` (production refetches health + status).
-- **Tab click** → switches active tab. No refetch. Composer modal closes if was open.
+- **Topbar Refresh click** → refetches runtime summary, health, status, describe, activity, and monitor projections.
+- **Tab click** → switches active tab. No refetch.
 - **DescribeExplorer mode tab click** → switches Methods ↔ Events; clears selection.
 - **DescribeExplorer scope filter click** → updates filter; selection preserved if still in filter.
 - **DescribeExplorer search input change** → live filter on name + scope.
 - **DescribeExplorer row click** → selects entry; right pane reveals JSON.
 - **DescribeExplorer row Enter / Space** → identical to click.
 - **Batch row head click** → toggles expansion. Other batches stay collapsed.
-- **Dry-run batch click** → opens BatchComposer modal.
 - **Composer add-call click** → appends a new call with default method.
-- **Composer remove-call click** → removes the call. Disabled during `running`.
-- **Composer Submit click** → enters `running` phase; 720-1080ms timer; returns synthetic results.
-- **Composer Cancel / backdrop click** → closes modal. Disabled during `running`.
+- **Composer remove-call click** → removes the call. Disabled during submission.
+- **Composer Submit click** → validates method safety + JSON locally, posts the runtime-scoped batch request, then inserts the real response into Recent batches.
 
 ## Keyboard
 
-| Key                 | Context                      | Behavior                                                                                          |
-| ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------- |
-| `Enter` / `Space`   | focused describe row         | Select entry.                                                                                     |
-| `Enter` / `Space`   | focused batch row head       | Toggle expansion.                                                                                 |
-| `Esc`               | composer modal open          | Close modal (except `running` phase).                                                             |
-| `Tab` / `Shift Tab` | within composer modal        | Cycle through method input → params input → status pill (read-only) → Add call → Submit / Cancel. |
-| `Enter`             | composer method/params input | Submit (if valid + not running).                                                                  |
+| Key                 | Context                      | Behavior                                                             |
+| ------------------- | ---------------------------- | -------------------------------------------------------------------- |
+| `Enter` / `Space`   | focused describe row         | Select entry.                                                        |
+| `Enter` / `Space`   | focused batch row head       | Toggle expansion.                                                    |
+| `Tab` / `Shift Tab` | within inline composer       | Move through method select → params textarea → Add call → Run batch. |
+| `Enter`             | composer method/params input | Submit (if valid + not running).                                     |
 
-The composer modal's `running` phase is **non-cancellable** — Esc + backdrop
-no-op while the simulated 720-1080ms timer is in flight.
+The composer has no modal phase in production; submission is cancellable only by
+waiting for the BFF request to settle and correcting the input.
 
 ## Hover
 
 - **Topbar pills** — no hover (informational only).
-- **Refresh / Dry-run button** — bg lifts to `--ds-bg-hover`; primary
+- **Refresh / Run batch button** — bg lifts to `--ds-bg-hover`; primary
   inverts to filled accent.
 - **Channel pill / Agent pill** — no hover (informational only).
 - **Throughput card** — no hover; spark `<title>` SVG tooltips
@@ -61,16 +66,16 @@ The Tweaks panel toggles between the two via `data-density` on the root.
 
 ## Empty / loading / error
 
-| Scenario                                | UI                                                           |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `describe.methods` empty + Methods mode | Empty card "No entries match." Untyped footer hidden.        |
-| Search filter clears all                | Empty card. Filters remain visible.                          |
-| `recentBatches === []`                  | Batch list empty (head still shows summary stats).           |
-| Composer phase = `running`              | Spinner row + composer locked + close disabled.              |
-| Composer phase = `done`                 | Green badge with ok/err counts + per-call status updates.    |
-| Activity audit empty                    | (production target) "No recent activity." inline.            |
-| Bootstrap not ready                     | Bootstrap pill flips error tone.                             |
-| Health probe slow (>1s)                 | KPI cell shows "1.2s" rather than ms (formatMs auto-scales). |
+| Scenario                                | UI                                                            |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `describe.methods` empty + Methods mode | Empty card "No entries match." Untyped footer hidden.         |
+| Search filter clears all                | Empty card. Filters remain visible.                           |
+| `recentBatches === []`                  | Batch list empty (head still shows summary stats).            |
+| Composer submitting                     | Composer locked until BFF response resolves.                  |
+| Batch submitted                         | Recent batch row inserted and expanded with per-call results. |
+| Activity audit empty                    | (production target) "No recent activity." inline.             |
+| Bootstrap not ready                     | Bootstrap pill flips error tone.                              |
+| Health probe slow (>1s)                 | KPI cell shows "1.2s" rather than ms (formatMs auto-scales).  |
 
 ## Focus
 
@@ -78,8 +83,7 @@ The Tweaks panel toggles between the two via `data-density` on the root.
 - After Refresh → focus stays on Refresh.
 - After describe row click → focus stays on the row.
 - After batch row expand → focus stays on the head.
-- After composer open → focus jumps to first method input (production target).
-- After composer close → focus returns to the Dry-run trigger.
+- Inline composer keeps focus on the clicked control.
 
 ## A11y semantics
 
@@ -101,11 +105,9 @@ The Tweaks panel toggles between the two via `data-density` on the root.
 - **BatchConsole**:
   - Per-batch `<button>` head has `aria-expanded` reflecting state.
   - Expanded body uses standard `<table>`.
-- **Composer modal**:
-  - `role="dialog" aria-modal="true" aria-label="Batch composer"`.
-  - Close button has `aria-label="Close composer"`.
-  - Phase strip running uses `role="status"`.
-  - Phase strip error uses `role="alert"` (production target).
+- **Inline batch composer**:
+  - Method select and params textarea carry per-call accessible labels.
+  - Validation/submission failures use `role="alert"`.
 - **Activity rows**: status pill text is sufficient for screen readers
   (icon + text; not icon-only).
 
@@ -120,8 +122,8 @@ Production translation drops the panel entirely.
 
 ## Read-only behavior + 1 mutation
 
-This is a **read-only panel** with one exception: the `gateway.batch`
-dry-run composer.
+This is a **read-mostly panel** with one exception: the bundled-only read-only
+`gateway.batch` composer.
 
 Read-only:
 
@@ -133,9 +135,9 @@ Read-only:
 
 Mutation:
 
-- `gateway.batch` dry-run lets the operator compose a batch and submit
-  it. In bundled mode the result is an actual batch run; in remote mode
-  the composer trigger is hidden / disabled.
+- `gateway.batch` lets the operator compose and submit read-only child calls.
+  In bundled mode the result is an actual batch run; in remote mode the
+  composer is disabled.
 
 ## Cross-section coupling
 

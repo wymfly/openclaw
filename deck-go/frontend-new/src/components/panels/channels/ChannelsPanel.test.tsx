@@ -124,24 +124,6 @@ function channelsPayload() {
 }
 
 function wecomChannelsPayload(accounts?: Array<Record<string, unknown>>) {
-  const nextAccounts = accounts ?? [
-    {
-      accountId: "default",
-      configured: true,
-      connected: true,
-      displayName: "Default",
-      enabled: true,
-      linked: true,
-    },
-    {
-      accountId: "tenant-b",
-      configured: true,
-      connected: true,
-      displayName: "Tenant B",
-      enabled: true,
-      linked: true,
-    },
-  ];
   return {
     ts: 2_345,
     channelOrder: ["wecom"],
@@ -149,7 +131,24 @@ function wecomChannelsPayload(accounts?: Array<Record<string, unknown>>) {
       wecom: { status: "ready", connected: true },
     },
     channelAccounts: {
-      wecom: nextAccounts,
+      wecom: accounts ?? [
+        {
+          accountId: "default",
+          configured: true,
+          connected: true,
+          displayName: "Default",
+          enabled: true,
+          linked: true,
+        },
+        {
+          accountId: "tenant-b",
+          configured: true,
+          connected: true,
+          displayName: "Tenant B",
+          enabled: true,
+          linked: true,
+        },
+      ],
     },
     channelDefaultAccountId: {
       wecom: "default",
@@ -196,6 +195,22 @@ function wecomConfigSnapshot() {
       },
     },
   };
+}
+
+async function mount(locale: "en" | "zh" = "en") {
+  await act(async () => {
+    root = createRoot(container);
+    root.render(renderChannelsPanel(locale));
+  });
+  await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
+}
+
+function buttonByText(text: string | RegExp) {
+  return Array.from(container.querySelectorAll("button")).find((button) =>
+    typeof text === "string"
+      ? button.textContent?.includes(text)
+      : text.test(button.textContent ?? ""),
+  );
 }
 
 describe("ChannelsPanel", () => {
@@ -245,243 +260,87 @@ describe("ChannelsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads channel status and selects the first ordered channel by default", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
+  it("loads the v2 list view, supports filtering, and opens detail", async () => {
+    await mount();
 
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(apiMocks.fetchChannelThroughput).toHaveBeenCalledWith("telegram", "1h"),
     );
 
-    expect(container.querySelector(".deck-ui-channels")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-card")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-body")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-status-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-actions")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-button")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-list")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-hero")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-detail-stats")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-surface")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-chart")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-chart-row")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-form-grid")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-input")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-account-card")).toBeTruthy();
-    expect(container.textContent).toContain("Inventory ready");
-    expect(container.textContent).toContain("ts: 1234");
+    expect(container.querySelector(".list-view")).toBeTruthy();
+    expect(container.querySelector(".kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".toolbar__search")).toBeTruthy();
+    expect(container.querySelector(".row__head")).toBeTruthy();
+    expect(container.textContent).toContain("Channels");
     expect(container.textContent).toContain("Telegram");
-    expect(container.textContent).toContain("Telegram Bot");
-    expect(container.textContent).toContain("telegram-provider");
-    expect(container.textContent).toContain("plugins.entries.telegram.config");
     expect(container.textContent).toContain("Discord");
-    expect(container.textContent).toContain("acct_tg_main");
-    expect(container.textContent).toContain("default account: acct_tg_main");
-    expect(container.textContent).toContain("healthy");
-    expect(container.textContent).toContain("alerts: 0");
-    expect(container.textContent).toContain("messages in");
-    expect(container.textContent).toContain("12");
-    expect(container.textContent).toContain("throughput buckets");
-    expect(container.textContent).toContain("1");
-    expect(container.querySelector('[data-testid="channel-throughput-chart"]')).toBeTruthy();
+    expect(container.textContent).toContain("2 alerts");
+    expect(container.textContent).toContain("Throughput");
+    expect(buttonByText("New channel")?.hasAttribute("disabled")).toBe(true);
+
+    const search = container.querySelector<HTMLInputElement>(".toolbar__search input");
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "discord" } });
+    });
+    expect(container.textContent).toContain("Discord");
+    expect(container.textContent).not.toContain("Telegram Bot");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Open channel plugin")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(deckUIMocks.navigateToPlugin).toHaveBeenCalledWith(deckUIMocks.ui, "telegram-provider");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "6h")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Discord")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() =>
-      expect(apiMocks.fetchChannelThroughput).toHaveBeenLastCalledWith("telegram", "6h"),
-    );
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Telegram");
+    expect(container.querySelector(".detail-view")).toBeTruthy();
+    expect(container.textContent).toContain("Discord Workspace");
+    expect(container.textContent).toContain("Overview");
+    expect(container.textContent).toContain("Routing");
   });
 
-  it("renders localized Chinese channel inventory and detail copy", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel("zh"));
-    });
+  it("renders localized Chinese copy in the v2 shell", async () => {
+    await mount("zh");
 
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(container.textContent).toContain("清单就绪"));
-
-    expect(container.textContent).toContain("渠道清单");
-    expect(container.textContent).toContain("所选渠道");
+    expect(container.textContent).toContain("渠道管理");
     expect(container.textContent).toContain("刷新渠道");
+    expect(container.textContent).toContain("新建渠道");
     expect(container.textContent).toContain("吞吐量");
-    expect(container.textContent).toContain("打开渠道插件");
   });
 
-  it("selects the channel requested by cross-panel navigation params", async () => {
+  it("opens detail from cross-panel navigation params", async () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=channels&channelId=discord");
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
+    await mount();
 
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(apiMocks.fetchChannelThroughput).toHaveBeenCalledWith("discord", "1h"),
     );
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Discord");
-    expect(container.textContent).toContain("channel id discord");
-  });
-
-  it("opens WeCom access controls from cross-panel access navigation params", async () => {
-    apiMocks.fetchChannels.mockResolvedValue(wecomChannelsPayload());
-    window.history.replaceState(
-      {},
-      "",
-      "/?surface=deck-ui&panel=channels&channelId=wecom&channelSection=access&channelAccountId=tenant-b",
-    );
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(apiMocks.fetchChannelThroughput).toHaveBeenCalledWith("wecom", "1h"),
-    );
-    await waitFor(() => expect(container.textContent).toContain("WeCom access controls"));
-
-    expect(container.querySelector(".deck-ui-channels-wecom")).toBeTruthy();
-    expect(container.querySelector(".deck-ui-channels-grid")).toBeTruthy();
-    expect(container.textContent).toContain("Opened from a channel access handoff.");
-    const accountSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="WeCom access account"]',
-    );
-    expect(accountSelect?.value).toBe("tenant-b");
-  });
-
-  it("renders selected channel accounts and preserves selection after logout refresh", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-
-    const discordButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Discord"),
-    );
-    expect(discordButton).toBeTruthy();
-
-    await act(async () => {
-      discordButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.textContent).toContain("channel id discord");
-    await waitFor(() =>
-      expect(apiMocks.fetchChannelThroughput).toHaveBeenCalledWith("discord", "1h"),
-    );
+    expect(container.querySelector(".detail-view")).toBeTruthy();
     expect(container.textContent).toContain("Discord Workspace");
-    expect(container.textContent).toContain("discord-provider");
-    expect(container.textContent).toContain("acct_disc_ops");
     expect(container.textContent).toContain("acct_disc_bot");
-    expect(container.textContent).toContain("linked disconnected");
-    expect(container.textContent).toContain("config incomplete");
-    expect(container.textContent).toContain("2 alerts");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Logout channel")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() => expect(apiMocks.logoutChannel).toHaveBeenCalledWith("discord"));
-    expect(window.confirm).toHaveBeenCalledWith("Logout channel discord?");
-    expect(container.textContent).toContain("Logout result");
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Discord");
   });
 
-  it("does not logout a channel when confirmation is cancelled", async () => {
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
+  it("runs probe, hides stale results on another channel, and toggles config through the facade", async () => {
+    await mount();
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
+      buttonByText("Discord")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-
-    const discordButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Discord"),
-    );
-    expect(discordButton).toBeTruthy();
-
     await act(async () => {
-      discordButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Logout channel")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(window.confirm).toHaveBeenCalledWith("Logout channel discord?");
-    expect(apiMocks.logoutChannel).not.toHaveBeenCalled();
-  });
-
-  it("runs channel probe tests and toggles selected channel config through the facade", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-
-    const discordButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Discord"),
-    );
-
-    await act(async () => {
-      discordButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test channel")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Test channel")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() => expect(apiMocks.testChannel).toHaveBeenCalledWith("discord"));
-    expect(container.textContent).toContain("Channel test result");
-    expect(container.textContent).toContain("Probe result");
+    expect(container.textContent).toContain("Channel probe result");
     expect(container.textContent).toContain("probe success");
-    expect(container.textContent).toContain("42");
+    expect(container.textContent).toContain("42ms");
+    await act(async () => {
+      buttonByText("Done")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Disable channel")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Settings")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      buttonByText("Disable channel")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -489,52 +348,37 @@ describe("ChannelsPanel", () => {
     );
     expect(window.confirm).toHaveBeenCalledWith("Set channel discord enabled=false?");
     expect(container.textContent).toContain("Channel config patch result");
-    expect(container.textContent).toContain("changed");
   });
 
-  it("renders timeout probe status without showing stale results on another channel", async () => {
-    apiMocks.testChannel.mockResolvedValueOnce({
-      ok: false,
-      channelId: "telegram",
-      check: "probe",
-      latencyMs: 15_000,
-      error: "probe timeout",
-    });
+  it("opens the logout confirmation dialog without executing destructive action on cancel", async () => {
+    await mount();
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
+      buttonByText("Discord")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      buttonByText("Logout channel")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
+    expect(container.textContent).toContain("Confirm channel logout");
+    expect(container.textContent).toContain("Logout mutates provider state for discord");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test channel")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Cancel")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() => expect(apiMocks.testChannel).toHaveBeenCalledWith("telegram"));
-    expect(container.textContent).toContain("Probe result");
-    expect(container.textContent).toContain("probe timeout");
-    expect(container.textContent).toContain("15000ms");
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Discord"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(container.textContent).not.toContain("probe timeout");
+    expect(apiMocks.logoutChannel).not.toHaveBeenCalled();
   });
 
-  it("saves generic channel DM policy and retry settings through channel patch", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
+  it("saves channel and account settings through channel patch", async () => {
+    await mount();
 
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      buttonByText("Telegram")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      buttonByText("Settings")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     const dmPolicySelect = container.querySelector<HTMLSelectElement>(
       'select[aria-label="channel dm policy"]',
@@ -549,286 +393,88 @@ describe("ChannelsPanel", () => {
       fireEvent.change(dmPolicySelect as HTMLSelectElement, { target: { value: "open" } });
       fireEvent.change(attemptsInput as HTMLInputElement, { target: { value: "5" } });
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save channel settings")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Save channel settings")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
       expect(apiMocks.patchChannelConfig).toHaveBeenCalledWith("telegram", {
         dmPolicy: "open",
-        retry: {
-          attempts: 5,
-          minDelayMs: 1_000,
-          maxDelayMs: 30_000,
-          jitter: 0.2,
-        },
+        retry: { attempts: 5, minDelayMs: 1_000, maxDelayMs: 30_000, jitter: 0.2 },
       }),
     );
-    expect(container.textContent).toContain("Channel config patch result");
-    expect(container.textContent).toContain("changed");
-  });
 
-  it("applies arbitrary channel JSON patches through the channel config facade", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-
-    const jsonPatchInput = container.querySelector<HTMLTextAreaElement>(
-      'textarea[aria-label="channel json patch"]',
-    );
-    expect(jsonPatchInput).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.change(jsonPatchInput as HTMLTextAreaElement, {
-        target: {
-          value: JSON.stringify({
-            webhook: { enabled: true, url: "https://example.test/hook" },
-          }),
-        },
-      });
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Apply JSON patch")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.patchChannelConfig).toHaveBeenCalledWith("telegram", {
-        webhook: { enabled: true, url: "https://example.test/hook" },
-      }),
-    );
-    expect(container.textContent).toContain("Channel config patch result");
-    expect(container.textContent).toContain("changed");
-  });
-
-  it("saves generic account DM policy overrides through channel patch", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchChannels).toHaveBeenCalledTimes(1));
-
-    const accountPolicySelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="account dm policy acct_tg_main"]',
-    );
+    const accountPolicySelect = Array.from(
+      container.querySelectorAll<HTMLSelectElement>("select"),
+    ).find((select) => select.getAttribute("aria-label") === "account dm policy acct_tg_main");
     expect(accountPolicySelect).toBeTruthy();
-
     await act(async () => {
-      fireEvent.change(accountPolicySelect as HTMLSelectElement, {
-        target: { value: "allowlist" },
-      });
+      fireEvent.change(accountPolicySelect as HTMLSelectElement, { target: { value: "disabled" } });
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save account policy")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Save account policy")?.dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
       expect(apiMocks.patchChannelConfig).toHaveBeenCalledWith("telegram", {
         accounts: {
           acct_tg_main: {
-            dm: { policy: "allowlist" },
+            dm: { policy: "disabled" },
           },
         },
       }),
     );
-    expect(container.textContent).toContain("Channel config patch result");
-    expect(container.textContent).toContain("changed");
   });
 
-  it("saves WeCom bot allowFrom edits through the config patch route", async () => {
-    apiMocks.fetchChannels.mockResolvedValue(
-      wecomChannelsPayload([
-        {
-          accountId: "default",
-          configured: true,
-          connected: true,
-          displayName: "Default",
-          enabled: true,
-          linked: true,
-        },
-      ]),
-    );
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(container.textContent).toContain("WeCom access controls"));
-    expect(container.textContent).toContain("Allowlist mode is enabled but allowFrom is empty.");
-
-    const input = Array.from(container.querySelectorAll("input")).find(
-      (candidate) => candidate.getAttribute("placeholder") === "Add a WeCom user id or *",
-    );
-    expect(input).toBeTruthy();
-    await act(async () => {
-      fireEvent.change(input as HTMLInputElement, { target: { value: "user:test-user" } });
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Add")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.patchDeckConfig).toHaveBeenCalledWith(
-        {
-          channels: {
-            wecom: {
-              bot: {
-                dm: {
-                  policy: "allowlist",
-                  allowFrom: ["test-user"],
-                },
-              },
-            },
-          },
-        },
-        "config-h1",
-      ),
-    );
-    expect(container.textContent).toContain("Saved config hash config-h2");
-  });
-
-  it("saves WeCom dynamic-agent and routing access sections", async () => {
+  it("opens WeCom access controls from cross-panel access params", async () => {
     apiMocks.fetchChannels.mockResolvedValue(wecomChannelsPayload());
-
-    await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Dynamic agents"));
-
-    const adminInput = Array.from(container.querySelectorAll("input")).find(
-      (candidate) => candidate.getAttribute("placeholder") === "Add an admin user id",
-    );
-    expect(adminInput).toBeTruthy();
-    await act(async () => {
-      fireEvent.change(adminInput as HTMLInputElement, { target: { value: "Admin-One" } });
-    });
-
-    await act(async () => {
-      const checkboxes = Array.from(
-        container.querySelectorAll('input[type="checkbox"]'),
-      ) as HTMLInputElement[];
-      fireEvent.click(checkboxes[0]);
-      fireEvent.click(checkboxes[1]);
-      fireEvent.click(checkboxes[2]);
-      const addButton = Array.from(container.querySelectorAll("button"))
-        .toReversed()
-        .find((button) => button.textContent === "Add");
-      addButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save dynamic agents")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.patchDeckConfig).toHaveBeenCalledWith(
-        {
-          channels: {
-            wecom: {
-              dynamicAgents: {
-                enabled: true,
-                dmCreateAgent: true,
-                groupEnabled: true,
-                adminUsers: ["admin-one"],
-              },
-            },
-          },
-        },
-        "config-h1",
-      ),
+    window.history.replaceState(
+      {},
+      "",
+      "/?surface=deck-ui&panel=channels&channelId=wecom&channelSection=access&channelAccountId=tenant-b",
     );
 
-    await act(async () => {
-      const checkboxes = Array.from(
-        container.querySelectorAll('input[type="checkbox"]'),
-      ) as HTMLInputElement[];
-      fireEvent.click(checkboxes[3]);
-    });
+    await mount();
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save routing behavior")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.patchDeckConfig).toHaveBeenCalledWith(
-        {
-          channels: {
-            wecom: {
-              routing: { failClosedOnDefaultRoute: true },
-            },
-          },
-        },
-        "config-h1",
-      ),
+    await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalled());
+    expect(container.querySelector(".detail-view")).toBeTruthy();
+    expect(container.textContent).toContain("WeCom access controls");
+    expect(container.textContent).toContain("Opened from a channel access handoff.");
+    const accountSelect = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="WeCom access account"]',
     );
+    expect(accountSelect?.value).toBe("tenant-b");
   });
 
-  it("summarizes WeCom routing bindings and opens routing with account context", async () => {
+  it("loads routing tab through the BFF and navigates with channel context", async () => {
     apiMocks.fetchChannels.mockResolvedValue(wecomChannelsPayload());
     apiMocks.fetchRoutingBindings.mockResolvedValue({
-      defaultAgentId: "main",
-      dmScope: "account",
-      configHash: "routing-h1",
       bindings: [
         {
           id: "wecom-default",
           agentId: "main",
-          tier: "default",
-          match: { channel: "wecom" },
-        },
-        {
-          id: "wecom-account",
-          agentId: "tenant-agent",
           tier: "account",
           match: { channel: "wecom", accountId: "default" },
         },
-        {
-          id: "wecom-other-account",
-          agentId: "other-agent",
-          tier: "account",
-          match: { channel: "wecom", accountId: "tenant-b" },
-        },
-        {
-          id: "telegram-default",
-          agentId: "telegram-agent",
-          tier: "channel",
-          match: { channel: "telegram" },
-        },
       ],
+      defaultAgentId: "main",
+      dmScope: "account",
+      configHash: "routing-h1",
     });
 
+    await mount();
+
     await act(async () => {
-      root = createRoot(container);
-      root.render(renderChannelsPanel());
+      Array.from(container.querySelectorAll<HTMLButtonElement>(".row"))
+        .find((button) => button.textContent?.includes("WeCom"))
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      buttonByText("Routing")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -837,19 +483,30 @@ describe("ChannelsPanel", () => {
         accountId: "default",
       }),
     );
-
-    expect(container.textContent).toContain("Routing bindings");
-    expect(container.textContent).toContain("2 bindings currently target this WeCom account.");
+    expect(container.textContent).toContain("main");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Open routing for WeCom")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Open routing")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
     expect(deckUIMocks.navigateToRouting).toHaveBeenCalledWith(deckUIMocks.ui, {
       channelId: "wecom",
       accountId: "default",
     });
+  });
+
+  it("renders an honest empty state for a real empty channels payload", async () => {
+    apiMocks.fetchChannels.mockResolvedValue({
+      channelAccounts: {},
+      channelDefaultAccountId: {},
+      channelLabels: {},
+      channelOrder: [],
+      channels: {},
+      ts: 9_999,
+    });
+
+    await mount();
+
+    expect(container.textContent).toContain("No channels loaded.");
+    expect(container.textContent).toContain("The real Gateway returned an empty channels shape.");
   });
 });

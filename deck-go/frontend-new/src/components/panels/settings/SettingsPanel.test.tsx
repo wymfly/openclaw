@@ -22,7 +22,6 @@ const apiMocks = vi.hoisted(() => ({
   saveSettings: vi.fn(),
   streamEvents: vi.fn(),
   testEndpoint: vi.fn(),
-  testSettingsConnection: vi.fn(),
   updateEndpoint: vi.fn(),
 }));
 
@@ -59,22 +58,8 @@ function settingsPayload() {
   return {
     path: "/tmp/deck-go.json",
     settings: {
-      accessToken: "",
       accessTokenConfigured: true,
-      accessTokenSource: "settings",
-      managedGateway: {
-        mode: "managed",
-        command: "pnpm",
-        args: ["openclaw", "gateway", "run", "--config", "/tmp/open claw/config.json"],
-        workingDir: "/tmp/openclaw",
-        bindHost: "127.0.0.1",
-        bindPort: 18789,
-        gatewayToken: "",
-        gatewayTokenConfigured: true,
-        gatewayTokenSource: "settings",
-        autoStart: false,
-        env: { NO_PROXY: "localhost,127.0.0.1" },
-      },
+      accessTokenSource: "env",
     },
   };
 }
@@ -124,7 +109,34 @@ function devicesPayload() {
 }
 
 function renderSettingsPanel(locale: "en" | "zh" = "en") {
-  return createElement(DeckIntlProvider, { locale }, createElement(SettingsPanel));
+  act(() => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(SettingsPanel)));
+  });
+}
+
+function buttons() {
+  return Array.from(container.querySelectorAll("button"));
+}
+
+function clickButton(text: string) {
+  const button = buttons().find(
+    (entry) => entry.textContent === text || entry.textContent?.includes(text),
+  );
+  expect(button, `button ${text}`).toBeTruthy();
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+async function clickButtonAsync(text: string) {
+  const button = buttons().find(
+    (entry) => entry.textContent === text || entry.textContent?.includes(text),
+  );
+  expect(button, `button ${text}`).toBeTruthy();
+  await act(async () => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
 }
 
 describe("SettingsPanel", () => {
@@ -159,10 +171,9 @@ describe("SettingsPanel", () => {
     apiMocks.removeDevice.mockResolvedValue({ ok: true });
     apiMocks.revokeDeviceToken.mockResolvedValue({ ok: true });
     apiMocks.rotateDeviceToken.mockResolvedValue({ token: "rotated-token" });
-    apiMocks.saveSettings.mockResolvedValue({ saved: true, path: "/tmp/deck-go.json" });
+    apiMocks.saveSettings.mockResolvedValue({ ok: true, settings: settingsPayload().settings });
     apiMocks.streamEvents.mockResolvedValue(undefined);
     apiMocks.testEndpoint.mockResolvedValue({ ok: true, tlsVerified: false });
-    apiMocks.testSettingsConnection.mockResolvedValue({ ok: true });
     apiMocks.updateEndpoint.mockResolvedValue({
       url: "http://remote-gateway:18789",
       tokenConfigured: true,
@@ -184,120 +195,110 @@ describe("SettingsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads local settings and renders the deck runtime summary", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
+  it("loads the prototype-shaped settings section rail and identity group", async () => {
+    renderSettingsPanel();
 
     await waitFor(() => expect(apiMocks.fetchSettings).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
     await waitFor(() => expect(container.textContent).toContain("Devices ready"));
 
-    expect(container.textContent).toContain("Deck-go local settings");
-    expect(container.textContent).toContain("Gateway linked");
-    expect(container.textContent).toContain("Runtime running");
-    expect(container.textContent).toContain("Runtime endpoint");
-    expect(container.textContent).toContain("set via .env");
-    expect(container.textContent).toContain("/tmp/deck-go.json");
-    expect(container.textContent).toContain("runtime mode: bundled | configured: true");
-    expect(container.textContent).toContain("runtime url: ws://127.0.0.1:18789");
-    expect(container.textContent).toContain("deck version: deck-v1");
-    expect(container.textContent).toContain("gateway version: gateway-v1");
-    expect(container.textContent).toContain("cli version: cli-v1");
+    expect(container.textContent).toContain("Control / app preferences");
+    expect(container.textContent).toContain("Identity & access");
+    expect(container.textContent).toContain("Runtime");
     expect(container.textContent).toContain("Appearance");
     expect(container.textContent).toContain("Notifications");
-    expect(container.textContent).toContain("Language changes are local");
-    expect(container.textContent).toContain("English");
-    expect(container.textContent).toContain("中文");
-    expect(container.querySelector(".settings-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".settings-card").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".settings-status-row").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".settings-form-grid")).toHaveLength(1);
-    expect(container.querySelectorAll(".settings-input")).toHaveLength(4);
-    expect(container.querySelectorAll("textarea")).toHaveLength(0);
-    expect(container.querySelectorAll(".settings-surface").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".settings-device-row")).toHaveLength(3);
-    expect(container.querySelectorAll(".settings-actions").length).toBeGreaterThanOrEqual(6);
+    expect(container.textContent).toContain("Paired devices");
+    expect(container.textContent).toContain("Version");
+    expect(container.textContent).toContain("Deck access token");
+    expect(container.textContent).toContain("read-only");
+    expect(container.textContent).toContain("/tmp/deck-go.json");
+    expect(container.querySelector(".settings-nav")).toBeTruthy();
+    expect(container.querySelector(".setting-group")).toBeTruthy();
     expect(container.querySelector("[style]")).toBeNull();
-    expect(
-      container.querySelector<HTMLAnchorElement>('a[href="https://docs.openclaw.ai"]'),
-    ).toBeTruthy();
-    expect(
-      container.querySelector<HTMLAnchorElement>('a[href="https://github.com/openclaw/openclaw"]'),
-    ).toBeTruthy();
-
-    const inputs = Array.from(container.querySelectorAll("input"));
-    expect(inputs.filter((input) => input.readOnly).map((input) => input.value)).toContain(
-      "configured",
-    );
-    expect(inputs.find((input) => input.value === "ws://127.0.0.1:18789")?.readOnly).toBe(true);
   });
 
-  it("restores old Settings appearance theme controls through the Deck UI shell", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
+  it("filters the section rail and recovers from a no-match state", async () => {
+    renderSettingsPanel();
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Dark")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    const search = container.querySelector<HTMLInputElement>('input[type="search"]');
+    expect(search).toBeTruthy();
+    act(() => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "zzzz" } });
     });
+    expect(container.textContent).toContain("No sections match.");
 
+    act(() => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "runtime" } });
+    });
+    expect(container.textContent).toContain("Bundled or remote Gateway endpoint");
+  });
+
+  it("saves only safe local preferences from the Appearance section", async () => {
+    renderSettingsPanel();
+    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
+
+    clickButton("AppearanceTheme, density, motion and language");
+    clickButton("Dark");
     expect(setThemeMode).toHaveBeenCalledWith("dark");
-  });
+    expect(container.textContent).toContain("1 unsaved");
 
-  it("renders localized Chinese settings, device, and unavailable notification copy", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel("zh"));
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("设置就绪"));
-    await waitFor(() => expect(container.textContent).toContain("设备就绪"));
-
-    expect(container.textContent).toContain("Deck-go 本地设置");
-    expect(container.textContent).toContain("外观");
-    expect(container.textContent).toContain("语言更改仅作用于当前 Deck UI 外壳");
-    expect(container.textContent).toContain("通知");
-    expect(container.textContent).toContain("尚未暴露持久化通知偏好的 API");
-    expect(container.textContent).toContain("已配对设备");
-    expect(container.textContent).toContain("待处理请求");
-    expect(container.textContent).toContain("批准请求");
-  });
-
-  it("saves only deck-go local preferences and refreshes runtime state", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
-
-    act(() => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Save settings",
-        ) as HTMLButtonElement,
-      );
+    clickButton("Save (1)");
+    expect(container.textContent).toContain("Save settings");
+    await act(async () => {
+      Array.from(container.querySelector(".settings-save-dialog")?.querySelectorAll("button") ?? [])
+        .find((button) => button.textContent === "Save (1)")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
       expect(apiMocks.saveSettings).toHaveBeenCalledWith({
-        appearance: undefined,
-        notifications: undefined,
-        pairedDevices: undefined,
+        appearance: {
+          density: "compact",
+          fontSize: 14,
+          reducedMotion: false,
+          theme: "dark",
+        },
+        notifications: {
+          desktop: true,
+          quietHoursEnabled: false,
+          quietHoursEnd: "08:00",
+          quietHoursStart: "22:00",
+          sound: false,
+        },
+        pairedDevices: [],
       }),
     );
     expect(apiMocks.persistAccessToken).not.toHaveBeenCalled();
-    expect(apiMocks.fetchSettings).toHaveBeenCalledTimes(2);
     expect(refreshRuntimeSummary).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(container.textContent).toContain("Settings save result"));
-    expect(container.textContent).toContain('"saved": true');
+    expect(container.textContent).toContain("Last save result");
+  });
+
+  it("renders localized Chinese settings and section chrome", async () => {
+    renderSettingsPanel("zh");
+
+    await waitFor(() => expect(container.textContent).toContain("设置就绪"));
+    expect(container.textContent).toContain("身份与访问");
+    expect(container.textContent).toContain("运行时");
+    expect(container.textContent).toContain("外观");
+    expect(container.textContent).toContain("通知");
+    expect(container.textContent).toContain("已配对设备");
+
+    clickButton("外观主题、密度、动画和语言");
+    expect(container.textContent).toContain("语言更改仅作用于当前 Deck UI 外壳");
+  });
+
+  it("preserves bundled endpoint immutability in the Runtime section", async () => {
+    renderSettingsPanel();
+    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
+
+    clickButton("RuntimeBundled or remote Gateway endpoint");
+    await waitFor(() => expect(container.textContent).toContain("Runtime endpoint"));
+
+    expect(container.textContent).toContain("set via .env");
+    expect(container.textContent).toContain("Bundled mode is owned by .env");
+    expect(buttons().find((button) => button.textContent === "Test endpoint")).toBeUndefined();
+    expect(apiMocks.testEndpoint).not.toHaveBeenCalled();
   });
 
   it("saves a remote endpoint with the explicit token-preserve sentinel", async () => {
@@ -314,30 +315,21 @@ describe("SettingsPanel", () => {
       source: "env",
     });
 
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
+    renderSettingsPanel();
+    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
+    clickButton("RuntimeBundled or remote Gateway endpoint");
     await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
 
-    const inputs = Array.from(container.querySelectorAll("input"));
-    const urlInput = inputs.find((input) => input.value === "http://old-gateway:18789");
+    const urlInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (input) => input.value === "http://old-gateway:18789",
+    );
     expect(urlInput).toBeTruthy();
-
     act(() => {
       fireEvent.change(urlInput as HTMLInputElement, {
         target: { value: "http://remote-gateway:18789" },
       });
     });
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Save endpoint",
-        ) as HTMLButtonElement,
-      );
-    });
+    await clickButtonAsync("Save endpoint");
 
     await waitFor(() =>
       expect(apiMocks.updateEndpoint).toHaveBeenCalledWith({
@@ -363,96 +355,21 @@ describe("SettingsPanel", () => {
       source: "env",
     });
 
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Test endpoint",
-        ) as HTMLButtonElement,
-      );
-    });
+    renderSettingsPanel();
+    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
+    clickButton("RuntimeBundled or remote Gateway endpoint");
+    await waitFor(() => expect(container.textContent).toContain("Test endpoint"));
+    await clickButtonAsync("Test endpoint");
 
     await waitFor(() => expect(apiMocks.testEndpoint).toHaveBeenCalledWith(undefined));
   });
 
-  it("tests an edited remote endpoint while preserving the active token", async () => {
-    apiMocks.fetchCapabilities.mockResolvedValue({
-      mode: "remote",
-      configured: true,
-      endpointMutable: true,
-      supervisorState: false,
-    });
-    apiMocks.fetchEndpoint.mockResolvedValue({
-      url: "http://old-gateway:18789",
-      tokenConfigured: true,
-      tlsVerify: false,
-      source: "env",
-    });
-
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
-
-    const inputs = Array.from(container.querySelectorAll("input"));
-    const urlInput = inputs.find((input) => input.value === "http://old-gateway:18789");
-    expect(urlInput).toBeTruthy();
-
-    act(() => {
-      fireEvent.change(urlInput as HTMLInputElement, {
-        target: { value: "http://new-gateway:18789" },
-      });
-    });
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Test endpoint",
-        ) as HTMLButtonElement,
-      );
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.testEndpoint).toHaveBeenCalledWith({
-        url: "http://new-gateway:18789",
-        token: "__unchanged__",
-        tlsVerify: false,
-      }),
-    );
-  });
-
-  it("does not expose endpoint testing when the bundled endpoint is immutable", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Settings ready"));
-
-    expect(
-      Array.from(container.querySelectorAll("button")).find(
-        (button) => button.textContent === "Test endpoint",
-      ),
-    ).toBeUndefined();
-    expect(apiMocks.testEndpoint).not.toHaveBeenCalled();
-  });
-
   it("loads devices and runs confirmed device actions through the device facade", async () => {
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
+    renderSettingsPanel();
     await waitFor(() => expect(apiMocks.fetchDevices).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(apiMocks.fetchSelfDevice).toHaveBeenCalledTimes(1));
+
+    clickButton("Paired devicesDevice sessions and token actions");
     expect(container.textContent).toContain("Pending Mac");
     expect(container.textContent).toContain("This Mac (this device)");
     expect(container.textContent).toContain("Other Mac");
@@ -498,49 +415,9 @@ describe("SettingsPanel", () => {
     );
     expect(container.textContent).toContain("New token generated");
     expect(container.textContent).toContain("rotated-token");
-    await act(async () => {
-      Array.from(
-        container.querySelector(".settings-token-dialog")?.querySelectorAll("button") ?? [],
-      )
-        .find((button) => button.textContent === "Close")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await act(async () => {
-      Array.from(otherDevice?.querySelectorAll("button") ?? [])
-        .find((button) => button.textContent === "Revoke token")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(container.textContent).toContain("Revoke operator token for dev-1?");
-    await act(async () => {
-      Array.from(
-        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
-      )
-        .find((button) => button.textContent === "Revoke token")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await waitFor(() =>
-      expect(apiMocks.revokeDeviceToken).toHaveBeenCalledWith("dev-1", "operator"),
-    );
-
-    await act(async () => {
-      Array.from(otherDevice?.querySelectorAll("button") ?? [])
-        .find((button) => button.textContent === "Remove device")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    expect(container.textContent).toContain("Remove paired device dev-1?");
-    await act(async () => {
-      Array.from(
-        container.querySelector(".settings-confirm-dialog")?.querySelectorAll("button") ?? [],
-      )
-        .find((button) => button.textContent === "Remove device")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-    await waitFor(() => expect(apiMocks.removeDevice).toHaveBeenCalledWith("dev-1"));
-    expect(container.textContent).toContain("Last device action");
   });
 
-  it("refreshes devices when the old device pairing SSE events arrive", async () => {
+  it("refreshes devices when the device pairing SSE events arrive", async () => {
     apiMocks.streamEvents.mockImplementationOnce(
       async (params: {
         onEvent: (event: { event?: string; data?: string; json?: unknown }) => void;
@@ -552,13 +429,10 @@ describe("SettingsPanel", () => {
       },
     );
 
-    act(() => {
-      root = createRoot(container);
-      root.render(renderSettingsPanel());
-    });
-
+    renderSettingsPanel();
     await waitFor(() => expect(apiMocks.streamEvents).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(apiMocks.fetchDevices).toHaveBeenCalledTimes(2));
+    clickButton("Paired devicesDevice sessions and token actions");
     expect(container.textContent).toContain(
       "Last device stream event: device.pair.requested: Stream Mac (operator)",
     );

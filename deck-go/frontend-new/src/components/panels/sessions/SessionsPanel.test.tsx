@@ -215,6 +215,34 @@ function usageSessionsPayload(key = "sess-main") {
   };
 }
 
+function usageSessionsPartialContextWeightPayload(key = "sess-main") {
+  return {
+    sessions: [
+      {
+        key,
+        label: key,
+        usage: {
+          totalTokens: 3,
+          totalCost: 0.01,
+        },
+        contextWeight: {
+          source: "gateway",
+          generatedAt: baseTime,
+          systemPrompt: {
+            chars: 3,
+          },
+          tools: {
+            listChars: 1,
+          },
+          skills: {
+            promptChars: 2,
+          },
+        },
+      },
+    ],
+  };
+}
+
 function usageSessionLogsPayload() {
   return {
     logs: [
@@ -432,6 +460,28 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Session turn timeline");
     expect(container.textContent).toContain("usage log detail");
     expect(container.textContent).toContain("high token turn");
+  });
+
+  it("renders partial real context-weight payloads without nested entries", async () => {
+    apiMocks.fetchUsageSessions.mockImplementation(async ({ key }: { key?: string }) =>
+      usageSessionsPartialContextWeightPayload(key),
+    );
+
+    await act(async () => {
+      renderSessionsPanel();
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.fetchUsageSessions).toHaveBeenCalledWith({
+        includeContextWeight: true,
+        key: "sess-main",
+        limit: 1,
+      }),
+    );
+    expect(container.textContent).toContain("context total");
+    expect(container.textContent).toContain("6");
+    expect(container.textContent).toContain("1 chars | 0 entries");
+    expect(container.textContent).toContain("2 chars | 0 entries");
   });
 
   it("loads compaction checkpoints and runs branch or restore actions", async () => {

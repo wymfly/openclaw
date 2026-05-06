@@ -87,12 +87,13 @@ describe("LogsPanel", () => {
     expect(streamParams?.initialLastEventId).toBe("evt-before");
     expect(container.querySelector(".logs-panel")).not.toBeNull();
     expect(container.querySelectorAll(".logs-card").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".logs-surface").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".logs-line-row").length).toBe(2);
+    expect(container.querySelector(".logs-filter-bar")).not.toBeNull();
+    expect(container.querySelectorAll(".log-row:not(.log-row--header)").length).toBe(2);
+    expect(container.querySelector(".details-pane")).not.toBeNull();
     expect(container.textContent).toContain("Tail ready");
     expect(container.textContent).toContain("Stream connected");
     expect(container.textContent).toContain("cursor 12");
-    expect(container.textContent).toContain("2 visible");
+    expect(container.textContent).toContain("2 of 2 loaded");
     expect(container.textContent).toContain("boot line");
     expect(container.textContent).toContain("json line");
     expect(window.localStorage.getItem("deckGoLogsCursor")).toBe("12");
@@ -107,27 +108,33 @@ describe("LogsPanel", () => {
     expect(container.textContent).toContain("json line");
 
     const infoCheckbox = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
-      (input) => input.parentElement?.textContent?.includes("info"),
+      (input) => input.parentElement?.textContent?.includes("Info"),
     );
     const sourceSelect = container.querySelector<HTMLSelectElement>(
       'select[aria-label="Log source filter"]',
     );
-    const sessionInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="session key"]',
+    const sessionSelect = container.querySelector<HTMLSelectElement>(
+      'select[aria-label="Log session filter"]',
     );
     expect(infoCheckbox).toBeTruthy();
     expect(sourceSelect).toBeTruthy();
-    expect(sessionInput).toBeTruthy();
+    expect(sessionSelect).toBeTruthy();
 
     await act(async () => {
       fireEvent.click(infoCheckbox as HTMLInputElement);
       fireEvent.change(sourceSelect as HTMLSelectElement, { target: { value: "agent" } });
-      fireEvent.change(sessionInput as HTMLInputElement, { target: { value: "sess-build" } });
+      fireEvent.change(sessionSelect as HTMLSelectElement, { target: { value: "sess-build" } });
     });
 
-    expect(container.textContent).toContain("1 visible");
+    expect(container.textContent).toContain("1 of 2 loaded");
     expect(container.textContent).toContain("json line");
-    expect(container.textContent).not.toContain("boot line");
+    const renderedRows = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(".log-row:not(.log-row--header)"),
+    )
+      .map((row) => row.textContent ?? "")
+      .join("\n");
+    expect(renderedRows).toContain("json line");
+    expect(renderedRows).not.toContain("boot line");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -159,7 +166,7 @@ describe("LogsPanel", () => {
     expect(container.textContent).toContain("cursor 99");
     expect(container.textContent).toContain("boot line");
     expect(container.textContent).toContain("live line");
-    expect(container.textContent).toContain("3 visible");
+    expect(container.textContent).toContain("3 of 3 loaded");
     expect(container.textContent).toContain("log batch (1 lines, cursor 99)");
     expect(container.textContent).toContain("log.batch");
 

@@ -7,13 +7,13 @@
   // Navigation + filter
   selectedId: string | null,
   query: string,
-  filterStatus: "all" | "ok" | "warn" | "over",
+  filterStatus: "all" | "ok" | "warn" | "over" | "disabled",
 
   // Server-side snapshot
   fixture: {
     rules: DeckGoBudgetRule[],
     evaluations: DeckGoBudgetEvaluation[],
-    recentChanges: ChangeEvent[],         // BFF projection
+    recentChanges: ChangeEvent[],         // prototype/local-only; no current BFF endpoint
     fetchedAt: number,
     bootstrap: DeckGoBootstrapStatusResponse,
     agentDirectory: { id: string; label: string }[],

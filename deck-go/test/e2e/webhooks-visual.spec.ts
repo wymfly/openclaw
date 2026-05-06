@@ -1,6 +1,75 @@
 import http from "node:http";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { authHeaders, openDeck, startBundledStack, type E2EStack } from "./helpers";
+
+type Variant = {
+  addWebhook: string;
+  cancel: string;
+  deliveries: string;
+  deleteWebhook: string;
+  editWebhook: string;
+  navLabel: string;
+  ready: RegExp;
+  searchPlaceholder: string;
+  theme: "dark" | "light";
+  locale: "en" | "zh";
+  title: string;
+};
+
+const VARIANTS: Variant[] = [
+  {
+    addWebhook: "New Webhook",
+    cancel: "Cancel",
+    deliveries: "Deliveries",
+    deleteWebhook: "Delete Webhook",
+    editWebhook: "Edit Webhook",
+    navLabel: "Webhooks",
+    ready: /Webhooks ready/,
+    searchPlaceholder: "name, url, id, or event",
+    theme: "dark",
+    locale: "en",
+    title: "Webhooks",
+  },
+  {
+    addWebhook: "新建 Webhook",
+    cancel: "取消",
+    deliveries: "投递",
+    deleteWebhook: "删除 Webhook",
+    editWebhook: "编辑 Webhook",
+    navLabel: "Webhooks",
+    ready: /Webhooks.*就绪/,
+    searchPlaceholder: "名称、URL、ID 或事件",
+    theme: "dark",
+    locale: "zh",
+    title: "Webhook",
+  },
+  {
+    addWebhook: "New Webhook",
+    cancel: "Cancel",
+    deliveries: "Deliveries",
+    deleteWebhook: "Delete Webhook",
+    editWebhook: "Edit Webhook",
+    navLabel: "Webhooks",
+    ready: /Webhooks ready/,
+    searchPlaceholder: "name, url, id, or event",
+    theme: "light",
+    locale: "en",
+    title: "Webhooks",
+  },
+  {
+    addWebhook: "新建 Webhook",
+    cancel: "取消",
+    deliveries: "投递",
+    deleteWebhook: "删除 Webhook",
+    editWebhook: "编辑 Webhook",
+    navLabel: "Webhooks",
+    ready: /Webhooks.*就绪/,
+    searchPlaceholder: "名称、URL、ID 或事件",
+    theme: "light",
+    locale: "zh",
+    title: "Webhook",
+  },
+];
 
 test.describe("webhooks mock visual handoff alignment", () => {
   let stack: E2EStack;
@@ -9,7 +78,7 @@ test.describe("webhooks mock visual handoff alignment", () => {
   test.beforeAll(async ({ request }, testInfo) => {
     receiver = await startReceiver();
     stack = await startBundledStack(testInfo);
-    await seedWebhooks(request, stack.backendBase, receiver.url);
+    await seedWebhooks(request, stack, receiver.url);
   });
 
   test.afterAll(async () => {
@@ -17,95 +86,175 @@ test.describe("webhooks mock visual handoff alignment", () => {
     await receiver?.stop();
   });
 
-  test("renders receiver workbench and local delivery interaction states", async ({
-    page,
+  test("renders receiver workbench variants with local BFF-backed delivery states", async ({
+    browser,
   }, testInfo) => {
-    const unexpected = collectUnexpectedErrors(page);
+    for (const variant of VARIANTS) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const unexpected = collectUnexpectedErrors(page);
 
-    await openDeck(page, stack.frontendBase, "webhooks", stack.accessToken, {
-      locale: "en",
-      nav: "expanded",
-      theme: "dark",
-    });
+      try {
+        await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+          locale: variant.locale,
+          nav: "expanded",
+          theme: variant.theme,
+        });
 
-    await expect(page.getByTestId("webhooks-panel")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Webhooks" }).first()).toBeVisible();
-    await expect(
-      page
-        .getByText(
-          "Webhook receivers, delivery evidence, event subscriptions, and guarded operations.",
-        )
-        .first(),
-    ).toBeVisible();
-    await expect(page.getByText("old Deck")).toHaveCount(0);
-    await expect(page.getByText("Webhooks ready").first()).toBeVisible();
-    await expect(page.getByText("Security incident receiver").first()).toBeVisible();
-    await expect(page.getByText("Usage limit receiver").first()).toBeVisible();
-    await expect(page.getByText("test.ping").first()).toBeVisible();
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-      .toBe(true);
-    await page.waitForTimeout(500);
+        const webhooksNav = page
+          .locator(".deck-ui-rail")
+          .getByRole("button", { exact: true, name: variant.navLabel });
+        await webhooksNav.scrollIntoViewIfNeeded();
+        await webhooksNav.click();
 
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("webhooks-workbench-ready.png"),
-    });
+        await expect(page.locator(".deck-ui-shell")).toHaveAttribute(
+          "data-active-panel",
+          "webhooks",
+        );
+        await expect(page.locator("html")).toHaveAttribute("data-theme", variant.theme);
 
-    await page.getByRole("button", { name: /Usage limit receiver/ }).click();
-    await expect(page.getByText("https://hooks.example.test/usage").first()).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("webhooks-selected-switch.png"),
-    });
+        const panel = page.getByTestId("webhooks-panel");
+        await expect(panel).toBeVisible();
+        await expect(panel.getByRole("heading", { name: variant.title }).first()).toBeVisible();
+        await expect(panel.getByText(variant.ready).first()).toBeVisible();
+        await expect(panel.getByText("Security incident receiver").first()).toBeVisible();
+        await expect(panel.getByText("Usage limit receiver").first()).toBeVisible();
+        await expect(panel.getByText("Internal QA bridge").first()).toBeVisible();
+        await expect(panel.locator(".webhooks-panel__list > li")).toHaveCount(6);
+        await expect
+          .poll(() =>
+            page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+          )
+          .toBe(true);
 
-    await page.getByRole("button", { name: /Security incident receiver/ }).click();
-    await page.getByRole("button", { name: "Edit Webhook" }).click();
-    await expect(page.getByLabel("webhook name")).toHaveValue("Security incident receiver");
-    await page.getByRole("button", { name: "budget.warn" }).click();
-    await expect(page.getByLabel("webhook events")).toHaveValue(
-      "alert.fired, approval.pending, budget.warn",
-    );
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("webhooks-edit-events.png"),
-    });
+        await page.screenshot({
+          fullPage: false,
+          path: testInfo.outputPath(
+            variant.theme === "dark" && variant.locale === "en"
+              ? "webhooks-workbench-ready.png"
+              : `webhooks-workbench-${variant.theme}-${variant.locale}.png`,
+          ),
+        });
 
-    await page.getByRole("button", { name: "Test Delivery" }).click();
-    await expect(page.getByText("Last webhook action").first()).toBeVisible();
-    await expect
-      .poll(() => receiver.requests.length, { timeout: 10_000 })
-      .toBeGreaterThanOrEqual(2);
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("webhooks-test-delivery-result.png"),
-    });
+        if (variant.theme === "dark" && variant.locale === "en") {
+          await panel.getByPlaceholder(variant.searchPlaceholder).fill("usage");
+          await expect(panel.locator(".webhooks-panel__list > li")).toHaveCount(1);
+          await panel.getByRole("button", { name: /Usage limit receiver/ }).click();
+          await expect(panel.getByText("https://hooks.example.test/usage").first()).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("webhooks-filter-selected.png"),
+          });
 
-    expect(unexpected).toEqual([]);
+          await panel.getByPlaceholder(variant.searchPlaceholder).fill("");
+          await panel.getByRole("button", { name: /Security incident receiver/ }).click();
+          await panel.getByRole("button", { name: variant.editWebhook }).click();
+          await expect(page.getByRole("dialog").getByLabel("webhook name")).toHaveValue(
+            "Security incident receiver",
+          );
+          await page.keyboard.press("Escape");
+          await expect(page.getByRole("dialog")).toHaveCount(0);
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("webhooks-edit-escape.png"),
+          });
+
+          await panel.getByRole("button", { name: "Test Delivery" }).click();
+          await expect(panel.getByText("Last webhook action").first()).toBeVisible();
+          await expect
+            .poll(() => receiver.requests.length, { timeout: 10_000 })
+            .toBeGreaterThanOrEqual(2);
+          await panel.getByRole("button", { name: variant.deliveries }).click();
+          await panel
+            .getByRole("button", { name: /test\.ping/ })
+            .first()
+            .click();
+          await expect(panel.getByText("Payload").first()).toBeVisible();
+          await expect(panel.getByText("Response body").first()).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("webhooks-test-delivery-result.png"),
+          });
+
+          await panel.getByRole("button", { name: variant.deleteWebhook }).click();
+          await expect(page.getByRole("dialog")).toContainText("Delete this webhook?");
+          await page.keyboard.press("Escape");
+          await expect(page.getByRole("dialog")).toHaveCount(0);
+
+          await panel.getByRole("button", { name: variant.addWebhook }).click();
+          await expect(page.getByRole("dialog")).toBeVisible();
+          await page
+            .getByRole("dialog")
+            .getByRole("button", { name: variant.cancel })
+            .first()
+            .click();
+          await expect(page.getByRole("dialog")).toHaveCount(0);
+        }
+
+        expect(unexpected).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    }
   });
 });
 
-async function seedWebhooks(request: APIRequestContext, backendBase: string, receiverUrl: string) {
-  const security = await createWebhook(request, backendBase, {
-    enabled: true,
-    events: ["alert.fired", "approval.pending"],
-    name: "Security incident receiver",
-    secret: "visual-secret",
-    url: receiverUrl,
+async function seedWebhooks(request: APIRequestContext, stack: E2EStack, receiverUrl: string) {
+  const created: Array<{ id: string }> = [];
+  for (const body of [
+    {
+      enabled: true,
+      events: ["alert.fired", "approval.pending"],
+      name: "Security incident receiver",
+      secret: "visual-secret",
+      url: receiverUrl,
+    },
+    {
+      enabled: false,
+      events: ["usage.limit", "budget.over"],
+      name: "Usage limit receiver",
+      url: "https://hooks.example.test/usage",
+    },
+    {
+      enabled: true,
+      events: ["alert.fired"],
+      name: "PagerDuty critical",
+      secret: "pd-secret",
+      url: receiverUrl,
+    },
+    {
+      enabled: true,
+      events: ["deploy.started", "deploy.finished"],
+      name: "GitHub deploy sync",
+      secret: "gh-secret",
+      url: "https://api.github.com/repos/openclaw/deck/dispatches",
+    },
+    {
+      enabled: true,
+      events: ["session.created", "session.closed", "memory.added"],
+      name: "Internal QA bridge",
+      secret: "qa-secret",
+      url: "https://qa.internal.example.com/hooks/deck-events",
+    },
+    {
+      enabled: false,
+      events: ["channel.message"],
+      name: "Old relay disabled",
+      url: "https://legacy.example.com/relay",
+    },
+  ]) {
+    created.push(await createWebhook(request, stack, body));
+  }
+  const security = created[0];
+  const testResponse = await request.post(`${stack.backendBase}/api/webhooks/${security.id}/test`, {
+    headers: authHeaders(stack.accessToken),
   });
-  await createWebhook(request, backendBase, {
-    enabled: false,
-    events: ["usage.limit", "budget.over"],
-    name: "Usage limit receiver",
-    url: "https://hooks.example.test/usage",
-  });
-  const testResponse = await request.post(`${backendBase}/api/webhooks/${security.id}/test`);
   expect(testResponse.ok(), `webhook test seed returned ${testResponse.status()}`).toBe(true);
 }
 
 async function createWebhook(
   request: APIRequestContext,
-  backendBase: string,
+  stack: E2EStack,
   body: {
     enabled: boolean;
     events: string[];
@@ -114,7 +263,10 @@ async function createWebhook(
     url: string;
   },
 ) {
-  const response = await request.post(`${backendBase}/api/webhooks`, { data: body });
+  const response = await request.post(`${stack.backendBase}/api/webhooks`, {
+    data: body,
+    headers: authHeaders(stack.accessToken),
+  });
   expect(response.ok(), `webhook seed returned ${response.status()}`).toBe(true);
   return (await response.json()) as { id: string };
 }

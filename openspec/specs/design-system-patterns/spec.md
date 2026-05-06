@@ -2,7 +2,11 @@
 
 ## Purpose
 
-TBD - created by archiving change deck-go-frontend-foundation-readiness. Update Purpose after archive.
+Define the canonical cross-module pattern layer for `deck-go/frontend-new`:
+small, typed layout and content shells that sit above atoms and below business
+panels. The spec protects pattern file structure, barrel imports, token-only
+styling, slot-based APIs, accessibility tests, and the reuse-analysis gate for
+any seventh-or-beyond pattern.
 
 ## Requirements
 

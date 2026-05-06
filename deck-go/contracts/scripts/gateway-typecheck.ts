@@ -31,7 +31,7 @@ const GO_SCAN_DIRS = [
   resolve(DECK_GO_ROOT, "backend/internal/runtime/openclaw"),
   resolve(DECK_GO_ROOT, "backend/internal/handlers"),
 ];
-const FE_SCAN_DIR = resolve(DECK_GO_ROOT, "frontend/src");
+const FE_SCAN_DIR = resolve(DECK_GO_ROOT, "frontend-new/src");
 const CLASSIFICATION_DOC = resolve(DECK_GO_ROOT, "docs/fe-endpoint-classification.md");
 const EXCEPTIONS_DOC = resolve(DECK_GO_ROOT, "docs/gateway-untyped-exceptions.md");
 const EXCEPTIONS_SOURCE = resolve(DECK_GO_ROOT, "contracts/source/deck-exceptions.contract.json");
@@ -129,7 +129,7 @@ function escapeRegExp(value: string): string {
 function endpointApiPath(endpoint: string): string | undefined {
   const parts = endpoint.trim().split(/\s+/);
   const path = parts.at(-1);
-  if (!path || path.includes("/gateway/rpc")) {
+  if (!path || path.includes("/gateway/rpc") || path.includes("/gateway/batch")) {
     return undefined;
   }
   return path.startsWith("/api/") ? path : `/api${path}`;

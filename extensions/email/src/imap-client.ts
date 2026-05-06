@@ -19,6 +19,7 @@ export type ImapMessageHeader = {
   messageId?: string;
   subject?: string;
   from?: string;
+  to?: string;
   date?: string;
   flags: string[];
   size?: number;
@@ -64,7 +65,11 @@ export class ImapClient {
     mailbox: string;
     unseenOnly?: boolean;
     since?: Date;
+    before?: Date;
     messageId?: string;
+    subject?: string;
+    from?: string;
+    to?: string;
   }): Promise<number[]> {
     await this.selectMailbox(params.mailbox);
     const criteria: string[] = [];
@@ -74,6 +79,18 @@ export class ImapClient {
       criteria.push(params.unseenOnly ? "UNSEEN" : "ALL");
       if (params.since) {
         criteria.push("SINCE", formatImapDate(params.since));
+      }
+      if (params.before) {
+        criteria.push("BEFORE", formatImapDate(params.before));
+      }
+      if (params.subject) {
+        criteria.push("SUBJECT", quoteImapString(params.subject));
+      }
+      if (params.from) {
+        criteria.push("FROM", quoteImapString(params.from));
+      }
+      if (params.to) {
+        criteria.push("TO", quoteImapString(params.to));
       }
     }
     const response = await this.exec(`UID SEARCH ${criteria.join(" ")}`);
@@ -88,7 +105,7 @@ export class ImapClient {
   async fetchMessageHeader(params: { mailbox: string; uid: number }): Promise<ImapMessageHeader> {
     await this.selectMailbox(params.mailbox);
     const response = await this.exec(
-      `UID FETCH ${params.uid} (UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (SUBJECT FROM DATE MESSAGE-ID)])`,
+      `UID FETCH ${params.uid} (UID FLAGS INTERNALDATE RFC822.SIZE BODYSTRUCTURE BODY.PEEK[HEADER.FIELDS (SUBJECT FROM TO DATE MESSAGE-ID)])`,
     );
     return parseFetchMetadata(response.lines, response.literals[0], params.uid);
   }
@@ -109,6 +126,7 @@ export class ImapClient {
       messageId: parsedHeaders["message-id"] ?? metadata.messageId,
       subject: parsedHeaders.subject ?? metadata.subject,
       from: parsedHeaders.from ?? metadata.from,
+      to: parsedHeaders.to ?? metadata.to,
       date: parsedHeaders.date ?? metadata.date,
       raw,
     };
@@ -187,6 +205,7 @@ export function parseFetchMetadata(
     messageId: headers["message-id"],
     subject: headers.subject,
     from: headers.from,
+    to: headers.to,
     date: headers.date,
     flags,
     size,
@@ -251,7 +270,7 @@ function formatImapDate(value: Date): string {
     "Nov",
     "Dec",
   ];
-  return `${value.getUTCDate()}-${months[value.getUTCMonth()] ?? "Jan"}-${value.getUTCFullYear()}`;
+  return `${value.getDate()}-${months[value.getMonth()] ?? "Jan"}-${value.getFullYear()}`;
 }
 
 function matchNumber(input: string, pattern: RegExp): number | undefined {

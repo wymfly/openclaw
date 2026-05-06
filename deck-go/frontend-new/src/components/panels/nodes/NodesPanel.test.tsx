@@ -104,6 +104,18 @@ function detailFor(nodeId: string) {
   return { ...node, permissions: { camera: false, shell: nodeId === "node-a" } };
 }
 
+async function clickButton(text: string, options: { exact?: boolean } = {}) {
+  const exact = options.exact ?? true;
+  await act(async () => {
+    Array.from(container.querySelectorAll("button"))
+      .find((button) => {
+        const value = button.textContent?.trim() ?? "";
+        return exact ? value === text : value.includes(text);
+      })
+      ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
 describe("NodesPanel", () => {
   beforeEach(() => {
     (
@@ -152,7 +164,7 @@ describe("NodesPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads node inventory, pairing requests, and selects the first node by default", async () => {
+  it("loads node inventory, pairing requests, and defaults to the first pending request", async () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchNodes).toHaveBeenCalledTimes(1));
@@ -167,6 +179,13 @@ describe("NodesPanel", () => {
     expect(container.textContent).toContain("Repair: yes");
     expect(container.textContent).toContain("platform: darwin | connected: yes");
     expect(container.textContent).toContain("paired: no");
+    expect(container.textContent).toContain("Repair requested");
+    expect(container.textContent).toContain(
+      "Review the repair request and approve it if the device is trusted.",
+    );
+
+    await clickButton("Alpha Node", { exact: false });
+
     expect(container.textContent).toContain("Connected and ready");
     expect(container.textContent).toContain(
       "This node is paired and currently connected, so remote capabilities should be available.",
@@ -215,11 +234,7 @@ describe("NodesPanel", () => {
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("request: pair-b"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("request: pair-b", { exact: false });
 
     await waitFor(() => expect(container.querySelector("input")?.value).toBe("Beta Node"));
     expect(container.textContent).toContain("Repair requested");
@@ -232,11 +247,9 @@ describe("NodesPanel", () => {
       fireEvent.change(input, { target: { value: " Beta Renamed " } });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Rename")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Rename");
+    expect(container.textContent).toContain("Rename node?");
+    await clickButton("Confirm");
 
     await waitFor(() => expect(apiMocks.renameNode).toHaveBeenCalledWith("node-b", "Beta Renamed"));
     expect(container.textContent).toContain("Last node action");
@@ -246,23 +259,17 @@ describe("NodesPanel", () => {
     );
     expect(selectedAfterRename?.textContent).toContain("Beta Node");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Approve pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Approve pairing");
+    expect(container.textContent).toContain("Approve pairing?");
+    await clickButton("Confirm");
 
     await waitFor(() => expect(apiMocks.approveNodePairing).toHaveBeenCalledWith("pair-b"));
-    expect(window.confirm).toHaveBeenCalledWith("Approve node pairing request pair-b?");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Reject pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Reject pairing");
+    expect(container.textContent).toContain("Reject pairing?");
+    await clickButton("Confirm");
 
     await waitFor(() => expect(apiMocks.rejectNodePairing).toHaveBeenCalledWith("pair-b"));
-    expect(window.confirm).toHaveBeenCalledWith("Reject node pairing request pair-b?");
 
     const verificationInput = container.querySelector(
       'input[aria-label="Pairing verification token"]',
@@ -271,49 +278,37 @@ describe("NodesPanel", () => {
       fireEvent.change(verificationInput, { target: { value: " token-1 " } });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Verify pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Verify pairing");
+    expect(container.textContent).toContain("Verify token?");
+    await clickButton("Confirm");
 
     await waitFor(() =>
       expect(apiMocks.verifyNodePairing).toHaveBeenCalledWith("node-b", "token-1"),
     );
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
-  it("does not approve or reject pairing when confirmation is cancelled", async () => {
+  it("does not approve or reject pairing when inline confirmation is cancelled", async () => {
     renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("request: pair-b"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("request: pair-b", { exact: false });
 
     await waitFor(() => expect(container.textContent).toContain("Repair requested"));
 
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Approve pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Approve pairing");
+    expect(container.textContent).toContain("Approve pairing?");
+    await clickButton("Cancel");
 
-    expect(window.confirm).toHaveBeenCalledWith("Approve node pairing request pair-b?");
     expect(apiMocks.approveNodePairing).not.toHaveBeenCalled();
 
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Reject pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Reject pairing");
+    expect(container.textContent).toContain("Reject pairing?");
+    await clickButton("Cancel");
 
-    expect(window.confirm).toHaveBeenCalledWith("Reject node pairing request pair-b?");
     expect(apiMocks.rejectNodePairing).not.toHaveBeenCalled();
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("approves pairing requests that are not present in node inventory", async () => {
@@ -327,32 +322,28 @@ describe("NodesPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
     expect(container.textContent).toContain("Unlisted Node");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("pair-orphan"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("pair-orphan", { exact: false });
 
     expect(container.textContent).toContain("Pairing request");
     expect(container.textContent).toContain(
       "This pairing request is not present in node inventory yet",
     );
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Approve pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Approve pairing");
+    expect(container.textContent).toContain("Approve pairing?");
+    await clickButton("Confirm");
 
     await waitFor(() => expect(apiMocks.approveNodePairing).toHaveBeenCalledWith("pair-orphan"));
     expect(apiMocks.describeNode).not.toHaveBeenCalledWith("node-orphan");
-    expect(window.confirm).toHaveBeenCalledWith("Approve node pairing request pair-orphan?");
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("invokes advertised node commands and queues pending work through the Gateway facade", async () => {
     renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
+    await clickButton("Alpha Node", { exact: false });
+    await waitFor(() => expect(container.textContent).toContain("Connected and ready"));
 
     const commandSelect = container.querySelector<HTMLSelectElement>(
       'select[aria-label="Node command"]',
@@ -374,11 +365,9 @@ describe("NodesPanel", () => {
       });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Invoke command")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Invoke command");
+    expect(container.textContent).toContain("Invoke command?");
+    await clickButton("Confirm");
 
     await waitFor(() =>
       expect(apiMocks.invokeNodeCommand).toHaveBeenCalledWith(
@@ -388,7 +377,6 @@ describe("NodesPanel", () => {
         6000,
       ),
     );
-    expect(window.confirm).toHaveBeenCalledWith("Invoke node command send on node-a?");
     expect(container.textContent).toContain("Last node action");
     expect(container.textContent).toContain('"delivered": true');
 
@@ -413,11 +401,9 @@ describe("NodesPanel", () => {
       fireEvent.click(pendingWake as HTMLInputElement);
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Queue pending work")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Queue pending work");
+    expect(container.textContent).toContain("Queue pending work?");
+    await clickButton("Confirm");
 
     await waitFor(() =>
       expect(apiMocks.enqueueNodePendingWork).toHaveBeenCalledWith({
@@ -427,13 +413,15 @@ describe("NodesPanel", () => {
         wake: false,
       }),
     );
-    expect(window.confirm).toHaveBeenCalledWith("Queue location.request pending work for node-a?");
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("blocks node command invocation when params JSON is invalid", async () => {
     renderPanel();
 
     await waitFor(() => expect(container.textContent).toContain("Nodes ready"));
+    await clickButton("Alpha Node", { exact: false });
+    await waitFor(() => expect(container.textContent).toContain("Connected and ready"));
 
     const paramsTextarea = container.querySelector<HTMLTextAreaElement>(
       'textarea[aria-label="Node invoke params JSON"]',
@@ -446,15 +434,12 @@ describe("NodesPanel", () => {
       });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Invoke command")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Invoke command");
 
-    expect(window.confirm).toHaveBeenCalledWith("Invoke node command send on node-a?");
     expect(apiMocks.invokeNodeCommand).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Invalid invoke params JSON");
+    expect(container.textContent).not.toContain("Invoke command?");
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("requests pairing for an unpaired node when no request is already pending", async () => {
@@ -479,11 +464,9 @@ describe("NodesPanel", () => {
     expect(container.textContent).toContain("Unpaired");
     expect(container.textContent).toContain("Request pairing");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Request pairing")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Request pairing");
+    expect(container.textContent).toContain("Request pairing?");
+    await clickButton("Confirm");
 
     await waitFor(() =>
       expect(apiMocks.requestNodePairing).toHaveBeenCalledWith(
@@ -498,9 +481,9 @@ describe("NodesPanel", () => {
         }),
       ),
     );
-    expect(window.confirm).toHaveBeenCalledWith("Request node pairing for node-c?");
     expect(container.textContent).toContain("Last node action");
     expect(container.textContent).toContain("pair-requested");
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("renders the migrated nodes shell in Chinese", async () => {

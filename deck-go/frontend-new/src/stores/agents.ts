@@ -151,7 +151,7 @@ export const useAgentsStore = createLocalStore<AgentsState>((set, get) => ({
   },
   applyServerEvent(event) {
     const agents = reduceAgentMetricsEvent(get().agents, event);
-    set({ agents, selectedAgentId: nextSelection(agents, get().selectedAgentId) });
+    set({ agents, selectedAgentId: preserveSelection(agents, get().selectedAgentId) });
   },
   reset() {
     set(initialState());

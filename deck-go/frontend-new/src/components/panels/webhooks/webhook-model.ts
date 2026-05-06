@@ -26,6 +26,7 @@ export const AVAILABLE_WEBHOOK_EVENTS = [
   "cron.run.complete",
   "approval.pending",
   "approval.resolved",
+  "usage.limit",
   "budget.warn",
   "budget.over",
   "alert.fired",
@@ -44,9 +45,9 @@ export function formatWebhookEvents(events: string[]) {
 
 export function webhookInputFromDraft(draft: WebhookDraft) {
   return {
-    name: draft.name,
-    url: draft.url,
-    secret: draft.secret || undefined,
+    name: draft.name.trim(),
+    url: draft.url.trim(),
+    secret: draft.secret.trim() || undefined,
     events: parseWebhookEvents(draft.events),
     enabled: draft.enabled,
   };
@@ -56,7 +57,7 @@ export function draftFromWebhook(webhook: DeckGoWebhook): WebhookDraft {
   return {
     name: webhook.name,
     url: webhook.url,
-    secret: webhook.secret ?? "",
+    secret: "",
     events: formatWebhookEvents(webhook.events),
     enabled: webhook.enabled,
   };

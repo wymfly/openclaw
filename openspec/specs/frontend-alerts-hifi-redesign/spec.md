@@ -62,3 +62,19 @@ The alerts rewrite SHALL include focused mock/local visual verification that exe
 - **THEN** it SHALL load alert rules through the normal frontend API path
 - **AND** it SHALL capture or assert the ready workspace state and at least one interaction state such as create, edit, validation, toggle, delete confirmation, selected rule switch, or fired-history fallback
 - **AND** closeout evidence SHALL label the test as mock/local visual coverage, not real Gateway/LLM, real alert delivery, webhook delivery, fired history, or production incident assurance
+
+### Requirement: Alerts high-fidelity completion is not real functional completion
+
+The Alerts high-fidelity workflow SHALL remain a required visual quality gate, but it SHALL NOT be considered sufficient evidence that Alerts works against the real deck-go BFF contract and real local alert store.
+
+#### Scenario: Alerts mock visual evidence is reported
+
+- **WHEN** Alerts mock visual tests or high-fidelity prototype checks pass
+- **THEN** implementation closeout SHALL label the evidence as L1 mock/local visual evidence
+- **AND** it SHALL also report L2 real verification status separately as passed, handoff-blocked, skipped, real-empty-valid, or not attempted with reason
+
+#### Scenario: Real Alerts verification contradicts mock assumptions
+
+- **WHEN** real BFF, localstore, or UI verification contradicts mock data or a prototype assumption
+- **THEN** the production implementation SHALL prefer Deck contract and Go BFF truth
+- **AND** the implementation SHALL fix deterministic scoped drift directly or update mock/prototype notes when the contradiction is not a scoped fix

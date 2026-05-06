@@ -281,6 +281,44 @@ describe("useChatSSE visibility eviction", () => {
     });
   });
 
+  it("debounces transient stream retry status before showing reconnecting", async () => {
+    vi.useFakeTimers();
+    try {
+      await act(async () => {
+        root = createRoot(container);
+        root.render(<HookHost />);
+      });
+
+      const streamOptions = vi.mocked(deckStream).mock.calls[0]?.[1];
+      act(() => {
+        streamOptions?.onOpen?.();
+      });
+      expect(useChatStore.getState().sseStatus).toBe("connected");
+
+      act(() => {
+        streamOptions?.onRetry?.();
+      });
+      expect(useChatStore.getState().sseStatus).toBe("connected");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1_199);
+      });
+      expect(useChatStore.getState().sseStatus).toBe("connected");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1);
+      });
+      expect(useChatStore.getState().sseStatus).toBe("reconnecting");
+
+      act(() => {
+        streamOptions?.onOpen?.();
+      });
+      expect(useChatStore.getState().sseStatus).toBe("connected");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("aborts the active stream while offline and restarts it when the browser returns online", async () => {
     await act(async () => {
       root = createRoot(container);
@@ -414,7 +452,7 @@ describe("useChatSSE visibility eviction", () => {
       });
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(8_500);
+        await vi.advanceTimersByTimeAsync(10_000);
       });
 
       expect(replaceMock).toHaveBeenCalledTimes(1);
@@ -462,7 +500,7 @@ describe("useChatSSE visibility eviction", () => {
       });
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(8_500);
+        await vi.advanceTimersByTimeAsync(10_000);
       });
 
       expect(replaceMock).not.toHaveBeenCalled();

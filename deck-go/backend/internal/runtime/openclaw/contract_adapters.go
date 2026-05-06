@@ -110,7 +110,7 @@ func normalizeUsageSessions(payload generated.SessionsUsageResult) deckapi.DeckG
 			Channel:   session.Channel,
 			Usage:     objectFromAny(session.Usage),
 		}
-		if contextWeight := objectFromAny(session.ContextWeight); len(contextWeight) > 0 {
+		if contextWeight := objectFromAny(session.ContextWeight); hasContextWeightSignal(contextWeight) {
 			report := contextWeightReportFromMap(contextWeight)
 			entry.ContextWeight = &report
 		}
@@ -224,11 +224,92 @@ func contextWeightReportFromMap(record map[string]any) deckapi.DeckGoContextWeig
 		Provider:               coerce.String(record["provider"], ""),
 		Model:                  coerce.String(record["model"], ""),
 		WorkspaceDir:           coerce.String(record["workspaceDir"], ""),
-		SystemPrompt:           objectFromAny(record["systemPrompt"]),
-		InjectedWorkspaceFiles: objectListFromAny(record["injectedWorkspaceFiles"]),
-		Skills:                 objectFromAny(record["skills"]),
-		Tools:                  objectFromAny(record["tools"]),
+		SystemPrompt:           normalizeContextWeightSystemPrompt(record["systemPrompt"]),
+		InjectedWorkspaceFiles: normalizeContextWeightFiles(record["injectedWorkspaceFiles"]),
+		Skills:                 normalizeContextWeightSkills(record["skills"]),
+		Tools:                  normalizeContextWeightTools(record["tools"]),
 	}
+}
+
+func normalizeContextWeightSystemPrompt(value any) map[string]any {
+	record := objectFromAny(value)
+	normalized := cloneObject(record)
+	normalized["chars"] = coerce.Number(record["chars"])
+	normalized["projectContextChars"] = coerce.Number(record["projectContextChars"])
+	normalized["nonProjectContextChars"] = coerce.Number(record["nonProjectContextChars"])
+	return normalized
+}
+
+func normalizeContextWeightFiles(value any) []map[string]any {
+	items := objectListFromAny(value)
+	normalized := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		record := cloneObject(item)
+		record["name"] = coerce.String(item["name"], "")
+		record["path"] = coerce.String(item["path"], "")
+		record["missing"] = coerce.Bool(item["missing"])
+		record["rawChars"] = coerce.Number(item["rawChars"])
+		record["injectedChars"] = coerce.Number(item["injectedChars"])
+		record["truncated"] = coerce.Bool(item["truncated"])
+		normalized = append(normalized, record)
+	}
+	return normalized
+}
+
+func normalizeContextWeightSkills(value any) map[string]any {
+	record := objectFromAny(value)
+	normalized := cloneObject(record)
+	normalized["promptChars"] = coerce.Number(record["promptChars"])
+	normalized["entries"] = objectListFromAny(record["entries"])
+	return normalized
+}
+
+func normalizeContextWeightTools(value any) map[string]any {
+	record := objectFromAny(value)
+	normalized := cloneObject(record)
+	normalized["listChars"] = coerce.Number(record["listChars"])
+	normalized["schemaChars"] = coerce.Number(record["schemaChars"])
+	normalized["entries"] = objectListFromAny(record["entries"])
+	return normalized
+}
+
+func hasContextWeightSignal(record map[string]any) bool {
+	if len(record) == 0 {
+		return false
+	}
+	for _, key := range []string{"source", "sessionId", "sessionKey", "provider", "model", "workspaceDir"} {
+		if coerce.String(record[key], "") != "" {
+			return true
+		}
+	}
+	if coerce.Number(record["generatedAt"]) > 0 {
+		return true
+	}
+	systemPrompt := objectFromAny(record["systemPrompt"])
+	for _, key := range []string{"chars", "projectContextChars", "nonProjectContextChars"} {
+		if coerce.Number(systemPrompt[key]) > 0 {
+			return true
+		}
+	}
+	if len(objectListFromAny(record["injectedWorkspaceFiles"])) > 0 {
+		return true
+	}
+	skills := objectFromAny(record["skills"])
+	if coerce.Number(skills["promptChars"]) > 0 || len(objectListFromAny(skills["entries"])) > 0 {
+		return true
+	}
+	tools := objectFromAny(record["tools"])
+	return coerce.Number(tools["listChars"]) > 0 ||
+		coerce.Number(tools["schemaChars"]) > 0 ||
+		len(objectListFromAny(tools["entries"])) > 0
+}
+
+func cloneObject(record map[string]any) map[string]any {
+	normalized := make(map[string]any, len(record))
+	for key, value := range record {
+		normalized[key] = value
+	}
+	return normalized
 }
 
 func objectFromAny(value any) map[string]any {

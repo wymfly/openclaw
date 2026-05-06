@@ -2,13 +2,13 @@
 //
 // Models the deck-go contract:
 //   GET  /api/settings                    → DeckGoSettingsResponse
-//   POST /api/settings                    → DeckGoSettingsSaveResponse
+//   PUT  /api/settings                    → DeckGoSettingsSaveResponse
 //   POST /api/settings/test-connection    → DeckGoSettingsConnectionResponse
 //   GET  /api/settings/version            → DeckGoSettingsVersionResponse
 //   GET  /api/runtime/gateway             → DeckGoRuntimeGatewayResponse
 //   GET  /api/runtime/endpoint            → DeckGoRuntimeEndpointResponse
 //   PUT  /api/runtime/endpoint            → updates remote endpoint config
-//   POST /api/runtime/endpoint/test       → DeckGoRuntimeEndpointTestResponse
+//   POST /api/runtime/endpoint:test       → DeckGoRuntimeEndpointTestResponse
 //   GET  /api/bootstrap/status            → DeckGoBootstrapStatusResponse
 //
 // IMPORTANT runtime-mode semantics (per current refactor):

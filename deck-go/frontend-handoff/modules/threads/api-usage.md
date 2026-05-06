@@ -7,7 +7,7 @@
 ## Source of truth
 
 The threads module reads bindings from the deck-go BFF, which forwards to
-upstream OpenClaw `gateway.threads.list`. Browser code never calls Gateway
+upstream OpenClaw `deck.threads.list`. Browser code never calls Gateway
 directly.
 
 ## Deck-facing API
@@ -17,13 +17,13 @@ directly.
 Wrapper:
 
 ```ts
-fetchThreads({ channelKind?, agentId?, status? })
+fetchThreads({ channel?, agentId?, status? })
   : Promise<DeckGoThreadsResponse>
 ```
 
 Query params:
 
-- `channelKind` — optional filter (`discord` / `telegram` / `wecom` /
+- `channel` — optional filter (`discord` / `telegram` / `wecom` /
   `slack` / `qq`).
 - `agentId` — optional filter on `agentId`.
 - `status` — `active` | `all` (default `active`).
@@ -49,7 +49,7 @@ type DeckGoThreadEntry = {
 };
 ```
 
-### `DELETE /api/deck/threads/<threadId>` _(BFF assumed)_
+### `DELETE /api/deck/threads/<threadId>` _(unsupported assumption)_
 
 Wrapper:
 
@@ -60,7 +60,7 @@ unbindThread(threadId: string): Promise<{ ok: boolean }>
 Hard removes the binding. The conversation transcript under
 `targetSessionKey` is NOT deleted.
 
-### `PATCH /api/deck/threads/<threadId>` _(BFF assumed)_
+### `PATCH /api/deck/threads/<threadId>` _(unsupported assumption)_
 
 Wrapper:
 
@@ -126,23 +126,23 @@ BFF projection over the BFF mutation log. Used by the **Audit** tab.
 | Endpoint                                | Method | When                        | DTO                             |
 | --------------------------------------- | ------ | --------------------------- | ------------------------------- |
 | `/api/deck/threads`                     | GET    | List view                   | `DeckGoThreadsResponse`         |
-| `/api/deck/threads/<id>` (BFF assumed)  | PATCH  | RebindDialog / RenameDialog | `{ thread: DeckGoThreadEntry }` |
-| `/api/deck/threads/<id>` (BFF assumed)  | DELETE | UnbindDialog                | `{ ok: boolean }`               |
+| `/api/deck/threads/<id>` (unsupported)  | PATCH  | RebindDialog / RenameDialog | `{ thread: DeckGoThreadEntry }` |
+| `/api/deck/threads/<id>` (unsupported)  | DELETE | UnbindDialog                | `{ ok: boolean }`               |
 | `/api/deck/threads/<id>/activity` (BFF) | GET    | Detail Recent activity tab  | `ActivityEvent[]`               |
 | `/api/deck/threads/<id>/audit` (BFF)    | GET    | Detail Audit tab            | `AuditEvent[]`                  |
 
-(The mutation endpoints + last two are BFF-only and not part of the raw
-Gateway threads contract.)
+(The mutation endpoints + last two are prototype assumptions and are not part
+of the verified Deck/Gateway threads contract.)
 
 ## Backend chain
 
 ```
 ThreadsApp
-  → frontend-new/src/api/threads.ts
+  → frontend-new/src/api.ts fetchThreads()
   → deck-go Go BFF routes
-    ├── Gateway RPC threads.list
-    ├── BFF mutations (unbind / patch — BFF-owned)
-    └── BFF projections (activity from monitor events, audit from mutation log)
+    ├── Gateway RPC deck.threads.list
+    ├── no verified BFF mutation endpoints yet
+    └── no verified activity/audit projections yet
   → Gateway (only via the BFF / runtime boundary)
 ```
 

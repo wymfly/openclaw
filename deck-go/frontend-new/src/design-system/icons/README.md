@@ -28,13 +28,16 @@ Canonical icon set for `frontend-new/`. Re-exports from `lucide-react` (v1.x) un
 | `IconBolt`                  | `Bolt`         | Skills / capabilities                                |
 | `IconBook`                  | `BookOpen`     | System prompt / documentation                        |
 | `IconCheck`                 | `Check`        | Confirm / saved state                                |
+| `IconClock`                 | `Clock`        | Time / recent activity                               |
 | `IconCopy`                  | `Copy`         | Copy to clipboard                                    |
 | `IconEdit`                  | `Pencil`       | Edit affordance                                      |
 | `IconEye`                   | `Eye`          | Show / preview                                       |
 | `IconEyeOff`                | `EyeOff`       | Hide / mask                                          |
 | `IconFile`                  | `FileText`     | Workspace file                                       |
 | `IconFilter`                | `Filter`       | List filter                                          |
+| `IconHash`                  | `Hash`         | Identifier / hash token                              |
 | `IconInfo`                  | `Info`         | Informational hint                                   |
+| `IconLink`                  | `Link`         | Link / bind relationship                             |
 | `IconPlus`                  | `Plus`         | Create / add                                         |
 | `IconRefresh`               | `RefreshCw`    | Reload / recompute                                   |
 | `IconSave`                  | `Save`         | Save changes                                         |
@@ -43,9 +46,10 @@ Canonical icon set for `frontend-new/`. Re-exports from `lucide-react` (v1.x) un
 | `IconStream`                | `Radio`        | SSE event stream subscription                        |
 | `IconSubagents`             | `Users`        | Subagent group / delegation                          |
 | `IconTrash`                 | `Trash2`       | Destructive delete                                   |
+| `IconUnlink`                | `Unlink`       | Unlink / detach relationship                         |
 | `IconX`                     | `X`            | Close / dismiss / clear                              |
 
-24 icons in v1. Adding a new icon: pick the closest lucide source, add a re-export to `index.ts` in alphabetical order, append a row to this table.
+28 icons in v1. Adding a new icon: pick the closest lucide source, add a re-export to `index.ts` in alphabetical order, append a row to this table.
 
 ## Usage
 

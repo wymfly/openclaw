@@ -1,65 +1,64 @@
 # subagents — API usage
 
-> Endpoint truth and DTO shapes are tracked in
-> `deck-go/contracts/source/deck-api.contract.ts` and
-> `deck-go/contracts/source/deck-endpoints.contract.json`.
+> Code truth is the authority. This handoff records the current contract chain after production
+> implementation; future design work must re-check `deck-go/contracts/source/deck-api.contract.ts`,
+> `deck-go/contracts/source/deck-endpoints.contract.json`, generated Gateway protocol types, and Go
+> BFF routes before changing UI behavior.
 
 ## Source of truth
 
-Subagents has TWO concerns layered into one panel:
+Subagents has two concerns layered into one panel:
 
-1. **Runs / lifecycle** — operational live view via `subagents.list`, kill, steer.
-2. **Permission config** — per-parent-agent allow-lists via `agents.subagent-config`.
+1. **Runs / lifecycle** — operational live view via `deck.subagents.list`, lineage, kill, and steer.
+2. **Permission config** — per-parent-agent allow-lists via `deck.agents.subagents.get/set`.
 
-The browser never calls Gateway directly. All flows through the deck-go Go BFF.
+The browser never calls OpenClaw Gateway directly. Production routes are deck-go BFF routes, not the
+prototype's REST-style paths.
 
 ## Deck-facing API (runs)
 
 ### `GET /api/deck/subagents`
 
-Wrapper: `fetchSubagents()`. Response: `DeckGoSubagentsListResponse`.
+Wrapper: `fetchSubagentRuns(params)`. Response: `DeckGoSubagentsListResponse`.
 
-Returns recent runs across all sessions. Sort: backend already returns most recent first; the
-panel re-sorts to push live runs (`running` / `stalled`) above ended ones.
+Supported query params are `status`, `agentId`, `requesterAgentId`, `limit`, and `offset`.
+Current Gateway schema accepts status values: `active | completed | failed | timeout | all`.
 
-### `GET /api/deck/subagents/lineage?session=<sessionKey>`
+### `POST /api/deck/subagents` with `{ action: "lineage", runId? , sessionKey? }`
 
-Wrapper: `fetchLineage(sessionKey)`. Response: `DeckGoSubagentsLineageResponse`.
+Wrapper: `fetchSubagentLineage({ runId, sessionKey })`. Response:
+`DeckGoSubagentsLineageResponse`.
 
-Tree of all spawns rooted at `sessionKey`. Used by the **Lineage** tab.
+### `POST /api/deck/subagents` with `{ action: "kill", runId }`
 
-### `POST /api/deck/subagents/<runId>/kill`
+Wrapper: `killSubagentRun(runId)`. Response: `DeckGoSubagentKillResponse`.
 
-Wrapper: `killSubagent(runId)`. Response: `DeckGoSubagentKillResponse` (`ok`, `runId`,
-`childSessionKey`).
+This is a destructive live-session mutation. Real E2E treats it as skipped-safe unless a disposable
+run fixture exists.
 
-Terminates the child session immediately. KillRunDialog drives this.
+### `POST /api/deck/subagents` with `{ action: "steer", runId, instruction }`
 
-### `POST /api/deck/subagents/<runId>/steer`
+Wrapper: `steerSubagentRun(runId, instruction)`. Response: `DeckGoSubagentSteerResponse`.
 
-Wrapper: `steerSubagent(runId, message)`. Response: `DeckGoSubagentSteerResponse` (`success`,
-`dedupKey`, `deduped?`, `newRunId?`).
-
-Injects a steering hint into the child's next iteration. SteerRunDialog drives this.
+The client sends `instruction`; the server may return `dedupKey`, `deduped`, or `newRunId`.
+Client-generated dedup keys are not part of the current contract.
 
 ## Deck-facing API (permissions)
 
-### `GET /api/deck/agents/<agentId>/subagent-config`
+### `POST /api/deck/agents` with `{ action: "subagents.get", agentId }`
 
-Wrapper: `fetchAgentSubagentConfig(agentId)`. Response: `DeckGoAgentSubagentConfigResponse`.
+Wrapper: `fetchAgentSubagentConfig(agentId)`. Response:
+`DeckGoAgentSubagentConfigResponse`.
 
-The panel collects this for every agent that appears as a parent in the runs list, plus any
-agent the operator opens via the Permissions list mode.
+### `POST /api/deck/agents` with `{ action: "subagents.set", agentId, allowAgents, model?, baseHash }`
 
-### `POST /api/deck/agents/<agentId>/subagent-config`
-
-Wrapper: `setAgentSubagentConfig(agentId, partial, prevHash)`. Response:
+Wrapper: `updateAgentSubagentConfig(agentId, { allowAgents, model, baseHash })`. Response:
 `DeckGoAgentSubagentConfigSetResponse`.
 
-Mutates the allow-list / allowAny / model. PermissionsDialog drives this. Production should
-pass the previous `configHash` for optimistic locking.
+Production passes the previous `configHash` as `baseHash`. `allowAny` is represented by
+`allowAgents: ["*"]`; there is no separate `allowAny` setter field in the current Gateway schema.
 
-## DTO shapes (canonical)
+## DTO shapes
 
 ```ts
 type DeckGoSubagentRun = {
@@ -73,13 +72,13 @@ type DeckGoSubagentRun = {
   task?: string;
   label?: string;
   model?: string;
-  spawnMode: string; // blocking | background | (open)
+  spawnMode: string;
   depth: number;
   createdAt: number;
   startedAt?: number;
   endedAt?: number;
   durationMs?: number;
-  status: string; // running | succeeded | failed | killed | stalled | (open)
+  status: string;
   outcome?: unknown;
 };
 
@@ -88,40 +87,19 @@ type DeckGoSubagentsListResponse = {
   total: number;
 };
 
-type DeckGoSubagentLineageRoot = {
-  sessionKey: string;
-  agentId: string;
-  agentName?: string;
-};
-
-type DeckGoSubagentLineageNode = {
-  runId: string;
-  sessionKey: string;
-  agentId: string;
-  agentName?: string;
-  task?: string;
-  depth: number;
-  parentRunId: string;
-  status: string;
-  durationMs?: number;
-};
-
 type DeckGoSubagentsLineageResponse = {
-  root: DeckGoSubagentLineageRoot;
-  nodes: DeckGoSubagentLineageNode[];
-};
-
-type DeckGoSubagentKillResponse = {
-  ok: boolean;
-  runId: string;
-  childSessionKey: string;
-};
-
-type DeckGoSubagentSteerResponse = {
-  success: boolean;
-  dedupKey?: string;
-  deduped?: boolean;
-  newRunId?: string;
+  root: { sessionKey: string; agentId: string; agentName?: string };
+  nodes: Array<{
+    runId: string;
+    sessionKey: string;
+    agentId: string;
+    agentName?: string;
+    task?: string;
+    depth: number;
+    parentRunId: string;
+    status: string;
+    durationMs?: number;
+  }>;
 };
 
 type DeckGoAgentSubagentConfigResponse = {
@@ -136,87 +114,23 @@ type DeckGoAgentSubagentConfigResponse = {
   allAgents?: Array<{ id: string; name?: string }>;
   configHash: string;
 };
-
-type DeckGoAgentSubagentPermissionOption = {
-  id: string;
-  name?: string;
-  allowed: boolean;
-};
-
-type DeckGoAgentSubagentConfigSetResponse = {
-  ok?: boolean;
-  agentId?: string;
-  allowAgents?: string[];
-  model?: string;
-  configHash?: string;
-};
 ```
-
-## BFF projections (not part of the contract)
-
-### `audit: SubagentAuditEvent[]`
-
-```ts
-interface SubagentAuditEvent {
-  ts: number;
-  actor: "system" | string;
-  event: "spawned" | "started" | "ended" | "kill" | "steer" | string;
-  note?: string;
-}
-```
-
-BFF projection over the BFF mutation log + Gateway lifecycle events. Used by the **Audit** tab.
 
 ## Endpoint summary
 
-| Endpoint                                     | Method | When                               | DTO                                    |
-| -------------------------------------------- | ------ | ---------------------------------- | -------------------------------------- |
-| `/api/deck/subagents`                        | GET    | Runs list                          | `DeckGoSubagentsListResponse`          |
-| `/api/deck/subagents/lineage?session=…`      | GET    | Detail Lineage tab                 | `DeckGoSubagentsLineageResponse`       |
-| `/api/deck/subagents/<runId>/kill`           | POST   | KillRunDialog confirm              | `DeckGoSubagentKillResponse`           |
-| `/api/deck/subagents/<runId>/steer`          | POST   | SteerRunDialog send                | `DeckGoSubagentSteerResponse`          |
-| `/api/deck/agents/<agentId>/subagent-config` | GET    | Permissions list / Detail Perm tab | `DeckGoAgentSubagentConfigResponse`    |
-| `/api/deck/agents/<agentId>/subagent-config` | POST   | PermissionsDialog save             | `DeckGoAgentSubagentConfigSetResponse` |
-| `/api/deck/subagents/<runId>/audit` (BFF)    | GET    | Detail Audit tab                   | `SubagentAuditEvent[]`                 |
+| Endpoint/action                    | Method | When                    | DTO                                    |
+| ---------------------------------- | ------ | ----------------------- | -------------------------------------- |
+| `/api/deck/subagents`              | GET    | Runs list               | `DeckGoSubagentsListResponse`          |
+| `/api/deck/subagents` `lineage`    | POST   | Detail Lineage tab      | `DeckGoSubagentsLineageResponse`       |
+| `/api/deck/subagents` `kill`       | POST   | Kill dialog confirm     | `DeckGoSubagentKillResponse`           |
+| `/api/deck/subagents` `steer`      | POST   | Steer dialog send       | `DeckGoSubagentSteerResponse`          |
+| `/api/deck/agents` `subagents.get` | POST   | Permissions list/detail | `DeckGoAgentSubagentConfigResponse`    |
+| `/api/deck/agents` `subagents.set` | POST   | Permissions dialog save | `DeckGoAgentSubagentConfigSetResponse` |
 
-## Backend chain
+## Unsupported prototype assumptions
 
-```
-SubagentsPanel / subagent helper components
-  → frontend-new/src/api/subagents.ts
-  → deck-go Go BFF routes
-    ├── Gateway RPC subagents.list / lineage / kill / steer
-    ├── Gateway RPC agents.subagentConfig.get / set
-    └── BFF projection (audit)
-  → Gateway (only via the BFF / runtime boundary)
-```
-
-## Mock requirements
-
-- 14+ runs covering all 5 statuses (running / succeeded / failed / killed / stalled) and both
-  spawn modes (blocking / background) and depth 1 + depth 2.
-- Lineage projection for the dominant root session; depth ≥ 2 to demonstrate sibling rendering.
-- 3+ parent-agent configs (one with allowAny=false, one with empty allow-list, one with full
-  permissive set).
-- Audit projection for at least 3 runs covering all event types.
-
-## Open contract assumptions
-
-- **`status` enumeration.** Open per `DeckGoSubagentRun.status: string`. Prototype handles
-  `running | succeeded | failed | killed | stalled`. Anything else co-groups under `stalled`
-  (warn) or muted.
-- **`spawnMode` enumeration.** Open. Prototype handles `blocking | background`. Other values
-  fall through with a generic mode-pill render.
-- **Stalled detection.** Prototype models `status: "stalled"` as a backend signal. If the
-  backend only reports `lastProgressMs`, deck-go frontend computes stalled via a configurable
-  threshold (e.g., > 60s no progress).
-- **Lineage cross-session jumps.** Prototype loads lineage by `requesterSessionKey`. If a
-  child spawns into a different session (recursive subagent in a fresh session), the lineage
-  view should follow the cross-session edge — production needs a `lineageMap[childSessionKey]`
-  fallback.
-- **Permission config write hash.** Prototype omits `prevHash` parameter on save. Production
-  must thread it for optimistic locking and retry on hash mismatch (409).
-- **Kill cascade.** Prototype kills only the targeted run. Confirm whether backend cascades the
-  kill to descendants automatically, or if the operator must walk lineage.
-- **Steer dedupKey ergonomics.** Prototype shows server-generated dedupKey. Confirm if the deck
-  client may pass one in for client-side idempotency.
+- `/api/deck/subagents/<runId>/kill` and `/api/deck/subagents/<runId>/steer` are prototype-only route shapes.
+- `/api/deck/agents/<agentId>/subagent-config` is prototype-only route shape.
+- `/api/deck/subagents/<runId>/audit` is not declared.
+- Prototype statuses `running | succeeded | killed | stalled` are visual assumptions. Current Gateway filter schema is `active | completed | failed | timeout | all`; unknown returned status strings render as fallback only.
+- Kill cascade, stalled detection, and client-generated steer dedup keys are open product questions.

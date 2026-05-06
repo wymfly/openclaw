@@ -24,16 +24,18 @@ export function DateRangePicker({ days, onDaysChange, onRefresh }: DateRangePick
       </div>
       <div
         className="usage-panel__segments deck-ui-usage-actions"
-        role="group"
+        role="tablist"
         aria-label={t("rangeShortcuts")}
       >
         {USAGE_RANGE_SHORTCUTS.map((shortcut) => (
           <button
+            aria-selected={days === shortcut.days}
             className={`usage-panel__button deck-ui-usage-button ${
               days === shortcut.days ? "is-primary" : ""
             }`}
             data-usage-range={shortcut.days}
             key={shortcut.days}
+            role="tab"
             type="button"
             onClick={() => {
               onDaysChange(shortcut.days);

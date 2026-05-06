@@ -1,6 +1,7 @@
 import type {
   DeckGoBundledRuntimeGatewayStatus as GeneratedDeckGoBundledRuntimeGatewayStatus,
   DeckGoBootstrapStatusResponse as GeneratedDeckGoBootstrapStatusResponse,
+  DeckGoChannelLogoutResponse as GeneratedDeckGoChannelLogoutResponse,
   DeckGoChannelTestResponse as GeneratedDeckGoChannelTestResponse,
   DeckGoChannelThroughputBucket as GeneratedDeckGoChannelThroughputBucket,
   DeckGoChannelThroughputResponse as GeneratedDeckGoChannelThroughputResponse,
@@ -13,10 +14,20 @@ import type {
   DeckGoChatSteerRequest,
   DeckGoChatSteerResponse,
   DeckGoConfigSchemaLookupRequest,
+  DeckGoControlAuditEntry,
+  DeckGoControlAuditEventsResponse,
+  DeckGoControlAuditRetention,
+  DeckGoGatewayBatchCall as GeneratedDeckGoGatewayBatchCall,
+  DeckGoGatewayBatchError as GeneratedDeckGoGatewayBatchError,
+  DeckGoGatewayBatchOptions as GeneratedDeckGoGatewayBatchOptions,
+  DeckGoGatewayBatchRequest as GeneratedDeckGoGatewayBatchRequest,
+  DeckGoGatewayBatchResponse as GeneratedDeckGoGatewayBatchResponse,
+  DeckGoGatewayBatchResultEntry as GeneratedDeckGoGatewayBatchResultEntry,
   DeckGoGatewayDescribeEvent as GeneratedDeckGoGatewayDescribeEvent,
   DeckGoGatewayDescribeMethod as GeneratedDeckGoGatewayDescribeMethod,
   DeckGoGatewayDescribeResponse as GeneratedDeckGoGatewayDescribeResponse,
   DeckGoGatewayHealthResponse as GeneratedDeckGoGatewayHealthResponse,
+  DeckGoGatewayInvokeResult as GeneratedDeckGoGatewayInvokeResult,
   DeckGoGatewayStatusResponse as GeneratedDeckGoGatewayStatusResponse,
   DeckGoLogStreamEvent,
   DeckGoPluginCapability as GeneratedDeckGoPluginCapability,
@@ -60,6 +71,9 @@ export type {
   DeckGoChatSteerRequest,
   DeckGoChatSteerResponse,
   DeckGoConfigSchemaLookupRequest,
+  DeckGoControlAuditEntry,
+  DeckGoControlAuditEventsResponse,
+  DeckGoControlAuditRetention,
   DeckGoLogStreamEvent,
   DeckGoPluginsListResponse,
   DeckGoRuntimeCapabilities,
@@ -110,6 +124,14 @@ export type DeckGoSelfDeviceResponse = DeckApi.DeckGoSelfDeviceResponse;
 export type DeckGoDeviceTokenRotateResponse = DeckApi.DeckGoDeviceTokenRotateResponse;
 export type DeckGoGatewayHealthResponse = GeneratedDeckGoGatewayHealthResponse;
 export type DeckGoGatewayStatusResponse = GeneratedDeckGoGatewayStatusResponse;
+export type DeckGoGatewayBatchCall = GeneratedDeckGoGatewayBatchCall;
+export type DeckGoGatewayBatchOptions = GeneratedDeckGoGatewayBatchOptions;
+export type DeckGoGatewayBatchRequest = GeneratedDeckGoGatewayBatchRequest;
+export type DeckGoGatewayBatchError = GeneratedDeckGoGatewayBatchError;
+export type DeckGoGatewayBatchResultEntry = GeneratedDeckGoGatewayBatchResultEntry;
+export type DeckGoGatewayBatchResponse = GeneratedDeckGoGatewayBatchResponse;
+export type DeckGoGatewayInvokeResult = GeneratedDeckGoGatewayInvokeResult;
+export type DeckGoChannelLogoutResponse = GeneratedDeckGoChannelLogoutResponse;
 export type DeckGoChannelTestResponse = GeneratedDeckGoChannelTestResponse;
 export type DeckGoChannelThroughputBucket = GeneratedDeckGoChannelThroughputBucket;
 export type DeckGoChannelThroughputResponse = GeneratedDeckGoChannelThroughputResponse;
@@ -122,6 +144,7 @@ export type DeckGoPendingApproval = DeckApi.DeckGoPendingApproval;
 export type DeckGoApprovalPolicyDefaults = DeckApi.DeckGoApprovalPolicyDefaults;
 export type DeckGoApprovalPolicy = DeckApi.DeckGoApprovalPolicy;
 export type DeckGoApprovalPolicyResponse = DeckApi.DeckGoApprovalPolicyResponse;
+export type DeckGoApprovalResolutionResponse = DeckApi.DeckGoApprovalResolutionResponse;
 export type DeckGoPendingApprovalsResponse = DeckApi.DeckGoPendingApprovalsResponse;
 export type DeckGoPluginApprovalEntry = GeneratedDeckGoPluginApprovalEntry;
 export type DeckGoPluginApprovalsResponse = GeneratedDeckGoPluginApprovalsResponse;
@@ -130,6 +153,7 @@ export type DeckGoSkillInstallOption = DeckApi.DeckGoSkillInstallOption;
 export type DeckGoSkillEntry = DeckApi.DeckGoSkillEntry;
 export type DeckGoSkillsResponse = DeckApi.DeckGoSkillsResponse;
 export type DeckGoSkillUpdateResponse = DeckApi.DeckGoSkillUpdateResponse;
+export type DeckGoSkillInstallResponse = DeckApi.DeckGoSkillInstallResponse;
 export type DeckGoSkillHubSearchResult = DeckApi.DeckGoSkillHubSearchResult;
 export type DeckGoSkillHubSearchResponse = DeckApi.DeckGoSkillHubSearchResponse;
 export type DeckGoSkillHubDetailResponse = DeckApi.DeckGoSkillHubDetailResponse;
@@ -145,10 +169,13 @@ export type DeckGoCronRunsResponse = DeckApi.DeckGoCronRunsResponse;
 export type DeckGoCronJobsParams = DeckApi.DeckGoCronJobsParams;
 export type DeckGoCronRunsParams = DeckApi.DeckGoCronRunsParams;
 export type DeckGoCronRunParams = DeckApi.DeckGoCronRunParams;
+export type DeckGoCronDeleteResponse = DeckApi.DeckGoCronDeleteResponse;
+export type DeckGoCronRunResponse = DeckApi.DeckGoCronRunResponse;
 export type DeckGoDocCategory = DeckApi.DeckGoDocCategory;
 export type DeckGoDoc = DeckApi.DeckGoDoc;
 export type DeckGoDocsResponse = DeckApi.DeckGoDocsResponse;
 export type DeckGoDocsExtractResponse = DeckApi.DeckGoDocsExtractResponse;
+export type DeckGoDocDeleteResponse = DeckApi.DeckGoDocDeleteResponse;
 export type DeckGoAlertAction = DeckApi.DeckGoAlertAction;
 export type DeckGoAlertRule = DeckApi.DeckGoAlertRule;
 export type DeckGoAlertsResponse = DeckApi.DeckGoAlertsResponse;
@@ -157,15 +184,23 @@ export type DeckGoWebhook = DeckApi.DeckGoWebhook;
 export type DeckGoWebhookDelivery = DeckApi.DeckGoWebhookDelivery;
 export type DeckGoWebhooksResponse = DeckApi.DeckGoWebhooksResponse;
 export type DeckGoWebhookDeliveriesResponse = DeckApi.DeckGoWebhookDeliveriesResponse;
+export type DeckGoWebhookTestResponse = DeckApi.DeckGoWebhookTestResponse;
 export type DeckGoNodeSummary = DeckApi.DeckGoNodeSummary;
 export type DeckGoPairingRequest = DeckApi.DeckGoPairingRequest;
 export type DeckGoNodesResponse = DeckApi.DeckGoNodesResponse;
 export type DeckGoNodePairingResponse = DeckApi.DeckGoNodePairingResponse;
 export type DeckGoNodePairRequestInput = DeckApi.DeckGoNodePairRequestInput;
 export type DeckGoNodePairRequestResponse = DeckApi.DeckGoNodePairRequestResponse;
+export type DeckGoNodePairApproveResponse = DeckApi.DeckGoNodePairApproveResponse;
+export type DeckGoNodePairRejectResponse = DeckApi.DeckGoNodePairRejectResponse;
+export type DeckGoNodePairVerifyResponse = DeckApi.DeckGoNodePairVerifyResponse;
+export type DeckGoNodePairingPairedNode = DeckApi.DeckGoNodePairingPairedNode;
+export type DeckGoNodeRenameResponse = DeckApi.DeckGoNodeRenameResponse;
 export type DeckGoNodeInvokeResponse = DeckApi.DeckGoNodeInvokeResponse;
 export type DeckGoNodePendingWorkType = DeckApi.DeckGoNodePendingWorkType;
 export type DeckGoNodePendingWorkPriority = DeckApi.DeckGoNodePendingWorkPriority;
+export type DeckGoNodePendingWorkItemPriority = DeckApi.DeckGoNodePendingWorkItemPriority;
+export type DeckGoNodePendingWorkItem = DeckApi.DeckGoNodePendingWorkItem;
 export type DeckGoNodePendingEnqueueResponse = DeckApi.DeckGoNodePendingEnqueueResponse;
 export type DeckGoMemoryFileNode = DeckApi.DeckGoMemoryFileNode;
 export type DeckGoMemoryHealthEntry = DeckApi.DeckGoMemoryHealthEntry;
@@ -187,6 +222,7 @@ export type DeckGoBudgetEvaluationsResponse = DeckApi.DeckGoBudgetEvaluationsRes
 export type DeckGoIdentityPeer = DeckApi.DeckGoIdentityPeer;
 export type DeckGoIdentityLink = DeckApi.DeckGoIdentityLink;
 export type DeckGoIdentityLinksResponse = DeckApi.DeckGoIdentityLinksResponse;
+export type DeckGoIdentityMutationResponse = DeckApi.DeckGoIdentityMutationResponse;
 export type DeckGoThreadEntry = DeckApi.DeckGoThreadEntry;
 export type DeckGoThreadsResponse = DeckApi.DeckGoThreadsResponse;
 export type DeckGoRoutingPeer = DeckApi.DeckGoRoutingPeer;

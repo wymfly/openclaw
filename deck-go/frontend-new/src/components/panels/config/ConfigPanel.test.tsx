@@ -18,21 +18,24 @@ let container: HTMLDivElement;
 let root: Root | null = null;
 
 function configPayload() {
-  return {
-    config: {
-      agents: {
-        defaults: {
-          apiKey: "test-secret",
-          enabled: true,
-          mode: "auto",
-          maxTokens: 1000,
-          model: "gpt-5.4",
-          sandbox: { mode: "workspace-write" },
-        },
+  const config = {
+    agents: {
+      defaults: {
+        apiKey: "test-secret",
+        enabled: true,
+        mode: "auto",
+        maxTokens: 1000,
+        model: "gpt-5.4",
+        sandbox: { mode: "workspace-write" },
       },
-      models: { providers: { openai: {} } },
     },
+    models: { providers: { openai: {} } },
+  };
+  return {
+    config,
+    baseHash: "config-base-h1",
     hash: "config-h1",
+    raw: JSON.stringify(config, null, 2),
   };
 }
 
@@ -131,6 +134,29 @@ function renderConfigPanel(locale: "en" | "zh" = "en") {
   return createElement(DeckIntlProvider, { locale }, createElement(ConfigPanel));
 }
 
+function findButton(label: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === label,
+  );
+}
+
+async function clickButton(label: string) {
+  await act(async () => {
+    findButton(label)?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+async function openRawPane(label = "Raw") {
+  await clickButton(label);
+  await waitFor(() =>
+    expect(container.querySelector('[data-testid="config-raw-editor"]')).toBeTruthy(),
+  );
+}
+
+function rawEditor() {
+  return container.querySelector<HTMLTextAreaElement>('[data-testid="config-raw-editor"]');
+}
+
 describe("ConfigPanel", () => {
   beforeEach(() => {
     (
@@ -163,32 +189,32 @@ describe("ConfigPanel", () => {
     });
 
     await waitFor(() => expect(apiMocks.fetchDeckConfig).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(container.textContent).toContain("Config ready"));
+    await waitFor(() => expect(container.textContent).toContain("Snapshot in sync"));
 
-    expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("agents.defaults");
+    expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("agents");
     expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("");
     expect(container.textContent).toContain("2 top-level keys");
-    expect(container.textContent).toContain("2 schema sections");
-    expect(container.textContent).toContain("hash config-h1");
+    expect(container.textContent).toContain("base config-base-h1");
     expect(container.textContent).toContain("agents");
     expect(container.textContent).toContain("models");
-    expect(container.textContent).toContain("6 schema children");
-    expect(container.textContent).toContain("Structured section editor");
+    expect(container.textContent).toContain("Showing 6 of 6 structured fields");
+    expect(container.textContent).toContain("Configuration");
+    expect(container.textContent).toContain("Draft preview");
     expect(container.textContent).toContain("Default model");
     expect(container.querySelector(".config-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".config-panel__card")).toHaveLength(2);
-    expect(container.querySelectorAll(".config-panel__body")).toHaveLength(2);
+    expect(container.querySelector(".config-panel__topbar")).toBeTruthy();
+    expect(container.querySelector(".config-panel__section-nav")).toBeTruthy();
+    expect(container.querySelector(".config-panel__form-pane")).toBeTruthy();
+    expect(container.querySelector(".config-panel__preview-pane")).toBeTruthy();
     expect(container.querySelector(".config-panel__pill-row")).toBeTruthy();
-    expect(container.querySelector(".config-panel__metrics")).toBeTruthy();
-    expect(container.querySelectorAll(".config-panel__surface")).toHaveLength(3);
     expect(container.querySelectorAll(".config-panel__input").length).toBeGreaterThanOrEqual(6);
-    expect(container.querySelectorAll(".config-panel__actions").length).toBeGreaterThanOrEqual(5);
+    expect(container.querySelectorAll(".config-panel__actions").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".config-panel__button").length).toBeGreaterThanOrEqual(8);
-    expect(container.querySelectorAll(".config-panel__list")).toHaveLength(2);
-    expect(container.querySelectorAll(".config-panel__row").length).toBeGreaterThanOrEqual(8);
     expect(container.querySelectorAll(".config-panel__field-card")).toHaveLength(6);
-    expect(container.querySelector(".config-panel__hero")).toBeTruthy();
-    expect(container.querySelector(".config-panel__textarea")).toBeTruthy();
+    expect(container.querySelector(".config-panel__preview-empty")).toBeTruthy();
+
+    await openRawPane();
+    expect(rawEditor()).toBeTruthy();
   });
 
   it("renders localized Chinese config editor and schema surfaces", async () => {
@@ -197,15 +223,37 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel("zh"));
     });
 
-    await waitFor(() => expect(container.textContent).toContain("配置就绪"));
+    await waitFor(() => expect(container.textContent).toContain("快照已同步"));
 
     expect(container.textContent).toContain("2 个顶层键");
-    expect(container.textContent).toContain("2 个 schema 分区");
-    expect(container.textContent).toContain("结构化分区编辑器");
-    expect(container.textContent).toContain("配置详情");
-    expect(container.textContent).toContain("原始配置");
+    expect(container.textContent).toContain("配置治理");
+    expect(container.textContent).toContain("草稿预览");
     expect(container.textContent).toContain("Schema 分区");
     expect(container.textContent).toContain("应用配置");
+
+    await openRawPane("原始");
+    expect(container.textContent).toContain("原始配置");
+  });
+
+  it("keeps synthesized raw snapshots read-only when the Gateway omits raw text", async () => {
+    apiMocks.fetchDeckConfig.mockResolvedValueOnce({
+      config: { agents: { defaults: { model: "gpt-5.4" } } },
+      baseHash: "config-base-h1",
+      hash: "config-h1",
+      raw: null,
+    });
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(renderConfigPanel());
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("Snapshot in sync"));
+
+    expect(container.textContent).toContain("Raw config text is unavailable");
+    await openRawPane();
+    expect(rawEditor()?.readOnly).toBe(true);
+    expect(findButton("Apply config")?.disabled).toBe(true);
   });
 
   it("uses password inputs for sensitive structured string fields and can reveal them", async () => {
@@ -245,7 +293,8 @@ describe("ConfigPanel", () => {
       );
     });
 
-    const rawValue = (container.querySelector("textarea") as HTMLTextAreaElement).value;
+    await openRawPane();
+    const rawValue = rawEditor()?.value ?? "";
     const parsedRaw = JSON.parse(rawValue) as {
       agents?: { defaults?: { apiKey?: string } };
     };
@@ -258,8 +307,10 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Config ready"));
-    await waitFor(() => expect(container.textContent).toContain("6 schema children"));
+    await waitFor(() => expect(container.textContent).toContain("Snapshot in sync"));
+    await waitFor(() =>
+      expect(container.textContent).toContain("Showing 6 of 6 structured fields"),
+    );
 
     const pathInput = Array.from(container.querySelectorAll("input")).find(
       (input) => input.getAttribute("placeholder") === "config path",
@@ -268,42 +319,32 @@ describe("ConfigPanel", () => {
       fireEvent.change(pathInput, { target: { value: " agents.defaults.model " } });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Lookup schema")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Lookup schema");
 
     await waitFor(() =>
       expect(apiMocks.lookupConfigPath).toHaveBeenLastCalledWith("agents.defaults.model"),
     );
 
     const nextRaw = JSON.stringify({ agents: { defaults: { model: "sonnet-4.6" } } });
-    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    await openRawPane();
+    const textarea = rawEditor() as HTMLTextAreaElement;
     await act(async () => {
       fireEvent.change(textarea, { target: { value: nextRaw } });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Apply config");
 
     expect(apiMocks.applyDeckConfig).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Config diff preview");
     expect(container.textContent).toContain("pending config changes");
     expect(container.textContent).toContain("agents.defaults.model");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Confirm apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Confirm apply config");
 
     await waitFor(() =>
-      expect(apiMocks.applyDeckConfig).toHaveBeenCalledWith(nextRaw, "config-h1"),
+      expect(apiMocks.applyDeckConfig).toHaveBeenCalledWith(nextRaw, "config-base-h1"),
     );
+    await clickButton("View snapshot");
     expect(container.textContent).toContain("Last apply result");
   });
 
@@ -319,6 +360,15 @@ describe("ConfigPanel", () => {
         },
       },
       hash: "config-h2",
+      raw: JSON.stringify({
+        agents: {
+          defaults: {
+            enabled: true,
+            mode: "manual",
+            model: "remote-model",
+          },
+        },
+      }),
     };
     apiMocks.fetchDeckConfig
       .mockResolvedValueOnce(configPayload())
@@ -333,36 +383,25 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Config ready"));
+    await waitFor(() => expect(container.textContent).toContain("Snapshot in sync"));
 
     const localRaw = JSON.stringify({ agents: { defaults: { model: "local-model" } } });
-    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    await openRawPane();
+    const textarea = rawEditor() as HTMLTextAreaElement;
     await act(async () => {
       fireEvent.change(textarea, { target: { value: localRaw } });
     });
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Apply config");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Confirm apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Confirm apply config");
 
     await waitFor(() => expect(container.textContent).toContain("Config apply conflict"));
     expect(container.textContent).toContain("config-h2");
     expect(container.textContent).toContain("agents.defaults.model");
-    expect(apiMocks.applyDeckConfig).toHaveBeenCalledWith(localRaw, "config-h1");
+    expect(apiMocks.applyDeckConfig).toHaveBeenCalledWith(localRaw, "config-base-h1");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Retry local config with latest hash")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Retry local config with latest hash");
 
     await waitFor(() => expect(apiMocks.applyDeckConfig).toHaveBeenCalledTimes(2));
     expect(apiMocks.applyDeckConfig).toHaveBeenLastCalledWith(localRaw, "config-h2");
@@ -374,7 +413,9 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Structured section editor"));
+    await waitFor(() =>
+      expect(container.textContent).toContain("Showing 6 of 6 structured fields"),
+    );
 
     const modelInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="Edit agents.defaults.model"]',
@@ -407,7 +448,8 @@ describe("ConfigPanel", () => {
       fireEvent.click(enabledInput as HTMLInputElement);
     });
 
-    const rawValue = (container.querySelector("textarea") as HTMLTextAreaElement).value;
+    await openRawPane();
+    const rawValue = rawEditor()?.value ?? "";
     const parsedRaw = JSON.parse(rawValue) as {
       agents?: {
         defaults?: { enabled?: boolean; maxTokens?: number; mode?: string; model?: string };
@@ -418,19 +460,11 @@ describe("ConfigPanel", () => {
     expect(parsedRaw.agents?.defaults?.mode).toBe("manual");
     expect(parsedRaw.agents?.defaults?.enabled).toBe(false);
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Apply config");
 
     expect(container.textContent).toContain("Config diff preview");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Confirm apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Confirm apply config");
 
     await waitFor(() => expect(apiMocks.applyDeckConfig).toHaveBeenCalledTimes(1));
     const [appliedRaw, appliedHash] = apiMocks.applyDeckConfig.mock.calls[0] as [string, string];
@@ -443,7 +477,7 @@ describe("ConfigPanel", () => {
     expect(applied.agents?.defaults?.maxTokens).toBe(2048);
     expect(applied.agents?.defaults?.mode).toBe("manual");
     expect(applied.agents?.defaults?.enabled).toBe(false);
-    expect(appliedHash).toBe("config-h1");
+    expect(appliedHash).toBe("config-base-h1");
   });
 
   it("writes nested structured JSON field edits back into the raw config snapshot", async () => {
@@ -452,7 +486,9 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("Structured section editor"));
+    await waitFor(() =>
+      expect(container.textContent).toContain("Showing 6 of 6 structured fields"),
+    );
 
     const sandboxTextarea = container.querySelector<HTMLTextAreaElement>(
       'textarea[aria-label="Edit JSON agents.defaults.sandbox"]',
@@ -471,26 +507,19 @@ describe("ConfigPanel", () => {
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    const rawValue = (container.querySelector("textarea") as HTMLTextAreaElement).value;
+    await openRawPane();
+    const rawValue = rawEditor()?.value ?? "";
     const parsedRaw = JSON.parse(rawValue) as {
       agents?: { defaults?: { sandbox?: { mode?: string; network?: boolean } } };
     };
     expect(parsedRaw.agents?.defaults?.sandbox?.mode).toBe("read-only");
     expect(parsedRaw.agents?.defaults?.sandbox?.network).toBe(false);
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Apply config");
 
     expect(container.textContent).toContain("Config diff preview");
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Confirm apply config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Confirm apply config");
 
     await waitFor(() => expect(apiMocks.applyDeckConfig).toHaveBeenCalledTimes(1));
     const [appliedRaw] = apiMocks.applyDeckConfig.mock.calls[0] as [string, string];
@@ -551,29 +580,26 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("unsaved no"));
+    await waitFor(() => expect(container.textContent).toContain("Snapshot in sync"));
     const cleanEvent = new Event("beforeunload", { cancelable: true });
     expect(window.dispatchEvent(cleanEvent)).toBe(true);
 
-    const textarea = container.querySelector("textarea") as HTMLTextAreaElement;
+    await openRawPane();
+    const textarea = rawEditor() as HTMLTextAreaElement;
     await act(async () => {
       fireEvent.change(textarea, {
         target: { value: JSON.stringify({ agents: { defaults: { model: "edited" } } }) },
       });
     });
 
-    expect(container.textContent).toContain("unsaved yes");
+    expect(container.textContent).toContain("6 unsaved");
     const dirtyEvent = new Event("beforeunload", { cancelable: true });
     expect(window.dispatchEvent(dirtyEvent)).toBe(false);
 
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Reset edits")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await clickButton("Reset edits");
 
-    expect((container.querySelector("textarea") as HTMLTextAreaElement).value).toContain("gpt-5.4");
-    expect(container.textContent).toContain("unsaved no");
+    expect(rawEditor()?.value).toContain("gpt-5.4");
+    expect(container.textContent).toContain("Snapshot in sync");
   });
 
   it("navigates schema sections and inspects the matching config value", async () => {
@@ -582,9 +608,11 @@ describe("ConfigPanel", () => {
       root.render(renderConfigPanel());
     });
 
-    await waitFor(() => expect(container.textContent).toContain("2 schema sections"));
-    expect(container.textContent).toContain("Config section: agents");
-    expect(container.textContent).toContain("gpt-5.4");
+    await waitFor(() => expect(container.textContent).toContain("2 top-level keys"));
+    expect(
+      container.querySelector<HTMLInputElement>('input[aria-label="Edit agents.defaults.model"]')
+        ?.value,
+    ).toBe("gpt-5.4");
 
     const filterInput = Array.from(container.querySelectorAll("input")).find(
       (input) => input.getAttribute("placeholder") === "Filter sections",
@@ -597,11 +625,12 @@ describe("ConfigPanel", () => {
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "models")
+        .find((button) => button.textContent?.includes("Models"))
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() => expect(apiMocks.lookupConfigPath).toHaveBeenLastCalledWith("models"));
+    await clickButton("View snapshot");
     expect(container.textContent).toContain("Config section: models");
     expect(container.textContent).toContain("providers");
     expect(container.textContent).toContain("openai");

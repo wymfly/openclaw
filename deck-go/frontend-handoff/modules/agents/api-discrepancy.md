@@ -41,5 +41,11 @@ This file records known differences between desirable product behavior and curre
 ## 7. Real Gateway E2E
 
 - **Design desire:** visual tests also prove real Gateway behavior.
-- **Current truth:** this change is scoped to mock visual coverage.
-- **Implementation rule:** closeout must explicitly say mock visual E2E is not real Gateway/LLM verification.
+- **Current truth:** `frontend-agents-real-contract-verification` adds L2 agents API/UI smoke against a real OpenClaw Gateway, while L1 mock visual remains a separate visual gate.
+- **Implementation rule:** closeout must report L1 mock visual and L2 real Gateway status separately. Mock visual E2E is never functional proof by itself.
+
+## 8. Safe mutation isolation
+
+- **Design desire:** create, update, delete, skills, subagents, streams, and file saves are all proven against real Gateway.
+- **Current truth:** read-only L2 agents API/UI flows are verified. Real mutation flows can alter the user's OpenClaw config unless disposable or reversible agent state is available.
+- **Implementation rule:** do not run automated real mutation checks against ambiguous user config. Mark them handoff-blocked with evidence, while keeping focused wrapper/component/Go tests mandatory.

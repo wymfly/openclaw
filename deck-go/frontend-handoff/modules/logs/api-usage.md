@@ -12,7 +12,7 @@ Gateway directly.
 
 ## Deck-facing API
 
-### `GET /api/deck/logs`
+### `GET /api/logs`
 
 Wrapper:
 
@@ -32,15 +32,18 @@ Response:
 ```ts
 type DeckGoLogsTailResponse = {
   cursor?: number;
-  lines?: unknown[];
+  file?: string;
+  lines?: string[];
   reset?: boolean;
+  size?: number;
+  truncated?: boolean;
 };
 ```
 
 `reset: true` means the tail server-side window rolled over; the client should
 clear local rows and keep `cursor` from the response as the new anchor.
 
-### `GET /api/deck/logs/stream`
+### `GET /api/logs/stream`
 
 Wrapper:
 
@@ -66,11 +69,12 @@ type DeckGoLogStreamEvent = {
 
 Known `event` kinds:
 
-- `log.batch` — payload `{ cursor?: number, lines?: unknown[] }`. Append the
+- `log.batch` — payload `{ cursor?: number, lines?: string[] }`. Append the
   lines, persist `id` to `deckGoLogsLastEventId`, persist `cursor` to
   `deckGoLogsCursor`.
-- `log.reset` — payload `{ reset: true, cursor?: number }`. Drop local lines,
-  reset cursor, push a reset row into the live tape.
+- `log.reset` — payload `{}` today. Drop local lines and push a reset row into
+  the live tape. If a future stream contract adds a cursor, update
+  `deck-go/contracts/source/deck-streams.contract.json` first.
 
 ## Mock requirements
 
@@ -79,28 +83,9 @@ Known `event` kinds:
   cursor: 4498,
   reset: false,
   lines: [
-    {
-      cursor: 4498,
-      ts: "2026-05-03T08:31:18.422Z",
-      level: "info",
-      source: "gateway",
-      sessionKey: "sess-main",
-      message: "gateway ready bind=127.0.0.1:18789 runtime=bundled",
-      correlationId: "trace-9d8a2f",
-      fields: { method: "deck.config.get", latencyMs: 18, peerId: "tcp-127.0.0.1-49382" }
-    },
+    "2026-05-03T08:31:18.422Z [INFO] [gateway] gateway ready sessionKey=sess-main bind=127.0.0.1:18789 runtime=bundled correlationId=trace-9d8a2f method=deck.config.get latencyMs=18",
     /* ... ≥ 100 entries covering all 4 levels × 8 sources × 9 sessions ... */
-    {
-      cursor: 4377,
-      ts: "2026-05-03T09:18:02.901Z",
-      level: "error",
-      source: "agent",
-      sessionKey: "sess-incident-2026-05-03",
-      message: "agent handoff failed sessionKey=sess-incident reason=\"upstream timeout\"",
-      correlationId: "trace-feec22",
-      fields: { step: 73, tokens: 4124, model: "sonnet-4.6" },
-      stack: "Error: upstream timeout for visual fixture\n    at AgentHandoff.dispatch (...)\n    ..."
-    }
+    "2026-05-03T09:18:02.901Z [ERROR] [agent] agent handoff failed sessionKey=sess-incident-2026-05-03 correlationId=trace-feec22 reason=\"upstream timeout\" model=gpt-5.4 step=73 tokens=4124"
   ]
 }
 ```
@@ -114,13 +99,14 @@ Mock must include:
 - ≥ 5 sessions — prototype uses 9.
 - ~50% of lines carry a `correlationId` — at least 3 traces have ≥ 5 lines so
   the "filter by correlation" workflow produces a meaningful span.
-- All error lines carry a `stack` string.
+- Error-line stack evidence is not contractual in `string[]` rows; production
+  shows a stack section only when a future/object-shaped row includes one.
 
-## BFF projection assumption — `lines: unknown[]` shape
+## BFF projection assumption — typed string rows, parsed local shape
 
-The contract types `lines` as `unknown[]`. Today Gateway forwards strings _or_
-objects depending on the upstream emitter. The prototype assumes the BFF
-normalizes each line into:
+The current contract types `lines` as `string[]` on both generated Gateway and
+Deck-facing DTOs. Production parses those strings into local display rows. The
+prototype's visual model is the parsed local shape:
 
 ```ts
 {
@@ -136,41 +122,43 @@ normalizes each line into:
 }
 ```
 
-If upstream OpenClaw publishes a `DeckGoLogLine` schema this becomes
-contractual. Until then production must defensively parse both shapes — see
-`api-discrepancy.md` if the runtime shape diverges from the prototype.
+If upstream OpenClaw publishes a `DeckGoLogLine` schema this richer shape may
+become contractual. Until then production must parse string rows and may keep
+defensive compatibility for historical object-shaped fixtures — see
+`api-discrepancy.md` if the runtime shape diverges from the current string-row
+contract.
 
 ## Endpoint summary
 
-| Endpoint                          | Method    | When                          | DTO                           |
-| --------------------------------- | --------- | ----------------------------- | ----------------------------- |
-| `/api/deck/logs`                  | GET       | Initial load + manual refresh | `DeckGoLogsTailResponse`      |
-| `/api/deck/logs/stream`           | GET (SSE) | Live tape + line append       | `DeckGoLogStreamEvent` frames |
-| (planned) `/api/deck/logs/export` | GET       | Future durable download       | `application/octet-stream`    |
+| Endpoint                     | Method    | When                          | DTO                           |
+| ---------------------------- | --------- | ----------------------------- | ----------------------------- |
+| `/api/logs`                  | GET       | Initial load + manual refresh | `DeckGoLogsTailResponse`      |
+| `/api/logs/stream`           | GET (SSE) | Live tape + line append       | `DeckGoLogStreamEvent` frames |
+| (planned) `/api/logs/export` | GET       | Future durable download       | `application/octet-stream`    |
 
 ## Backend chain
 
 ```
 LogsApp
-  → frontend-new/src/api/logs.ts
+  → frontend-new/src/api.ts
   → deck-go Go BFF routes
-    ├── GET /api/deck/logs        → Gateway RPC logs.tail
-    └── GET /api/deck/logs/stream → Gateway SSE logs.stream
+    ├── GET /api/logs        → Gateway RPC logs.tail
+    └── GET /api/logs/stream → BFF SSE poller over logs.tail
   → Gateway (only via the BFF / runtime boundary)
 ```
 
-## Contract chain exception
+## Contract chain note
 
-Gateway `logs.tail` is currently flagged
-`upstream-schema-missing` in deck-go's generated Gateway protocol artifacts —
-upstream OpenClaw does not publish a TypeBox schema for the method. This v2
-visual pass does **not** fix the upstream gap; it documents the assumed shape
-above and relies on the BFF for normalization.
+Gateway `logs.tail` is typed in the current generated protocol:
+`LogsTailParams` and `LogsTailResult` include `cursor`, `file`, `lines`, `size`,
+`reset`, and `truncated`. The remaining dynamic surface is the SSE event
+`json` payload leaf carried by `DeckGoLogStreamEvent`.
 
 ## Open contract assumptions
 
-- **`lines: unknown[]`** — assumed normalized to the LogLine shape above.
-  Confirm with backend before treating it as a contract.
+- **`lines: string[]`** — parsed locally into the LogLine display shape above.
+  Do not treat structured fields/stack as contractual until a `DeckGoLogLine`
+  schema exists.
 - **Session filter** — local-only on parsed `sessionKey`. The wrapper does
   **not** pass a `session` query param to Gateway in this change.
 - **Level / source filter** — local-only on parsed level / source. Same as

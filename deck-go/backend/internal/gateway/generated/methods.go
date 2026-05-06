@@ -145,6 +145,15 @@ func (c *TypedClient) ChatSend(ctx context.Context, params ChatSendParams) (Chat
 	return decodeResult[ChatSendResult](payload)
 }
 
+func (c *TypedClient) CommandsList(ctx context.Context, params CommandsListParams) (CommandsListResult, error) {
+	var result CommandsListResult
+	payload, err := c.requester.RequestTyped(ctx, "commands.list", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[CommandsListResult](payload)
+}
+
 func (c *TypedClient) ConfigApply(ctx context.Context, params ConfigApplyParams) (ConfigApplyResult, error) {
 	var result ConfigApplyResult
 	payload, err := c.requester.RequestTyped(ctx, "config.apply", params)
@@ -649,6 +658,15 @@ func (c *TypedClient) DoctorMemoryStatus(ctx context.Context, params map[string]
 	return decodeResult[DoctorMemoryStatusResult](payload)
 }
 
+func (c *TypedClient) ExecApprovalList(ctx context.Context, params ExecApprovalListParams) (ExecApprovalListResult, error) {
+	var result ExecApprovalListResult
+	payload, err := c.requester.RequestTyped(ctx, "exec.approval.list", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[ExecApprovalListResult](payload)
+}
+
 func (c *TypedClient) ExecApprovalRequest(ctx context.Context, params ExecApprovalRequestParams) (ExecApprovalRequestResult, error) {
 	var result ExecApprovalRequestResult
 	payload, err := c.requester.RequestTyped(ctx, "exec.approval.request", params)
@@ -743,6 +761,15 @@ func (c *TypedClient) Health(ctx context.Context, params map[string]any) (Health
 	return decodeResult[HealthResult](payload)
 }
 
+func (c *TypedClient) LogsTail(ctx context.Context, params LogsTailParams) (LogsTailResult, error) {
+	var result LogsTailResult
+	payload, err := c.requester.RequestTyped(ctx, "logs.tail", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[LogsTailResult](payload)
+}
+
 func (c *TypedClient) ModelsCatalogProviders(ctx context.Context, params map[string]any) (ModelsCatalogProvidersResult, error) {
 	var result ModelsCatalogProvidersResult
 	paramsMap := params
@@ -781,6 +808,15 @@ func (c *TypedClient) NodeDescribe(ctx context.Context, params NodeDescribeParam
 		return result, err
 	}
 	return decodeResult[NodeDescribeResult](payload)
+}
+
+func (c *TypedClient) NodeInvoke(ctx context.Context, params NodeInvokeParams) (NodeInvokeResult, error) {
+	var result NodeInvokeResult
+	payload, err := c.requester.RequestTyped(ctx, "node.invoke", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[NodeInvokeResult](payload)
 }
 
 func (c *TypedClient) NodeList(ctx context.Context, params NodeListParams) (NodeListResult, error) {
@@ -837,6 +873,15 @@ func (c *TypedClient) NodePairVerify(ctx context.Context, params NodePairVerifyP
 	return decodeResult[NodePairVerifyResult](payload)
 }
 
+func (c *TypedClient) NodePendingEnqueue(ctx context.Context, params NodePendingEnqueueParams) (NodePendingEnqueueResult, error) {
+	var result NodePendingEnqueueResult
+	payload, err := c.requester.RequestTyped(ctx, "node.pending.enqueue", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[NodePendingEnqueueResult](payload)
+}
+
 func (c *TypedClient) NodeRename(ctx context.Context, params NodeRenameParams) (NodeRenameResult, error) {
 	var result NodeRenameResult
 	payload, err := c.requester.RequestTyped(ctx, "node.rename", params)
@@ -844,6 +889,15 @@ func (c *TypedClient) NodeRename(ctx context.Context, params NodeRenameParams) (
 		return result, err
 	}
 	return decodeResult[NodeRenameResult](payload)
+}
+
+func (c *TypedClient) PluginApprovalList(ctx context.Context, params PluginApprovalListParams) (PluginApprovalListResult, error) {
+	var result PluginApprovalListResult
+	payload, err := c.requester.RequestTyped(ctx, "plugin.approval.list", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[PluginApprovalListResult](payload)
 }
 
 func (c *TypedClient) PluginApprovalRequest(ctx context.Context, params PluginApprovalRequestParams) (any, error) {
@@ -854,12 +908,13 @@ func (c *TypedClient) PluginApprovalRequest(ctx context.Context, params PluginAp
 	return payload, nil
 }
 
-func (c *TypedClient) PluginApprovalResolve(ctx context.Context, params PluginApprovalResolveParams) (any, error) {
+func (c *TypedClient) PluginApprovalResolve(ctx context.Context, params PluginApprovalResolveParams) (PluginApprovalResolveResult, error) {
+	var result PluginApprovalResolveResult
 	payload, err := c.requester.RequestTyped(ctx, "plugin.approval.resolve", params)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
-	return payload, nil
+	return decodeResult[PluginApprovalResolveResult](payload)
 }
 
 func (c *TypedClient) SessionsAbort(ctx context.Context, params SessionsAbortParams) (SessionsAbortResult, error) {
@@ -1169,6 +1224,24 @@ func (c *TypedClient) TalkSpeak(ctx context.Context, params TalkSpeakParams) (Ta
 		return result, err
 	}
 	return decodeResult[TalkSpeakResult](payload)
+}
+
+func (c *TypedClient) ToolsCatalog(ctx context.Context, params ToolsCatalogParams) (ToolsCatalogResult, error) {
+	var result ToolsCatalogResult
+	payload, err := c.requester.RequestTyped(ctx, "tools.catalog", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[ToolsCatalogResult](payload)
+}
+
+func (c *TypedClient) ToolsEffective(ctx context.Context, params ToolsEffectiveParams) (ToolsEffectiveResult, error) {
+	var result ToolsEffectiveResult
+	payload, err := c.requester.RequestTyped(ctx, "tools.effective", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[ToolsEffectiveResult](payload)
 }
 
 func (c *TypedClient) UsageCost(ctx context.Context, params map[string]any) (UsageCostResult, error) {

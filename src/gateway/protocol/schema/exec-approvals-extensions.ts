@@ -1,6 +1,20 @@
 import { Type } from "@sinclair/typebox";
 import { NonEmptyString } from "./primitives.js";
 
+export const ExecApprovalListParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const ExecApprovalListRecordSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    request: Type.Unknown(),
+    createdAtMs: Type.Integer({ minimum: 0 }),
+    expiresAtMs: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const ExecApprovalListResultSchema = Type.Array(ExecApprovalListRecordSchema);
+
 export const ExecApprovalRequestResultSchema = Type.Object(
   {
     id: NonEmptyString,

@@ -2,6 +2,58 @@
 
 package generated
 
+type HealthResult struct {
+	Agents           []any             `json:"agents"`
+	ChannelLabels    map[string]string `json:"channelLabels"`
+	ChannelOrder     []string          `json:"channelOrder"`
+	Channels         map[string]any    `json:"channels"`
+	DefaultAgentId   string            `json:"defaultAgentId"`
+	DurationMs       float64           `json:"durationMs"`
+	HeartbeatSeconds float64           `json:"heartbeatSeconds"`
+	Ok               bool              `json:"ok"`
+	Sessions         struct {
+		Count  float64 `json:"count"`
+		Path   string  `json:"path"`
+		Recent []any   `json:"recent"`
+	} `json:"sessions"`
+	Ts float64 `json:"ts"`
+}
+
+type LogsTailParams struct {
+	Cursor   int `json:"cursor,omitempty"`
+	Limit    int `json:"limit,omitempty"`
+	MaxBytes int `json:"maxBytes,omitempty"`
+}
+
+type LogsTailResult struct {
+	Cursor    int      `json:"cursor"`
+	File      string   `json:"file"`
+	Lines     []string `json:"lines"`
+	Reset     bool     `json:"reset,omitempty"`
+	Size      int      `json:"size"`
+	Truncated bool     `json:"truncated,omitempty"`
+}
+
+type ModelsCatalogProvidersResult struct {
+	Providers []struct {
+		Api            string  `json:"api"`
+		AuthType       string  `json:"authType"`
+		DefaultBaseUrl string  `json:"defaultBaseUrl"`
+		DisplayName    string  `json:"displayName"`
+		Id             string  `json:"id"`
+		ModelCount     float64 `json:"modelCount"`
+		Models         []struct {
+			ContextWindow float64 `json:"contextWindow"`
+			Id            string  `json:"id"`
+			MaxTokens     float64 `json:"maxTokens"`
+			Name          string  `json:"name"`
+			Reasoning     bool    `json:"reasoning"`
+		} `json:"models"`
+	} `json:"providers"`
+}
+
+type ModelsConfiguredParams = map[string]any
+
 type ModelsConfiguredResult struct {
 	Models []struct {
 		AuthStatus    string  `json:"authStatus"`
@@ -56,6 +108,22 @@ type NodeDescribeResult struct {
 	Ts              int             `json:"ts"`
 	UiVersion       string          `json:"uiVersion,omitempty"`
 	Version         string          `json:"version,omitempty"`
+}
+
+type NodeInvokeParams struct {
+	Command        string `json:"command"`
+	IdempotencyKey string `json:"idempotencyKey"`
+	NodeId         string `json:"nodeId"`
+	Params         any    `json:"params,omitempty"`
+	TimeoutMs      int    `json:"timeoutMs,omitempty"`
+}
+
+type NodeInvokeResult struct {
+	Command     string `json:"command"`
+	NodeId      string `json:"nodeId"`
+	Ok          bool   `json:"ok"`
+	Payload     any    `json:"payload,omitempty"`
+	PayloadJSON string `json:"payloadJSON"`
 }
 
 type NodeListParams = map[string]any
@@ -221,6 +289,28 @@ type NodePairVerifyResult struct {
 	Ok bool `json:"ok"`
 }
 
+type NodePendingEnqueueParams struct {
+	ExpiresInMs int    `json:"expiresInMs,omitempty"`
+	NodeId      string `json:"nodeId"`
+	Priority    string `json:"priority,omitempty"`
+	Type        string `json:"type"`
+	Wake        bool   `json:"wake,omitempty"`
+}
+
+type NodePendingEnqueueResult struct {
+	NodeId string `json:"nodeId"`
+	Queued struct {
+		CreatedAtMs int            `json:"createdAtMs"`
+		ExpiresAtMs int            `json:"expiresAtMs,omitempty"`
+		Id          string         `json:"id"`
+		Payload     map[string]any `json:"payload,omitempty"`
+		Priority    string         `json:"priority"`
+		Type        string         `json:"type"`
+	} `json:"queued"`
+	Revision      int  `json:"revision"`
+	WakeTriggered bool `json:"wakeTriggered"`
+}
+
 type NodeRenameParams struct {
 	DisplayName string `json:"displayName"`
 	NodeId      string `json:"nodeId"`
@@ -229,6 +319,15 @@ type NodeRenameParams struct {
 type NodeRenameResult struct {
 	DisplayName string `json:"displayName"`
 	NodeId      string `json:"nodeId"`
+}
+
+type PluginApprovalListParams = map[string]any
+
+type PluginApprovalListResult = []struct {
+	CreatedAtMs int    `json:"createdAtMs"`
+	ExpiresAtMs int    `json:"expiresAtMs"`
+	Id          string `json:"id"`
+	Request     any    `json:"request"`
 }
 
 type PluginApprovalRequestParams struct {
@@ -251,6 +350,10 @@ type PluginApprovalRequestParams struct {
 type PluginApprovalResolveParams struct {
 	Decision string `json:"decision"`
 	Id       string `json:"id"`
+}
+
+type PluginApprovalResolveResult struct {
+	Ok bool `json:"ok"`
 }
 
 type SessionsAbortParams struct {
@@ -683,54 +786,345 @@ type SessionsUsageParams struct {
 }
 
 type SessionsUsageResult struct {
-	Aggregates any    `json:"aggregates"`
-	EndDate    string `json:"endDate"`
-	Sessions   []struct {
-		AgentId          string  `json:"agentId,omitempty"`
-		Channel          string  `json:"channel,omitempty"`
-		ChatType         string  `json:"chatType,omitempty"`
-		ContextWeight    any     `json:"contextWeight,omitempty"`
-		Key              string  `json:"key"`
-		Label            string  `json:"label,omitempty"`
-		Model            string  `json:"model,omitempty"`
-		ModelOverride    string  `json:"modelOverride,omitempty"`
-		ModelProvider    string  `json:"modelProvider,omitempty"`
-		Origin           any     `json:"origin,omitempty"`
+	Aggregates struct {
+		ByAgent []struct {
+			AgentId string `json:"agentId"`
+			Totals  struct {
+				CacheRead          float64 `json:"cacheRead"`
+				CacheReadCost      float64 `json:"cacheReadCost"`
+				CacheWrite         float64 `json:"cacheWrite"`
+				CacheWriteCost     float64 `json:"cacheWriteCost"`
+				Input              float64 `json:"input"`
+				InputCost          float64 `json:"inputCost"`
+				MissingCostEntries float64 `json:"missingCostEntries"`
+				Output             float64 `json:"output"`
+				OutputCost         float64 `json:"outputCost"`
+				TotalCost          float64 `json:"totalCost"`
+				TotalTokens        float64 `json:"totalTokens"`
+			} `json:"totals"`
+		} `json:"byAgent"`
+		ByChannel []struct {
+			Channel string `json:"channel"`
+			Totals  struct {
+				CacheRead          float64 `json:"cacheRead"`
+				CacheReadCost      float64 `json:"cacheReadCost"`
+				CacheWrite         float64 `json:"cacheWrite"`
+				CacheWriteCost     float64 `json:"cacheWriteCost"`
+				Input              float64 `json:"input"`
+				InputCost          float64 `json:"inputCost"`
+				MissingCostEntries float64 `json:"missingCostEntries"`
+				Output             float64 `json:"output"`
+				OutputCost         float64 `json:"outputCost"`
+				TotalCost          float64 `json:"totalCost"`
+				TotalTokens        float64 `json:"totalTokens"`
+			} `json:"totals"`
+		} `json:"byChannel"`
+		ByModel []struct {
+			Count    float64 `json:"count"`
+			Model    string  `json:"model,omitempty"`
+			Provider string  `json:"provider,omitempty"`
+			Totals   struct {
+				CacheRead          float64 `json:"cacheRead"`
+				CacheReadCost      float64 `json:"cacheReadCost"`
+				CacheWrite         float64 `json:"cacheWrite"`
+				CacheWriteCost     float64 `json:"cacheWriteCost"`
+				Input              float64 `json:"input"`
+				InputCost          float64 `json:"inputCost"`
+				MissingCostEntries float64 `json:"missingCostEntries"`
+				Output             float64 `json:"output"`
+				OutputCost         float64 `json:"outputCost"`
+				TotalCost          float64 `json:"totalCost"`
+				TotalTokens        float64 `json:"totalTokens"`
+			} `json:"totals"`
+		} `json:"byModel"`
+		ByProvider []struct {
+			Count    float64 `json:"count"`
+			Model    string  `json:"model,omitempty"`
+			Provider string  `json:"provider,omitempty"`
+			Totals   struct {
+				CacheRead          float64 `json:"cacheRead"`
+				CacheReadCost      float64 `json:"cacheReadCost"`
+				CacheWrite         float64 `json:"cacheWrite"`
+				CacheWriteCost     float64 `json:"cacheWriteCost"`
+				Input              float64 `json:"input"`
+				InputCost          float64 `json:"inputCost"`
+				MissingCostEntries float64 `json:"missingCostEntries"`
+				Output             float64 `json:"output"`
+				OutputCost         float64 `json:"outputCost"`
+				TotalCost          float64 `json:"totalCost"`
+				TotalTokens        float64 `json:"totalTokens"`
+			} `json:"totals"`
+		} `json:"byProvider"`
+		Daily []struct {
+			Cost      float64 `json:"cost"`
+			Date      string  `json:"date"`
+			Errors    float64 `json:"errors"`
+			Messages  float64 `json:"messages"`
+			Tokens    float64 `json:"tokens"`
+			ToolCalls float64 `json:"toolCalls"`
+		} `json:"daily"`
+		DailyLatency []struct {
+			AvgMs float64 `json:"avgMs"`
+			Count float64 `json:"count"`
+			Date  string  `json:"date"`
+			MaxMs float64 `json:"maxMs"`
+			MinMs float64 `json:"minMs"`
+			P95Ms float64 `json:"p95Ms"`
+		} `json:"dailyLatency,omitempty"`
+		Latency struct {
+			AvgMs float64 `json:"avgMs"`
+			Count float64 `json:"count"`
+			MaxMs float64 `json:"maxMs"`
+			MinMs float64 `json:"minMs"`
+			P95Ms float64 `json:"p95Ms"`
+		} `json:"latency,omitempty"`
+		Messages struct {
+			Assistant   float64 `json:"assistant"`
+			Errors      float64 `json:"errors"`
+			ToolCalls   float64 `json:"toolCalls"`
+			ToolResults float64 `json:"toolResults"`
+			Total       float64 `json:"total"`
+			User        float64 `json:"user"`
+		} `json:"messages"`
+		ModelDaily []struct {
+			Cost     float64 `json:"cost"`
+			Count    float64 `json:"count"`
+			Date     string  `json:"date"`
+			Model    string  `json:"model,omitempty"`
+			Provider string  `json:"provider,omitempty"`
+			Tokens   float64 `json:"tokens"`
+		} `json:"modelDaily,omitempty"`
+		Tools struct {
+			Tools []struct {
+				Count float64 `json:"count"`
+				Name  string  `json:"name"`
+			} `json:"tools"`
+			TotalCalls  float64 `json:"totalCalls"`
+			UniqueTools float64 `json:"uniqueTools"`
+		} `json:"tools"`
+	} `json:"aggregates"`
+	EndDate  string `json:"endDate"`
+	Sessions []struct {
+		AgentId       string `json:"agentId,omitempty"`
+		Channel       string `json:"channel,omitempty"`
+		ChatType      string `json:"chatType,omitempty"`
+		ContextWeight struct {
+			BootstrapMaxChars      float64 `json:"bootstrapMaxChars,omitempty"`
+			BootstrapTotalMaxChars float64 `json:"bootstrapTotalMaxChars,omitempty"`
+			BootstrapTruncation    struct {
+				NearLimitFiles         float64  `json:"nearLimitFiles,omitempty"`
+				PromptWarningSignature string   `json:"promptWarningSignature,omitempty"`
+				TotalNearLimit         bool     `json:"totalNearLimit,omitempty"`
+				TruncatedFiles         float64  `json:"truncatedFiles,omitempty"`
+				WarningMode            string   `json:"warningMode,omitempty"`
+				WarningShown           bool     `json:"warningShown,omitempty"`
+				WarningSignaturesSeen  []string `json:"warningSignaturesSeen,omitempty"`
+			} `json:"bootstrapTruncation,omitempty"`
+			GeneratedAt            float64 `json:"generatedAt"`
+			InjectedWorkspaceFiles []struct {
+				InjectedChars float64 `json:"injectedChars"`
+				Missing       bool    `json:"missing"`
+				Name          string  `json:"name"`
+				Path          string  `json:"path"`
+				RawChars      float64 `json:"rawChars"`
+				Truncated     bool    `json:"truncated"`
+			} `json:"injectedWorkspaceFiles"`
+			Model    string `json:"model,omitempty"`
+			Provider string `json:"provider,omitempty"`
+			Sandbox  struct {
+				Mode      string `json:"mode,omitempty"`
+				Sandboxed bool   `json:"sandboxed,omitempty"`
+			} `json:"sandbox,omitempty"`
+			SessionId  string `json:"sessionId,omitempty"`
+			SessionKey string `json:"sessionKey,omitempty"`
+			Skills     struct {
+				Entries []struct {
+					BlockChars float64 `json:"blockChars"`
+					Name       string  `json:"name"`
+				} `json:"entries"`
+				PromptChars float64 `json:"promptChars"`
+			} `json:"skills"`
+			Source       string `json:"source"`
+			SystemPrompt struct {
+				Chars                  float64 `json:"chars"`
+				NonProjectContextChars float64 `json:"nonProjectContextChars"`
+				ProjectContextChars    float64 `json:"projectContextChars"`
+			} `json:"systemPrompt"`
+			Tools struct {
+				Entries []struct {
+					Name            string  `json:"name"`
+					PropertiesCount float64 `json:"propertiesCount,omitempty"`
+					SchemaChars     float64 `json:"schemaChars"`
+					SummaryChars    float64 `json:"summaryChars"`
+				} `json:"entries"`
+				ListChars   float64 `json:"listChars"`
+				SchemaChars float64 `json:"schemaChars"`
+			} `json:"tools"`
+			WorkspaceDir string `json:"workspaceDir,omitempty"`
+		} `json:"contextWeight,omitempty"`
+		Key           string `json:"key"`
+		Label         string `json:"label,omitempty"`
+		Model         string `json:"model,omitempty"`
+		ModelOverride string `json:"modelOverride,omitempty"`
+		ModelProvider string `json:"modelProvider,omitempty"`
+		Origin        struct {
+			AccountId string `json:"accountId,omitempty"`
+			ChatType  string `json:"chatType,omitempty"`
+			From      string `json:"from,omitempty"`
+			Label     string `json:"label,omitempty"`
+			Provider  string `json:"provider,omitempty"`
+			Surface   string `json:"surface,omitempty"`
+			ThreadId  any    `json:"threadId,omitempty"`
+			To        string `json:"to,omitempty"`
+		} `json:"origin,omitempty"`
 		ProviderOverride string  `json:"providerOverride,omitempty"`
 		SessionId        string  `json:"sessionId,omitempty"`
 		UpdatedAt        float64 `json:"updatedAt,omitempty"`
-		Usage            any     `json:"usage"`
+		Usage            struct {
+			ActivityDates  []string `json:"activityDates,omitempty"`
+			CacheRead      float64  `json:"cacheRead"`
+			CacheReadCost  float64  `json:"cacheReadCost"`
+			CacheWrite     float64  `json:"cacheWrite"`
+			CacheWriteCost float64  `json:"cacheWriteCost"`
+			DailyBreakdown []struct {
+				Cost   float64 `json:"cost"`
+				Date   string  `json:"date"`
+				Tokens float64 `json:"tokens"`
+			} `json:"dailyBreakdown,omitempty"`
+			DailyLatency []struct {
+				AvgMs float64 `json:"avgMs"`
+				Count float64 `json:"count"`
+				Date  string  `json:"date"`
+				MaxMs float64 `json:"maxMs"`
+				MinMs float64 `json:"minMs"`
+				P95Ms float64 `json:"p95Ms"`
+			} `json:"dailyLatency,omitempty"`
+			DailyMessageCounts []struct {
+				Assistant   float64 `json:"assistant"`
+				Date        string  `json:"date"`
+				Errors      float64 `json:"errors"`
+				ToolCalls   float64 `json:"toolCalls"`
+				ToolResults float64 `json:"toolResults"`
+				Total       float64 `json:"total"`
+				User        float64 `json:"user"`
+			} `json:"dailyMessageCounts,omitempty"`
+			DailyModelUsage []struct {
+				Cost     float64 `json:"cost"`
+				Count    float64 `json:"count"`
+				Date     string  `json:"date"`
+				Model    string  `json:"model,omitempty"`
+				Provider string  `json:"provider,omitempty"`
+				Tokens   float64 `json:"tokens"`
+			} `json:"dailyModelUsage,omitempty"`
+			DurationMs    float64 `json:"durationMs,omitempty"`
+			FirstActivity float64 `json:"firstActivity,omitempty"`
+			Input         float64 `json:"input"`
+			InputCost     float64 `json:"inputCost"`
+			LastActivity  float64 `json:"lastActivity,omitempty"`
+			Latency       struct {
+				AvgMs float64 `json:"avgMs"`
+				Count float64 `json:"count"`
+				MaxMs float64 `json:"maxMs"`
+				MinMs float64 `json:"minMs"`
+				P95Ms float64 `json:"p95Ms"`
+			} `json:"latency,omitempty"`
+			MessageCounts struct {
+				Assistant   float64 `json:"assistant"`
+				Errors      float64 `json:"errors"`
+				ToolCalls   float64 `json:"toolCalls"`
+				ToolResults float64 `json:"toolResults"`
+				Total       float64 `json:"total"`
+				User        float64 `json:"user"`
+			} `json:"messageCounts,omitempty"`
+			MissingCostEntries float64 `json:"missingCostEntries"`
+			ModelUsage         []struct {
+				Count    float64 `json:"count"`
+				Model    string  `json:"model,omitempty"`
+				Provider string  `json:"provider,omitempty"`
+				Totals   struct {
+					CacheRead          float64 `json:"cacheRead"`
+					CacheReadCost      float64 `json:"cacheReadCost"`
+					CacheWrite         float64 `json:"cacheWrite"`
+					CacheWriteCost     float64 `json:"cacheWriteCost"`
+					Input              float64 `json:"input"`
+					InputCost          float64 `json:"inputCost"`
+					MissingCostEntries float64 `json:"missingCostEntries"`
+					Output             float64 `json:"output"`
+					OutputCost         float64 `json:"outputCost"`
+					TotalCost          float64 `json:"totalCost"`
+					TotalTokens        float64 `json:"totalTokens"`
+				} `json:"totals"`
+			} `json:"modelUsage,omitempty"`
+			Output      float64 `json:"output"`
+			OutputCost  float64 `json:"outputCost"`
+			SessionFile string  `json:"sessionFile,omitempty"`
+			SessionId   string  `json:"sessionId,omitempty"`
+			ToolUsage   struct {
+				Tools []struct {
+					Count float64 `json:"count"`
+					Name  string  `json:"name"`
+				} `json:"tools"`
+				TotalCalls  float64 `json:"totalCalls"`
+				UniqueTools float64 `json:"uniqueTools"`
+			} `json:"toolUsage,omitempty"`
+			TotalCost   float64 `json:"totalCost"`
+			TotalTokens float64 `json:"totalTokens"`
+		} `json:"usage"`
 	} `json:"sessions"`
-	StartDate string  `json:"startDate"`
-	Totals    any     `json:"totals"`
+	StartDate string `json:"startDate"`
+	Totals    struct {
+		CacheRead          float64 `json:"cacheRead"`
+		CacheReadCost      float64 `json:"cacheReadCost"`
+		CacheWrite         float64 `json:"cacheWrite"`
+		CacheWriteCost     float64 `json:"cacheWriteCost"`
+		Input              float64 `json:"input"`
+		InputCost          float64 `json:"inputCost"`
+		MissingCostEntries float64 `json:"missingCostEntries"`
+		Output             float64 `json:"output"`
+		OutputCost         float64 `json:"outputCost"`
+		TotalCost          float64 `json:"totalCost"`
+		TotalTokens        float64 `json:"totalTokens"`
+	} `json:"totals"`
 	UpdatedAt float64 `json:"updatedAt"`
 }
 
 type SessionsUsageLogsParams struct {
-	EndDate              string `json:"endDate,omitempty"`
-	IncludeContextWeight bool   `json:"includeContextWeight,omitempty"`
-	Key                  string `json:"key,omitempty"`
-	Limit                int    `json:"limit,omitempty"`
-	Mode                 string `json:"mode,omitempty"`
-	StartDate            string `json:"startDate,omitempty"`
-	UtcOffset            string `json:"utcOffset,omitempty"`
+	Key   string  `json:"key"`
+	Limit float64 `json:"limit,omitempty"`
 }
 
 type SessionsUsageLogsResult struct {
-	Logs []any `json:"logs"`
+	Logs []struct {
+		Content   string  `json:"content"`
+		Cost      float64 `json:"cost,omitempty"`
+		Role      string  `json:"role"`
+		Timestamp float64 `json:"timestamp"`
+		Tokens    float64 `json:"tokens,omitempty"`
+	} `json:"logs"`
 }
 
 type SessionsUsageTimeseriesParams struct {
-	EndDate              string `json:"endDate,omitempty"`
-	IncludeContextWeight bool   `json:"includeContextWeight,omitempty"`
-	Key                  string `json:"key,omitempty"`
-	Limit                int    `json:"limit,omitempty"`
-	Mode                 string `json:"mode,omitempty"`
-	StartDate            string `json:"startDate,omitempty"`
-	UtcOffset            string `json:"utcOffset,omitempty"`
+	EndDate   string `json:"endDate,omitempty"`
+	Key       string `json:"key"`
+	Mode      string `json:"mode,omitempty"`
+	StartDate string `json:"startDate,omitempty"`
+	UtcOffset string `json:"utcOffset,omitempty"`
 }
 
-type SessionsUsageTimeseriesResult = any
+type SessionsUsageTimeseriesResult struct {
+	Points []struct {
+		CacheRead        float64 `json:"cacheRead"`
+		CacheWrite       float64 `json:"cacheWrite"`
+		Cost             float64 `json:"cost"`
+		CumulativeCost   float64 `json:"cumulativeCost"`
+		CumulativeTokens float64 `json:"cumulativeTokens"`
+		Input            float64 `json:"input"`
+		Output           float64 `json:"output"`
+		Timestamp        float64 `json:"timestamp"`
+		TotalTokens      float64 `json:"totalTokens"`
+	} `json:"points"`
+	SessionId string `json:"sessionId,omitempty"`
+}
 
 type SkillsBinsParams = map[string]any
 
@@ -944,6 +1338,58 @@ type TalkSpeakResult struct {
 	OutputFormat    string `json:"outputFormat,omitempty"`
 	Provider        string `json:"provider"`
 	VoiceCompatible bool   `json:"voiceCompatible,omitempty"`
+}
+
+type ToolsCatalogParams struct {
+	AgentId        string `json:"agentId,omitempty"`
+	IncludePlugins bool   `json:"includePlugins,omitempty"`
+}
+
+type ToolsCatalogResult struct {
+	AgentId string `json:"agentId"`
+	Groups  []struct {
+		Id       string `json:"id"`
+		Label    string `json:"label"`
+		PluginId string `json:"pluginId,omitempty"`
+		Source   string `json:"source"`
+		Tools    []struct {
+			DefaultProfiles []string `json:"defaultProfiles"`
+			Description     string   `json:"description"`
+			Id              string   `json:"id"`
+			Label           string   `json:"label"`
+			Optional        bool     `json:"optional,omitempty"`
+			PluginId        string   `json:"pluginId,omitempty"`
+			Source          string   `json:"source"`
+		} `json:"tools"`
+	} `json:"groups"`
+	Profiles []struct {
+		Id    string `json:"id"`
+		Label string `json:"label"`
+	} `json:"profiles"`
+}
+
+type ToolsEffectiveParams struct {
+	AgentId    string `json:"agentId,omitempty"`
+	SessionKey string `json:"sessionKey"`
+}
+
+type ToolsEffectiveResult struct {
+	AgentId string `json:"agentId"`
+	Groups  []struct {
+		Id     string `json:"id"`
+		Label  string `json:"label"`
+		Source string `json:"source"`
+		Tools  []struct {
+			ChannelId      string `json:"channelId,omitempty"`
+			Description    string `json:"description"`
+			Id             string `json:"id"`
+			Label          string `json:"label"`
+			PluginId       string `json:"pluginId,omitempty"`
+			RawDescription string `json:"rawDescription"`
+			Source         string `json:"source"`
+		} `json:"tools"`
+	} `json:"groups"`
+	Profile string `json:"profile"`
 }
 
 type UsageCostResult struct {

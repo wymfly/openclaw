@@ -23,6 +23,38 @@ func (r *typedOnlyRequester) Request(context.Context, string, map[string]any) (a
 
 func (r *typedOnlyRequester) RequestTyped(_ context.Context, method string, params any) (any, error) {
 	r.calls = append(r.calls, typedCall{method: method, params: params})
+	switch method {
+	case "commands.list":
+		return map[string]any{"commands": []any{}}, nil
+	case "exec.approval.list", "plugin.approval.list":
+		return []any{}, nil
+	case "logs.tail":
+		return map[string]any{"file": "openclaw.log", "cursor": 0, "size": 0, "lines": []any{}}, nil
+	case "node.invoke":
+		return map[string]any{
+			"ok":          true,
+			"nodeId":      "node-1",
+			"command":     "status.request",
+			"payloadJSON": nil,
+		}, nil
+	case "node.pending.enqueue":
+		return map[string]any{
+			"nodeId":        "node-1",
+			"revision":      1,
+			"wakeTriggered": false,
+			"queued": map[string]any{
+				"id":          "pending-1",
+				"type":        "status.request",
+				"priority":    "normal",
+				"createdAtMs": 1,
+				"expiresAtMs": nil,
+			},
+		}, nil
+	case "tools.catalog":
+		return map[string]any{"agentId": "main", "profiles": []any{}, "groups": []any{}}, nil
+	case "tools.effective":
+		return map[string]any{"agentId": "main", "profile": "coding", "groups": []any{}}, nil
+	}
 	return map[string]any{}, nil
 }
 
@@ -154,6 +186,48 @@ func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 			},
 		},
 		{
+			name: "tools catalog",
+			call: func() (any, error) {
+				return queries.ToolsCatalog(ctx, map[string]any{"agentId": "main", "includePlugins": false})
+			},
+			method: "tools.catalog",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.ToolsCatalogParams)
+				if !ok || got.AgentId != "main" || got.IncludePlugins {
+					t.Fatalf("expected ToolsCatalogParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "tools effective",
+			call: func() (any, error) {
+				return queries.ToolsEffective(ctx, map[string]any{"agentId": "main", "sessionKey": "session-1"})
+			},
+			method: "tools.effective",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.ToolsEffectiveParams)
+				if !ok || got.AgentId != "main" || got.SessionKey != "session-1" {
+					t.Fatalf("expected ToolsEffectiveParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "exec approval list",
+			call: func() (any, error) {
+				return queries.ExecApprovalList(ctx)
+			},
+			method: "exec.approval.list",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.ExecApprovalListParams)
+				if !ok || len(got) != 0 {
+					t.Fatalf("expected empty ExecApprovalListParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
 			name: "exec approvals get",
 			call: func() (any, error) {
 				return queries.ExecApprovalsGet(ctx)
@@ -178,6 +252,20 @@ func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 				got, ok := params.(generated.ExecApprovalResolveParams)
 				if !ok || got.Id != "approval-1" || got.Decision != "approved" {
 					t.Fatalf("expected ExecApprovalResolveParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "plugin approval list",
+			call: func() (any, error) {
+				return queries.PluginApprovalList(ctx)
+			},
+			method: "plugin.approval.list",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.PluginApprovalListParams)
+				if !ok || len(got) != 0 {
+					t.Fatalf("expected empty PluginApprovalListParams, got %T %#v", params, params)
 				}
 			},
 		},
@@ -252,6 +340,33 @@ func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 			},
 		},
 		{
+			name: "logs tail",
+			call: func() (any, error) {
+				return queries.LogsTail(ctx, map[string]any{"limit": 10})
+			},
+			method: "logs.tail",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.LogsTailParams)
+				if !ok || got.Limit != 10 {
+					t.Fatalf("expected LogsTailParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "commands list",
+			call: func() (any, error) {
+				return queries.CommandsList(ctx)
+			},
+			method: "commands.list",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				if got, ok := params.(generated.CommandsListParams); !ok || got.AgentId != "" {
+					t.Fatalf("expected empty CommandsListParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
 			name: "node describe",
 			call: func() (any, error) {
 				return queries.NodeDescribe(ctx, map[string]any{"nodeId": "node-1"})
@@ -262,6 +377,42 @@ func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 				got, ok := params.(generated.NodeDescribeParams)
 				if !ok || got.NodeId != "node-1" {
 					t.Fatalf("expected NodeDescribeParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "node invoke",
+			call: func() (any, error) {
+				return queries.NodeInvoke(ctx, map[string]any{
+					"nodeId":         "node-1",
+					"command":        "status.request",
+					"idempotencyKey": "invoke-1",
+				})
+			},
+			method: "node.invoke",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.NodeInvokeParams)
+				if !ok || got.NodeId != "node-1" || got.Command != "status.request" || got.IdempotencyKey != "invoke-1" {
+					t.Fatalf("expected NodeInvokeParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "node pending enqueue",
+			call: func() (any, error) {
+				return queries.NodePendingEnqueue(ctx, map[string]any{
+					"nodeId": "node-1",
+					"type":   "status.request",
+					"wake":   false,
+				})
+			},
+			method: "node.pending.enqueue",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.NodePendingEnqueueParams)
+				if !ok || got.NodeId != "node-1" || got.Type != "status.request" || got.Wake {
+					t.Fatalf("expected NodePendingEnqueueParams, got %T %#v", params, params)
 				}
 			},
 		},

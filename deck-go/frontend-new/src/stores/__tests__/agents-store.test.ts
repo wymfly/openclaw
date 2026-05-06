@@ -58,6 +58,23 @@ describe("agents store", () => {
     expect(useAgentsStore.getState().selectedAgentId).toBe("ops");
   });
 
+  it("keeps the list view selected while live events update agents", () => {
+    useAgentsStore.getState().setAgents([
+      { id: "main", name: "Main", status: "idle", isDefault: true },
+      { id: "ops", name: "Ops", status: "idle", isDefault: false },
+    ]);
+    useAgentsStore.getState().selectAgent(null);
+
+    useAgentsStore.getState().applyServerEvent({
+      event: "agent.status.changed",
+      data: "",
+      json: { agentId: "main", status: "busy" },
+    });
+
+    expect(useAgentsStore.getState().agents[0]).toMatchObject({ id: "main", status: "busy" });
+    expect(useAgentsStore.getState().selectedAgentId).toBeNull();
+  });
+
   it("reduces declared status and activity events", () => {
     const agents = [{ id: "main", name: "Main", status: "idle" as const, isDefault: true }];
     const statusEvent: DeckGoServerEvent = {

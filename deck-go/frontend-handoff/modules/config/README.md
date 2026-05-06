@@ -1,6 +1,6 @@
 # config — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -71,6 +71,12 @@ Endpoints:
 - `POST /api/config/apply` → `DeckGoConfigApplyResponse`
 - `POST /api/config/schema-lookup` → `DeckGoConfigLookupResponse`
 
+Gateway method chain:
+
+- `GET /api/config` forwards to Gateway `config.get`
+- `POST /api/config/apply` forwards to Gateway `config.apply`
+- `POST /api/config/schema-lookup` forwards to Gateway `config.schema.lookup`
+
 ## Form-lib stack decision (locked here)
 
 The contract returns the **schema per path**, not as a full document — section
@@ -129,10 +135,10 @@ any schema-driven panel (api-explorer, webhooks) needs the same chip vocab.
 2. Translate to `frontend-new/src/components/panels/config/` keeping the
    class-name shape (`form-section__*`, `field-row__*`, `diff-row__*`,
    `subsection__*`).
-3. Wire real fetcher in `frontend-new/src/api/config.ts`:
-   - `fetchSnapshot()` → `GET /api/config`
-   - `applyConfig({ baseHash, raw })` → `POST /api/config/apply`
-   - `lookupSchema(path)` → `POST /api/config/schema-lookup`
+3. Use the real fetchers in `frontend-new/src/api.ts`:
+   - `fetchDeckConfig()` → `GET /api/config` → Gateway `config.get`
+   - `applyDeckConfig(raw, baseHash)` → `POST /api/config/apply` → Gateway `config.apply`
+   - `lookupConfigPath(path)` / `postConfigSchemaLookup({ path })` → `POST /api/config/schema-lookup` → Gateway `config.schema.lookup`
 4. Hardcoded literal strings get extracted to `frontend-new/src/i18n/{en,zh}.json`
    in one pass.
 5. Schema lookup is **lazy** — fire on subsection expand, not on initial load.
@@ -143,8 +149,9 @@ any schema-driven panel (api-explorer, webhooks) needs the same chip vocab.
 
 ## Open questions for follow-up
 
-1. **`recentApplies` is BFF-projected** — there is no contract for an apply
-   audit log. Should the contract gain an explicit `DeckGoConfigApplyHistoryResponse`?
+1. **`recentApplies` is prototype/local-only** — there is no Deck-facing
+   contract or verified BFF apply audit endpoint. Should the contract gain an
+   explicit `DeckGoConfigApplyHistoryResponse`?
 2. **Form-lib choice** — `react-hook-form` is the leading candidate but only
    commits when the engineering pass starts. Keep this README as the placeholder
    until then; update `docs/project/stack-decisions.md` once decided.

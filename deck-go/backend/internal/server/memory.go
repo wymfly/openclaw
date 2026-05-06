@@ -111,7 +111,8 @@ func registerMemoryRoutes(mux interface {
 
 	mux.MethodFunc("POST", "/memory/dreams", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Action string `json:"action"`
+			Action  string `json:"action"`
+			AgentID string `json:"agentId"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
@@ -167,12 +168,29 @@ func registerMemoryRoutes(mux interface {
 		}
 	})
 
-	mux.MethodFunc("GET", "/memory/search", func(w http.ResponseWriter, r *http.Request) {
-		if strings.TrimSpace(r.URL.Query().Get("q")) == "" {
+	handleSearch := func(w http.ResponseWriter, r *http.Request, query string, agentID string, scope string) {
+		if strings.TrimSpace(query) == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "q is required"})
 			return
 		}
 		writeJSON(w, http.StatusNotImplemented, map[string]any{"error": "Not implemented — requires LanceDB extension"})
+	}
+
+	mux.MethodFunc("GET", "/memory/search", func(w http.ResponseWriter, r *http.Request) {
+		handleSearch(w, r, r.URL.Query().Get("q"), r.URL.Query().Get("agentId"), r.URL.Query().Get("scope"))
+	})
+
+	mux.MethodFunc("POST", "/memory/search", func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Query   string `json:"query"`
+			AgentID string `json:"agentId"`
+			Scope   string `json:"scope"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
+			return
+		}
+		handleSearch(w, r, body.Query, body.AgentID, body.Scope)
 	})
 }
 

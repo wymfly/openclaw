@@ -11,7 +11,9 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
 )
 
-func registerAlertsRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }) {
+func registerAlertsRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}) {
 	mux.MethodFunc("GET", "/alerts", func(w http.ResponseWriter, _ *http.Request) {
 		rules := localstore.GetAlertRuleStore().All()
 		writeJSON(w, http.StatusOK, map[string]any{"rules": rules})
@@ -35,6 +37,10 @@ func registerAlertsRoutes(mux interface{ MethodFunc(string, string, http.Handler
 			writeJSON(w, http.StatusBadRequest, map[string]any{
 				"error": "Missing required fields: name, entityType, condition, threshold",
 			})
+			return
+		}
+		if body.Action != "" && !isAlertAction(body.Action) {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid alert action"})
 			return
 		}
 		now := time.Now().UTC().Format(time.RFC3339)
@@ -99,6 +105,13 @@ func registerAlertsRoutes(mux interface{ MethodFunc(string, string, http.Handler
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "No fields to update"})
 			return
 		}
+		if value, exists := body["action"]; exists {
+			action, ok := value.(string)
+			if !ok || !isAlertAction(action) {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid alert action"})
+				return
+			}
+		}
 
 		store.UpdateItem(func(item localstore.AlertRule) bool { return item.ID == ruleID }, func(item localstore.AlertRule) localstore.AlertRule {
 			item.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
@@ -114,7 +127,7 @@ func registerAlertsRoutes(mux interface{ MethodFunc(string, string, http.Handler
 			if value, ok := body["threshold"].(float64); ok {
 				item.Threshold = value
 			}
-			if value, ok := body["action"].(string); ok {
+			if value, ok := body["action"].(string); ok && isAlertAction(value) {
 				item.Action = value
 			}
 			if value, ok := body["cooldownMs"].(float64); ok {
@@ -142,6 +155,10 @@ func registerAlertsRoutes(mux interface{ MethodFunc(string, string, http.Handler
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
+}
+
+func isAlertAction(action string) bool {
+	return action == "toast" || action == "activity" || action == "webhook"
 }
 
 func randomID(bytes int) string {

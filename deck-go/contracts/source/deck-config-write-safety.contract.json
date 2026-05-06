@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Govern Deck Go config-like write paths at action level so base-hash, conflict, idempotency, rollback, audit, and evidence semantics stay explicit.",
+  "writes": [
+    {
+      "id": "agents.config.patch",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "config.patch",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "backend-derived",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": ["none: backend-only compatibility action; no active frontend facade"],
+      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "realEvidence": [
+        "deferred: backend-only compatibility action is covered by config write safety and does not need direct L2 mutation in this proposal"
+      ]
+    },
+    {
+      "id": "agents.event-streams.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "eventStreams.set",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.agents.eventStreams.set"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "agents.skills.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "skills.set",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.agents.skills.set"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx",
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts",
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ]
+    },
+    {
+      "id": "agents.subagents.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "subagents.set",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.agents.subagents.set"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "approvals.policy.update",
+      "owner": "approvals",
+      "route": "PUT /api/approvals/policy",
+      "action": "policy.update",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["exec.approvals.set"],
+      "baseHashMode": "client-optional",
+      "responseHashMode": "compatibility-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"]
+    },
+    {
+      "id": "channels.config.patch",
+      "owner": "channels",
+      "route": "PATCH /api/channels/{channelId}",
+      "action": "channel.patch",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "backend-derived",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"]
+    },
+    {
+      "id": "config.apply",
+      "owner": "config",
+      "route": "POST /api/config/apply",
+      "action": "apply",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["config.apply"],
+      "baseHashMode": "client-optional",
+      "responseHashMode": "compatibility-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/config.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/config/ConfigPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"]
+    },
+    {
+      "id": "config.patch",
+      "owner": "config",
+      "route": "POST /api/config/patch",
+      "action": "patch",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["config.patch"],
+      "baseHashMode": "client-optional",
+      "responseHashMode": "compatibility-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/config.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": ["deck-go/frontend-new/src/api.ts"],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"]
+    },
+    {
+      "id": "identity.link",
+      "owner": "identity",
+      "route": "POST /api/deck/identity",
+      "action": "link",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.identity.link"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-refreshes-after-failure",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"]
+    },
+    {
+      "id": "identity.unlink",
+      "owner": "identity",
+      "route": "POST /api/deck/identity",
+      "action": "unlink",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.identity.unlink"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-refreshes-after-failure",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"]
+    },
+    {
+      "id": "models.config.save",
+      "owner": "models",
+      "route": "PATCH /api/models/config",
+      "action": "models.config.save",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["config.patch"],
+      "baseHashMode": "client-optional",
+      "responseHashMode": "compatibility-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/models/ModelsPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"]
+    },
+    {
+      "id": "routing.add",
+      "owner": "routing",
+      "route": "POST /api/deck/routing",
+      "action": "add",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.routing.add"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"]
+    },
+    {
+      "id": "routing.dm-scope.patch",
+      "owner": "routing",
+      "route": "POST /api/config/patch",
+      "action": "routing.dmScope.patch",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "compatibility-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/config.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"]
+    },
+    {
+      "id": "routing.remove",
+      "owner": "routing",
+      "route": "POST /api/deck/routing",
+      "action": "remove",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["deck.routing.remove"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "config-hash",
+      "conflictBehavior": "frontend-preserves-local",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"]
+    },
+    {
+      "id": "settings.save",
+      "owner": "settings",
+      "route": "PUT /api/settings",
+      "action": "settings.save",
+      "classification": "deck-local",
+      "gatewayMethods": [],
+      "baseHashMode": "not-applicable",
+      "responseHashMode": "local-version",
+      "conflictBehavior": "not-applicable",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": ["deck-go/backend/internal/server/settings.go"],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"]
+    },
+    {
+      "id": "skills.update",
+      "owner": "skills",
+      "route": "PATCH /api/skills/{skillKey}",
+      "action": "skills.update",
+      "classification": "gateway-backed",
+      "gatewayMethods": ["skills.update"],
+      "baseHashMode": "not-applicable",
+      "responseHashMode": "no-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.tsx"
+      ],
+      "mockEvidence": ["deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx"],
+      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"]
+    }
+  ]
+}

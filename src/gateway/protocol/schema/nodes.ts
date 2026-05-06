@@ -94,6 +94,17 @@ export const NodeInvokeResultParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const NodeInvokeResultSchema = Type.Object(
+  {
+    ok: Type.Literal(true),
+    nodeId: NonEmptyString,
+    command: NonEmptyString,
+    payload: Type.Optional(Type.Unknown()),
+    payloadJSON: Type.Union([Type.String(), Type.Null()]),
+  },
+  { additionalProperties: false },
+);
+
 export const NodeEventParamsSchema = Type.Object(
   {
     event: NonEmptyString,

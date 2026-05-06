@@ -8,6 +8,7 @@ import { IdentityPanel } from "./IdentityPanel";
 
 const apiMocks = vi.hoisted(() => ({
   fetchIdentityLinks: vi.fn(),
+  fetchAgentIdentity: vi.fn(),
   linkIdentityPeer: vi.fn(),
   unlinkIdentityPeer: vi.fn(),
 }));
@@ -21,24 +22,35 @@ function identityPayload(includeNew = false, includeEmpty = false) {
   return {
     configHash: includeNew ? "hash-2" : "hash-1",
     links: [
-      ...(includeEmpty
-        ? [
-            {
-              canonical: "empty",
-              peers: [],
-            },
-          ]
-        : []),
       {
         canonical: "main",
         peers: [
           { channel: "telegram", peerId: "tg-main" },
           { channel: "discord", peerId: "disc-main" },
+          { channel: "wecom", peerId: "wecom-main" },
         ],
       },
       {
-        canonical: "builder",
-        peers: [{ channel: "slack", peerId: "slack-builder" }],
+        canonical: "team-builder",
+        peers: [
+          { channel: "slack", peerId: "slack-builder" },
+          { channel: "slack", peerId: "slack-builder-shadow" },
+        ],
+      },
+      {
+        canonical: "ops-rotation",
+        peers: [
+          { channel: "telegram", peerId: "tg-oncall-bot" },
+          { channel: "email", peerId: "oncall@deck.local" },
+        ],
+      },
+      {
+        canonical: includeEmpty ? "empty" : "review-pool",
+        peers: [],
+      },
+      {
+        canonical: "system",
+        peers: [{ channel: "discord", peerId: "disc-deckgo-system" }],
       },
       ...(includeNew
         ? [
@@ -77,7 +89,7 @@ function buttonByText(text: string) {
 }
 
 function rowByText(text: string) {
-  return Array.from(container.querySelectorAll<HTMLElement>('[role="button"]')).find((row) =>
+  return Array.from(container.querySelectorAll<HTMLElement>('[role="tab"]')).find((row) =>
     row.textContent?.includes(text),
   );
 }
@@ -88,7 +100,7 @@ function inputByLabel(label: string) {
 
 async function openLinkDialog() {
   await act(async () => {
-    buttonByText("+ Link Identity")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    buttonByText("Link peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
 }
 
@@ -115,6 +127,7 @@ describe("IdentityPanel", () => {
     document.body.appendChild(container);
     vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload());
+    apiMocks.fetchAgentIdentity.mockResolvedValue({ agentId: "main", emoji: "M", name: "Main" });
     apiMocks.linkIdentityPeer.mockResolvedValue({ ok: true, canonical: "reviewer" });
     apiMocks.unlinkIdentityPeer.mockResolvedValue({ ok: true, canonical: "builder" });
   });
@@ -136,22 +149,25 @@ describe("IdentityPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
-    expect(container.textContent).toContain("Relationship inventory");
-    expect(container.textContent).toContain("2 canonicals");
-    expect(container.textContent).toContain("3 peers");
-    expect(container.textContent).toContain("hash hash-1");
+    expect(container.textContent).toContain("BFF only");
+    expect(container.textContent).toContain("5 canonicals");
+    expect(container.textContent).toContain("8 peers");
+    expect(container.textContent).toContain("hash-1");
     expect(container.textContent).toContain("main");
-    expect(container.textContent).toContain("telegram: tg-main");
-    expect(container.textContent).toContain("discord: disc-main");
+    expect(container.textContent).toContain("telegram");
+    expect(container.textContent).toContain("tg-main");
+    expect(container.textContent).toContain("discord");
+    expect(container.textContent).toContain("disc-main");
     expect(container.textContent).toContain("Mutation safety");
+    expect(container.textContent).toContain("Recent mutations");
     expect(container.textContent).toContain("Identity payload");
     expect(container.querySelector(".identity-panel")).toBeTruthy();
-    expect(container.querySelector(".identity-panel__inventory")).toBeTruthy();
-    expect(container.querySelector(".identity-panel__column")).toBeTruthy();
+    expect(container.querySelector(".identity-nav")).toBeTruthy();
+    expect(container.querySelector(".canonical-detail")).toBeTruthy();
     expect(container.querySelector(".identity-panel__dialog")).toBeFalsy();
 
     const selectedRow = rowByText("main");
-    expect(selectedRow?.className).toContain("is-selected");
+    expect(selectedRow?.className).toContain("identity-nav__item--on");
   });
 
   it("shows empty peer state in both the list and selected detail", async () => {
@@ -159,11 +175,34 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      rowByText("empty")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     expect(container.textContent).toContain("empty");
     expect(container.textContent).toContain("No peers linked");
     expect(container.textContent).toContain("No peers linked to this canonical.");
-    expect(container.textContent).toContain("slack: slack-builder");
+    expect(container.textContent).toContain("This canonical is valid");
+  });
+
+  it("filters and selects canonicals by peer-backed search", async () => {
+    renderPanel();
+
+    await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      fireEvent.change(inputByLabel("Search canonicals") as HTMLInputElement, {
+        target: { value: "oncall" },
+      });
+    });
+
+    expect(rowByText("ops-rotation")).toBeTruthy();
+    expect(rowByText("main")).toBeFalsy();
+
+    await act(async () => {
+      rowByText("ops-rotation")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() => expect(container.textContent).toContain("tg-oncall-bot"));
+    expect(container.textContent).toContain("oncall@deck.local");
   });
 
   it("links a trimmed peer with the config hash and preserves the preferred canonical", async () => {
@@ -191,7 +230,7 @@ describe("IdentityPanel", () => {
       ),
     );
     await waitFor(() => expect(container.textContent).toContain("Last identity action"));
-    expect(rowByText("reviewer")?.className).toContain("is-selected");
+    expect(rowByText("reviewer")?.className).toContain("identity-nav__item--on");
   });
 
   it("validates link drafts before calling the identity mutation route", async () => {
@@ -223,7 +262,7 @@ describe("IdentityPanel", () => {
     });
 
     await waitFor(() => expect(container.textContent).toContain("base hash mismatch"));
-    await waitFor(() => expect(container.textContent).toContain("hash hash-2"));
+    await waitFor(() => expect(container.textContent).toContain("hash-2"));
   });
 
   it("blocks identity mutations when the config hash is missing", async () => {
@@ -248,12 +287,6 @@ describe("IdentityPanel", () => {
     );
     expect(apiMocks.linkIdentityPeer).not.toHaveBeenCalled();
 
-    await act(async () => {
-      container
-        .querySelector<HTMLElement>('[aria-label="Unlink telegram:tg-main"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
     expect(window.confirm).not.toHaveBeenCalled();
     expect(apiMocks.unlinkIdentityPeer).not.toHaveBeenCalled();
   });
@@ -263,7 +296,7 @@ describe("IdentityPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
     await act(async () => {
-      rowByText("builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      rowByText("team-builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await waitFor(() => expect(container.textContent).toContain("slack-builder"));
     await act(async () => {
@@ -274,35 +307,29 @@ describe("IdentityPanel", () => {
 
     await waitFor(() =>
       expect(apiMocks.unlinkIdentityPeer).toHaveBeenCalledWith(
-        "builder",
+        "team-builder",
         "slack",
         "slack-builder",
         "hash-1",
       ),
     );
-    expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from builder?");
+    expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from team-builder?");
     expect(container.textContent).toContain("Last identity action");
   });
 
-  it("unlinks directly from peer badges without changing selection first", async () => {
+  it("records unsupported prototype-only actions without calling mutation wrappers", async () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
     await act(async () => {
-      container
-        .querySelector<HTMLElement>('[aria-label="Unlink discord:disc-main"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByText("Rename")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    await waitFor(() =>
-      expect(apiMocks.unlinkIdentityPeer).toHaveBeenCalledWith(
-        "main",
-        "discord",
-        "disc-main",
-        "hash-1",
-      ),
+    expect(container.textContent).toContain(
+      "Create, rename, delete, activity, and audit workflows are not in the current Identity contract.",
     );
-    expect(window.confirm).toHaveBeenCalledWith("Unlink discord:disc-main from main?");
+    expect(apiMocks.linkIdentityPeer).not.toHaveBeenCalled();
+    expect(apiMocks.unlinkIdentityPeer).not.toHaveBeenCalled();
   });
 
   it("does not unlink a peer when unlink confirmation is cancelled", async () => {
@@ -311,13 +338,13 @@ describe("IdentityPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
     await act(async () => {
-      rowByText("builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      rowByText("team-builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     await act(async () => {
       buttonByText("Unlink peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from builder?");
+    expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from team-builder?");
     expect(apiMocks.unlinkIdentityPeer).not.toHaveBeenCalled();
   });
 
@@ -326,9 +353,9 @@ describe("IdentityPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
 
-    expect(container.textContent).toContain("关系清单");
-    expect(container.textContent).toContain("2 个统一身份");
-    expect(container.textContent).toContain("3 个 peer");
-    expect(container.textContent).toContain("关联身份");
+    expect(container.textContent).toContain("仅 BFF");
+    expect(container.textContent).toContain("5 个统一身份");
+    expect(container.textContent).toContain("8 个 peer");
+    expect(container.textContent).toContain("关联 peer");
   });
 });

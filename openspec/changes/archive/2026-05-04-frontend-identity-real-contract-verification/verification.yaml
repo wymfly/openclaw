@@ -1,0 +1,58 @@
+change: frontend-identity-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway identity list and safe link/unlink may be degraded, empty-valid, skipped-safe, or handoff-blocked after bounded attempts when identity state, baseHash, or environment issues block fresh evidence."
+entries:
+  - scenarioId: baseline.identity-v2-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/identity/prototype.html and inspect v2 handoff/spec evidence"
+    evidence: "Served prototype.html on 127.0.0.1:49191; Playwright saw status 200, title 'Identity (deck-go) · v2 prototype', h1 Identity, 5 canonical tabs. Console had only Babel standalone warning and favicon.ico 404."
+  - scenarioId: audit.identity-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, UI metadata, Go BFF Identity routes, generated Gateway methods, frontend wrappers, and mock fixtures"
+    evidence: "Inspected DeckGoIdentityPeer/Link/LinksResponse and DeckGoAgentIdentityResponse, /api/deck/identity and /api/agents/{agentId}/identity wrappers/routes, runtime-scoped routes, generated deck.identity.* and agent.identity.get methods, and mock gateway fixtures."
+  - scenarioId: contract.identity-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/action/DTO -> Go route/Gateway method -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/identity/implementation-notes.md; classified list/link/unlink supported, agent profile degraded for unknown agents, empty-valid list, unsupported create/rename/delete/activity/audit, runtime routes environment-dependent."
+  - scenarioId: implementation.identity-v2-and-scoped-fixes
+    ownerTask: "3.2-3.6"
+    status: passed
+    verificationCommand: "Implement deterministic UI/docs/test/contract fixes and verify unsupported prototype workflows remain inactive, degraded, or documented"
+    evidence: "Reworked frontend-new Identity panel into v2 workbench; kept only list/link/unlink active; added identity-registry UI metadata domain/actions; fixed runtime identity test shape; added mock agent.identity.get; corrected handoff API route/method/result notes."
+  - scenarioId: frontend.identity-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Identity"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/api.chat-helpers.test.ts src/components/panels/identity/IdentityPanel.test.tsx (2 files, 58 tests passed). Also ran identity + design-system icon tests (3 files, 19 tests passed)."
+  - scenarioId: backend.identity-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for Identity BFF/runtime routes and generated Gateway wrappers"
+    evidence: "cd deck-go/backend && GOCACHE=/tmp/deck-go-buildcache go test ./internal/server ./internal/api/http ./internal/runtime/openclaw -run Identity; cd deck-go/backend && GOCACHE=/tmp/deck-go-buildcache go test ./internal/api/http -run TestMountRoutes_ListAndDetail; cd deck-go/backend && GOCACHE=/tmp/deck-go-buildcache go test ./internal/runtime/openclaw -run GatewayQueries."
+  - scenarioId: visual.identity-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Identity mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/identity-visual.spec.ts --config playwright.config.ts passed after adding mock agent.identity.get. Evidence is L1 mock/local visual coverage."
+  - scenarioId: l2.identity-real-api-ui-mutation
+    ownerTask: "4.4-4.5"
+    status: handoff-blocked
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for Identity list/agent identity, safe link/unlink when baseHash is available, empty/degraded handling, and no direct browser Gateway calls"
+    evidence: "Added test/e2e/identity-real-gateway.spec.ts. Three fresh DECK_GO_REAL_GATEWAY_E2E=1 Playwright attempts failed without usable Playwright artifacts; direct prerequisite check `pnpm openclaw --version` showed the real Gateway startup path rebuilds due dirty watched tree and fails staging amazon-bedrock runtime deps via npm install. Circuit breaker applied; static review, focused tests, contract-gate, L1 mock visual, and build evidence remain complete."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Identity panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed scoped diffs for Identity UI, LinkDialog, IdentityList, tests, mock Gateway, Go runtime fixture, UI metadata source/generated docs, gateway-typecheck, and handoff notes. Deterministic drift fixed; residual real-stack blocker recorded."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec change/spec validate; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec change validate frontend-identity-real-contract-verification --strict passed; make contract-gate passed after gateway-typecheck active-frontend and batch transport fixes; make frontend-build passed; git diff --check passed."

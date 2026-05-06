@@ -1,6 +1,6 @@
 # threads — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented in frontend-new — L1 mock and L2 real-empty-valid verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -51,7 +51,7 @@ export type DeckGoThreadsResponse = {
 
 Endpoint:
 
-- `GET /api/deck/threads?channelKind=&agentId=&status=` → `DeckGoThreadsResponse`
+- `GET /api/deck/threads?channel=&agentId=&status=` → `DeckGoThreadsResponse`
 
 ## Contract-reality scope correction
 
@@ -96,10 +96,9 @@ panel uses a similar tile shape.
    panel (list ready/loading/error, detail tabs, dialogs).
 2. Translate to `frontend-new/src/components/panels/threads/` keeping the
    class-name shape (`thread-row__*`, `detail-view__*`, `channel-tile--*`).
-3. Wire real fetcher in `frontend-new/src/api/threads.ts`. Mutations
-   (unbind / rebind / rename label) go to BFF mutation endpoints — see
-   `api-usage.md` for the assumed shapes (these are BFF-side, not raw
-   contract).
+3. Wire real fetching through the existing `frontend-new/src/api.ts`
+   `fetchThreads()` wrapper. Mutations (unbind / rebind / rename label) remain
+   prototype-only assumptions until a Deck-facing BFF contract exists.
 4. Hardcoded literal strings get extracted to `frontend-new/src/i18n/{en,zh}.json`
    in one pass.
 5. The "Open chat" cross-link must reach the `Chat` panel scoped to
@@ -110,7 +109,7 @@ panel uses a similar tile shape.
 ## Open questions for follow-up
 
 - Are mutation endpoints (unbind / rebind / rename) part of the typed
-  contract or BFF-only? `api-usage.md` documents the assumed shape.
+  contract or BFF-only? Current production treats them as unsupported.
 - Should `boundBy` get a typed enum instead of `string` so the UI can group
   "auto" vs "operator" without parsing the prefix?
 - Should the contract carry a `deletedAt` field for unbound-but-archived

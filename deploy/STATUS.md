@@ -7,9 +7,9 @@ This file is the current deployment source of truth for the Windows release host
 
 ## Last updated
 
-- Date: `2026-04-20`
+- Date: `2026-05-06`
 - Scope: Windows release host `60.204.148.217`
-- Updated during: live-service recovery, Deck hotfix, and WeCom browser re-validation
+- Updated during: WeCom-bound agent PDF/email/doc tool-chain configuration and email account activation
 
 ## Current live deployment
 
@@ -66,8 +66,45 @@ Additional `2026-04-20` live validation notes:
 - sampled external `/_next/static/*` assets now return `200`
 - the previous false warning:
   - `Enabled but not linked`
-  no longer appears in the live browser evidence
+    no longer appears in the live browser evidence
 - Current committed `dashboard` live specs are not a reliable production acceptance gate yet because they wait on the dev-only `window.__TEST_UI_STORE__` hook exposed only when `NODE_ENV === "development"`.
+
+Additional `2026-05-06` live configuration validation notes:
+
+- `openclaw.json` SHA-256 after the agent PDF/email/doc tool-chain update:
+  - `12C0A93132C62D7C1DE621FF85B7FB34C104757397B289AC0EE12CFCBD7E48E4`
+- `openclaw.json` SHA-256 after activating the email account:
+  - `6AAC5667770772BABB7FE60DC229A1C2B12B94B40BEA0EF5FEBCF2CADDC75DA6`
+- Model routing for the live WeCom-bound `main` agent is CPA-only:
+  - `agents.defaults.model.primary`: `cpa/gpt-5.4`
+  - `agents.defaults.imageModel.primary`: `cpa/gpt-5.4`
+  - `agents.defaults.pdfModel.primary`: `cpa/gpt-5.4`
+  - config check confirmed no `codex/gpt-5.4` reference remains.
+- Email account activation was applied without storing the mailbox password in `openclaw.json`:
+  - `plugins.entries.email.config.defaultAccountId`: `main`
+  - `plugins.entries.email.config.accounts[0].user`: `yiming.wang@falcontech.com.cn`
+  - IMAP endpoint: `imap.exmail.qq.com:993`
+  - SMTP endpoint: `smtp.exmail.qq.com:587`
+  - password source: `env:default:OPENCLAW_EMAIL_PASSWORD`
+  - download root: `D:\openclaw\selftest-data-verify\openclaw-deploy-20260413-174911\data\email-downloads`
+  - remote IMAP login probe returned `imapLoginOk=true`
+- WeCom routing and tool access were verified through the live Gateway:
+  - `bindings[]` routes `wecom/default` to agent `main`
+  - `agents.list[].tools.profile` for `main` is `full`
+  - `tools.effective` for `agent:main:main` includes `pdf`
+  - `tools.effective` includes email tools:
+    `email_list`, `email_search`, `email_read`,
+    `email_download_attachments`, `email_download_matching_attachments`,
+    `email_send`
+  - `tools.effective` includes WeCom document tool `wecom_doc`
+- `GET http://localhost:19040/healthz` returned healthy after restart.
+- `GET http://localhost:3340/api/gateway/health` returned healthy after restart.
+- `GET http://localhost:3340/api/channels` reported WeCom:
+  - `running=true`
+  - `health=healthy`
+  - `connected=true`
+  - `authenticated=true`
+  - `transport=agent-callback`
 
 ### Config and backup
 
@@ -75,6 +112,12 @@ Additional `2026-04-20` live validation notes:
   - `D:\openclaw\backups\upgrade-current-20260416-004235`
 - Backup used during the `2026-04-19` live recovery:
   - `D:\openclaw\backups\live-manual-upgrade-20260419-0105`
+- Backup created before the `2026-05-06` agent PDF/email/doc tool-chain update:
+  - `D:\openclaw\backups\agent-pdf-email-wecom-chain-20260506-104634`
+- Backup created before correcting model routing to CPA-only:
+  - `D:\openclaw\backups\agent-pdf-email-wecom-chain-cpa-correction-20260506-104905`
+- Backup created before activating the email account:
+  - `D:\openclaw\backups\email-config-20260506-110746`
 - `openclaw.json` SHA-256 before and after upgrade:
   - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
 

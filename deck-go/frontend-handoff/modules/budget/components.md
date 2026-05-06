@@ -21,7 +21,7 @@ BudgetApp                                          [app.jsx]
       ├─ Section: KPI summary (4-cell grid status / current / warn / over)
       ├─ Section: Threshold meter (CSS gradient bar + tick marks at warn/over)
       ├─ Section: Definition (8-row 2-column key-value grid)
-      └─ Section: Recent changes (last 8 mutations scoped to this rule)
+      └─ Section: Recent changes (prototype/local-only; no current BFF endpoint)
 ```
 
 ## Dialogs
@@ -121,8 +121,8 @@ schema-driven.
 
 ### Recent changes
 
-- Filtered to mutations scoped to the selected rule.
-- Last 8 entries.
+- Prototype/local-only evidence filtered to mutations scoped to the selected rule.
+- Not a production guarantee until a Deck-facing audit endpoint exists.
 
 ## Props (production target)
 

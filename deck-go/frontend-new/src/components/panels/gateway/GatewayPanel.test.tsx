@@ -1,42 +1,52 @@
 // @vitest-environment jsdom
-import { waitFor } from "@testing-library/react";
+import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DeckIntlProvider } from "../../../i18n/provider";
 import { GatewayPanel } from "./GatewayPanel";
 
 const apiMocks = vi.hoisted(() => ({
   fetchActivityEvents: vi.fn(),
+  fetchCapabilities: vi.fn(),
+  fetchGatewayDescribe: vi.fn(),
   fetchGatewayHealth: vi.fn(),
   fetchGatewayStatus: vi.fn(),
-  fetchMonitorRunDetail: vi.fn(),
   fetchMonitorRuns: vi.fn(),
   fetchMonitorStats: vi.fn(),
-  fetchCapabilities: vi.fn(),
   isBundledRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
     runtime?.mode === "bundled",
   isRemoteRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
     runtime?.mode === "remote",
+  submitGatewayBatch: vi.fn(),
 }));
 
 const refreshRuntimeSummary = vi.hoisted(() => vi.fn());
 const bootstrapSummary = vi.hoisted(() => ({
   gateway: { connected: true },
-  runtime: { status: "running", health: "healthy", autoStart: true, mode: "bundled" },
+  ok: true,
+  runtime: {
+    autoStart: true,
+    configured: true,
+    gatewayUrl: "ws://127.0.0.1:18789",
+    health: "healthy",
+    mode: "bundled",
+    status: "running",
+  },
 }));
 const runtimeSummary = vi.hoisted(() => ({
-  status: "running",
-  health: "healthy",
-  gatewayUrl: "ws://127.0.0.1:18789",
-  pid: 1234,
-  configured: true,
   autoStart: true,
-  ownershipState: "owned",
-  restartAttempts: 0,
+  configured: true,
+  gatewayUrl: "ws://127.0.0.1:18789",
+  health: "healthy",
   lastConnectedAt: "",
   lastError: "",
   latencyP50: 0,
   mode: "bundled",
+  ownershipState: "owned",
+  pid: 1234,
+  restartAttempts: 0,
+  status: "running",
   tlsVerified: true,
 }));
 
@@ -45,16 +55,46 @@ vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/ui-store", () => ({
   useDeckUI: () => ({
     bootstrap: bootstrapSummary,
+    refreshRuntimeSummary,
+    refreshingSummary: false,
     runtime: {
       runtime: runtimeSummary,
     },
-    refreshingSummary: false,
-    refreshRuntimeSummary,
   }),
 }));
 
 let container: HTMLDivElement;
 let root: Root | null = null;
+
+async function renderPanel(locale: "en" | "zh" = "en") {
+  await act(async () => {
+    root = createRoot(container);
+    root.render(createElement(DeckIntlProvider, { locale }, createElement(GatewayPanel)));
+  });
+  await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalled());
+}
+
+function clickButton(matcher: RegExp) {
+  const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
+    matcher.test(candidate.textContent ?? ""),
+  );
+  expect(button, `button ${matcher} should exist`).toBeTruthy();
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
+function fillInput(label: string, value: string) {
+  const input = Array.from(container.querySelectorAll("input")).find(
+    (candidate) => candidate.getAttribute("aria-label") === label,
+  );
+  expect(input, `input ${label} should exist`).toBeTruthy();
+  act(() => {
+    if (input) {
+      fireEvent.change(input, { target: { value } });
+    }
+  });
+}
 
 describe("GatewayPanel", () => {
   beforeEach(() => {
@@ -63,85 +103,7 @@ describe("GatewayPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    apiMocks.fetchCapabilities.mockResolvedValue({
-      mode: "bundled",
-      configured: true,
-      endpointMutable: false,
-      supervisorState: true,
-    });
-    apiMocks.fetchGatewayHealth.mockResolvedValue({
-      ok: true,
-      durationMs: 17,
-      agents: [{ id: "main", sessions: { count: 2 } }],
-      channels: { discord: "connected", telegram: { configured: true } },
-    });
-    apiMocks.fetchGatewayStatus.mockResolvedValue({
-      state: "active",
-      heartbeat: {
-        agents: [{ agentId: "main", enabled: true, every: "30m" }],
-        defaultAgentId: "main",
-      },
-      sessions: { count: 3 },
-      channels: { discord: "connected" },
-    });
-    apiMocks.fetchActivityEvents.mockResolvedValue({
-      events: [
-        {
-          id: "event-1",
-          timestamp: 1_761_234_567_000,
-          type: "chat",
-          agentId: "main",
-          agentName: "Main Agent",
-          description: "Chat run completed",
-          details: "run-1 · agent:main:latest",
-        },
-      ],
-    });
-    apiMocks.fetchMonitorRuns.mockResolvedValue({
-      runs: [
-        {
-          runId: "run-1",
-          agentId: "main",
-          sessionKey: "agent:main:latest",
-          firstEventAt: "2026-04-27T08:00:00Z",
-          lastEventAt: "2026-04-27T08:00:04Z",
-          eventCount: 4,
-          status: "completed",
-          toolCalls: 2,
-          modelCalls: 1,
-          totalTokens: 1200,
-        },
-      ],
-    });
-    apiMocks.fetchMonitorStats.mockResolvedValue({
-      totalRuns: 3,
-      todayRuns: 2,
-      avgDurationMs: 2500,
-      topAgents: [{ agentId: "main", runCount: 2 }],
-    });
-    apiMocks.fetchMonitorRunDetail.mockResolvedValue({
-      summary: {
-        eventCount: 4,
-        durationMs: 4000,
-        toolCalls: 2,
-        modelCalls: 1,
-        fileOps: 1,
-        subagentSpawns: 1,
-        totalTokens: 1200,
-      },
-      events: [
-        {
-          id: 1,
-          run_id: "run-1",
-          seq: 1,
-          stream: "activity.event",
-          data: JSON.stringify({ type: "chat", description: "Chat completed" }),
-          agent_id: "main",
-          session_key: "agent:main:latest",
-          created_at: "2026-04-27T08:00:00Z",
-        },
-      ],
-    });
+
     runtimeSummary.mode = "bundled";
     runtimeSummary.status = "running";
     runtimeSummary.health = "healthy";
@@ -156,9 +118,99 @@ describe("GatewayPanel", () => {
     runtimeSummary.latencyP50 = 0;
     runtimeSummary.tlsVerified = true;
     bootstrapSummary.gateway.connected = true;
+    bootstrapSummary.ok = true;
+    bootstrapSummary.runtime.mode = "bundled";
     bootstrapSummary.runtime.status = "running";
     bootstrapSummary.runtime.health = "healthy";
-    bootstrapSummary.runtime.autoStart = true;
+    bootstrapSummary.runtime.configured = true;
+    bootstrapSummary.runtime.gatewayUrl = "ws://127.0.0.1:18789";
+
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      configured: true,
+      endpointMutable: false,
+      mode: "bundled",
+      supervisorState: true,
+    });
+    apiMocks.fetchGatewayHealth.mockResolvedValue({
+      agents: [{ id: "main", sessions: { count: 2 } }],
+      channelLabels: { discord: "Discord", telegram: "Telegram" },
+      channelOrder: ["discord", "telegram"],
+      channels: { discord: "connected", telegram: { configured: true } },
+      defaultAgentId: "main",
+      durationMs: 17,
+      heartbeatSeconds: 30,
+      ok: true,
+      ts: 1_761_234_567_000,
+    });
+    apiMocks.fetchGatewayStatus.mockResolvedValue({
+      channels: { discord: "connected" },
+      heartbeat: {
+        agents: [{ agentId: "main", enabled: true, every: "30m" }],
+        defaultAgentId: "main",
+      },
+      linkChannel: { authAgeMs: 4000, label: "Discord" },
+      queuedSystemEvents: ["activity.flush"],
+      runtimeVersion: "openclaw-test",
+      sessions: { count: 3, defaults: { model: "gpt-5.4" } },
+      state: "active",
+    });
+    apiMocks.fetchGatewayDescribe.mockResolvedValue({
+      events: {
+        "activity.event": { payload: { type: "object" }, since: 1 },
+      },
+      methods: {
+        "agents.list": { result: { type: "object" }, scope: "operator.read" },
+        "gateway.batch": { scope: "operator.read" },
+        "gateway.describe": {
+          params: { includeSchemas: "boolean" },
+          result: { methods: "object" },
+          scope: "operator.read",
+        },
+        "sessions.create": { scope: "operator.write" },
+      },
+      protocolVersion: 3,
+      untyped: ["internal.diag.dump"],
+    });
+    apiMocks.fetchActivityEvents.mockResolvedValue({
+      events: [
+        {
+          agentId: "main",
+          agentName: "Main Agent",
+          description: "Chat run completed",
+          details: "run-1 · agent:main:latest",
+          id: "event-1",
+          timestamp: 1_761_234_567_000,
+          type: "chat",
+        },
+      ],
+    });
+    apiMocks.fetchMonitorRuns.mockResolvedValue({
+      runs: [
+        {
+          agentId: "main",
+          eventCount: 4,
+          firstEventAt: "2026-04-27T08:00:00Z",
+          lastEventAt: "2026-04-27T08:00:04Z",
+          modelCalls: 1,
+          runId: "run-1",
+          sessionKey: "agent:main:latest",
+          status: "completed",
+          toolCalls: 2,
+          totalTokens: 1200,
+        },
+      ],
+    });
+    apiMocks.fetchMonitorStats.mockResolvedValue({
+      avgDurationMs: 2500,
+      todayRuns: 2,
+      topAgents: [{ agentId: "main", runCount: 2 }],
+      totalRuns: 3,
+    });
+    apiMocks.submitGatewayBatch.mockResolvedValue({
+      requestId: "batch-1",
+      results: [{ id: "c1", ok: true, result: { protocol: 3 } }],
+      runtimeId: "rt_local",
+    });
     refreshRuntimeSummary.mockResolvedValue(undefined);
   });
 
@@ -173,253 +225,149 @@ describe("GatewayPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders bundled runtime summary and Gateway diagnostics from deck-go APIs", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(GatewayPanel));
-    });
+  it("renders the v2 Gateway control plane from BFF diagnostics and projections", async () => {
+    await renderPanel();
 
-    await waitFor(() => expect(apiMocks.fetchCapabilities).toHaveBeenCalled());
-    expect(container.textContent).toMatch(/Monitor|监控面板/);
-    expect(container.textContent).toMatch(/status running|运行状态 running/);
+    await waitFor(() => expect(container.textContent).toContain("Gateway control plane"));
+    expect(container.textContent).toContain("openclaw-test");
+    expect(container.textContent).toContain("30s");
+    expect(container.textContent).toContain("gpt-5.4");
+    expect(container.textContent).toContain("Discord");
+    expect(container.textContent).toContain("Telegram");
+    expect(container.textContent).toContain("gateway.describe");
+    expect(container.textContent).toContain("internal.diag.dump");
+    expect(container.textContent).toContain("Throughput projection");
+    expect(container.textContent).toContain("Runtime Gateway");
     expect(container.textContent).toContain("ws://127.0.0.1:18789");
-    expect(container.textContent).toMatch(/Runtime summary|运行时摘要/);
-    expect(container.textContent).toMatch(/Bundled supervisor|本机 supervisor/);
-    expect(container.textContent).not.toMatch(/^(Start|启动|Stop|停止|Restart|重启)$/);
-    expect(container.textContent).toMatch(/Gateway health diagnostics|Gateway 健康诊断/);
-    expect(container.textContent).toMatch(/latency: 17 ms|延迟: 17 ms/);
-    expect(container.textContent).toMatch(
-      /agents: 1 \| sessions: 2 \| channels: 2|智能体: 1 \| 活跃会话: 2 \| 渠道状态: 2/,
-    );
-    expect(container.textContent).toMatch(/Gateway status summary|Gateway 状态摘要/);
-    expect(container.textContent).toMatch(
-      /state: active \| heartbeat: 1\/1 enabled|状态: active \| 心跳监控: 1\/1 已启用/,
-    );
-    expect(container.textContent).toMatch(/default main|默认 main/);
-    expect(container.textContent).toContain("30m");
-    expect(container.textContent).toMatch(/sessions: 3 \| channels: 1|活跃会话: 3 \| 渠道状态: 1/);
-    expect(container.textContent).toMatch(/Live Feed|实时事件流/);
-    expect(container.textContent).toContain("Chat run completed");
-    expect(container.textContent).toContain("run-1 · agent:main:latest");
-    expect(container.querySelector(".gateway-panel")).toBeTruthy();
-    expect(container.querySelector(".gateway-tabs")).toBeTruthy();
-    expect(container.querySelectorAll(".gateway-card").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".gateway-card__body").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".gateway-status-strip").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".gateway-surface").length).toBeGreaterThanOrEqual(3);
-    expect(container.querySelectorAll(".gateway-metrics")).toHaveLength(1);
-    expect(container.querySelectorAll(".gateway-header-actions")).toHaveLength(1);
-    expect(container.querySelectorAll(".gateway-button").length).toBeGreaterThanOrEqual(1);
+    expect(container.textContent).not.toMatch(/\b(Start|Stop|Restart)\b/);
+    expect(container.querySelector(".gateway-app__topbar")).toBeTruthy();
+    expect(container.querySelector(".describe-explorer")).toBeTruthy();
     expect(container.querySelector("[style]")).toBeNull();
     expect(apiMocks.fetchGatewayHealth).toHaveBeenCalled();
     expect(apiMocks.fetchGatewayStatus).toHaveBeenCalled();
+    expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalled();
     expect(apiMocks.fetchActivityEvents).toHaveBeenCalledWith(20);
     expect(apiMocks.fetchMonitorRuns).toHaveBeenCalledWith({ limit: 20 });
     expect(apiMocks.fetchMonitorStats).toHaveBeenCalled();
   });
 
-  it("renders no Gateway lifecycle action buttons", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(GatewayPanel));
-    });
+  it("filters describe methods, switches events, and localizes relative time copy", async () => {
+    await renderPanel("zh");
 
-    const labels = Array.from(container.querySelectorAll("button")).map((button) =>
-      button.textContent?.trim(),
-    );
-    expect(labels).not.toContain("Start");
-    expect(labels).not.toContain("Restart");
-    expect(labels).not.toContain("Stop");
-    expect(labels).not.toContain("启动");
-    expect(labels).not.toContain("重启");
-    expect(labels).not.toContain("停止");
+    await waitFor(() => expect(container.textContent).toContain("Gateway 控制平面"));
+    fillInput("搜索", "gateway.describe");
+    const describeList = container.querySelector(".describe-explorer__list");
+    expect(describeList?.textContent).toContain("gateway.describe");
+    expect(describeList?.textContent).not.toContain("agents.list");
+
+    fillInput("搜索", "");
+    clickButton(/^事件/);
+    await waitFor(() => expect(container.textContent).toContain("activity.event"));
+    expect(container.textContent).toContain("载荷");
+
+    clickButton(/批量控制台/);
+    clickButton(/执行批量/);
+    await waitFor(() => expect(apiMocks.submitGatewayBatch).toHaveBeenCalled());
+    await waitFor(() => expect(container.textContent).toContain("batch-1"));
+    expect(container.textContent).toContain("刚刚");
+
+    clickButton(/^活动/);
+    expect(container.textContent).toContain("最近活动");
+    expect(container.textContent).toContain("天前");
+    expect(container.textContent).not.toContain(" ago");
   });
 
-  it.each([
-    {
-      name: "connected",
-      status: "running",
-      health: "healthy",
-      connected: true,
-      ownership: "owned",
-      restarts: 0,
-      autoStart: true,
-      gatewayText: /gateway Connected|网关 已连接/,
-      canStart: false,
-      canRestart: true,
-      canStop: true,
-    },
-    {
-      name: "reconnecting",
-      status: "starting",
-      health: "unhealthy",
-      connected: false,
-      ownership: "owned",
-      restarts: 1,
-      autoStart: true,
-      gatewayText: /gateway pending|网关 待连接/,
-      canStart: false,
-      canRestart: false,
-      canStop: true,
-    },
-    {
-      name: "degraded",
-      status: "degraded",
-      health: "unhealthy",
-      connected: false,
-      ownership: "owned",
-      restarts: 2,
-      autoStart: true,
-      gatewayText: /gateway pending|网关 待连接/,
-      canStart: true,
-      canRestart: true,
-      canStop: true,
-    },
-    {
-      name: "failed",
-      status: "failed",
-      health: "unknown",
-      connected: false,
-      ownership: "none",
-      restarts: 3,
-      autoStart: true,
-      gatewayText: /gateway pending|网关 待连接/,
-      canStart: true,
-      canRestart: true,
-      canStop: true,
-    },
-    {
-      name: "port-conflict",
-      status: "failed",
-      health: "unknown",
-      connected: false,
-      ownership: "external",
-      restarts: 0,
-      autoStart: true,
-      gatewayText: /gateway pending|网关 待连接/,
-      canStart: true,
-      canRestart: true,
-      canStop: true,
-    },
-    {
-      name: "autostart-disabled",
-      status: "stopped",
-      health: "unknown",
-      connected: false,
-      ownership: "none",
-      restarts: 0,
-      autoStart: false,
-      gatewayText: /gateway pending|网关 待连接/,
-      canStart: true,
-      canRestart: false,
-      canStop: false,
-    },
-  ])(
-    "renders managed runtime state matrix row: $name",
-    async ({ status, health, connected, ownership, restarts, gatewayText }) => {
-      runtimeSummary.status = status;
-      runtimeSummary.health = health;
-      runtimeSummary.ownershipState = ownership;
-      runtimeSummary.restartAttempts = restarts;
-      bootstrapSummary.gateway.connected = connected;
-      bootstrapSummary.runtime.status = status;
-      bootstrapSummary.runtime.health = health;
+  it("submits only safe read-only calls through the runtime-scoped batch wrapper", async () => {
+    await renderPanel();
+    clickButton(/Batch console/);
 
-      await act(async () => {
-        root = createRoot(container);
-        root.render(createElement(GatewayPanel));
-      });
+    await waitFor(() => expect(container.textContent).toContain("Run batch"));
+    expect(container.textContent).toContain("Bundled-mode composer");
+    expect(Array.from(container.querySelectorAll("option")).map((option) => option.value)).toEqual([
+      "agents.list",
+      "gateway.describe",
+    ]);
 
-      expect(container.textContent).toMatch(new RegExp(`(status|运行状态) ${status}`));
-      expect(container.textContent).toMatch(new RegExp(`(Health|健康度) ${health}`));
-      expect(container.textContent).toMatch(gatewayText);
-      expect(container.textContent).toMatch(new RegExp(`(owner|归属) ${ownership}`));
-      expect(container.textContent).toMatch(new RegExp(`(restarts|重启) ${restarts}`));
-    },
-  );
+    clickButton(/Run batch/);
 
-  it("renders remote runtime field set when supervisor state is absent", async () => {
+    await waitFor(() => expect(apiMocks.submitGatewayBatch).toHaveBeenCalled());
+    expect(apiMocks.submitGatewayBatch).toHaveBeenCalledWith(
+      {
+        calls: [
+          {
+            id: "c1",
+            method: "gateway.describe",
+            params: { includeSchemas: false },
+          },
+        ],
+        options: { failFast: false, timeoutMs: 5000 },
+      },
+      { runtimeId: "rt_local" },
+    );
+    await waitFor(() => expect(container.textContent).toContain("batch-1"));
+    expect(container.textContent).toContain('"protocol": 3');
+  });
+
+  it("locks batch execution in remote mode while keeping diagnostics visible", async () => {
     apiMocks.fetchCapabilities.mockResolvedValue({
-      mode: "remote",
       configured: true,
       endpointMutable: true,
+      mode: "remote",
       supervisorState: false,
     });
     runtimeSummary.mode = "remote";
-    runtimeSummary.status = undefined as unknown as string;
-    runtimeSummary.health = undefined as unknown as string;
-    runtimeSummary.gatewayUrl = undefined as unknown as string;
+    runtimeSummary.status = "" as "running";
+    runtimeSummary.health = "" as "healthy";
+    runtimeSummary.gatewayUrl = "" as "ws://127.0.0.1:18789";
     runtimeSummary.pid = undefined as unknown as number;
-    runtimeSummary.ownershipState = undefined as unknown as "owned";
-    runtimeSummary.restartAttempts = undefined as unknown as number;
     runtimeSummary.lastConnectedAt = "2026-04-28T10:00:00Z";
-    runtimeSummary.lastError = "";
     runtimeSummary.latencyP50 = 24;
     runtimeSummary.tlsVerified = true;
+    bootstrapSummary.runtime.mode = "remote";
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(GatewayPanel));
-    });
+    await renderPanel();
+    clickButton(/Batch console/);
 
-    await waitFor(() => expect(container.textContent).toMatch(/Remote connection|远程连接/));
+    await waitFor(() =>
+      expect(container.textContent).toContain(
+        "Remote mode is read-only here; batch execution is disabled from this panel.",
+      ),
+    );
+    expect(apiMocks.submitGatewayBatch).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Remote connection");
     expect(container.textContent).toContain("2026-04-28T10:00:00Z");
-    expect(container.textContent).toContain("24 ms");
-    expect(container.textContent).toMatch(/TLS verified|TLS 已验证/);
-    expect(container.textContent).not.toMatch(/Bundled supervisor|本机 supervisor/);
   });
 
-  it("renders first-run empty state instead of Gateway data errors", async () => {
+  it("renders first-run empty state without surfacing raw gateway_not_configured errors", async () => {
     const notConfigured = new Error("gateway_not_configured: runtime gateway is not configured");
     apiMocks.fetchGatewayHealth.mockRejectedValue(notConfigured);
     apiMocks.fetchGatewayStatus.mockRejectedValue(notConfigured);
+    apiMocks.fetchGatewayDescribe.mockRejectedValue(notConfigured);
     apiMocks.fetchActivityEvents.mockRejectedValue(notConfigured);
     apiMocks.fetchMonitorRuns.mockRejectedValue(notConfigured);
+    apiMocks.fetchMonitorStats.mockRejectedValue(notConfigured);
 
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(GatewayPanel));
-    });
+    await renderPanel();
 
     await waitFor(() =>
       expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeTruthy(),
     );
-    expect(container.textContent).toMatch(
-      /Open Settings and save a remote endpoint before loading Gateway data\.|请打开设置并保存远程端点后再加载 Gateway 数据。/,
+    expect(container.textContent).toContain(
+      "Open Settings and save a remote endpoint before loading Gateway data.",
     );
     expect(container.querySelector('[role="alert"]')).toBeNull();
     expect(container.textContent).not.toContain("gateway_not_configured");
   });
 
-  it("renders old Monitor history and loads timeline detail from run selection", async () => {
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(GatewayPanel));
-    });
+  it("keeps health and status evidence visible when describe temporarily fails", async () => {
+    apiMocks.fetchGatewayDescribe.mockRejectedValue(new Error("describe timeout"));
 
-    await act(async () => {
-      container
-        .querySelector<HTMLButtonElement>('[aria-controls="deck-ui-gateway-history"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await renderPanel();
 
-    expect(container.textContent).toMatch(/Total Runs|总运行数/);
-    expect(container.textContent).toContain("run-1");
-    expect(container.textContent).toMatch(
-      /events 4 \| tools 2 \| models 1 \| tokens 1200|事件 4 \| 工具 2 \| 模型 1 \| 令牌 1200/,
-    );
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("run-1"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(apiMocks.fetchMonitorRunDetail).toHaveBeenCalledWith("run-1");
-    expect(container.textContent).toMatch(/Run Timeline|运行时间线/);
-    expect(container.textContent).toMatch(/Tool Waterfall|工具调用瀑布/);
-    expect(container.textContent).toMatch(/File Changes|文件变更/);
-    expect(container.textContent).toMatch(/Model Stats|模型统计/);
-    expect(container.textContent).toContain("Chat completed");
+    await waitFor(() => expect(container.textContent).toContain("Describe unavailable"));
+    expect(container.textContent).toContain("Gateway control plane");
+    expect(container.textContent).toContain("Gateway OK");
+    expect(container.textContent).toContain("Throughput projection");
+    expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeNull();
   });
 });

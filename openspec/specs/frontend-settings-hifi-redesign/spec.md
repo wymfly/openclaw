@@ -67,3 +67,14 @@ The settings rewrite SHALL include focused mock visual verification that exercis
 - **THEN** it SHALL load settings/runtime/device data through the frontend API path
 - **AND** it SHALL capture or assert the ready workbench state and at least one interaction state such as endpoint test, device confirmation, or token rotation
 - **AND** closeout evidence SHALL label the test as mock visual coverage, not real Gateway/LLM E2E
+
+### Requirement: Settings handoff distinguishes product target from verified contract truth
+
+The Settings high-fidelity handoff SHALL separate v2 product intent from currently verified Settings, runtime endpoint, device, version, and frontend behavior.
+
+#### Scenario: Handoff notes record verified and projected behavior
+
+- **WHEN** the Settings real-contract verification pass completes
+- **THEN** the handoff package SHALL record which v2 workflows are supported by current wrappers, routes, DTOs, mocks, and tests
+- **AND** token rotation, recent saves, keybindings, privacy, bundled `.env` mutation, and rich paired-device fields SHALL be labelled as projected, degraded, unsupported, or handoff-blocked rather than guaranteed
+- **AND** route truth SHALL distinguish `PUT /settings` and `POST /runtime/endpoint:test` from stale handoff route names

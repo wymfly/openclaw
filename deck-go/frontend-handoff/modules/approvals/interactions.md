@@ -1,5 +1,10 @@
 # approvals — interactions (v2)
 
+> Contract note: this file describes intended prototype interactions. Production
+> implementation only sends current Gateway-supported decision envelopes
+> (`id`, hyphenated `decision`) and treats reason capture, bulk actions, and
+> audit projections as follow-up contract work.
+
 ## Pointer
 
 - **Topbar Refresh click** → spinner animates 720ms; production refetches

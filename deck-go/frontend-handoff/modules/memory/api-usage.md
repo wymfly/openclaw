@@ -97,7 +97,7 @@ The frontend MUST consume these via `import type { ... } from "@/types/deck-api"
 ### Browse
 
 ```
-GET /api/memory/browse?path={path}
+GET /api/memory/browse?agentId={agentId}&path={path}
 → 200 DeckGoMemoryBrowseResponse
 → 404 if path doesn't exist
 → 401 if scope insufficient
@@ -106,14 +106,14 @@ GET /api/memory/browse?path={path}
 `path` is one of:
 
 - A directory path → response has `files[]`, no `content`
-- A file path → response has `content`, no `files`
+- A file path with `read=1` → response has `content`, no `files`
 - (omitted, or `/`) → response has root-level `files[]`
 
 The prototype's `BROWSE_TREE` map (in data.js) is the in-memory equivalent of this endpoint, keyed by directory path. Production fetches lazily on directory expand to keep payloads small.
 
 ```ts
-const dir = await browseMemory("/agents/main");
-const file = await browseMemory("/agents/main/core.md");
+const dir = await browseMemory("main", "agents/main");
+const file = await readMemoryFile("main", "agents/main/core.md");
 ```
 
 ### Search
@@ -144,6 +144,14 @@ const hits = r.results ?? [];
 ```
 
 The UI MUST render the warning when `lanceDbEnabled === false` regardless of whether results are empty.
+
+Compatibility alias:
+
+```
+GET /api/memory/search?q={query}&scope={scope}&agentId={agentId}
+```
+
+The production wrapper uses canonical `POST /api/memory/search`; the GET alias exists only for older callers and focused regression coverage.
 
 ### Health
 
@@ -195,11 +203,13 @@ Discriminator:
 - everything else → response is `DeckGoMemoryDreamActionResult` (has `action` + various counters)
 
 ```ts
-const diary = await runMemoryDreams({ agentId: "main", action: "read" });
-const result = await runMemoryDreams({ agentId: "main", action: "dedupe" });
+const diary = await runMemoryDreams("read", "main");
+const result = await runMemoryDreams("dedupe", "main");
 ```
 
 Use the `action` field to disambiguate at runtime. Producing the `DreamsResult` as a single union is intentional — the BFF sometimes returns either shape from the same endpoint depending on the requested action.
+
+Current Gateway caveat: deck-go sends `agentId` in the BFF request for contract/UI stability, but the upstream `doctor.memory.*` Gateway methods currently resolve the default configured agent and do not accept per-agent params. Treat per-agent dreams as a documented capability gap until the Gateway protocol adds params.
 
 ## Caching strategy (production)
 
@@ -220,7 +230,7 @@ Run `cd deck-go && make contract-gate` after any DTO source edit. CI blocks merg
 The BFF translates between the contract DTOs and the underlying Gateway RPC + LanceDB calls:
 
 - `GET /api/memory/browse` → `agents.files.list` (workspace resolution) + filesystem read
-- `POST /api/memory/search` → LanceDB query (when enabled) or keyword fallback
+- `POST /api/memory/search` plus compatibility `GET /api/memory/search` → LanceDB query (when enabled) or normalized 501/degraded response while the adapter is absent
 - `GET /api/memory/health` → `doctor.memory.status`
 - `POST /api/memory/dreams` → `doctor.memory.dreamDiary` / `doctor.memory.backfillDreamDiary` / `doctor.memory.dedupeDreamDiary` / `doctor.memory.repairDreamingArtifacts` / `doctor.memory.resetDreamDiary` / `doctor.memory.resetGroundedShortTerm`
 
@@ -240,7 +250,7 @@ The wire DTO must stay byte-stable across BFF refactors. The frontend MUST NOT d
 | Action                                                        | Required scope   | Audit row                               |
 | ------------------------------------------------------------- | ---------------- | --------------------------------------- |
 | `GET /api/memory/browse`                                      | `operator.read`  | none                                    |
-| `POST /api/memory/search`                                     | `operator.read`  | none                                    |
+| `POST /api/memory/search` / `GET /api/memory/search`          | `operator.read`  | none                                    |
 | `GET /api/memory/health`                                      | `operator.read`  | none                                    |
 | `POST /api/memory/dreams` action=`read`                       | `operator.read`  | none                                    |
 | `POST /api/memory/dreams` action=`backfill`/`dedupe`/`repair` | `operator.write` | yes (agentId + action + counters)       |

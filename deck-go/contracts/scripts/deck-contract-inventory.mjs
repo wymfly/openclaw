@@ -11,9 +11,9 @@ import {
 const contractsRoot = new URL("../", import.meta.url);
 const deckGoRoot = path.resolve(contractsRoot.pathname, "..");
 const repoRoot = path.resolve(deckGoRoot, "..");
-const apiPath = path.join(deckGoRoot, "frontend/src/api.ts");
-const apiTypesPath = path.join(deckGoRoot, "frontend/src/api-types.ts");
-const frontendRoot = path.join(deckGoRoot, "frontend/src");
+const apiPath = path.join(deckGoRoot, "frontend-new/src/api.ts");
+const apiTypesPath = path.join(deckGoRoot, "frontend-new/src/api-types.ts");
+const frontendRoot = path.join(deckGoRoot, "frontend-new/src");
 const contractPath = path.join(deckGoRoot, "contracts/source/deck-api.contract.ts");
 const endpointContractPath = path.join(deckGoRoot, "contracts/source/deck-endpoints.contract.json");
 const exceptionContractPath = path.join(

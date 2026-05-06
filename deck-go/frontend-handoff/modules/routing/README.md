@@ -2,7 +2,7 @@
 
 > 2-card workbench for the deck-go agent route-binding contract: queue card (left) + selected-binding/simulator/activity card (right). v2 multi-file React rebuild via Babel-standalone.
 
-**Status**: ready-for-implementation
+**Status**: implemented - real-contract verified
 **Design completed**: 2026-05-04 (v2 rebuild from V1 codex single-file)
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Button, Input, Select, Textarea, JsonView, Code

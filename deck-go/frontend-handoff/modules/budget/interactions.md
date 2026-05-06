@@ -111,12 +111,12 @@ Production translation drops the panel entirely.
 ## Mutation behavior
 
 - **Edit** is full-rule replace at the BFF (PATCH semantics).
-  Server returns the refreshed rule + the next `evaluations` snapshot.
+  Server returns the refreshed rule; production refetches evaluations.
 - **Toggle** is a special-case PATCH that only flips `enabled`.
 - **Create** appends a rule. Server immediately evaluates against
-  current usage; UI refetches `evaluate` to get the new status.
+  current usage on the next `evaluate` request; UI refetches `evaluate` to get the new status.
 - **Delete** is a hard delete. Past audit entries (`recentChanges`)
-  remain in the BFF projection but no new ones fire.
+  are prototype/local-only; there is no current BFF audit projection.
 - **All mutations** are followed by a `evaluate` refetch so KPI strip
   - meter reflect the updated thresholds.
 - **Form validation** (client-side, recommended for production):

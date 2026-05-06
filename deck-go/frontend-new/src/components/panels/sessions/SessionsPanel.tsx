@@ -410,6 +410,12 @@ export function SessionsPanel() {
   const selectedIsSubagent = isSubagentSession(selectedSession, selectedSessionKey);
   const parentSessionKey = selectedSessionRelationships?.parentSessionKey ?? "";
   const childSessionKeys = selectedSessionRelationships?.childSessions ?? [];
+  const lineageLinkCount = (parentSessionKey ? 1 : 0) + childSessionKeys.length;
+  const selectedLineageValue = selectedIsSubagent
+    ? t("subagentValue")
+    : selectedSession
+      ? inferSessionKind(selectedSession)
+      : t("na");
   const transcriptMessages = history?.messages ?? [];
   const transcriptMatchIndices = useMemo(
     () => findTranscriptMatches(transcriptMessages, transcriptSearchQuery),
@@ -508,8 +514,8 @@ export function SessionsPanel() {
     <section className="sessions-panel" data-testid="sessions-panel">
       <header className="sessions-panel__header">
         <div>
-          <p className="sessions-eyebrow">operations / sessions</p>
-          <h2>Sessions</h2>
+          <p className="sessions-eyebrow">{t("eyebrow")}</p>
+          <h2>{t("pageTitle")}</h2>
           <p className="sessions-note">{t("inventoryDescription")}</p>
         </div>
         <div className="sessions-panel__header-actions">
@@ -537,29 +543,37 @@ export function SessionsPanel() {
 
       <section className="sessions-metrics" aria-label="Sessions metrics">
         <MetricTile
-          label={t("inventoryTitle")}
-          value={filteredSessions.length}
-          hint={t("visibleCount", { count: filteredSessions.length })}
-        />
-        <MetricTile
-          label={t("selectedSession")}
+          label={t("selectedMetric")}
           value={selectedSession?.title || selectedSessionKey || t("na")}
           hint={selectedSession?.key}
         />
         <MetricTile
-          label={t("contextPressure")}
+          label={t("contextMetric")}
           value={selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")}
           hint={`${formatCompactNumber(selectedTotalTokens)} / ${formatCompactNumber(selectedContextTokens)}`}
         />
         <MetricTile
-          label={t("estimatedCost")}
+          label={t("usageMetric")}
           value={formatCost(selectedSession?.estimatedCostUsd)}
           hint={t("totalTokens")}
         />
         <MetricTile
           label={t("compactions")}
           value={selectedSession?.compactionCount ?? 0}
-          hint={selectedIsSubagent ? t("subagentLineage") : t("runtimeMetadata")}
+          hint={
+            (selectedSession?.compactionCount ?? 0) > 0
+              ? t("checkpointAvailable")
+              : t("runtimeMetadata")
+          }
+        />
+        <MetricTile
+          label={t("lineageMetric")}
+          value={selectedLineageValue}
+          hint={
+            lineageLinkCount > 0
+              ? t("relationshipLinks", { count: lineageLinkCount })
+              : t("noLineageLinks")
+          }
         />
       </section>
 

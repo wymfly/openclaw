@@ -23,13 +23,33 @@ func (r *captureRequester) RequestTyped(_ context.Context, method string, params
 	}, nil
 }
 
-func TestAllowlistContainsScopedUntypedMethods(t *testing.T) {
-	for _, method := range []string{"plugin.approval.list", "plugin.approval.waitDecision"} {
+func TestAllowlistContainsRemainingScopedUntypedMethods(t *testing.T) {
+	for _, method := range []string{"plugin.approval.waitDecision"} {
 		if _, ok := AllowlistMethodNames[method]; !ok {
 			t.Fatalf("expected allowlist to contain %s", method)
 		}
 		if _, ok := TypedMethodNames[method]; ok {
 			t.Fatalf("expected typed methods to exclude untyped scoped method %s", method)
+		}
+	}
+}
+
+func TestTypedMethodsContainHardenedP0GatewayMethods(t *testing.T) {
+	for _, method := range []string{
+		"commands.list",
+		"exec.approval.list",
+		"logs.tail",
+		"node.invoke",
+		"node.pending.enqueue",
+		"plugin.approval.list",
+		"tools.catalog",
+		"tools.effective",
+	} {
+		if _, ok := AllowlistMethodNames[method]; !ok {
+			t.Fatalf("expected allowlist to contain %s", method)
+		}
+		if _, ok := TypedMethodNames[method]; !ok {
+			t.Fatalf("expected typed methods to contain hardened P0 method %s", method)
 		}
 	}
 }

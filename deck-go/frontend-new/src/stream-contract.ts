@@ -23,7 +23,7 @@ export type DeckGoParsedServerEvent =
   | { kind: "unknown"; event: DeckGoServerEvent };
 
 export type DeckGoParsedLogEvent =
-  | { kind: "log.batch"; payload: { lines?: unknown[]; cursor?: number } }
+  | { kind: "log.batch"; payload: { lines?: string[]; cursor?: number } }
   | { kind: "log.reset"; payload: Record<string, never> }
   | { kind: "unknown"; event: DeckGoLogStreamEvent };
 
@@ -45,6 +45,13 @@ function runtimeStatusPayload(value: unknown): DeckGoRuntimeGatewayStatus {
     managed: typeof record?.managed === "boolean" ? record.managed : false,
     mode: "bundled",
   } as unknown as DeckGoRuntimeGatewayStatus;
+}
+
+function logLineText(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value) ?? String(value);
 }
 
 export function parseServerEvent(event: DeckGoServerEvent): DeckGoParsedServerEvent {
@@ -122,7 +129,7 @@ export function parseLogEvent(event: DeckGoLogStreamEvent): DeckGoParsedLogEvent
       return {
         kind: "log.batch",
         payload: {
-          lines: Array.isArray(payload?.lines) ? payload.lines : undefined,
+          lines: Array.isArray(payload?.lines) ? payload.lines.map(logLineText) : undefined,
           cursor: typeof payload?.cursor === "number" ? payload.cursor : undefined,
         },
       };

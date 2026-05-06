@@ -6,12 +6,18 @@ import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
 import {
   areThreadFiltersEqual,
+  ALL_THREADS_FILTER,
+  calculateThreadMetrics,
   DEFAULT_THREAD_FILTERS,
+  DEFAULT_THREAD_LOCAL_FILTERS,
+  filterThreadsByLocalState,
+  listThreadChannelKinds,
+  listThreadTargetKinds,
   normalizeThreadFilters,
   sortThreadsByActivity,
   THREAD_FILTER_DEBOUNCE_MS,
 } from "./thread-utils";
-import { ThreadDetail } from "./ThreadDetail";
+import { ThreadDetail, type ThreadDetailTab } from "./ThreadDetail";
 import { ThreadList } from "./ThreadList";
 import "./threads-panel.css";
 
@@ -26,10 +32,6 @@ function ThreadMetric(props: { label: string; value: string | number; tone?: "go
   );
 }
 
-function formatFilterValue(value: string, fallback: string) {
-  return value.trim() || fallback;
-}
-
 export function ThreadsPanel() {
   const t = useTranslations("threads");
   const ui = useDeckUI();
@@ -37,6 +39,8 @@ export function ThreadsPanel() {
   const [selectedThreadId, setSelectedThreadId] = useState("");
   const [draftFilters, setDraftFilters] = useState(DEFAULT_THREAD_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_THREAD_FILTERS);
+  const [localFilters, setLocalFilters] = useState(DEFAULT_THREAD_LOCAL_FILTERS);
+  const [activeTab, setActiveTab] = useState<ThreadDetailTab>("overview");
   const [loadState, setLoadState] = useState<PanelState>("idle");
   const [error, setError] = useState("");
   const [handoffMessage, setHandoffMessage] = useState("");
@@ -90,10 +94,28 @@ export function ThreadsPanel() {
   }, [refresh]);
 
   const sortedThreads = useMemo(() => sortThreadsByActivity(threads), [threads]);
+  const visibleThreads = useMemo(
+    () => filterThreadsByLocalState(sortedThreads, localFilters),
+    [localFilters, sortedThreads],
+  );
+  const channelKinds = useMemo(() => listThreadChannelKinds(sortedThreads), [sortedThreads]);
+  const targetKinds = useMemo(() => listThreadTargetKinds(sortedThreads), [sortedThreads]);
+  const metrics = useMemo(
+    () => calculateThreadMetrics(sortedThreads, visibleThreads.length),
+    [sortedThreads, visibleThreads.length],
+  );
   const selectedThread =
-    sortedThreads.find((thread) => thread.threadId === selectedThreadId) ??
-    sortedThreads[0] ??
+    visibleThreads.find((thread) => thread.threadId === selectedThreadId) ??
+    visibleThreads[0] ??
     null;
+
+  useEffect(() => {
+    setSelectedThreadId((current) =>
+      visibleThreads.some((thread) => thread.threadId === current)
+        ? current
+        : visibleThreads[0]?.threadId || "",
+    );
+  }, [visibleThreads]);
 
   const refreshFromDraftFilters = () => {
     const nextFilters = normalizeThreadFilters(draftFilters);
@@ -101,6 +123,14 @@ export function ThreadsPanel() {
       areThreadFiltersEqual(current, nextFilters) ? current : nextFilters,
     );
     void refresh(selectedThreadId, nextFilters);
+  };
+
+  const updateLocalFilter = <Key extends keyof typeof localFilters>(
+    key: Key,
+    value: (typeof localFilters)[Key],
+  ) => {
+    setLocalFilters((current) => ({ ...current, [key]: value }));
+    setActiveTab("overview");
   };
 
   const updateStatusFilter = (status: "active" | "all") => {
@@ -168,7 +198,7 @@ export function ThreadsPanel() {
               <h3 className="threads-panel__card-title">{t("inventoryTitle")}</h3>
             </div>
             <span className="threads-panel__pill">
-              {t("resultsCount", { count: sortedThreads.length })}
+              {t("resultsCount", { count: visibleThreads.length })}
             </span>
           </div>
           <div className="threads-panel__body">
@@ -206,29 +236,74 @@ export function ThreadsPanel() {
               </button>
             </div>
 
+            <div className="threads-panel__local-filters" aria-label={t("prototypeFilters")}>
+              <label className="threads-panel__search">
+                <span>{t("searchThreads")}</span>
+                <input
+                  className="threads-panel__input"
+                  type="search"
+                  value={localFilters.query}
+                  onChange={(event) => updateLocalFilter("query", event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                />
+              </label>
+              <select
+                className="threads-panel__input"
+                value={localFilters.channelKind}
+                aria-label={t("channelKind")}
+                onChange={(event) => updateLocalFilter("channelKind", event.target.value)}
+              >
+                <option value={ALL_THREADS_FILTER}>{t("allChannels")}</option>
+                {channelKinds.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {kind}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="threads-panel__input"
+                value={localFilters.targetKind}
+                aria-label={t("targetKind")}
+                onChange={(event) => updateLocalFilter("targetKind", event.target.value)}
+              >
+                <option value={ALL_THREADS_FILTER}>{t("allTargets")}</option>
+                {targetKinds.map((kind) => (
+                  <option key={kind} value={kind}>
+                    {kind}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="threads-panel__input"
+                value={localFilters.recency}
+                aria-label={t("activityRecency")}
+                onChange={(event) =>
+                  updateLocalFilter("recency", event.target.value as "all" | "active" | "stale")
+                }
+              >
+                <option value="all">{t("allRecency")}</option>
+                <option value="active">{t("active24h")}</option>
+                <option value="stale">{t("stale")}</option>
+              </select>
+            </div>
+
             <div className="threads-panel__metrics">
               <ThreadMetric
-                label={t("threadsLower")}
+                label={t("bindings")}
                 tone={loadState === "ready" ? "good" : undefined}
-                value={sortedThreads.length}
+                value={metrics.total}
               />
-              <ThreadMetric
-                label={t("selectedLower")}
-                value={selectedThread?.threadId || t("na")}
-              />
-              <ThreadMetric
-                label={t("activeFilters")}
-                value={`${formatFilterValue(appliedFilters.agentId, "*")} / ${formatFilterValue(
-                  appliedFilters.channel,
-                  "*",
-                )} / ${appliedFilters.status}`}
-              />
+              <ThreadMetric label={t("active24h")} value={metrics.active24h} />
+              <ThreadMetric label={t("channelsLower")} value={metrics.channelKinds} />
+              <ThreadMetric label={t("agentsLower")} value={metrics.distinctAgents} />
+              <ThreadMetric label={t("autoBound")} value={metrics.autoBound} />
+              <ThreadMetric label={t("visibleLower")} value={metrics.visible} />
             </div>
 
             {error ? <p className="threads-panel__error">{error}</p> : null}
 
             <ThreadList
-              threads={sortedThreads}
+              threads={visibleThreads}
               selectedThreadId={selectedThread?.threadId ?? ""}
               onSelectThread={setSelectedThreadId}
             />
@@ -251,10 +326,12 @@ export function ThreadsPanel() {
           <div className="threads-panel__body">
             <ThreadDetail
               thread={selectedThread}
+              activeTab={activeTab}
               handoffMessage={handoffMessage}
               onCopySessionKey={() => void copySessionKey()}
               onOpenSession={openSessionPanel}
               onOpenAgent={openAgentPanel}
+              onTabChange={setActiveTab}
             />
           </div>
         </article>

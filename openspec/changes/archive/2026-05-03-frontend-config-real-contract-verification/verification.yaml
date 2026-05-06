@@ -1,0 +1,58 @@
+change: frontend-config-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Config apply may use only safe/noop apply of fetched raw with current baseHash; risky or non-noop mutation scenarios may be handoff-blocked with evidence."
+entries:
+  - scenarioId: baseline.config-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/config/prototype.html and inspect frontend-config-hifi-redesign evidence"
+    evidence: "Inspected v2 handoff file inventory, current frontend-config-hifi-redesign spec, and prototype timestamp. Prototype loaded over local static server with HTTP 200, title `Configuration`, 6 sections, 6 fields, and no browser errors."
+  - scenarioId: audit.config-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF routes, Gateway methods, frontend wrappers, and production Config code"
+    evidence: "Confirmed DeckGoConfigSnapshotResponse/ApplyResponse/LookupResponse authority, endpoint classification GET /config + POST /config/apply + POST /config/patch + POST /config/schema-lookup, Go BFF forwarding to Gateway config.get/config.apply/config.schema.lookup, frontend fetchDeckConfig/applyDeckConfig/postConfigSchemaLookup/lookupConfigPath wrappers, and BFF-only browser access."
+  - scenarioId: contract.config-chain-matrix
+    ownerTask: "2.5,3.1-3.5"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/Gateway method -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/config/implementation-notes.md. Snapshot/schema/section/raw/diff/apply/conflict/sensitive/payload workflows are supported or degraded; apply history, scaffold, import/export, rollback, and schema batching remain unsupported follow-up."
+  - scenarioId: implementation.config-v2-and-scoped-fixes
+    ownerTask: "3.2-3.4"
+    status: passed
+    verificationCommand: "Implement v2 production UI and verify deterministic Config-scoped fixes"
+    evidence: "Fixed method/wrapper handoff drift, typed postConfigSchemaLookup, routed lookupConfigPath through it, preferred baseHash over hash, removed hard-coded agents.defaults initial lookup, added hint.secret masking, blocked synthesized raw apply when Gateway raw is unavailable, and updated mock Gateway agents lookup support."
+  - scenarioId: frontend.config-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Config"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/api.chat-helpers.test.ts src/components/panels/config/ConfigPanel.test.tsx passed, 56 tests."
+  - scenarioId: backend.config-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for config routes and Gateway query behavior"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw -run 'TestGatewayFacade_ConfigSchemaLookup|TestGatewayFacade_ConfigSchemaLookupAllowsRootPath|TestGatewayFacade_ChannelPatchUsesConfigGetThenConfigPatch|TestGatewayFacade_ModelsConfigRoute|TestManagedRuntime|TestGatewayQueries' passed."
+  - scenarioId: visual.config-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Config mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/config-visual.spec.ts --config playwright.config.ts passed, 1 test."
+  - scenarioId: l2.config-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for runtime readiness, config snapshot, schema lookup, production render, and safe/noop apply when supported"
+    evidence: "cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/config-real-gateway.spec.ts --config playwright.config.ts passed, 2 tests. Real read/schema/UI paths passed. Direct L2 probe confirmed /api/config returned HTTP 200 with a 64-character baseHash but no writable raw text, so safe/noop apply is handoff-blocked by the raw-unavailable guard."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Config panel, API facade, Go routes, Gateway methods, contracts, mocks, and verification evidence"
+    evidence: "Reviewed ConfigPanel raw/schema/apply/conflict paths, frontend API facade, Go config routes, Gateway method truth, mock fixture, L1/L2 evidence, and handoff docs; residual risks recorded in implementation-notes.md."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-config-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate frontend-config-real-contract-verification --strict passed; cd deck-go && make frontend-build passed; git diff --check passed. No source contract or generated artifact changed in this Config pass, so a contract regeneration/check target was not applicable."

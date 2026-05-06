@@ -159,6 +159,24 @@
   color: var(--ds-text-3);
 }
 
+.nodes-panel__pill[class*="is-platform-"] {
+  text-transform: lowercase;
+}
+
+.nodes-panel__pill.is-platform-darwin,
+.nodes-panel__pill.is-platform-ios {
+  border-color: color-mix(in srgb, var(--ds-accent) 36%, var(--ds-border));
+}
+
+.nodes-panel__pill.is-platform-linux,
+.nodes-panel__pill.is-platform-android {
+  border-color: color-mix(in srgb, var(--ds-success) 34%, var(--ds-border));
+}
+
+.nodes-panel__pill.is-platform-windows {
+  border-color: color-mix(in srgb, var(--ds-warn) 34%, var(--ds-border));
+}
+
 .nodes-panel__button {
   min-height: 32px;
   padding: 6px 10px;
@@ -236,6 +254,30 @@
 .nodes-panel__hero {
   padding: 12px;
   background: var(--ds-bg-2);
+}
+
+.nodes-panel__confirm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--ds-warn) 44%, var(--ds-border));
+  border-radius: var(--ds-radius-sm);
+  padding: 11px 12px;
+  background: color-mix(in srgb, var(--ds-warn) 9%, var(--ds-bg-1));
+}
+
+.nodes-panel__confirm.is-danger {
+  border-color: color-mix(in srgb, var(--ds-error) 44%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-error) 8%, var(--ds-bg-1));
+}
+
+.nodes-panel__confirm-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .nodes-panel__row {
@@ -328,8 +370,18 @@
   }
 
   .nodes-panel__hero,
-  .nodes-panel__actions {
+  .nodes-panel__actions,
+  .nodes-panel__confirm,
+  .nodes-panel__confirm-actions {
     align-items: stretch;
+  }
+
+  .nodes-panel__confirm {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .nodes-panel__confirm-actions {
+    justify-content: flex-start;
   }
 }
 

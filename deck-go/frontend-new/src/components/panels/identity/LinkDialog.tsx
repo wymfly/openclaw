@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { IconHash, IconLink, IconX } from "../../../design-system/icons";
 import { useTranslations } from "../../../i18n/provider";
 
 export type IdentityLinkInput = {
@@ -11,6 +12,8 @@ export function LinkDialog(props: {
   open: boolean;
   submitting: boolean;
   error: string;
+  defaultCanonical: string;
+  configHash: string;
   onClose: () => void;
   onSubmit: (input: IdentityLinkInput) => void;
 }) {
@@ -23,10 +26,12 @@ export function LinkDialog(props: {
   });
 
   useEffect(() => {
-    if (!props.open) {
+    if (props.open) {
+      setDraft({ canonical: props.defaultCanonical, channel: "", peerId: "" });
+    } else {
       setDraft({ canonical: "", channel: "", peerId: "" });
     }
-  }, [props.open]);
+  }, [props.defaultCanonical, props.open]);
 
   const updateDraft = useCallback((field: keyof IdentityLinkInput, value: string) => {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -52,24 +57,45 @@ export function LinkDialog(props: {
       <form
         aria-label={t("dialogTitle")}
         className="identity-panel__dialog"
+        role="dialog"
         onSubmit={handleSubmit}
       >
         <header className="identity-panel__dialog-header">
           <div>
-            <h3>{t("dialogTitle")}</h3>
+            <h3>
+              <IconLink size={15} />
+              <span>{t("dialogTitle")}</span>
+            </h3>
             <p>{t("dialogDescription")}</p>
           </div>
           <button
             aria-label={tc("cancel")}
-            className="identity-panel__button"
+            className="identity-panel__button identity-panel__button--icon"
             type="button"
             onClick={props.onClose}
           >
-            ×
+            <IconX size={14} />
           </button>
         </header>
 
         {props.error ? <p className="identity-panel__error">{props.error}</p> : null}
+
+        <div className={`identity-panel__guard ${props.configHash ? "is-ready" : "is-blocked"}`}>
+          <div>
+            <strong>{t("baseHashCommit")}</strong>
+            <p>
+              {props.configHash
+                ? t("mutationSafetyDescription", { hash: props.configHash })
+                : t("mutationSafetyBlocked")}
+            </p>
+          </div>
+          <span
+            className={`identity-panel__pill ${props.configHash ? "is-positive" : "is-warning"}`}
+          >
+            <IconHash size={12} />
+            {props.configHash || t("hashMissing")}
+          </span>
+        </div>
 
         <label className="identity-panel__field">
           <span>{t("canonical")}</span>

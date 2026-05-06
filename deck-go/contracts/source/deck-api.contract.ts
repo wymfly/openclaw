@@ -257,6 +257,15 @@ export interface DeckGoGatewayBatchResponse {
   results: DeckGoGatewayBatchResultEntry[];
 }
 
+export interface DeckGoGatewayInvokeResult {
+  body: unknown;
+  error?: string;
+  headers: Record<string, string>;
+  ok: boolean;
+  requestId?: string;
+  statusCode: number;
+}
+
 export interface DeckGoConfigSchemaLookupRequest {
   path: string;
 }
@@ -562,6 +571,16 @@ export interface DeckGoChannelTestResponse {
   checkedAt?: number;
 }
 
+export interface DeckGoChannelLogoutResponse {
+  ok?: boolean;
+  channel?: string;
+  channelId?: string;
+  accountId?: string;
+  cleared?: boolean;
+  message?: string;
+  error?: string;
+}
+
 export interface DeckGoChannelThroughputBucket {
   time?: number;
   in?: number;
@@ -707,8 +726,11 @@ export interface DeckGoSessionsPreviewResponse {
 
 export type DeckGoLogsTailResponse = {
   cursor?: number;
-  lines?: unknown[];
+  file?: string;
+  lines?: string[];
   reset?: boolean;
+  size?: number;
+  truncated?: boolean;
 };
 
 export type DeckGoCompactionCheckpoint = {
@@ -757,12 +779,25 @@ export type DeckGoSkillEntry = {
 };
 
 export type DeckGoSkillsResponse = {
-  skills?: Record<string, unknown>[];
+  skills?: DeckGoSkillEntry[];
 };
 
 export type DeckGoSkillUpdateResponse = {
   ok?: boolean;
+  skillKey?: string;
   config?: Record<string, unknown>;
+};
+
+export type DeckGoSkillInstallResponse = {
+  ok: boolean;
+  message: string;
+  stdout: string;
+  stderr: string;
+  code: number | null;
+  slug?: string;
+  version?: string;
+  targetDir?: string;
+  warnings?: string[];
 };
 
 export type DeckGoSkillHubSearchResult = {
@@ -806,10 +841,30 @@ export type DeckGoSkillHubBinsResponse = {
   bins?: string[];
 };
 
-export type DeckGoSkillHubMutationResponse = Record<string, unknown> & {
+export type DeckGoSkillHubMutationResult = {
+  ok?: boolean;
+  slug?: string;
+  version?: string;
+  targetDir?: string;
+  error?: string;
+};
+
+export type DeckGoSkillHubMutationResponse = {
   ok?: boolean;
   message?: string;
   error?: string;
+  stdout?: string;
+  stderr?: string;
+  code?: number | null;
+  slug?: string;
+  version?: string;
+  targetDir?: string;
+  skillKey?: string;
+  config?: {
+    source?: "clawhub" | (string & {});
+    results?: DeckGoSkillHubMutationResult[];
+  };
+  warnings?: string[];
 };
 
 export type DeckGoRoutingPeer = {
@@ -1371,6 +1426,11 @@ export type DeckGoPendingApprovalsResponse = {
   pending?: DeckGoPendingApproval[];
 };
 
+export type DeckGoApprovalResolutionResponse = {
+  ok: boolean;
+  error?: string;
+};
+
 export type DeckGoCronSchedule = {
   kind: "at" | "every" | "cron";
   at?: string;
@@ -1425,6 +1485,7 @@ export type DeckGoCronStatus = {
   running: boolean;
   jobCount?: number;
   nextRunAtMs?: number;
+  storePath?: string;
 };
 
 export type DeckGoCronJobsResponse = {
@@ -1456,6 +1517,19 @@ export type DeckGoCronRunParams = {
   mode?: "due" | "force";
 };
 
+export type DeckGoCronDeleteResponse = {
+  ok: boolean;
+  removed?: boolean;
+};
+
+export type DeckGoCronRunResponse = {
+  ok: boolean;
+  enqueued?: boolean;
+  runId?: string;
+  ran?: boolean;
+  reason?: "already-running" | "not-due" | "invalid-spec" | (string & {});
+};
+
 export type DeckGoDocCategory = "summary" | "plan" | "spec" | "manual" | "draft";
 
 export type DeckGoDoc = {
@@ -1478,6 +1552,12 @@ export type DeckGoDocsResponse = {
 export type DeckGoDocsExtractResponse = {
   extracted?: number;
   docs?: DeckGoDoc[];
+};
+
+export type DeckGoDocDeleteResponse = {
+  ok: boolean;
+  id?: string;
+  missing?: boolean;
 };
 
 export type DeckGoAlertAction = "toast" | "activity" | "webhook";
@@ -1543,6 +1623,14 @@ export type DeckGoWebhookDeliveriesResponse = {
   deliveries: DeckGoWebhookDelivery[];
 };
 
+export type DeckGoWebhookTestResponse = {
+  success: boolean;
+  statusCode?: number | null;
+  durationMs?: number | null;
+  error?: string | null;
+  deliveryId: string;
+};
+
 export type DeckGoNodeSummary = {
   nodeId: string;
   displayName?: string;
@@ -1601,6 +1689,45 @@ export type DeckGoNodePairRequestResponse = {
   created?: boolean;
 };
 
+export type DeckGoNodePairingPairedNode = {
+  nodeId: string;
+  displayName?: string;
+  platform?: string;
+  version?: string;
+  coreVersion?: string;
+  uiVersion?: string;
+  deviceFamily?: string;
+  modelIdentifier?: string;
+  caps?: string[];
+  commands?: string[];
+  bins?: string[];
+  remoteIp?: string;
+  token?: string;
+  createdAtMs?: number;
+  approvedAtMs?: number;
+  lastConnectedAtMs?: number;
+};
+
+export type DeckGoNodeRenameResponse = {
+  nodeId: string;
+  displayName: string;
+};
+
+export type DeckGoNodePairApproveResponse = {
+  requestId: string;
+  node: DeckGoNodePairingPairedNode;
+};
+
+export type DeckGoNodePairRejectResponse = {
+  requestId: string;
+  nodeId: string;
+};
+
+export type DeckGoNodePairVerifyResponse = {
+  ok: boolean;
+  node?: DeckGoNodePairingPairedNode;
+};
+
 export type DeckGoNodeInvokeResponse = {
   ok?: boolean;
   nodeId?: string;
@@ -1613,10 +1740,21 @@ export type DeckGoNodePendingWorkType = "status.request" | "location.request";
 
 export type DeckGoNodePendingWorkPriority = "normal" | "high";
 
+export type DeckGoNodePendingWorkItemPriority = "default" | "normal" | "high";
+
+export type DeckGoNodePendingWorkItem = {
+  id: string;
+  type: DeckGoNodePendingWorkType;
+  priority: DeckGoNodePendingWorkItemPriority;
+  createdAtMs: number;
+  expiresAtMs?: number | null;
+  payload?: Record<string, unknown>;
+};
+
 export type DeckGoNodePendingEnqueueResponse = {
   nodeId?: string;
   revision?: number;
-  queued?: Record<string, unknown>;
+  queued?: DeckGoNodePendingWorkItem;
   wakeTriggered?: boolean;
 };
 
@@ -1756,6 +1894,11 @@ export type DeckGoIdentityLinksResponse = {
   configHash?: string;
 };
 
+export type DeckGoIdentityMutationResponse = {
+  ok: boolean;
+  configHash: string;
+};
+
 export type DeckGoThreadEntry = {
   threadId: string;
   channelId: string;
@@ -1787,12 +1930,37 @@ export type DeckGoActivityResponse = {
   events: DeckGoActivityEvent[];
 };
 
+export type DeckGoControlAuditEntry = {
+  id: string;
+  requestId: string;
+  actor: string;
+  method: string;
+  path: string;
+  action: string;
+  target: string;
+  statusCode: number;
+  ok: boolean;
+  durationMs: number;
+  timestamp: string;
+  summary?: string;
+};
+
+export type DeckGoControlAuditRetention = {
+  mode: "process-memory";
+  maxEntries: number;
+};
+
+export type DeckGoControlAuditEventsResponse = {
+  events: DeckGoControlAuditEntry[];
+  retention: DeckGoControlAuditRetention;
+};
+
 export type DeckGoMonitorRunStatus = "running" | "completed" | "error" | (string & {});
 
 export type DeckGoMonitorRun = {
   runId: string;
-  agentId: string | null;
-  sessionKey: string | null;
+  agentId?: string | null;
+  sessionKey?: string | null;
   firstEventAt: string;
   lastEventAt: string;
   eventCount: number;
@@ -1825,8 +1993,8 @@ export type DeckGoMonitorRunEvent = {
   seq: number;
   stream: string;
   data: string;
-  agent_id: string | null;
-  session_key: string | null;
+  agent_id?: string | null;
+  session_key?: string | null;
   created_at: string;
 };
 
@@ -2183,6 +2351,11 @@ export interface DeckGoChatSessionPatchRequest {
   sendPolicy?: string | null;
   // Forward-compatible: backend transparently forwards unknown keys.
   [key: string]: unknown;
+}
+
+// 来自 deck-go/backend/internal/server/chat.go:302 (POST /chat/compact)
+export interface DeckGoChatCompactRequest {
+  sessionKey: string;
 }
 
 // 来自 deck-go/backend/internal/server/chat.go:396 (POST /chat/projection)

@@ -83,7 +83,7 @@ function TestConnectionDialog({ endpoint, onClose }) {
       }
     >
       <p className="modal__hint">
-        POSTs <code>/api/runtime/endpoint/test</code> with the current draft. Verifies TCP
+        POSTs <code>/api/runtime/endpoint:test</code> with the current draft. Verifies TCP
         reachability, TLS handshake, and Gateway version response.
       </p>
       <dl className="modal__kv">

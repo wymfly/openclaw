@@ -13,7 +13,7 @@ test.describe("activity mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders activity operations timeline and monitor diagnostics from mock data", async ({
+  test("renders unified activity feed and event detail from mock data", async ({
     page,
   }, testInfo) => {
     const unexpected = collectUnexpectedErrors(page);
@@ -32,8 +32,11 @@ test.describe("activity mock visual handoff alignment", () => {
 
     await expect(page.getByTestId("activity-panel")).toBeVisible();
     await expect(page.getByRole("heading", { name: "Activity" }).first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Run history" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Selected run" })).toBeVisible();
+    await expect(page.getByText("Unified timeline across agent runs")).toBeVisible();
+    await expect(page.getByText("Events").first()).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Messages" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Errors" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Refresh activity/ })).toBeVisible();
     await expect(page.getByText("Chat run completed").first()).toBeVisible();
     await expect(page.getByText("run-visual-1").first()).toBeVisible();
     await page.waitForTimeout(500);
@@ -43,19 +46,27 @@ test.describe("activity mock visual handoff alignment", () => {
       path: testInfo.outputPath("activity-workspace-ready.png"),
     });
 
-    await page.getByRole("button", { name: /Today/ }).first().click();
+    await page
+      .getByRole("button", { name: /Chat run completed/ })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog", { name: "Event detail" })).toBeVisible();
+    await expect(page.getByText("Raw event")).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("activity-event-detail.png"),
+    });
+    await page.getByRole("button", { name: "Close" }).last().click();
+
+    await page.getByRole("tab", { name: "Messages" }).click();
+    await expect(page.getByText("Chat run completed").first()).toBeVisible();
+    await page.getByRole("searchbox", { name: "Search events" }).fill("definitely-no-activity");
+    await expect(page.getByText("No activity events match the current filters.")).toBeVisible();
+    await page.getByRole("button", { name: "Clear filters" }).click();
     await expect(page.getByText("Chat run completed").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
-      path: testInfo.outputPath("activity-group-collapsed.png"),
-    });
-
-    await page.getByPlaceholder("run agent id").fill("main");
-    await expect(page.getByRole("button", { name: /run-visual-1/ })).toBeVisible();
-    await expect(page.getByText("model calls").first()).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("activity-run-filtered.png"),
+      path: testInfo.outputPath("activity-filter-recovered.png"),
     });
 
     expect(unexpected).toEqual([]);

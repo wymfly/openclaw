@@ -1,5 +1,11 @@
 # approvals — components (v2)
 
+> Contract note: this file describes the v2 prototype component shape. For
+> production contract truth, use `api-usage.md` and `implementation-notes.md`.
+> Prototype-only underscore decision labels, `capabilityKind`/`origin`/
+> `sourceUrl`, scopes, requester fields, and reason submission are not current
+> Gateway/BFF authority.
+
 ## Tree
 
 ```

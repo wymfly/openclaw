@@ -188,8 +188,8 @@ func (s *stubMemoryBrowseProvider) BrowseMemory(_ context.Context, agentID strin
 	return s.browsePayload, s.browseStatus, nil
 }
 
-func (s *stubMemoryBrowseProvider) SearchMemory(_ context.Context, query string, agentID string) (any, int, error) {
-	s.lastKey = "memory:search:" + query + ":" + agentID
+func (s *stubMemoryBrowseProvider) SearchMemory(_ context.Context, query string, agentID string, scope string) (any, int, error) {
+	s.lastKey = "memory:search:" + query + ":" + agentID + ":" + scope
 	return s.searchPayload, s.searchStatus, nil
 }
 
@@ -314,6 +314,11 @@ type stubUsageProvider struct {
 func (s *stubUsageProvider) GetUsageCost(_ context.Context, days int) (any, error) {
 	s.lastKey = "usage:cost:" + strconv.Itoa(days)
 	return s.payload, nil
+}
+
+func (s *stubUsageProvider) GetUsageProviders(_ context.Context) (any, error) {
+	s.lastKey = "usage:providers"
+	return map[string]any{"providers": []map[string]any{{"provider": "openai"}}}, nil
 }
 
 func (s *stubUsageProvider) GetUsageSessions(_ context.Context, params map[string]any) (any, error) {
@@ -580,6 +585,22 @@ func TestMountAdminRoutes(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects invalid alert action on create", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/alerts", strings.NewReader(`{"name":"Email","entityType":"usage","condition":">=","threshold":80,"action":"email"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+	})
+
 	t.Run("updates alert payload", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPatch, server.URL+"/alerts/rule-1", strings.NewReader(`{"enabled":false}`))
 		if err != nil {
@@ -596,6 +617,22 @@ func TestMountAdminRoutes(t *testing.T) {
 		}
 		if alerts.lastKey != "alerts:update:rule-1" {
 			t.Fatalf("unexpected alerts update invocation: %q", alerts.lastKey)
+		}
+	})
+
+	t.Run("rejects invalid alert action on update", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPatch, server.URL+"/alerts/rule-1", strings.NewReader(`{"action":"email"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadRequest {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
 		}
 	})
 
@@ -889,6 +926,22 @@ func TestMountAdminRoutes(t *testing.T) {
 		}
 	})
 
+	t.Run("returns canonical memory search payload", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/memory/search", strings.NewReader(`{"query":"test","agentId":"main","scope":"agent"}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusNotImplemented {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+	})
+
 	t.Run("streams event payload", func(t *testing.T) {
 		client := http.Client{Timeout: 2 * time.Second}
 		req, err := http.NewRequest(http.MethodGet, server.URL+"/stream", nil)
@@ -1164,6 +1217,20 @@ func TestMountAdminRoutes(t *testing.T) {
 		}
 		if usage.lastKey != "usage:cost:7" {
 			t.Fatalf("unexpected usage cost invocation: %q", usage.lastKey)
+		}
+	})
+
+	t.Run("returns usage providers payload", func(t *testing.T) {
+		res, err := http.Get(server.URL + "/usage/providers")
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusOK {
+			t.Fatalf("unexpected status: %d", res.StatusCode)
+		}
+		if usage.lastKey != "usage:providers" {
+			t.Fatalf("unexpected usage providers invocation: %q", usage.lastKey)
 		}
 	})
 

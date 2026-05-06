@@ -3,8 +3,16 @@
   "name": "Email",
   "description": "Bundled IMAP/SMTP email tools for reading messages, downloading attachments, and sending mail.",
   "contracts": {
-    "tools": ["email_list", "email_read", "email_download_attachments", "email_send"]
+    "tools": [
+      "email_list",
+      "email_search",
+      "email_read",
+      "email_download_attachments",
+      "email_download_matching_attachments",
+      "email_send"
+    ]
   },
+  "skills": ["./skills"],
   "uiHints": {
     "defaultAccountId": {
       "label": "Default Account ID",

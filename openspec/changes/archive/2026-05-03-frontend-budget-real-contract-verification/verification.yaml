@@ -1,0 +1,58 @@
+change: frontend-budget-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Budget writes may only create/update/delete uniquely named e2e test rules and must clean up after themselves; blocked or risky write scenarios may be handoff-blocked with evidence."
+entries:
+  - scenarioId: baseline.budget-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/budget/prototype.html and inspect frontend-budget-hifi-redesign evidence"
+    evidence: "Static server + Playwright smoke: HTTP 200, title `Budget (deck-go) · v2 prototype`, 7 rule rows, no browser errors; v2 package includes README/api-usage/components/states/interactions/prototype and production notes."
+  - scenarioId: audit.budget-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF routes/localstore/evaluation, frontend wrappers, and production Budget code"
+    evidence: "Inspected DeckGoBudget* DTOs, `/usage/budget*` endpoint classification, `backend/internal/server/budget.go`, `backend/internal/localstore/budget.go`, `frontend-new/src/api.ts`, and Budget panel code. Code truth is Deck-local localstore CRUD plus UsageCost evaluation, not upstream gateway.usage.budget.*."
+  - scenarioId: contract.budget-chain-matrix
+    ownerTask: "2.5,3.1-3.5"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/localstore/usage-cost -> capability classification matrix"
+    evidence: "Recorded workflow matrix and classifications in deck-go/frontend-handoff/modules/budget/implementation-notes.md."
+  - scenarioId: implementation.budget-v2-and-scoped-fixes
+    ownerTask: "3.2-3.4"
+    status: passed
+    verificationCommand: "Implement v2 production UI and verify deterministic Budget-scoped fixes"
+    evidence: "Added Budget search/status filters, direct selected-rule enable/disable/delete, evaluation-load degradation, frontend/backend threshold validation, updated i18n, corrected handoff docs, and added Budget real-stack E2E. No source contract changed, so no generated artifacts were regenerated."
+  - scenarioId: frontend.budget-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Budget"
+    evidence: "`cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/budget/BudgetPanel.test.tsx` passed: 8 tests."
+  - scenarioId: backend.budget-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for budget routes/localstore/evaluation"
+    evidence: "`cd deck-go/backend && go test ./internal/server -run 'TestBudgetRoutes_CRUDAndEvaluate|TestBudgetRoutes_RejectInvalidThresholds'` passed; `go test ./internal/runtime/openclaw -run 'TestManagedRuntime|TestGatewayQueries|TestRuntimeFacade|TestLegacyAdmin'` passed."
+  - scenarioId: visual.budget-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Budget mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "`cd deck-go && pnpm exec playwright test test/e2e/budget-visual.spec.ts --config playwright.config.ts` passed: 1 L1 mock/local visual test."
+  - scenarioId: l2.budget-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for runtime readiness, budget rules/evaluations shape, production render, and uniquely named test-rule create/update/delete when supported"
+    evidence: "Attempt 1 found deterministic strict-locator issue after API test passed; fixed locator. Attempt 2 `DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/budget-real-gateway.spec.ts --config playwright.config.ts` passed: 2 L2 real-stack tests with unique test-rule create/update/delete cleanup."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Budget panel, API facade, Go routes/localstore/evaluation, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Budget panel, RuleForm, RuleList, API wrappers, Go budget routes, runtime legacy admin path, endpoint/DTO authority, handoff docs, and L1/L2 evidence. Residual unsupported items recorded in implementation-notes.md."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-budget-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "`openspec validate frontend-budget-real-contract-verification --strict` passed; no source contract/generated artifacts changed for Budget so contract regeneration/check was not required; `cd deck-go/frontend-new && npm run test:deck-ui -- src/api.chat-helpers.test.ts src/components/panels/budget/BudgetPanel.test.tsx` passed 53 tests; `cd deck-go && make frontend-build` passed; `git diff --check` passed."

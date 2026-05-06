@@ -264,7 +264,7 @@ describe("UsagePanel", () => {
     expect(container.querySelectorAll(".usage-panel__metric")).toHaveLength(6);
     expect(container.querySelectorAll(".usage-panel__card").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-usage-surface").length).toBeGreaterThanOrEqual(5);
-    expect(container.querySelectorAll(".deck-ui-usage-input")).toHaveLength(2);
+    expect(container.querySelectorAll(".deck-ui-usage-input")).toHaveLength(4);
     expect(container.querySelectorAll(".deck-ui-usage-chart-row").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".deck-ui-usage-row").length).toBeGreaterThanOrEqual(8);
     expect(container.textContent).toContain("2 days");
@@ -392,15 +392,69 @@ describe("UsagePanel", () => {
       key: "sess-build",
       limit: 1,
     });
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Logs")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
     expect(container.textContent).toContain("Session logs");
     expect(container.textContent).toContain("usage log detail");
     expect(container.textContent).toContain("12 tokens");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Timeseries")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
     expect(container.textContent).toContain("Usage timeseries");
     expect(container.textContent).toContain("cumulative 12 tokens");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Context")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
     expect(container.textContent).toContain("Context weight");
     expect(container.textContent).toContain("3.5K");
     expect(container.textContent).toContain("system prompt");
     expect(container.textContent).toContain("tools");
+  });
+
+  it("supports prototype keyboard shortcuts for search focus and detail close", async () => {
+    await act(async () => {
+      renderUsagePanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchUsageSessions).toHaveBeenCalledTimes(1));
+
+    const sessionSearch = container.querySelector<HTMLInputElement>(
+      'input[placeholder="search usage sessions"]',
+    );
+    expect(sessionSearch).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "k", metaKey: true });
+    });
+    expect(document.activeElement).toBe(sessionSearch);
+
+    const builderButton = Array.from(container.querySelectorAll("button")).find((button) =>
+      button.textContent?.includes("Builder Session"),
+    );
+    expect(builderButton).toBeTruthy();
+
+    await act(async () => {
+      builderButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() => expect(container.textContent).toContain("Open usage session"));
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "Escape" });
+    });
+    expect(container.textContent).not.toContain("Open usage session");
   });
 
   it("opens expanded usage session agent and session through shared deck navigation", async () => {

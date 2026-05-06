@@ -290,6 +290,37 @@ type ChatSendResult struct {
 	Status  string   `json:"status,omitempty"`
 }
 
+type CommandsListParams struct {
+	AgentId     string `json:"agentId,omitempty"`
+	IncludeArgs bool   `json:"includeArgs,omitempty"`
+	Provider    string `json:"provider,omitempty"`
+	Scope       string `json:"scope,omitempty"`
+}
+
+type CommandsListResult struct {
+	Commands []struct {
+		AcceptsArgs bool `json:"acceptsArgs"`
+		Args        []struct {
+			Choices []struct {
+				Label string `json:"label"`
+				Value string `json:"value"`
+			} `json:"choices,omitempty"`
+			Description string `json:"description"`
+			Dynamic     bool   `json:"dynamic,omitempty"`
+			Name        string `json:"name"`
+			Required    bool   `json:"required,omitempty"`
+			Type        string `json:"type"`
+		} `json:"args,omitempty"`
+		Category    string   `json:"category,omitempty"`
+		Description string   `json:"description"`
+		Name        string   `json:"name"`
+		NativeName  string   `json:"nativeName,omitempty"`
+		Scope       string   `json:"scope"`
+		Source      string   `json:"source"`
+		TextAliases []string `json:"textAliases,omitempty"`
+	} `json:"commands"`
+}
+
 type ConfigApplyParams struct {
 	BaseHash        string `json:"baseHash,omitempty"`
 	DeliveryContext struct {
@@ -1440,6 +1471,15 @@ type DoctorMemoryStatusResult struct {
 	Provider string `json:"provider,omitempty"`
 }
 
+type ExecApprovalListParams = map[string]any
+
+type ExecApprovalListResult = []struct {
+	CreatedAtMs int    `json:"createdAtMs"`
+	ExpiresAtMs int    `json:"expiresAtMs"`
+	Id          string `json:"id"`
+	Request     any    `json:"request"`
+}
+
 type ExecApprovalRequestParams struct {
 	AgentId       string            `json:"agentId,omitempty"`
 	Ask           string            `json:"ask,omitempty"`
@@ -1757,40 +1797,3 @@ type GatewayDescribeResult struct {
 	SchemaVersion string   `json:"schemaVersion"`
 	Untyped       []string `json:"untyped"`
 }
-
-type HealthResult struct {
-	Agents           []any             `json:"agents"`
-	ChannelLabels    map[string]string `json:"channelLabels"`
-	ChannelOrder     []string          `json:"channelOrder"`
-	Channels         map[string]any    `json:"channels"`
-	DefaultAgentId   string            `json:"defaultAgentId"`
-	DurationMs       float64           `json:"durationMs"`
-	HeartbeatSeconds float64           `json:"heartbeatSeconds"`
-	Ok               bool              `json:"ok"`
-	Sessions         struct {
-		Count  float64 `json:"count"`
-		Path   string  `json:"path"`
-		Recent []any   `json:"recent"`
-	} `json:"sessions"`
-	Ts float64 `json:"ts"`
-}
-
-type ModelsCatalogProvidersResult struct {
-	Providers []struct {
-		Api            string  `json:"api"`
-		AuthType       string  `json:"authType"`
-		DefaultBaseUrl string  `json:"defaultBaseUrl"`
-		DisplayName    string  `json:"displayName"`
-		Id             string  `json:"id"`
-		ModelCount     float64 `json:"modelCount"`
-		Models         []struct {
-			ContextWindow float64 `json:"contextWindow"`
-			Id            string  `json:"id"`
-			MaxTokens     float64 `json:"maxTokens"`
-			Name          string  `json:"name"`
-			Reasoning     bool    `json:"reasoning"`
-		} `json:"models"`
-	} `json:"providers"`
-}
-
-type ModelsConfiguredParams = map[string]any

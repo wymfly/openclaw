@@ -10,7 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   addRoutingBinding: vi.fn(),
   fetchActivityEvents: vi.fn(),
   fetchRoutingBindings: vi.fn(),
-  patchDeckConfig: vi.fn(),
+  patchRoutingDmScope: vi.fn(),
   removeRoutingBinding: vi.fn(),
   simulateRouting: vi.fn(),
   validateRoutingBinding: vi.fn(),
@@ -93,7 +93,7 @@ describe("RoutingPanel", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     apiMocks.fetchRoutingBindings.mockResolvedValue(routingBindings());
-    apiMocks.patchDeckConfig.mockResolvedValue({ ok: true, hash: "hash-scope" });
+    apiMocks.patchRoutingDmScope.mockResolvedValue({ ok: true, hash: "hash-scope" });
     apiMocks.fetchActivityEvents.mockResolvedValue({
       events: [
         {
@@ -188,11 +188,12 @@ describe("RoutingPanel", () => {
     expect(container.querySelector(".routing-queue-card")).toBeTruthy();
     expect(container.querySelector(".routing-detail-card")).toBeTruthy();
     expect(container.querySelector(".routing-simulator")).toBeTruthy();
-    expect(container.querySelector(".routing-draft")).toBeTruthy();
+    expect(container.querySelector(".routing-draft")).toBeNull();
+    expect(container.textContent).toContain("Add binding...");
     expect(container.querySelectorAll(".routing-metric")).toHaveLength(5);
     expect(container.querySelectorAll(".routing-binding-row")).toHaveLength(3);
-    expect(container.querySelectorAll(".routing-form-grid").length).toBeGreaterThanOrEqual(2);
-    expect(container.querySelectorAll(".ds-input").length).toBeGreaterThanOrEqual(10);
+    expect(container.querySelectorAll(".routing-form-grid").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll(".ds-input").length).toBeGreaterThanOrEqual(9);
     expect(container.querySelectorAll(".ds-button").length).toBeGreaterThanOrEqual(10);
 
     await act(async () => {
@@ -248,10 +249,18 @@ describe("RoutingPanel", () => {
         .find((button) => button.textContent === "Patch DM scope")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(apiMocks.patchRoutingDmScope).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm routing action");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Confirm")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     await waitFor(() =>
-      expect(apiMocks.patchDeckConfig).toHaveBeenCalledWith(
-        { session: { dmScope: "per-account-channel-peer" } },
+      expect(apiMocks.patchRoutingDmScope).toHaveBeenCalledWith(
+        "per-account-channel-peer",
         "hash-1",
       ),
     );
@@ -448,6 +457,12 @@ describe("RoutingPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Add binding...")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
     const inputs = Array.from(container.querySelectorAll<HTMLInputElement>("input"));
     const inputByPlaceholder = (placeholder: string) =>
       inputs.find((input) => input.placeholder === placeholder);
@@ -511,6 +526,14 @@ describe("RoutingPanel", () => {
         .find((button) => button.textContent === "Add binding")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    expect(apiMocks.addRoutingBinding).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm routing action");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Confirm")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
 
     await waitFor(() =>
       expect(apiMocks.addRoutingBinding).toHaveBeenCalledWith({
@@ -531,6 +554,14 @@ describe("RoutingPanel", () => {
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
         .find((button) => button.textContent === "Remove binding")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.removeRoutingBinding).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm routing action");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Confirm")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -570,6 +601,14 @@ describe("RoutingPanel", () => {
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
         .find((button) => button.textContent === "Move down")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.removeRoutingBinding).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm routing action");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Confirm")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
@@ -631,10 +670,11 @@ describe("RoutingPanel", () => {
 
     await waitFor(() => expect(apiMocks.fetchRoutingBindings).toHaveBeenCalledTimes(1));
 
+    expect(container.textContent).toContain("智能体路由工作台");
     expect(container.textContent).toContain("路由就绪");
-    expect(container.textContent).toContain("绑定规则");
-    expect(container.textContent).toContain("添加或验证绑定");
-    expect(container.textContent).toContain("路由详情");
+    expect(container.textContent).toContain("绑定队列");
+    expect(container.textContent).toContain("添加绑定...");
+    expect(container.textContent).toContain("选中绑定与模拟器");
     expect(container.textContent).toContain("模拟路由选择");
     expect(container.textContent).toContain("活动事件");
   });

@@ -23,6 +23,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "chat.abort",
   "chat.history",
   "chat.send",
+  "commands.list",
   "config.apply",
   "config.get",
   "config.patch",
@@ -75,6 +76,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "doctor.memory.resetDreamDiary",
   "doctor.memory.resetGroundedShortTerm",
   "doctor.memory.status",
+  "exec.approval.list",
   "exec.approval.request",
   "exec.approval.resolve",
   "exec.approval.waitDecision",
@@ -85,16 +87,19 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "gateway.batch",
   "gateway.describe",
   "health",
+  "logs.tail",
   "models.catalog.providers",
   "models.configured",
   "models.list",
   "node.describe",
+  "node.invoke",
   "node.list",
   "node.pair.approve",
   "node.pair.list",
   "node.pair.reject",
   "node.pair.request",
   "node.pair.verify",
+  "node.pending.enqueue",
   "node.rename",
   "plugin.approval.list",
   "plugin.approval.request",
@@ -133,6 +138,8 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "talk.config",
   "talk.mode",
   "talk.speak",
+  "tools.catalog",
+  "tools.effective",
   "usage.cost",
   "usage.status",
   "wizard.cancel",
@@ -244,6 +251,12 @@ export interface GatewayClient {
       params: GatewayMethodMap["chat.send"]["params"],
       options?: { timeoutMs?: number },
     ): Promise<GatewayMethodMap["chat.send"]["result"]>;
+  };
+  commands: {
+    list(
+      params: GatewayMethodMap["commands.list"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["commands.list"]["result"]>;
   };
   config: {
     apply(
@@ -499,6 +512,10 @@ export interface GatewayClient {
   };
   exec: {
     approval: {
+      list(
+        params: GatewayMethodMap["exec.approval.list"]["params"],
+        options?: { timeoutMs?: number },
+      ): Promise<GatewayMethodMap["exec.approval.list"]["result"]>;
       request(
         params: GatewayMethodMap["exec.approval.request"]["params"],
         options?: { timeoutMs?: number },
@@ -547,6 +564,12 @@ export interface GatewayClient {
     params: GatewayMethodMap["health"]["params"],
     options?: { timeoutMs?: number },
   ): Promise<GatewayMethodMap["health"]["result"]>;
+  logs: {
+    tail(
+      params: GatewayMethodMap["logs.tail"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["logs.tail"]["result"]>;
+  };
   models: {
     catalog: {
       providers(
@@ -568,6 +591,10 @@ export interface GatewayClient {
       params: GatewayMethodMap["node.describe"]["params"],
       options?: { timeoutMs?: number },
     ): Promise<GatewayMethodMap["node.describe"]["result"]>;
+    invoke(
+      params: GatewayMethodMap["node.invoke"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["node.invoke"]["result"]>;
     list(
       params: GatewayMethodMap["node.list"]["params"],
       options?: { timeoutMs?: number },
@@ -594,6 +621,12 @@ export interface GatewayClient {
         options?: { timeoutMs?: number },
       ): Promise<GatewayMethodMap["node.pair.verify"]["result"]>;
     };
+    pending: {
+      enqueue(
+        params: GatewayMethodMap["node.pending.enqueue"]["params"],
+        options?: { timeoutMs?: number },
+      ): Promise<GatewayMethodMap["node.pending.enqueue"]["result"]>;
+    };
     rename(
       params: GatewayMethodMap["node.rename"]["params"],
       options?: { timeoutMs?: number },
@@ -601,6 +634,10 @@ export interface GatewayClient {
   };
   plugin: {
     approval: {
+      list(
+        params: GatewayMethodMap["plugin.approval.list"]["params"],
+        options?: { timeoutMs?: number },
+      ): Promise<GatewayMethodMap["plugin.approval.list"]["result"]>;
       request(
         params: GatewayMethodMap["plugin.approval.request"]["params"],
         options?: { timeoutMs?: number },
@@ -755,6 +792,16 @@ export interface GatewayClient {
       options?: { timeoutMs?: number },
     ): Promise<GatewayMethodMap["talk.speak"]["result"]>;
   };
+  tools: {
+    catalog(
+      params: GatewayMethodMap["tools.catalog"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["tools.catalog"]["result"]>;
+    effective(
+      params: GatewayMethodMap["tools.effective"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["tools.effective"]["result"]>;
+  };
   usage: {
     cost(
       params: GatewayMethodMap["usage.cost"]["params"],
@@ -817,6 +864,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       abort: call("chat.abort"),
       history: call("chat.history"),
       send: call("chat.send"),
+    },
+    commands: {
+      list: call("commands.list"),
     },
     config: {
       apply: call("config.apply"),
@@ -916,6 +966,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     },
     exec: {
       approval: {
+        list: call("exec.approval.list"),
         request: call("exec.approval.request"),
         resolve: call("exec.approval.resolve"),
         waitDecision: call("exec.approval.waitDecision"),
@@ -934,6 +985,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       describe: call("gateway.describe"),
     },
     health: call("health"),
+    logs: {
+      tail: call("logs.tail"),
+    },
     models: {
       catalog: {
         providers: call("models.catalog.providers"),
@@ -943,6 +997,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     },
     node: {
       describe: call("node.describe"),
+      invoke: call("node.invoke"),
       list: call("node.list"),
       pair: {
         approve: call("node.pair.approve"),
@@ -951,10 +1006,14 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         request: call("node.pair.request"),
         verify: call("node.pair.verify"),
       },
+      pending: {
+        enqueue: call("node.pending.enqueue"),
+      },
       rename: call("node.rename"),
     },
     plugin: {
       approval: {
+        list: call("plugin.approval.list"),
         request: call("plugin.approval.request"),
         resolve: call("plugin.approval.resolve"),
       },
@@ -1003,6 +1062,10 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
       config: call("talk.config"),
       mode: call("talk.mode"),
       speak: call("talk.speak"),
+    },
+    tools: {
+      catalog: call("tools.catalog"),
+      effective: call("tools.effective"),
     },
     usage: {
       cost: call("usage.cost"),

@@ -1,0 +1,41 @@
+scenarios:
+  active-prototype:
+    status: passed
+    evidence:
+      - deck-go/frontend-handoff/modules/approvals/prototype.html
+      - deck-go/.local/approvals-prototype-remediation-parity-report-final/sheet-5.png
+  mock-prototype-parity:
+    status: pass-with-exceptions
+    evidence:
+      - deck-go/.local/approvals-remediation-mock-visual-final/approvals-visual-approvals-37dd1-t-shaped-interaction-states/approvals-workbench-ready.png
+      - deck-go/.local/approvals-prototype-remediation-parity-report-final/sheet-5.png
+      - deck-go/frontend-handoff/modules/approvals/implementation-notes.md
+  focused-frontend:
+    status: passed
+    evidence:
+      - cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/approvals/ApprovalsPanel.test.tsx
+      - cd deck-go && make frontend-build
+  focused-backend-or-contract:
+    status: not-applicable
+    evidence:
+      - No backend or contract source files were changed in this child pass.
+  real-gateway-safe-reads:
+    status: passed
+    evidence:
+      - cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/approvals-real-gateway.spec.ts --config playwright.config.ts --output .local/approvals-remediation-real-e2e-beforeall-timeout --reporter=line
+  real-gateway-product-surface:
+    status: handoff-blocked
+    evidence:
+      - deck-go/test/e2e/approvals-real-gateway.spec.ts implements shell navigation, dark/en, light/zh, child tabs, BFF-only checks, and run-scoped fixture cleanup.
+      - deck-go/.local/approvals-remediation-real-e2e-two-phase-fixture/approvals-real-gateway-app-4bfe2--approval-read-route-shapes/error-context.md
+      - Real stack blocked by dirty_watched_tree OpenClaw rebuild and runtime-postbuild staging before Gateway RPC readiness.
+  real-fixture-safety:
+    status: degraded
+    evidence:
+      - deck-go/test/e2e/helpers.ts createExecApprovalFixture uses supported params, twoPhase=true, run-scoped id/command/sessionKey/cwd, and guarded cleanup through Deck BFF.
+      - Earlier attempts fixed unsupported runId param and non-two-phase request timeout.
+      - Full fixture visibility/cleanup proof still depends on resolving the shared real-stack cold-start blocker.
+  unsafe-real-mutations:
+    status: skipped-safe
+    evidence:
+      - Real policy save is intentionally not executed because it mutates operator policy state.

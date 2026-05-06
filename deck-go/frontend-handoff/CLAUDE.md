@@ -162,7 +162,9 @@ frontend-handoff/
 
 - **Mock functional**：mock-backed `frontend-new` 页面能打开，关键文案/交互/错误检查通过，并保存截图。
 - **Mock prototype parity**：active `prototype.html` 与 mock-current 页面在同一 viewport / locale / theme / nav 状态下截图，生成 side-by-side 对照和结构化 verdict。只有这一层能证明原型视觉对齐。
-- **Real Gateway evidence**：真实 Gateway/BFF 链路的功能或视觉验证；环境、凭据、seed 数据问题可以熔断，但确定性的本地代码缺陷必须在当前模块修复。
+- **Real Gateway evidence**：真实 Gateway/BFF 链路的功能或视觉验证。最低证据要覆盖从 Deck shell 导航进入模块、深浅色模式、中文/英文模式、关键子页面/标签/弹窗可交互、浏览器不直连 Gateway、unexpected console/page/BFF API error 为空，并在安全可写的数据源上创建 run-scoped 真实测试数据；环境、凭据、seed 数据问题可以熔断，但确定性的本地代码缺陷必须在当前模块修复。
+
+真实数据优先通过 Gateway RPC 或 Deck BFF route 创建；必要时可在隔离测试环境中直接 seed `openclaw.json`、workspace files、sessions 等 OpenClaw 数据源。测试对象必须带当前 run id，cleanup 必须拒绝触碰不带 run id 的对象。外部账号、已安装 skill、device token、用户 memory 等高影响资源可以 `skipped-safe`，但要记录原因和缺失 fixture 能力。
 
 如果 mock-current 和 prototype 有 material mismatch，Claude Code 要么修复，要么在 `implementation-notes.md` 或模块纠偏提案里记录 accepted exception（原型位置、生产文件位置、差异、原因、owner、分类）。单独的 `page.screenshot()` 只能算截图证据，不能算视觉签收。
 

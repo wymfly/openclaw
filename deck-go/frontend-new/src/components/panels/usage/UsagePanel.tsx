@@ -22,7 +22,7 @@ import { BreakdownTable } from "./BreakdownTable";
 import { DateRangePicker } from "./DateRangePicker";
 import { LatencyCard } from "./LatencyCard";
 import { ProviderQuotaPanel } from "./ProviderQuotaPanel";
-import { SessionUsageList } from "./SessionUsageList";
+import { SessionUsageList, type UsageSessionSort } from "./SessionUsageList";
 import { SummaryCards } from "./SummaryCards";
 import {
   costEntryTotal,
@@ -44,6 +44,9 @@ export function UsagePanel() {
   const [providers, setProviders] = useState<DeckGoUsageProviderStatus[]>([]);
   const [sessionsUsage, setSessionsUsage] = useState<DeckGoUsageSessionsResponse | null>(null);
   const [sessionSearch, setSessionSearch] = useState("");
+  const [agentFilter, setAgentFilter] = useState("");
+  const [channelFilter, setChannelFilter] = useState("");
+  const [sessionSort, setSessionSort] = useState<UsageSessionSort>("recent");
   const [expandedSessionKey, setExpandedSessionKey] = useState("");
   const [sessionLogs, setSessionLogs] = useState<Record<string, DeckGoUsageSessionLogEntry[]>>({});
   const [sessionTimeseries, setSessionTimeseries] = useState<
@@ -101,6 +104,21 @@ export function UsagePanel() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>(".usage-panel input[type='search']")?.focus();
+        return;
+      }
+      if (event.key === "Escape" && expandedSessionKey) {
+        setExpandedSessionKey("");
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expandedSessionKey]);
+
   const refreshUsageRange = useCallback(
     (nextDays: string) => {
       void refresh(selectedProviderId, nextDays);
@@ -109,17 +127,50 @@ export function UsagePanel() {
   );
 
   const sessionEntries = useMemo(() => sessionsUsage?.sessions ?? [], [sessionsUsage]);
+  const agentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          sessionEntries
+            .map((entry) => entry.agentId)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).toSorted(),
+    [sessionEntries],
+  );
+  const channelOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          sessionEntries
+            .map((entry) => entry.channel)
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).toSorted(),
+    [sessionEntries],
+  );
   const filteredSessionEntries = useMemo(() => {
     const needle = sessionSearch.trim().toLowerCase();
-    if (!needle) {
-      return sessionEntries;
-    }
-    return sessionEntries.filter((entry) =>
-      [entry.key, entry.label, entry.sessionId, entry.agentId, entry.channel].some((value) =>
-        value?.toLowerCase().includes(needle),
-      ),
-    );
-  }, [sessionEntries, sessionSearch]);
+    return sessionEntries
+      .filter((entry) =>
+        needle
+          ? [entry.key, entry.label, entry.sessionId, entry.agentId, entry.channel].some((value) =>
+              value?.toLowerCase().includes(needle),
+            )
+          : true,
+      )
+      .filter((entry) => (agentFilter ? entry.agentId === agentFilter : true))
+      .filter((entry) => (channelFilter ? entry.channel === channelFilter : true))
+      .toSorted((left, right) => {
+        if (sessionSort === "cost") {
+          return (right.usage?.totalCost ?? 0) - (left.usage?.totalCost ?? 0);
+        }
+        if (sessionSort === "tokens") {
+          return (right.usage?.totalTokens ?? 0) - (left.usage?.totalTokens ?? 0);
+        }
+        return (right.updatedAt ?? 0) - (left.updatedAt ?? 0);
+      });
+  }, [agentFilter, channelFilter, sessionEntries, sessionSearch, sessionSort]);
   const sessionAggregateRows = useMemo(() => usageAggregateRows(sessionsUsage), [sessionsUsage]);
   const trendRows = useMemo(
     () => buildUsageTrendRows(sessionsUsage, costEntries),
@@ -214,6 +265,9 @@ export function UsagePanel() {
           <span className={`usage-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
             {t("status", { state: t(loadState) })}
           </span>
+          <span className={`usage-panel__pill ${ui.bootstrap?.ok ? "is-positive" : ""}`}>
+            {ui.bootstrap?.ok ? t("bootstrapReady") : t("bootstrapUnavailable")}
+          </span>
           <span className="usage-panel__pill">
             {t("daysCount", { count: parseUsageDays(days) ?? 14 })}
           </span>
@@ -245,18 +299,26 @@ export function UsagePanel() {
           <DateRangePicker days={days} onDaysChange={setDays} onRefresh={refreshUsageRange} />
           <UsageTrendChart dailyRows={trendRows} modelRows={modelTrendRows} />
           <SessionUsageList
+            agentFilter={agentFilter}
+            agentOptions={agentOptions}
+            channelFilter={channelFilter}
+            channelOptions={channelOptions}
             entries={sessionEntries}
             expandedSessionKey={expandedSessionKey}
             filteredEntries={filteredSessionEntries}
             loading={sessionLogsLoading}
+            onAgentFilterChange={setAgentFilter}
+            onChannelFilterChange={setChannelFilter}
             onOpenAgent={(agentId) => navigateToAgent(ui, agentId)}
             onOpenSession={(sessionKey) => navigateToSession(ui, sessionKey)}
             onSearchChange={setSessionSearch}
+            onSortChange={setSessionSort}
             onToggleSession={(entry) => void toggleSessionLogs(entry)}
             search={sessionSearch}
             sessionContextWeights={sessionContextWeights}
             sessionLogs={sessionLogs}
             sessionTimeseries={sessionTimeseries}
+            sort={sessionSort}
             totalSessionCost={totalSessionCost}
             totalSessionTokens={totalSessionTokens}
           />

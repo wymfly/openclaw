@@ -1,0 +1,58 @@
+change: frontend-gateway-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway diagnostics and read-only batch may be degraded, empty-valid, or handoff-blocked after bounded attempts when environment issues block fresh evidence."
+entries:
+  - scenarioId: baseline.gateway-v2-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/gateway/prototype.html and inspect v2 handoff/spec evidence"
+    evidence: "Prototype smoke returned HTTP 200, title `deck-go · gateway (v2)`, H1 `Gateway control plane`, 57 describe method rows, and no browser errors."
+  - scenarioId: audit.gateway-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, UI metadata, Go BFF Gateway routes, typed batch route, Gateway method mapping, frontend wrappers, and mock fixtures"
+    evidence: "Confirmed health/status/describe BFF routes, runtime-scoped `/api/v1/runtimes/{runtimeId}/gateway/batch`, generated batch DTO aliases, endpoint/UI metadata, mock Gateway support, and upstream method-name truth (`health`, `status`, `gateway.describe`)."
+  - scenarioId: contract.gateway-chain-matrix
+    ownerTask: "2.5,3.1-3.7"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/action/DTO -> Go route/Gateway method -> capability classification matrix"
+    evidence: "Recorded matrix and classifications in `deck-go/frontend-handoff/modules/gateway/implementation-notes.md`."
+  - scenarioId: implementation.gateway-v2-and-scoped-fixes
+    ownerTask: "3.2-3.7"
+    status: passed
+    verificationCommand: "Implement deterministic UI/docs/test/contract fixes and verify unsupported prototype workflows remain inactive, degraded, or documented"
+    evidence: "Implemented Gateway v2 panel, runtime-scoped batch wrapper, i18n, CSS, mock `gateway.batch`, endpoint/UI metadata updates, handoff corrections, and tests. Mutating batch/lifecycle/durable-history assumptions remain omitted or documented."
+  - scenarioId: frontend.gateway-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/gateway/GatewayPanel.test.tsx src/lib/gateway-client.test.ts"
+    evidence: "Passed 2 files / 9 tests."
+  - scenarioId: backend.gateway-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "cd deck-go/backend && go test ./internal/api/http ./internal/server ./internal/runtime/openclaw ./internal/runtime/projection -run 'Test(MountRoutes_ListAndDetail|ActivityAndMonitorRoutes|RuntimeGatewayRoutes_ExposeReadOnlyStatus|RuntimeGatewayStatusAPI_StateMatrix|RuntimeGatewayStatusRoute_UsesFacadeShape|RuntimeGatewayStatusRoute_RemoteConfiguredUsesFacadeShape|RuntimeGatewayStatusRoute_RemoteFirstRunReturns503|RuntimeGatewayActionRoutesAreRemoved|GatewayQueries|GatewayStatusLoad|PrepareWSBatchDispatch|CollectActivityEntriesAndRuns)'"
+    evidence: "Passed all four focused packages."
+  - scenarioId: visual.gateway-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "cd deck-go && pnpm exec playwright test test/e2e/gateway-visual.spec.ts --config playwright.config.ts"
+    evidence: "Passed 1 L1 mock/local visual test covering ready control-plane, batch tab/result, and activity tab through the real frontend API path."
+  - scenarioId: l2.gateway-real-api-ui-batch
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/gateway-real-gateway.spec.ts --config playwright.config.ts"
+    evidence: "Passed 2 L2 real-stack tests covering runtime/capabilities/health/status/describe/activity/monitor route shapes, read-only `gateway.describe` batch through `/api/v1/runtimes/rt_local/gateway/batch`, UI render, and no direct browser HTTP/WebSocket calls to the real Gateway."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Gateway panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed scoped Gateway changes after tests: BFF-only browser path preserved, read-only batch filtering present, remote lock present, no lifecycle buttons surfaced, docs record residual risks."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec change/spec validate; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "Contract checks and `make frontend-build` passed. Final OpenSpec validate and diff-check are run immediately before archive."

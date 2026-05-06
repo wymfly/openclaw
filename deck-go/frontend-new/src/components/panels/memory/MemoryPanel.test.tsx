@@ -3,7 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DeckIntlProvider } from "../../../i18n/provider";
+import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { MemoryPanel } from "./MemoryPanel";
 
 const apiMocks = vi.hoisted(() => ({
@@ -35,9 +35,15 @@ function archiveFilesPayload() {
   };
 }
 
-function renderMemoryPanel() {
+function renderMemoryPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(MemoryPanel)));
+  root.render(createElement(DeckIntlProvider, { locale }, createElement(MemoryPanel)));
+}
+
+function buttonByText(text: string) {
+  return Array.from(container.querySelectorAll("button")).find(
+    (button) => button.textContent === text || button.textContent?.includes(text),
+  ) as HTMLButtonElement;
 }
 
 describe("MemoryPanel", () => {
@@ -45,9 +51,9 @@ describe("MemoryPanel", () => {
     (
       globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
+    window.location.hash = "";
     container = document.createElement("div");
     document.body.appendChild(container);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchAgentsList.mockResolvedValue({
       agents: [
         { id: "main", name: "Main agent" },
@@ -72,22 +78,22 @@ describe("MemoryPanel", () => {
       path: "daily.md",
       content: "# remembered context",
     });
-    apiMocks.runMemoryDreams.mockImplementation((action: string) =>
+    apiMocks.runMemoryDreams.mockImplementation((action: string, agentId = "main") =>
       Promise.resolve(
         action === "read"
           ? {
-              agentId: "main",
+              agentId,
               found: true,
               path: ".openclaw/memory/dream-diary.md",
               content: "# Dream diary\n\nremembered dream context",
               updatedAtMs: 1_774_520_000_000,
             }
           : {
-              agentId: "main",
+              agentId,
               action,
               changed: true,
               dedupedEntries: action === "dedupe" ? 2 : undefined,
-              repaired: action === "repair" ? 2 : undefined,
+              replaced: action === "repair" ? 2 : undefined,
             },
       ),
     );
@@ -115,10 +121,9 @@ describe("MemoryPanel", () => {
     root = null;
     container.remove();
     vi.clearAllMocks();
-    vi.restoreAllMocks();
   });
 
-  it("loads memory files and reads the selected file through the stable browse/read lane", async () => {
+  it("loads the v2 four-tab memory workspace and reads a selected file", async () => {
     await act(async () => {
       renderMemoryPanel();
     });
@@ -127,41 +132,19 @@ describe("MemoryPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
 
     expect(container.querySelector(".memory-panel")).not.toBeNull();
-    expect(container.querySelectorAll(".memory-panel__card")).toHaveLength(2);
-    expect(container.querySelectorAll(".memory-panel__input")).toHaveLength(2);
-    expect(container.querySelectorAll(".memory-panel__tab")).toHaveLength(5);
-    expect(container.querySelectorAll(".memory-panel__row")).toHaveLength(2);
-    expect(container.querySelector(".memory-panel__empty")).not.toBeNull();
-    expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toContain("Memory operations workspace");
-    expect(container.textContent).toContain("Recall lanes");
-    expect(container.textContent).toContain("Main agent");
-    expect(container.textContent).toContain("Builder agent");
-    expect(container.textContent).toContain("entries2");
+    expect(
+      Array.from(container.querySelectorAll('[role="tab"]')).map((tab) => tab.textContent),
+    ).toEqual(["Browse", "Search", "Health", "Dreams"]);
+    expect(container.textContent).toContain("Memory");
     expect(container.textContent).toContain("daily.md");
-    expect(container.textContent).toContain("file | daily.md | size: 42 B");
-    expect(container.textContent).toContain("directory | archive | size: n/a");
-    expect(container.textContent).toContain("Select a memory file to read it.");
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find((button) =>
-          button.textContent?.includes("daily.md"),
-        ) as HTMLButtonElement,
-      );
-    });
+    expect(container.textContent).toContain("archive");
 
     await waitFor(() => expect(apiMocks.readMemoryFile).toHaveBeenCalledWith("main", "daily.md"));
     expect(apiMocks.browseMemory).not.toHaveBeenCalledWith("main", "daily.md");
-    await waitFor(() => expect(container.textContent).toContain("# remembered context"));
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("daily.md");
+    await waitFor(() => expect(container.textContent).toContain("remembered context"));
   });
 
-  it("switches memory browse agent from the Gateway-backed agent selector", async () => {
+  it("switches the browse agent from the Gateway-backed selector", async () => {
     await act(async () => {
       renderMemoryPanel();
     });
@@ -184,41 +167,23 @@ describe("MemoryPanel", () => {
     expect(container.textContent).toContain("agent builder");
   });
 
-  it("browses directories separately from file reads and can return to the parent path", async () => {
+  it("lazily browses directories separately from file reads", async () => {
     await act(async () => {
       renderMemoryPanel();
     });
 
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
-    expect(container.textContent).toContain("browsing memory root");
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find((button) =>
-          button.textContent?.includes("archive"),
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("archive"));
     });
 
     await waitFor(() => expect(apiMocks.browseMemory).toHaveBeenCalledWith("main", "archive"));
     expect(apiMocks.readMemoryFile).not.toHaveBeenCalledWith("main", "archive");
-    expect(container.textContent).toContain("browsing archive");
-    expect(container.textContent).toContain("archive/note.md");
-    expect(container.textContent).toContain("Back to parent");
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Back to parent",
-        ) as HTMLButtonElement,
-      );
-    });
-
-    await waitFor(() => expect(apiMocks.browseMemory).toHaveBeenLastCalledWith("main", undefined));
-    expect(container.textContent).toContain("browsing memory root");
+    await waitFor(() => expect(container.textContent).toContain("note.md"));
   });
 
-  it("loads health details and runs dream-diary actions without touching file reads", async () => {
+  it("loads health details and exposes raw health evidence", async () => {
     await act(async () => {
       renderMemoryPanel();
     });
@@ -226,45 +191,16 @@ describe("MemoryPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Health",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("Health"));
     });
 
-    await waitFor(() => expect(apiMocks.fetchMemoryHealth).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(apiMocks.fetchMemoryHealth).toHaveBeenCalled());
     expect(container.textContent).toContain("Raw health response");
     expect(container.textContent).toContain("provider-a");
     expect(container.textContent).toContain("lance dbenabled");
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Dreams",
-        ) as HTMLButtonElement,
-      );
-    });
-
-    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("read"));
-    expect(container.textContent).toContain("Dream diary");
-    expect(container.textContent).toContain(".openclaw/memory/dream-diary.md");
-    expect(container.textContent).toContain("remembered dream context");
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Read",
-        ) as HTMLButtonElement,
-      );
-    });
-
-    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("read"));
-    expect(container.textContent).toContain("found");
-    expect(apiMocks.readMemoryFile).not.toHaveBeenCalled();
   });
 
-  it("runs dream maintenance actions with confirmation guards", async () => {
+  it("runs dream maintenance actions with inline confirmation guards", async () => {
     await act(async () => {
       renderMemoryPanel();
     });
@@ -272,75 +208,33 @@ describe("MemoryPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Dreams",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("Dreams"));
     });
-    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("read"));
+    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("read", "main"));
+    expect(container.textContent).toContain("Dream diary");
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Dedupe",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("Dedupe"));
     });
 
-    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("dedupe"));
+    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("dedupe", "main"));
     await waitFor(() => expect(container.textContent).toContain("Dream diary action result"));
-    expect(container.textContent).toContain('"dedupedEntries": 2');
-    expect(window.confirm).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("dedupedEntries");
 
     const callsAfterDedupe = apiMocks.runMemoryDreams.mock.calls.length;
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Reset short-term",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("Reset short-term"));
     });
 
-    expect(window.confirm).toHaveBeenCalledWith("Run memory dreams resetShortTerm?");
+    expect(container.textContent).toContain("Run memory dreams Reset short-term?");
     expect(apiMocks.runMemoryDreams).toHaveBeenCalledTimes(callsAfterDedupe);
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Repair",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("No"));
     });
 
-    await waitFor(() => expect(apiMocks.runMemoryDreams).toHaveBeenCalledWith("repair"));
-  });
-
-  it("renders knowledge graph nodes from the browsed file list", async () => {
-    await act(async () => {
-      renderMemoryPanel();
-    });
-
-    await waitFor(() => expect(container.textContent).toContain("Memory ready"));
-
-    await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Graph",
-        ) as HTMLButtonElement,
-      );
-    });
-
-    await waitFor(() => expect(apiMocks.browseMemory).toHaveBeenLastCalledWith("main", undefined));
-    expect(container.textContent).toContain("Knowledge graph");
-    expect(container.textContent).toContain("nodes2");
-    expect(container.textContent).toContain("directories1");
-    expect(container.textContent).toContain("daily.md");
-    expect(container.textContent).toContain("archive");
-    expect(container.textContent).toContain("connections: 1");
-    expect(container.textContent).toContain("Memory graph nodes");
+    expect(apiMocks.runMemoryDreams).toHaveBeenCalledTimes(callsAfterDedupe);
   });
 
   it("runs memory search with scope and surfaces LanceDB unavailable responses", async () => {
@@ -351,46 +245,34 @@ describe("MemoryPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Memory ready"));
 
     await act(async () => {
-      fireEvent.click(
-        Array.from(container.querySelectorAll("button")).find(
-          (button) => button.textContent === "Search",
-        ) as HTMLButtonElement,
-      );
+      fireEvent.click(buttonByText("Search"));
     });
 
     const searchInput = container.querySelector<HTMLInputElement>(
       'input[placeholder="search memory"]',
     );
-    const scopeSelect = Array.from(container.querySelectorAll<HTMLSelectElement>("select")).find(
-      (select) => select.value === "all" || select.value === "global",
-    );
     expect(searchInput).toBeTruthy();
-    expect(scopeSelect).toBeTruthy();
 
     await act(async () => {
       fireEvent.change(searchInput as HTMLInputElement, {
         target: { value: " remembered context " },
       });
-      fireEvent.change(scopeSelect as HTMLSelectElement, { target: { value: "global" } });
+      fireEvent.click(buttonByText("global"));
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Search memory")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonByText("Search memory"));
     });
 
     await waitFor(() =>
       expect(apiMocks.searchMemory).toHaveBeenCalledWith({
         query: "remembered context",
-        agentId: "main",
+        agentId: undefined,
         scope: "global",
       }),
     );
-    expect(container.textContent).toContain("memory/core.md");
+    expect(container.textContent).toContain("/memory/core.md");
     expect(container.textContent).toContain("remembered context");
-    expect(container.textContent).toContain("relevance: 0.91 | tier: core | scope: global");
-    expect(container.textContent).toContain("Memory search results");
 
     apiMocks.searchMemory.mockResolvedValueOnce({
       results: [],
@@ -399,14 +281,26 @@ describe("MemoryPanel", () => {
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Search memory")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonByText("Search memory"));
     });
 
     await waitFor(() =>
       expect(container.textContent).toContain("Not implemented — requires LanceDB extension"),
     );
     expect(container.textContent).toContain("No memory search results loaded.");
+  });
+
+  it("renders the memory workbench in Chinese", async () => {
+    await act(async () => {
+      renderMemoryPanel("zh");
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("记忆就绪"));
+    expect(container.textContent).toContain("记忆");
+    expect(
+      Array.from(container.querySelectorAll('[role="tab"]')).map((tab) => tab.textContent),
+    ).toEqual(["浏览", "搜索", "健康诊断", "梦境"]);
+    expect(container.textContent).toContain("文件树");
+    await waitFor(() => expect(container.textContent).toContain("remembered context"));
   });
 });

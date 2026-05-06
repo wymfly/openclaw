@@ -1,102 +1,132 @@
 import type { DeckGoIdentityLink } from "../../../api";
+import { IconPlus, IconRefresh, IconSearch, IconSubagents } from "../../../design-system/icons";
 import { useTranslations } from "../../../i18n/provider";
 
 export function IdentityList(props: {
   links: DeckGoIdentityLink[];
   loading: boolean;
+  query: string;
   selectedCanonical: string | null;
+  configHash: string;
+  onQueryChange: (query: string) => void;
+  onCreateUnsupported: () => void;
+  onRefresh: () => void;
   onSelect: (canonical: string) => void;
-  onUnlink: (canonical: string, channel: string, peerId: string) => void;
 }) {
   const t = useTranslations("identity");
   const tc = useTranslations("common");
+  const filteredLinks = props.links.filter((link) => {
+    const query = props.query.trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+    if (link.canonical.toLowerCase().includes(query)) {
+      return true;
+    }
+    return link.peers.some(
+      (peer) =>
+        peer.channel.toLowerCase().includes(query) || peer.peerId.toLowerCase().includes(query),
+    );
+  });
 
   return (
-    <aside className="identity-panel__card identity-panel__inventory">
-      <div className="identity-panel__card-head">
-        <div>
-          <h3 className="identity-panel__card-title">{t("inventory")}</h3>
-          <p className="identity-panel__meta">
-            {props.loading ? tc("loading") : t("relationshipInventory")}
-          </p>
+    <aside className="identity-nav" aria-label={t("canonicalIdentities")}>
+      <div className="identity-nav__head">
+        <div className="identity-nav__title">
+          <IconSubagents size={14} />
+          <span>{t("canonicals")}</span>
+          <span className="identity-nav__count">{props.links.length}</span>
         </div>
-        <span className="identity-panel__pill">
-          {t("canonicalCount", { count: props.links.length })}
-        </span>
+        <button
+          className="identity-panel__button identity-panel__button--icon"
+          title={t("unsupportedCreate")}
+          type="button"
+          onClick={props.onCreateUnsupported}
+        >
+          <IconPlus size={13} />
+          <span>{t("newCanonical")}</span>
+        </button>
       </div>
 
-      <div className="identity-panel__body">
+      <label className="identity-nav__search">
+        <IconSearch size={13} />
+        <input
+          aria-label={t("searchCanonicals")}
+          placeholder={t("searchPlaceholder")}
+          type="search"
+          value={props.query}
+          onChange={(event) => props.onQueryChange(event.target.value)}
+        />
+      </label>
+
+      <div className="identity-nav__list" role="tablist" aria-label={t("canonicals")}>
         {props.loading && props.links.length === 0 ? (
           <p className="identity-panel__empty">{tc("loading")}</p>
         ) : null}
         {!props.loading && props.links.length === 0 ? (
           <p className="identity-panel__empty">{t("noLinks")}</p>
         ) : null}
-        {props.links.length > 0 ? (
-          <div className="identity-panel__list">
-            {props.links.map((link) => (
-              <div
-                key={link.canonical}
-                role="button"
-                tabIndex={0}
-                className={`identity-panel__row ${
-                  props.selectedCanonical === link.canonical ? "is-selected" : ""
-                }`}
-                onClick={() => props.onSelect(link.canonical)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter" && event.key !== " ") {
-                    return;
-                  }
-                  event.preventDefault();
-                  props.onSelect(link.canonical);
-                }}
-              >
-                <span className="identity-panel__row-main">
-                  <span className="identity-panel__row-head">
+        {props.links.length > 0 && filteredLinks.length === 0 ? (
+          <p className="identity-panel__empty">{t("noCanonicalMatches")}</p>
+        ) : null}
+        {filteredLinks.length > 0
+          ? filteredLinks.map((link) => {
+              const channels = Array.from(new Set(link.peers.map((peer) => peer.channel)));
+              const tone =
+                link.peers.length === 0 ? "warn" : link.peers.length >= 3 ? "accent" : "iron";
+              return (
+                <button
+                  key={link.canonical}
+                  aria-selected={props.selectedCanonical === link.canonical}
+                  className={`identity-nav__item ${
+                    props.selectedCanonical === link.canonical ? "identity-nav__item--on" : ""
+                  }`}
+                  role="tab"
+                  type="button"
+                  onClick={() => props.onSelect(link.canonical)}
+                >
+                  <span className="identity-nav__item-head">
                     <strong>{link.canonical}</strong>
-                    <span className="identity-panel__pill">
+                    <span className={`identity-nav__peer-count identity-nav__peer-count--${tone}`}>
                       {t("peerCount", { count: link.peers.length })}
                     </span>
                   </span>
-                  {link.peers.length > 0 ? (
-                    <span className="identity-panel__pill-row">
-                      {link.peers.map((peer) => (
+                  {channels.length > 0 ? (
+                    <span className="identity-nav__channels">
+                      {channels.map((channel) => (
                         <span
-                          className="identity-panel__pill"
-                          key={`${link.canonical}:${peer.channel}:${peer.peerId}`}
+                          className={`identity-nav__channel-chip identity-nav__channel-chip--${channel}`}
+                          key={`${link.canonical}:${channel}`}
                         >
-                          {peer.channel}: {peer.peerId}
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Unlink ${peer.channel}:${peer.peerId}`}
-                            className="identity-panel__inline-action"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              props.onUnlink(link.canonical, peer.channel, peer.peerId);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key !== "Enter" && event.key !== " ") {
-                                return;
-                              }
-                              event.preventDefault();
-                              event.stopPropagation();
-                              props.onUnlink(link.canonical, peer.channel, peer.peerId);
-                            }}
-                          >
-                            ×
-                          </span>
+                          {channel}
                         </span>
                       ))}
                     </span>
                   ) : (
-                    <span className="identity-panel__meta">{t("noPeers")}</span>
+                    <span className="identity-nav__hint identity-nav__hint--warn">
+                      {t("guardedSlot")}
+                    </span>
                   )}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
+                </button>
+              );
+            })
+          : null}
+      </div>
+
+      <div className="identity-nav__foot">
+        <div className="identity-nav__hash">
+          <span>{t("hashState")}</span>
+          <code>{props.configHash || t("unavailable")}</code>
+        </div>
+        <button
+          className="identity-panel__button identity-panel__button--icon"
+          disabled={props.loading}
+          type="button"
+          onClick={props.onRefresh}
+        >
+          <IconRefresh size={13} />
+          <span>{t("refresh")}</span>
+        </button>
       </div>
     </aside>
   );

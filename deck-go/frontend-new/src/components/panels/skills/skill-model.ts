@@ -38,25 +38,46 @@ function normalizeMissingRequirements(value: unknown) {
   });
 }
 
-export function normalizeSkill(raw: Record<string, unknown>): DeckGoSkillEntry {
+export function normalizeSkill(raw: unknown): DeckGoSkillEntry {
+  const record =
+    typeof raw === "object" && raw !== null
+      ? (raw as Partial<DeckGoSkillEntry> & Record<string, unknown>)
+      : {};
   const skillKey =
-    typeof raw.skillKey === "string" ? raw.skillKey : typeof raw.name === "string" ? raw.name : "";
-  const disabled = raw.disabled === true;
-  const eligible = raw.eligible !== false;
-  const missingRequirements = normalizeMissingRequirements(raw.missing);
+    typeof record.skillKey === "string"
+      ? record.skillKey
+      : typeof record.key === "string"
+        ? record.key
+        : typeof record.name === "string"
+          ? record.name
+          : "";
+  const disabled = record.disabled === true || record.enabled === false;
+  const eligible = record.eligible !== false;
+  const missingRequirements =
+    Array.isArray(record.missingRequirements) && record.missingRequirements.length > 0
+      ? record.missingRequirements
+      : normalizeMissingRequirements(record.missing);
   const hasMissing = missingRequirements.length > 0;
 
   let status: SkillStatus = "ready";
-  if (disabled) {
-    status = "disabled";
-  } else if (hasMissing || !eligible) {
-    status = "needs-setup";
+  if (
+    record.status === "disabled" ||
+    record.status === "needs-setup" ||
+    record.status === "ready"
+  ) {
+    status = record.status;
+  } else {
+    if (disabled) {
+      status = "disabled";
+    } else if (hasMissing || !eligible) {
+      status = "needs-setup";
+    }
   }
 
-  const source = typeof raw.source === "string" ? raw.source : "bundled";
+  const source = typeof record.source === "string" ? record.source : "bundled";
   return {
-    key: typeof raw.key === "string" ? raw.key : skillKey,
-    name: typeof raw.name === "string" ? raw.name : skillKey,
+    key: typeof record.key === "string" ? record.key : skillKey,
+    name: typeof record.name === "string" ? record.name : skillKey,
     status,
     source: VALID_SOURCES.has(source as DeckGoSkillEntry["source"])
       ? (source as DeckGoSkillEntry["source"])
@@ -64,16 +85,18 @@ export function normalizeSkill(raw: Record<string, unknown>): DeckGoSkillEntry {
     enabled: !disabled,
     missingRequirements: missingRequirements.length ? missingRequirements : undefined,
     config:
-      typeof raw.config === "object" && raw.config !== null
-        ? (raw.config as Record<string, unknown>)
+      typeof record.config === "object" && record.config !== null
+        ? (record.config as Record<string, unknown>)
         : undefined,
-    description: typeof raw.description === "string" ? raw.description : undefined,
-    emoji: typeof raw.emoji === "string" ? raw.emoji : undefined,
-    homepage: typeof raw.homepage === "string" ? raw.homepage : undefined,
-    primaryEnv: typeof raw.primaryEnv === "string" ? raw.primaryEnv : undefined,
-    installOptions: Array.isArray(raw.install)
-      ? (raw.install as DeckGoSkillEntry["installOptions"])
-      : undefined,
+    description: typeof record.description === "string" ? record.description : undefined,
+    emoji: typeof record.emoji === "string" ? record.emoji : undefined,
+    homepage: typeof record.homepage === "string" ? record.homepage : undefined,
+    primaryEnv: typeof record.primaryEnv === "string" ? record.primaryEnv : undefined,
+    installOptions: Array.isArray(record.installOptions)
+      ? record.installOptions
+      : Array.isArray(record.install)
+        ? (record.install as DeckGoSkillEntry["installOptions"])
+        : undefined,
   };
 }
 

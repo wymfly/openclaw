@@ -1,6 +1,6 @@
 # gateway — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -9,10 +9,12 @@
 operator cockpit answering: is the Gateway up, which channels and agents are
 heartbeating, what RPC methods/events are exposed, and what just ran.
 
-The hard rule: this is a **runtime-mode-aware** read-only panel. In
-**bundled** mode the operator can also dry-run a `gateway.batch` from the
-batch console (the only mutation surface). In **remote** mode all controls
-remain read-only — see `states.md` for the gating matrix.
+The hard rule: this is a **runtime-mode-aware** read-mostly panel. In
+**bundled** mode the operator can run a safety-gated read-only `gateway.batch`
+through the runtime-scoped BFF route. This is not a synthetic dry-run:
+`gateway.batch` executes upstream calls, so production filters mutating methods
+out of the composer. In **remote** mode the batch console remains locked — see
+`states.md` for the gating matrix.
 
 ## File inventory
 
@@ -98,7 +100,7 @@ Endpoints (read-only + 1 mutation):
 - `GET    /api/gateway/health` → `DeckGoGatewayHealthResponse`
 - `GET    /api/gateway/status` → `DeckGoGatewayStatusResponse`
 - `GET    /api/gateway/describe` → `DeckGoGatewayDescribeResponse`
-- `POST   /api/gateway/batch` → `DeckGoGatewayBatchResponse` (bundled mode only)
+- `POST   /api/v1/runtimes/{runtimeId}/gateway/batch` → `DeckGoGatewayBatchResponse` (bundled mode, read-only child methods only)
 
 ## Section model
 
@@ -116,7 +118,7 @@ Endpoints (read-only + 1 mutation):
 │  └─ 4-cell grid (Requests/min count + bar spark / Error rate % + spark / Latency p95 ms + line spark / Queued events)
 └─ Tabs section (3 tabs)
    ├─ Methods & Events: DescribeExplorer (split-pane: filtered list + detail JSON)
-   ├─ Batch console: Recent batches (expandable) + Dry-run composer (3-phase wizard, 8% sim failure)
+   ├─ Batch console: Recent batches (expandable) + bundled-only read-only composer
    └─ Activity: Recent audit entries (BFF projection — flagged in api-usage.md)
 ```
 
@@ -131,13 +133,13 @@ This panel cross-cuts the deck-go runtime-mode contract (`bundled` vs
 | Hero KPI + rails | ✓ live                    | ✓ live (latency may be higher)                   |
 | Throughput       | ✓ live                    | ✓ live                                           |
 | Methods & Events | ✓ readable                | ✓ readable                                       |
-| Batch dry-run    | ✓ available               | ❌ disabled (locked button + tooltip explaining) |
+| Batch console    | ✓ read-only methods only  | ❌ disabled (locked button + tooltip explaining) |
 | Activity audit   | ✓ readable                | ✓ readable (server-side audit travels)           |
 
-The mode comes from `bootstrap.runtimeMode` (or equivalent). The prototype
-defaults to bundled-with-batch-enabled to demo all surfaces. Production
-should gate batch composer on `runtimeMode === "bundled"` with a clear
-tooltip.
+The mode comes from runtime capabilities plus runtime summary. The prototype
+defaults to bundled-with-batch-enabled to demo all surfaces. Production gates
+batch submission on `runtimeMode === "bundled"` and advertised read-only
+methods from `gateway.describe`.
 
 See `docs/superpowers/specs/2026-04-28-runtime-mode-decoupling-design.md`
 for the canonical mode contract.
@@ -156,11 +158,9 @@ for the canonical mode contract.
   `IconWrench`, `IconHeart`, `IconPlay`, `IconCopy`, `IconExternal`,
   `IconBook`.
 
-`recharts` is **already locked** (US-014 usage). The prototype's
-`SparkBar` and `SparkLine` translate to recharts mini-charts in production:
-
-- `SparkBar` → `<BarChart>` + `<Bar>` (no axis)
-- `SparkLine` → `<LineChart>` + `<Line>` (no axis)
+No new chart dependency was added in production. The prototype's `SparkBar` and
+`SparkLine` currently translate to compact inline SVG bars using design-system
+tokens.
 
 `ScopePill`, `SinceTag`, `ConnDot` stay local to gateway. **`ScopePill` is
 a strong promotion candidate** — any panel surfacing per-method auth scope
@@ -173,13 +173,13 @@ will need it (api-explorer US-019, plugins US-003).
 2. Translate to `frontend-new/src/components/panels/gateway/` keeping
    class-name shape (`gateway-app__*`, `describe-row__*`, `batch-row__*`,
    `throughput-card__*`).
-3. Wire real fetcher in `frontend-new/src/api/gateway.ts`:
+3. Wire real fetchers in `frontend-new/src/api.ts`:
    - `fetchGatewayHealth()` → `GET /api/gateway/health`
    - `fetchGatewayStatus()` → `GET /api/gateway/status`
    - `fetchGatewayDescribe()` → `GET /api/gateway/describe`
-   - `submitGatewayBatch(req)` → `POST /api/gateway/batch` (bundled only)
-4. Replace prototype's hand-rolled `SparkBar` / `SparkLine` with recharts
-   `<BarChart>` / `<LineChart>` minis.
+   - `submitGatewayBatch(req, { runtimeId })` → `POST /api/v1/runtimes/{runtimeId}/gateway/batch` (bundled/read-only gated)
+4. Keep throughput as a clearly labeled BFF/UI projection until a durable
+   Gateway throughput contract exists.
 5. Hide batch composer trigger when `runtimeMode === "remote"`.
 6. Hardcoded literal strings get extracted to
    `frontend-new/src/i18n/{en,zh}.json`.
@@ -206,6 +206,8 @@ will need it (api-explorer US-019, plugins US-003).
   contract has no streaming RPC for throughput; the BFF projects it.
 - Do not claim describe is exhaustive — `untyped[]` lists methods that
   exist but lack params/result schema.
+- Do not claim batch is a dry-run — it is a real Gateway execution surface and
+  this panel only exposes read-only child methods.
 - Do not claim batch failures retry automatically — `retryable: true` is
   advisory; the operator must resubmit.
 

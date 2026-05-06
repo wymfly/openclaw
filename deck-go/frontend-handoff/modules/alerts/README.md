@@ -1,6 +1,6 @@
 # Alerts (Rules CRUD)
 
-**Status**: revised v2 — pending implementation
+**Status**: implemented in `frontend-new` — L1 mock and L2 real CRUD verified
 **Design completed**: 2026-05-04
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Badge, Button, IconButton, Modal, Tabs, KbdHint, Avatar, EmptyState,
@@ -77,4 +77,7 @@ alerts/
 
 ## Reverse sign-off
 
-(pending Claude Code implementation in `frontend-new/src/components/panels/alerts/`)
+Implemented in `frontend-new/src/components/panels/alerts/` under OpenSpec change
+`frontend-alerts-real-contract-verification`. See `implementation-notes.md` for the contract
+matrix, scoped fixes, verification evidence, and unsupported prototype assumptions that remain
+handoff items.

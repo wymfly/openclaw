@@ -1,5 +1,13 @@
 # gateway — components (v2)
 
+## Production delta
+
+`frontend-new/src/components/panels/gateway/GatewayPanel.tsx` implements the v2
+structure as one React component file with local helper components. The batch
+composer is inline rather than modal, and throughput uses inline SVG bars
+instead of adding a chart dependency. Code truth remains the source authority;
+this handoff describes the target structure and known prototype differences.
+
 ## Tree
 
 ```
@@ -29,14 +37,17 @@ GatewayApp                                        [app.jsx]
       │  ├─ split-pane (filtered list + detail JSON)
       │  └─ untyped methods footer
       ├─ BatchConsole                             [batch-console.jsx]
-      │  ├─ head (summary stats + Dry-run trigger)
+      │  ├─ head (availability status + route/safety hint)
       │  ├─ batch rows (expandable per-call table)
-      │  └─ BatchComposer modal (3-phase wizard)
+      │  └─ inline read-only composer
       └─ ActivityList                             [app.jsx — local]
          └─ activity rows (ts / when / actor / method / status / meta)
 ```
 
-## Local molecules (in `icons.jsx`)
+## Local molecules
+
+Prototype molecules live in `icons.jsx`; production equivalents are local to
+`GatewayPanel.tsx` in this pass.
 
 ### ScopePill
 
@@ -69,6 +80,9 @@ ok / warn. Used for requests/min and error rate.
 
 Tiny line sparkline (no axes, no tooltip). 240×36 default. Used for
 latency p95 trend.
+
+Production currently renders compact inline SVG bars only; no shared chart
+primitive is introduced.
 
 ## Per-section renderers
 
@@ -124,20 +138,18 @@ latency p95 trend.
 
 ### Batch console tab
 
-- Head: summary stats (last N batches / total calls / failed calls / avg
-  duration) + Dry-run trigger.
+- Head: title, safety hint, and available/locked status pill.
 - Batch list: per-batch row with chevron + id + runtimeId + calls count
   - ok/err stat pills + duration + relative time. Click to expand.
 - Expanded row body: options dump + per-call table (id / method / params
   / status pill / result-or-error). Failed rows show retryable hint
   inline.
-- Batch composer modal: opens as fullscreen overlay (modal-backdrop +
-  wide modal). 3-phase wizard:
-  - **idle**: editable composer table + add-call + remove-call.
-  - **running**: spinner + "Submitting batch (N calls)…" with
-    `role="status"`. Composer locks; close disabled.
-  - **done**: success badge + per-call status (8% sim failure). User
-    can run again or close.
+- Inline composer:
+  - One or more calls with method select and JSON params textarea.
+  - Methods come from `gateway.describe`, filtered to read-only entries and
+    excluding nested batch/subscription methods.
+  - Submit calls `submitGatewayBatch(req, { runtimeId: "rt_local" })`.
+  - Remote mode and unconfigured/no-safe-method states lock the composer.
 
 ### Activity tab (ActivityList)
 
@@ -164,6 +176,9 @@ type BatchConsoleProps = {
       calls: DeckGoGatewayBatchCall[];
     }
   >;
+  safeMethods: DeckGoGatewayDescribeMethod[];
+  runtimeMode: string;
+  canSubmit: boolean;
 };
 
 type ActivityListProps = {

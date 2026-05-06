@@ -1,0 +1,58 @@
+change: frontend-approvals-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway approval reads may be degraded or empty-valid; real decision/policy mutations may be skipped-safe when queues are empty or mutation would affect operator state."
+entries:
+  - scenarioId: baseline.approvals-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/approvals/prototype.html and inspect frontend-approvals-hifi-redesign evidence"
+    evidence: "prototype.html loaded with title 'Approval queue', Policy modal opened, and browser console/page errors were []. Handoff package, v2 file structure, current hifi spec, and production implementation were inspected."
+  - scenarioId: audit.approvals-gateway-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF approval routes, Gateway method mapping, frontend wrappers, stream contract, and production Approvals code"
+    evidence: "Verified DeckGoApprovalPolicy/DeckGoPendingApproval/DeckGoPluginApprovalEntry/DeckGoServerEvent DTOs, /api/approvals* and /api/stream routes, Go LegacyInventorySurface normalization, Gateway typed resolve/policy methods, untyped list exceptions, frontend wrappers, stream hook, UI metadata, and related tests."
+  - scenarioId: contract.approvals-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO/stream -> Go route/Gateway method -> capability classification matrix"
+    evidence: "Matrix recorded in deck-go/frontend-handoff/modules/approvals/implementation-notes.md for policy read/write, pending exec queue, plugin queue, decisions, stream updates, unsupported reason/recent-decision/KPI projections, and BFF-only access."
+  - scenarioId: implementation.approvals-v2-and-scoped-fixes
+    ownerTask: "3.2-3.5"
+    status: passed
+    verificationCommand: "Implement deterministic UI/docs/test/BFF fixes and verify unsupported prototype workflows remain inactive, degraded, or documented"
+    evidence: "Production Approvals refactored to v2 workbench with combined queue, filters/search, selected detail tabs, detail-side decision bar, modal policy editor, disabled reason affordance, regenerated UI metadata, updated handoff route/DTO/decision truth, and unsupported projections documented."
+  - scenarioId: frontend.approvals-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Approvals"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/approvals/ApprovalsPanel.test.tsx src/api.chat-helpers.test.ts -> 55 tests passed."
+  - scenarioId: backend.approvals-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for approvals BFF/Gateway route forwarding"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw ./internal/api/http -run 'TestGatewayFacade_ApprovalsPendingAndExecApproval|TestGatewayFacade_ApprovalsAndPolicyAndPlugins|TestLegacyInventorySurface|TestManagedRuntime|TestAdapter|TestMountRuntimeRoutes|TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes|TestMountAdminRoutes' -> passed."
+  - scenarioId: visual.approvals-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Approvals mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/approvals-visual.spec.ts --config playwright.config.ts -> 1 passed. L1 mock/local visual coverage only."
+  - scenarioId: l2.approvals-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for policy, pending exec queue, plugin queue, stream boundary, empty/degraded handling, and no direct browser Gateway calls"
+    evidence: "cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/approvals-real-gateway.spec.ts --config playwright.config.ts -> 2 passed. Safe read route shapes and BFF-only browser access verified; real decision/policy mutations skipped-safe."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Approvals panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Approvals panel, API facade, Go route/runtime forwarding and normalization, contracts/UI metadata, mock Gateway fixtures, handoff docs, L1/L2 tests, and evidence matrix; deterministic route/DTO/decision/UI metadata/test drift fixed directly."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-approvals-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec change validate frontend-approvals-real-contract-verification --strict passed; cd deck-go && make ui-metadata-check passed; make endpoint-classification-check passed; make frontend-build passed; git diff --check passed."

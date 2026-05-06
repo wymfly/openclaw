@@ -144,12 +144,12 @@ Content-Type: application/json
 
 Action-by-action shapes:
 
-| action    | request body                                               | response                                                       |
-| --------- | ---------------------------------------------------------- | -------------------------------------------------------------- |
-| `request` | `{ action: "request", input: DeckGoNodePairRequestInput }` | `{ status: "queued", request, created: true }`                 |
-| `approve` | `{ action: "approve", requestId }`                         | `{ status: "approved", request, created: false }`              |
-| `reject`  | `{ action: "reject", requestId }`                          | `{ status: "rejected", request, created: false }`              |
-| `verify`  | `{ action: "verify", nodeId, token }`                      | `{ status: "verified" \| "invalid", request, created: false }` |
+| action    | request body                                           | response                                                       |
+| --------- | ------------------------------------------------------ | -------------------------------------------------------------- |
+| `request` | `{ action: "request", ...DeckGoNodePairRequestInput }` | `{ status: "queued", request, created: true }`                 |
+| `approve` | `{ action: "approve", requestId }`                     | `{ status: "approved", request, created: false }`              |
+| `reject`  | `{ action: "reject", requestId }`                      | `{ status: "rejected", request, created: false }`              |
+| `verify`  | `{ action: "verify", nodeId, token }`                  | `{ status: "verified" \| "invalid", request, created: false }` |
 
 ```ts
 const pairing = await fetchNodePairing();

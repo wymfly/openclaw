@@ -53,10 +53,10 @@ test.describe("contract-chain browser smoke", () => {
     const settings = await getJSON(request, `${stack.backendBase}/api/settings`);
     expect(recordAt(settings, "settings")).toBeTruthy();
 
-    const cost = await getJSON(request, `${stack.backendBase}/api/models/usage/cost?days=7`);
+    const cost = await getJSON(request, `${stack.backendBase}/api/usage/cost?days=7`);
     expect(numberAt(arrayAt(cost, "daily")[0], "totalCost")).toBe(0.33);
 
-    const providers = await getJSON(request, `${stack.backendBase}/api/models/usage/providers`);
+    const providers = await getJSON(request, `${stack.backendBase}/api/usage/providers`);
     expect(stringAt(arrayAt(providers, "providers")[0], "provider")).toBe("openai");
 
     const usage = await getJSON(request, `${stack.backendBase}/api/usage/sessions`);

@@ -1,14 +1,14 @@
 # budget — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
 
 `budget/` is the **deck-go budget governance workbench** — a rule-driven
 threshold panel where operators define warn/over thresholds per dimension
-(USD cost / tokensIn / tokensOut / totalTokens) and scope (global /
-workspace / agent / task / channel), and observe each rule's current
+(USD cost / tokensIn / tokensOut / totalTokens) and the currently active
+production scopes (global / agent / task), and observe each rule's current
 status (ok / warn / over) against live usage.
 
 The hard rule: this is a **rules + evaluations** panel, not a
@@ -44,13 +44,13 @@ export type DeckGoBudgetStatus = "ok" | "warn" | "over";
 export interface DeckGoBudgetRule {
   id: string;
   name: string;
-  scope: string; // "global" | "workspace" | "agent" | "task" | "channel"
+  scope: string; // open string; production UI currently authors "global" | "agent" | "task"
   agentId: string | null;
   taskId: string | null;
   dimension: DeckGoBudgetDimension;
   warnThreshold: number | null;
   overThreshold: number | null;
-  period: string; // "minute" | "hour" | "day" | "week" | "month" | "task"
+  period: string; // open string; Go BFF currently validates "daily" | "weekly" | "monthly"
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -110,14 +110,20 @@ threshold meter + definition table + change history).
 The threshold meter is a **CSS-only** component (single bar with tick
 marks at warn/over) — no chart lib required.
 
+Current implementation note: `scope` and `period` are open strings in the
+Deck DTO, but the production BFF validates `period` as `daily | weekly |
+monthly` and the production form authors `global | agent | task`.
+Workspace/channel/org scopes remain product follow-up until target fields
+and backend semantics exist.
+
 ## Mutation model
 
-| Mutation       | UI surface       | Server behavior                    | Contract today                         |
-| -------------- | ---------------- | ---------------------------------- | -------------------------------------- |
-| Edit rule      | EditRuleDialog   | PATCH; server returns updated rule | ✅ `PATCH /api/usage/budget/{ruleId}`  |
-| Toggle enabled | ToggleRuleDialog | PATCH with `enabled` toggle        | ✅ same endpoint                       |
-| Create rule    | CreateRuleDialog | POST; server returns new rule      | ✅ `POST /api/usage/budget`            |
-| Delete rule    | DeleteRuleDialog | DELETE; server returns 204         | ✅ `DELETE /api/usage/budget/{ruleId}` |
+| Mutation       | UI surface       | Server behavior                                       | Contract today                         |
+| -------------- | ---------------- | ----------------------------------------------------- | -------------------------------------- |
+| Edit rule      | EditRuleDialog   | PATCH; server returns updated rule                    | ✅ `PATCH /api/usage/budget/{ruleId}`  |
+| Toggle enabled | ToggleRuleDialog | PATCH with `enabled` toggle                           | ✅ same endpoint                       |
+| Create rule    | CreateRuleDialog | POST; server returns new rule                         | ✅ `POST /api/usage/budget`            |
+| Delete rule    | DeleteRuleDialog | DELETE; server returns `{deleted:true}` with HTTP 200 | ✅ `DELETE /api/usage/budget/{ruleId}` |
 
 After every mutation, the panel re-fetches `GET
 /api/usage/budget/evaluate` so status pills reflect the new
@@ -154,7 +160,7 @@ will need the same shape.
    the class-name shape (`rule-nav__*`, `rule-detail__*`,
    `rule-summary__*`, `threshold-meter__*`, `dim-pill--*`,
    `scope-chip--*`).
-3. Wire real fetcher in `frontend-new/src/api/budget.ts`:
+3. Wire real fetchers in `frontend-new/src/api.ts`:
    - `fetchBudgetRules()` → `GET /api/usage/budget`
    - `evaluateBudgetRules()` → `GET /api/usage/budget/evaluate`
    - `createBudgetRule(input)` → `POST /api/usage/budget`

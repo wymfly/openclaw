@@ -20,15 +20,15 @@ vi.mock("../../../api", () => apiMocks);
 let container: HTMLDivElement;
 let root: Root | null = null;
 
-function webhook(id: string, name: string, enabled = true) {
+function webhook(id: string, name: string, enabled = true, failures = 0) {
   return {
     id,
     name,
     url: `https://example.test/${id}`,
-    secret: null,
+    secret: id === "hook-a" ? "***redacted" : null,
     events: ["alert.fired", "usage.limit"],
     enabled,
-    consecutiveFailures: enabled ? 0 : 2,
+    consecutiveFailures: failures,
     lastFiredAt: null,
     lastStatus: enabled ? 200 : null,
     createdAt: "2026-04-24T00:00:00Z",
@@ -40,7 +40,7 @@ function webhooksPayload(extra = false) {
   return {
     webhooks: [
       webhook("hook-a", "Alerts"),
-      webhook("hook-b", "Usage", false),
+      webhook("hook-b", "Usage", false, 2),
       ...(extra ? [webhook("hook-c", "Created Hook")] : []),
     ],
   };
@@ -55,10 +55,11 @@ function deliveriesPayload(id: string) {
               id: "delivery-a",
               webhookId: "hook-a",
               eventType: "alert.fired",
-              payload: "{}",
+              payload: '{"event":"alert.fired"}',
               statusCode: 200,
               error: null,
               durationMs: 12,
+              attempt: 0,
               isRetry: false,
               success: true,
               createdAt: "2026-04-24T00:01:00Z",
@@ -74,6 +75,7 @@ function deliveriesPayload(id: string) {
               durationMs: 44,
               attempt: 2,
               isRetry: true,
+              parentDeliveryId: "delivery-a",
               success: false,
               createdAt: "2026-04-24T00:02:00Z",
             },
@@ -87,6 +89,18 @@ function renderWebhooksPanel() {
   root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(WebhooksPanel)));
 }
 
+function button(label: string | RegExp) {
+  const matcher =
+    typeof label === "string"
+      ? (value: string | null) => value === label
+      : (value: string | null) => Boolean(value && label.test(value));
+  const found = Array.from(container.querySelectorAll("button")).find((candidate) =>
+    matcher(candidate.textContent),
+  );
+  expect(found, `expected button ${String(label)}`).toBeTruthy();
+  return found as HTMLButtonElement;
+}
+
 describe("WebhooksPanel", () => {
   beforeEach(() => {
     (
@@ -94,15 +108,14 @@ describe("WebhooksPanel", () => {
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     apiMocks.fetchWebhooks.mockResolvedValue(webhooksPayload());
     apiMocks.fetchWebhookDeliveries.mockImplementation((id: string) =>
       Promise.resolve(deliveriesPayload(id)),
     );
     apiMocks.createWebhook.mockResolvedValue(webhook("hook-c", "Created Hook"));
-    apiMocks.testWebhook.mockResolvedValue({ ok: true, action: "test" });
-    apiMocks.deleteWebhook.mockResolvedValue({ ok: true, action: "delete" });
-    apiMocks.updateWebhook.mockResolvedValue(webhook("hook-b", "Usage edited"));
+    apiMocks.testWebhook.mockResolvedValue({ deliveryId: "delivery-c", success: true });
+    apiMocks.deleteWebhook.mockResolvedValue({ deleted: true });
+    apiMocks.updateWebhook.mockResolvedValue(webhook("hook-b", "Usage edited", true, 0));
   });
 
   afterEach(() => {
@@ -113,11 +126,10 @@ describe("WebhooksPanel", () => {
     }
     root = null;
     container.remove();
-    vi.restoreAllMocks();
     vi.clearAllMocks();
   });
 
-  it("loads webhook inventory, delivery history, and selects the first webhook", async () => {
+  it("loads receiver inventory, KPIs, detail tabs, and sanitized webhook evidence", async () => {
     await act(async () => {
       renderWebhooksPanel();
     });
@@ -126,37 +138,68 @@ describe("WebhooksPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
 
     expect(apiMocks.fetchWebhookDeliveries).toHaveBeenCalledWith("hook-a");
-    expect(container.textContent).toContain("2 configured");
+    expect(container.querySelector(".webhooks-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".webhooks-panel__list-pane")).toBeTruthy();
+    expect(container.querySelector(".webhooks-panel__detail-pane")).toBeTruthy();
+    expect(container.textContent).toContain("Receiver inventory");
     expect(container.textContent).toContain("Alerts");
     expect(container.textContent).toContain("Usage");
-    expect(container.textContent).toContain("failures: 2 | last status: n/a");
-    expect(container.textContent).toContain("delivery-a");
-    expect(container.textContent).toContain("Delivery History");
-    expect(container.textContent).toContain("2 deliveries");
-    expect(container.textContent).toContain("status 200");
-    expect(container.textContent).toContain("duration 12ms");
-    expect(container.textContent).toContain("Success");
-    expect(container.textContent).toContain("usage.limit");
-    expect(container.textContent).toContain("status 503");
-    expect(container.textContent).toContain("Attempt 2");
-    expect(container.textContent).toContain("Retrying");
-    expect(container.textContent).toContain('Details: {"error":"receiver unavailable"}');
-    expect(container.querySelector(".webhooks-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".webhooks-panel__card").length).toBe(2);
-    expect(container.querySelectorAll(".webhooks-panel__surface").length).toBeGreaterThanOrEqual(4);
-    expect(container.querySelectorAll(".webhooks-panel__input").length).toBe(4);
-    expect(container.querySelectorAll(".webhooks-panel__button").length).toBeGreaterThanOrEqual(7);
-    expect(container.querySelectorAll(".webhooks-panel__row").length).toBe(2);
-    expect(container.querySelectorAll(".webhooks-panel__delivery-row").length).toBe(2);
-    expect(container.querySelectorAll(".webhooks-panel__hero").length).toBeGreaterThanOrEqual(3);
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Alerts");
+    expect(container.textContent).toContain("Healthy");
+    expect(container.textContent).toContain("Disabled");
+    expect(container.textContent).toContain("redacted");
+    expect(container.textContent).not.toContain("visual-secret");
+    expect(container.textContent).toContain("Overview");
+    expect(container.textContent).toContain("Deliveries");
+    expect(container.textContent).toContain("Gaps");
   });
 
-  it("creates, tests, and deletes webhooks while preserving preferred selection", async () => {
+  it("filters receivers and switches selected webhook delivery state", async () => {
+    await act(async () => {
+      renderWebhooksPanel();
+    });
+    await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="name, url, id, or event"]',
+    );
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "hook-b" } });
+    });
+    expect(container.textContent).toContain("Usage");
+    expect(container.querySelector(".webhooks-panel__list")?.textContent).not.toContain("Alerts");
+
+    await act(async () => {
+      button(/Usage/).click();
+    });
+    await waitFor(() => expect(apiMocks.fetchWebhookDeliveries).toHaveBeenCalledWith("hook-b"));
+    await act(async () => {
+      button("Deliveries").click();
+    });
+    expect(container.textContent).toContain("No delivery records");
+  });
+
+  it("expands delivery rows to reveal payload and response evidence", async () => {
+    await act(async () => {
+      renderWebhooksPanel();
+    });
+    await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
+
+    await act(async () => {
+      button("Deliveries").click();
+    });
+    expect(container.textContent).toContain("alert.fired");
+    expect(container.textContent).toContain("usage.limit");
+
+    await act(async () => {
+      button(/usage\.limit/).click();
+    });
+    expect(container.textContent).toContain("Response body");
+    expect(container.textContent).toContain("receiver unavailable");
+    expect(container.textContent).toContain("parent: delivery-a");
+  });
+
+  it("creates, tests, and deletes webhooks through guarded flows", async () => {
     apiMocks.fetchWebhooks
       .mockResolvedValueOnce(webhooksPayload())
       .mockResolvedValue(webhooksPayload(true));
@@ -164,22 +207,17 @@ describe("WebhooksPanel", () => {
     await act(async () => {
       renderWebhooksPanel();
     });
-
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "New Webhook")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button("New Webhook").click();
     });
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("New Webhook");
 
     const nameInput = container.querySelector<HTMLInputElement>('input[aria-label="webhook name"]');
     const urlInput = container.querySelector<HTMLInputElement>('input[aria-label="webhook url"]');
     const secretInput = container.querySelector<HTMLInputElement>(
       'input[aria-label="webhook secret"]',
-    );
-    const eventsInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="webhook events"]',
     );
     await act(async () => {
       fireEvent.change(nameInput as HTMLInputElement, { target: { value: "Created Hook" } });
@@ -192,14 +230,9 @@ describe("WebhooksPanel", () => {
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(eventsInput?.value).toBe("alert.fired, budget.warn");
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Create webhook")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button("Create webhook").click();
     });
-
     await waitFor(() =>
       expect(apiMocks.createWebhook).toHaveBeenCalledWith({
         name: "Created Hook",
@@ -209,66 +242,75 @@ describe("WebhooksPanel", () => {
         enabled: true,
       }),
     );
-
-    const selectedAfterCreate = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
+    await waitFor(() =>
+      expect(
+        Array.from(container.querySelectorAll("button")).find((candidate) =>
+          candidate.className.includes("is-selected"),
+        )?.textContent,
+      ).toContain("Created Hook"),
     );
-    expect(selectedAfterCreate?.textContent).toContain("Created Hook");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Test Delivery")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(button("Test Delivery"));
     });
-
     await waitFor(() => expect(apiMocks.testWebhook).toHaveBeenCalledWith("hook-c"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete Webhook")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(button("Delete Webhook"));
     });
-
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Delete this webhook?",
+    );
+    await act(async () => {
+      const dialog = container.querySelector('[role="dialog"]') as HTMLElement;
+      const confirm = Array.from(dialog.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent === "Delete Webhook",
+      );
+      fireEvent.click(confirm as HTMLButtonElement);
+    });
     await waitFor(() => expect(apiMocks.deleteWebhook).toHaveBeenCalledWith("hook-c"));
-    expect(window.confirm).toHaveBeenCalledWith("Delete webhook hook-c?");
   });
 
-  it("does not delete a webhook when confirmation is cancelled", async () => {
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
-
+  it("closes guarded builder and delete dialogs with Escape while idle", async () => {
     await act(async () => {
       renderWebhooksPanel();
     });
-
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Delete Webhook")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button("New Webhook").click();
     });
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain("New Webhook");
 
-    expect(window.confirm).toHaveBeenCalledWith("Delete webhook hook-a?");
-    expect(apiMocks.deleteWebhook).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "Escape" });
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+
+    await act(async () => {
+      button("Delete Webhook").click();
+    });
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Delete this webhook?",
+    );
+
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "Escape" });
+    });
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
   });
 
-  it("loads selected webhooks into the draft and saves full webhook edits", async () => {
+  it("loads selected webhooks into the modal without exposing stored secrets and saves edits", async () => {
     await act(async () => {
       renderWebhooksPanel();
     });
-
     await waitFor(() => expect(container.textContent).toContain("Webhooks ready"));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Usage"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button(/Usage/).click();
     });
-
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Edit Webhook")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button("Edit Webhook").click();
     });
 
     const nameInput = container.querySelector<HTMLInputElement>('input[aria-label="webhook name"]');
@@ -296,16 +338,22 @@ describe("WebhooksPanel", () => {
       fireEvent.change(eventsInput as HTMLInputElement, {
         target: { value: "agent.updated, alert.fired" },
       });
-      container
-        .querySelector<HTMLButtonElement>('button[aria-label="toggle webhook event budget.warn"]')
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await waitFor(() => expect(eventsInput?.value).toBe("agent.updated, alert.fired"));
+    await act(async () => {
+      fireEvent.click(
+        container.querySelector<HTMLButtonElement>(
+          'button[aria-label="toggle webhook event budget.warn"]',
+        ) as HTMLButtonElement,
+      );
+    });
+    await waitFor(() => expect(eventsInput?.value).toBe("agent.updated, alert.fired, budget.warn"));
+    await act(async () => {
       fireEvent.click(enabledInput);
     });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save selected")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      button("Save selected").click();
     });
 
     await waitFor(() =>

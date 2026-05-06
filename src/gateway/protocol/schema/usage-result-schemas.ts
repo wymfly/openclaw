@@ -374,6 +374,12 @@ export const SessionUsageTimePointSchema = Type.Object(
 export const SessionsUsageTimeseriesParamsSchema = Type.Object(
   {
     key: NonEmptyString,
+    startDate: Type.Optional(Type.String()),
+    endDate: Type.Optional(Type.String()),
+    mode: Type.Optional(
+      Type.Union([Type.Literal("gateway"), Type.Literal("specific"), Type.Literal("utc")]),
+    ),
+    utcOffset: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );

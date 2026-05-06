@@ -1,6 +1,80 @@
 import { expect, test, type Page } from "@playwright/test";
 import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from "./helpers";
 
+type Variant = {
+  connectedLabel: string;
+  navLabel: string;
+  nodeCountLabel: string;
+  pendingCountLabel: string;
+  pendingWorkButton: string;
+  refreshLabel: string;
+  theme: "dark" | "light";
+  locale: "en" | "zh";
+  confirmLabel: string;
+  invokeButton: string;
+  invokeParamsLabel: string;
+  invokeTitle: RegExp;
+};
+
+const VARIANTS: Variant[] = [
+  {
+    connectedLabel: "connected",
+    navLabel: "Nodes",
+    nodeCountLabel: "5 nodes",
+    pendingCountLabel: "2 pending",
+    pendingWorkButton: "Queue pending work",
+    refreshLabel: "Refresh nodes",
+    theme: "dark",
+    locale: "en",
+    confirmLabel: "Confirm",
+    invokeButton: "Invoke command",
+    invokeParamsLabel: "Node invoke params JSON",
+    invokeTitle: /Invoke command\?/,
+  },
+  {
+    connectedLabel: "已连接",
+    navLabel: "节点",
+    nodeCountLabel: "5 个节点",
+    pendingCountLabel: "2 个待处理",
+    pendingWorkButton: "排队待处理工作",
+    refreshLabel: "刷新节点",
+    theme: "dark",
+    locale: "zh",
+    confirmLabel: "确认",
+    invokeButton: "调用命令",
+    invokeParamsLabel: "节点调用参数 JSON",
+    invokeTitle: /调用命令\?/,
+  },
+  {
+    connectedLabel: "connected",
+    navLabel: "Nodes",
+    nodeCountLabel: "5 nodes",
+    pendingCountLabel: "2 pending",
+    pendingWorkButton: "Queue pending work",
+    refreshLabel: "Refresh nodes",
+    theme: "light",
+    locale: "en",
+    confirmLabel: "Confirm",
+    invokeButton: "Invoke command",
+    invokeParamsLabel: "Node invoke params JSON",
+    invokeTitle: /Invoke command\?/,
+  },
+  {
+    connectedLabel: "已连接",
+    navLabel: "节点",
+    nodeCountLabel: "5 个节点",
+    pendingCountLabel: "2 个待处理",
+    pendingWorkButton: "排队待处理工作",
+    refreshLabel: "刷新节点",
+    theme: "light",
+    locale: "zh",
+    confirmLabel: "确认",
+    invokeButton: "调用命令",
+    invokeParamsLabel: "节点调用参数 JSON",
+    invokeTitle: /调用命令\?/,
+  },
+];
+
 test.describe("nodes mock visual handoff alignment", () => {
   let stack: E2EStack;
 
@@ -13,87 +87,120 @@ test.describe("nodes mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders node operations workbench and guarded dynamic action states", async ({
-    page,
+  test("renders node operations workbench variants and guarded dynamic action states", async ({
+    browser,
   }, testInfo) => {
-    const unexpected = collectUnexpectedErrors(page);
-    page.on("dialog", (dialog) => dialog.accept());
+    for (const variant of VARIANTS) {
+      const context = await browser.newContext();
+      const page = await context.newPage();
+      const unexpected = collectUnexpectedErrors(page);
 
-    await openDeck(page, stack.frontendBase, "nodes", stack.accessToken, {
-      locale: "en",
-      nav: "expanded",
-      theme: "dark",
-    });
+      try {
+        await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+          locale: variant.locale,
+          nav: "expanded",
+          theme: variant.theme,
+        });
 
-    await expect(page.getByTestId("nodes-panel")).toBeVisible();
-    await waitForGatewayMethod(stack.requestLog, "node.list");
-    await waitForGatewayMethod(stack.requestLog, "node.pair.list");
-    await waitForGatewayMethod(stack.requestLog, "node.describe");
-    await expect(page.getByRole("heading", { name: "Nodes" }).first()).toBeVisible();
-    await expect(page.getByText("Nodes ready").first()).toBeVisible();
-    await expect(page.getByText("3 nodes").first()).toBeVisible();
-    await expect(page.getByText("2 pending").first()).toBeVisible();
-    await expect(page.getByText("Alpha Control Mac").first()).toBeVisible();
-    await expect(page.getByText("Beta Field Node").first()).toBeVisible();
-    await expect(page.getByText("Invoke node command").first()).toBeVisible();
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
-      .toBe(true);
-    await page.waitForTimeout(500);
+        const nodeNav = page
+          .locator(".deck-ui-rail")
+          .getByRole("button", { exact: true, name: variant.navLabel });
+        await nodeNav.scrollIntoViewIfNeeded();
+        await nodeNav.click();
 
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("nodes-workbench-ready.png"),
-    });
+        await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "nodes");
+        await expect(page.locator("html")).toHaveAttribute("data-theme", variant.theme);
 
-    await page.locator("button").filter({ hasText: "pair-beta-repair" }).click();
-    await expect(page.getByText("Repair requested").first()).toBeVisible();
-    await expect(page.getByText("Review the repair request").first()).toBeVisible();
-    await expect(page.getByText("shell: denied").first()).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("nodes-pairing-repair-state.png"),
-    });
+        const panel = page.getByTestId("nodes-panel");
+        await expect(panel).toBeVisible();
+        await waitForGatewayMethod(stack.requestLog, "node.list");
+        await waitForGatewayMethod(stack.requestLog, "node.pair.list");
+        await waitForGatewayMethod(stack.requestLog, "node.describe");
+        await expect(panel.getByRole("button", { name: variant.refreshLabel })).toBeVisible();
+        await expect(panel.getByText(variant.nodeCountLabel).first()).toBeVisible();
+        await expect(panel.getByText(variant.pendingCountLabel).first()).toBeVisible();
+        await expect(panel.getByText("Alpha Control Mac").first()).toBeVisible();
+        await expect(panel.getByText("Beta Field Node").first()).toBeVisible();
+        await expect(panel.getByText("Gamma Workstation").first()).toBeVisible();
+        await expect(panel.getByText("Delta Edge Probe").first()).toBeVisible();
+        await expect(panel.getByText(variant.connectedLabel).first()).toBeVisible();
+        await expect(panel.getByText(/pair-beta-repair|pair-orphan-kiosk/).first()).toBeVisible();
+        await expect(panel.getByText(/Invoke node command|调用节点命令/).first()).toBeVisible();
+        await expect(panel.getByText(/Pending work|待处理工作/).first()).toBeVisible();
+        await expect
+          .poll(() =>
+            page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+          )
+          .toBe(true);
 
-    await page.getByLabel("Node invoke params JSON").fill('{"message":"mock visual probe"}');
-    await Promise.all([
-      page.waitForResponse((response) => {
-        return (
-          response.url().includes("/api/nodes") &&
-          response.request().method() === "POST" &&
-          response.ok()
-        );
-      }),
-      page.getByRole("button", { name: "Invoke command" }).click(),
-    ]);
-    await waitForGatewayMethod(stack.requestLog, "node.invoke");
-    await expect(page.getByText("Last node action").first()).toBeVisible();
-    await page.getByText("Last node action").click();
-    await expect(page.getByText('"delivered": true').first()).toBeVisible();
-    await page.getByText("Last node action").scrollIntoViewIfNeeded();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("nodes-invoke-result.png"),
-    });
+        await page.screenshot({
+          fullPage: false,
+          path: testInfo.outputPath(
+            variant.theme === "dark" && variant.locale === "en"
+              ? "nodes-workbench-ready.png"
+              : `nodes-workbench-${variant.theme}-${variant.locale}.png`,
+          ),
+        });
 
-    await Promise.all([
-      page.waitForResponse((response) => {
-        return (
-          response.url().includes("/api/nodes") &&
-          response.request().method() === "POST" &&
-          response.ok()
-        );
-      }),
-      page.getByRole("button", { name: "Queue pending work" }).click(),
-    ]);
-    await waitForGatewayMethod(stack.requestLog, "node.pending.enqueue");
-    await expect(page.getByText("pending-node-work-visual").first()).toBeVisible();
-    await page.screenshot({
-      fullPage: false,
-      path: testInfo.outputPath("nodes-queue-result.png"),
-    });
+        if (variant.theme === "dark" && variant.locale === "en") {
+          await expect(panel.getByText("Repair requested").first()).toBeVisible();
+          await expect(panel.getByText("Review the repair request").first()).toBeVisible();
+          await expect(panel.getByText("shell: denied").first()).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("nodes-pairing-repair-state.png"),
+          });
 
-    expect(unexpected).toEqual([]);
+          await panel.getByLabel(variant.invokeParamsLabel).fill('{"message":"mock visual probe"}');
+          await panel.getByRole("button", { name: variant.invokeButton }).click();
+          await expect(panel.getByRole("alertdialog", { name: variant.invokeTitle })).toBeVisible();
+          await Promise.all([
+            page.waitForResponse((response) => {
+              return (
+                response.url().includes("/api/nodes") &&
+                response.request().method() === "POST" &&
+                response.ok()
+              );
+            }),
+            panel.getByRole("button", { name: variant.confirmLabel }).click(),
+          ]);
+          await waitForGatewayMethod(stack.requestLog, "node.invoke");
+          await expect(panel.getByText("Last node action").first()).toBeVisible();
+          await panel.getByText("Last node action").click();
+          await expect(panel.getByText('"delivered": true').first()).toBeVisible();
+          await panel.getByText("Last node action").scrollIntoViewIfNeeded();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("nodes-invoke-result.png"),
+          });
+
+          await panel.getByRole("button", { name: variant.pendingWorkButton }).click();
+          await expect(
+            panel.getByRole("alertdialog", { name: /Queue pending work\?/ }),
+          ).toBeVisible();
+          await Promise.all([
+            page.waitForResponse((response) => {
+              return (
+                response.url().includes("/api/nodes") &&
+                response.request().method() === "POST" &&
+                response.ok()
+              );
+            }),
+            panel.getByRole("button", { name: variant.confirmLabel }).click(),
+          ]);
+          await waitForGatewayMethod(stack.requestLog, "node.pending.enqueue");
+          await expect(panel.getByText("pending-node-work-visual").first()).toBeVisible();
+          await page.screenshot({
+            fullPage: false,
+            path: testInfo.outputPath("nodes-queue-result.png"),
+          });
+        }
+
+        expect(unexpected).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    }
   });
 });
 

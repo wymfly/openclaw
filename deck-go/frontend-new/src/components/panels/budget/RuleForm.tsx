@@ -150,6 +150,11 @@ export function RuleForm(props: {
         return t("validationNonnegative", { field: t(key) });
       }
     }
+    const warnThreshold = parseOptionalNumber(draft.warnThreshold);
+    const overThreshold = parseOptionalNumber(draft.overThreshold);
+    if (warnThreshold != null && overThreshold != null && warnThreshold >= overThreshold) {
+      return t("validationWarnBelowOver");
+    }
     return "";
   };
 

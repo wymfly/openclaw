@@ -4,11 +4,15 @@ import { JsonDetails } from "../../shared/ShellComponents";
 import { formatThreadTimestamp } from "./thread-utils";
 import { ThreadRelationView } from "./ThreadRelationView";
 
+export type ThreadDetailTab = "overview" | "activity" | "audit" | "raw";
+
 type ThreadDetailProps = {
+  activeTab: ThreadDetailTab;
   handoffMessage: string;
   onCopySessionKey: () => void;
   onOpenAgent: () => void;
   onOpenSession: () => void;
+  onTabChange: (tab: ThreadDetailTab) => void;
   thread: DeckGoThreadEntry | null;
 };
 
@@ -21,11 +25,22 @@ function ThreadFact(props: { label: string; value: string | number }) {
   );
 }
 
+function UnsupportedProjection(props: { description: string; title: string }) {
+  return (
+    <article className="threads-panel__unsupported">
+      <strong>{props.title}</strong>
+      <p>{props.description}</p>
+    </article>
+  );
+}
+
 export function ThreadDetail({
+  activeTab,
   handoffMessage,
   onCopySessionKey,
   onOpenAgent,
   onOpenSession,
+  onTabChange,
   thread,
 }: ThreadDetailProps) {
   const t = useTranslations("threads");
@@ -38,6 +53,13 @@ export function ThreadDetail({
       </div>
     );
   }
+
+  const tabs: { id: ThreadDetailTab; label: string }[] = [
+    { id: "overview", label: t("overview") },
+    { id: "activity", label: t("recentActivity") },
+    { id: "audit", label: t("audit") },
+    { id: "raw", label: t("rawEntry") },
+  ];
 
   return (
     <>
@@ -68,21 +90,59 @@ export function ThreadDetail({
 
       {handoffMessage ? <p className="threads-panel__handoff">{handoffMessage}</p> : null}
 
-      <ThreadRelationView thread={thread} />
+      <nav className="threads-panel__tabs" role="tablist" aria-label={t("threadSections")}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`threads-panel__tab ${activeTab === tab.id ? "is-active" : ""}`}
+            onClick={() => onTabChange(tab.id)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-      <div className="threads-panel__facts">
-        <ThreadFact label={t("boundAtLower")} value={formatThreadTimestamp(thread.boundAt)} />
-        <ThreadFact
-          label={t("lastActivityLower")}
-          value={formatThreadTimestamp(thread.lastActivityAt)}
+      {activeTab === "overview" ? (
+        <>
+          <ThreadRelationView thread={thread} />
+
+          <div className="threads-panel__facts">
+            <ThreadFact label={t("thread")} value={thread.threadId} />
+            <ThreadFact label={t("boundAtLower")} value={formatThreadTimestamp(thread.boundAt)} />
+            <ThreadFact
+              label={t("lastActivityLower")}
+              value={formatThreadTimestamp(thread.lastActivityAt)}
+            />
+            <ThreadFact label={t("accountLower")} value={thread.accountId || t("na")} />
+            <ThreadFact label={t("boundByLower")} value={thread.boundBy || t("na")} />
+            <ThreadFact label={t("targetKind")} value={thread.targetKind || t("na")} />
+          </div>
+          <p className="threads-panel__contract-note">{t("bindingRegistryNote")}</p>
+        </>
+      ) : null}
+
+      {activeTab === "activity" ? (
+        <UnsupportedProjection
+          title={t("recentActivityUnsupportedTitle")}
+          description={t("recentActivityUnsupportedDescription")}
         />
-        <ThreadFact label={t("accountLower")} value={thread.accountId || t("na")} />
-        <ThreadFact label={t("boundByLower")} value={thread.boundBy || t("na")} />
-      </div>
+      ) : null}
 
-      <div className="threads-panel__payload">
-        <JsonDetails title={t("threadPayload")} payload={thread} />
-      </div>
+      {activeTab === "audit" ? (
+        <UnsupportedProjection
+          title={t("auditUnsupportedTitle")}
+          description={t("auditUnsupportedDescription")}
+        />
+      ) : null}
+
+      {activeTab === "raw" ? (
+        <div className="threads-panel__payload">
+          <JsonDetails title={t("threadPayload")} payload={thread} />
+        </div>
+      ) : null}
     </>
   );
 }

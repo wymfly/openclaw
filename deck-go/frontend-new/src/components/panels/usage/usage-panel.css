@@ -245,6 +245,20 @@
   min-width: 0;
 }
 
+.usage-panel__session-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr) minmax(220px, 0.8fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.usage-panel__detail-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
 .usage-panel__chart {
   display: grid;
   gap: 9px;
@@ -395,6 +409,59 @@ button.usage-panel__row {
   background: color-mix(in srgb, var(--ds-warning, #b7791f) 8%, var(--ds-surface, var(--surface-elevated)));
 }
 
+.usage-panel__quota {
+  gap: 8px;
+}
+
+.usage-panel__quota-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.usage-panel__quota-progress {
+  display: block;
+  width: 100%;
+  height: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  background: var(--ds-surface-muted, var(--surface));
+}
+
+.usage-panel__quota-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--ds-surface-muted, var(--surface));
+}
+
+.usage-panel__quota-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--ds-success, var(--success));
+}
+
+.usage-panel__quota-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--ds-success, var(--success));
+}
+
+.usage-panel__quota--warm .usage-panel__quota-progress::-webkit-progress-value {
+  background: var(--ds-warning, #b7791f);
+}
+
+.usage-panel__quota--warm .usage-panel__quota-progress::-moz-progress-bar {
+  background: var(--ds-warning, #b7791f);
+}
+
+.usage-panel__quota--hot .usage-panel__quota-progress::-webkit-progress-value {
+  background: var(--ds-danger, var(--danger));
+}
+
+.usage-panel__quota--hot .usage-panel__quota-progress::-moz-progress-bar {
+  background: var(--ds-danger, var(--danger));
+}
+
 .usage-panel details {
   min-width: 0;
 }
@@ -413,7 +480,8 @@ button.usage-panel__row {
     grid-template-columns: 1fr;
   }
 
-  .usage-panel__range {
+  .usage-panel__range,
+  .usage-panel__session-controls {
     grid-template-columns: 1fr;
   }
 }
@@ -428,6 +496,7 @@ button.usage-panel__row {
   }
 
   .usage-panel__metrics,
+  .usage-panel__detail-tabs,
   .usage-panel__range-controls,
   .deck-ui-usage-chart-row {
     grid-template-columns: minmax(0, 1fr);

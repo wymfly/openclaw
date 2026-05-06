@@ -7,7 +7,7 @@
 ## Source of truth
 
 The identity module reads bindings from the deck-go BFF, which forwards
-to upstream OpenClaw `gateway.deck.identity.*` Gateway methods. Browser
+to upstream OpenClaw `deck.identity.*` Gateway methods. Browser
 code never calls Gateway directly.
 
 ## Deck-facing API
@@ -56,7 +56,7 @@ See open question §3 in README.
 Wrapper:
 
 ```ts
-linkIdentityPeer(canonical: string, channel: string, peerId: string, baseHash: string): Promise<DeckGoIdentityLinksResponse>
+linkIdentityPeer(canonical: string, channel: string, peerId: string, baseHash: string): Promise<Record<string, unknown>>
 ```
 
 Body:
@@ -71,8 +71,10 @@ Body:
 }
 ```
 
-Response: refreshed `DeckGoIdentityLinksResponse` with new
-`configHash`.
+Response today follows the generated Gateway mutation result
+(`{ ok: boolean, configHash?: string }`). Production refetches
+`GET /api/deck/identity` after success or failure so the visible
+relationship list stays list-contract owned.
 
 Errors:
 
@@ -87,7 +89,7 @@ Errors:
 Wrapper:
 
 ```ts
-unlinkIdentityPeer(canonical: string, channel: string, peerId: string, baseHash: string): Promise<DeckGoIdentityLinksResponse>
+unlinkIdentityPeer(canonical: string, channel: string, peerId: string, baseHash: string): Promise<Record<string, unknown>>
 ```
 
 Body:
@@ -102,7 +104,10 @@ Body:
 }
 ```
 
-Response: refreshed `DeckGoIdentityLinksResponse` with peer removed.
+Response today follows the generated Gateway mutation result
+(`{ ok: boolean, configHash?: string }`). Production refetches
+`GET /api/deck/identity` after the mutation before trusting the
+visible peer list.
 
 ### `POST /api/deck/identity` — Rename / Create / Delete (prototype-assumed)
 
@@ -222,16 +227,16 @@ BFF projection over the BFF mutation log. The prototype shows the last
 
 ## Endpoint summary
 
-| Endpoint                             | Method | When                                       | DTO                                       |
-| ------------------------------------ | ------ | ------------------------------------------ | ----------------------------------------- |
-| `/api/deck/identity`                 | GET    | Initial load + Refresh                     | `DeckGoIdentityLinksResponse`             |
-| `/api/deck/identity` (action=link)   | POST   | LinkPeerDialog confirm                     | `DeckGoIdentityLinksResponse` (refreshed) |
-| `/api/deck/identity` (action=unlink) | POST   | UnlinkPeerDialog confirm                   | `DeckGoIdentityLinksResponse` (refreshed) |
-| `/api/deck/identity` (action=rename) | POST   | RenameCanonicalDialog confirm (TBD)        | `DeckGoIdentityLinksResponse` (refreshed) |
-| `/api/deck/identity` (action=create) | POST   | CreateCanonicalDialog confirm (TBD)        | `DeckGoIdentityLinksResponse` (refreshed) |
-| `/api/deck/identity` (action=delete) | POST   | DeleteCanonicalDialog confirm (TBD)        | `DeckGoIdentityLinksResponse` (refreshed) |
-| `/api/agents/{agentId}/identity`     | GET    | Hero render when canonical matches agentId | `DeckGoAgentIdentityResponse`             |
-| `/api/bootstrap/status`              | GET    | Page load + 30s poll                       | `DeckGoBootstrapStatusResponse`           |
+| Endpoint                             | Method | When                                       | DTO                                          |
+| ------------------------------------ | ------ | ------------------------------------------ | -------------------------------------------- |
+| `/api/deck/identity`                 | GET    | Initial load + Refresh                     | `DeckGoIdentityLinksResponse`                |
+| `/api/deck/identity` (action=link)   | POST   | LinkPeerDialog confirm                     | generated mutation result; UI refetches list |
+| `/api/deck/identity` (action=unlink) | POST   | UnlinkPeerDialog confirm                   | generated mutation result; UI refetches list |
+| `/api/deck/identity` (action=rename) | POST   | RenameCanonicalDialog confirm (TBD)        | unsupported today                            |
+| `/api/deck/identity` (action=create) | POST   | CreateCanonicalDialog confirm (TBD)        | unsupported today                            |
+| `/api/deck/identity` (action=delete) | POST   | DeleteCanonicalDialog confirm (TBD)        | unsupported today                            |
+| `/api/agents/{agentId}/identity`     | GET    | Hero render when canonical matches agentId | `DeckGoAgentIdentityResponse`                |
+| `/api/bootstrap/status`              | GET    | Page load + 30s poll                       | `DeckGoBootstrapStatusResponse`              |
 
 ## Backend chain
 
@@ -241,7 +246,7 @@ IdentityApp
   → deck-go Go BFF routes
     ├── deck-go/backend/internal/server/inventory.go (link + unlink handlers)
     ├── Gateway typed client: deck.identity.list / deck.identity.link / deck.identity.unlink
-    └── BFF projection: recentMutations + peer activity (mutation log)
+    └── Future BFF projection: recentMutations + peer activity (not in DTO today)
   → Gateway (only via the BFF / runtime boundary)
 ```
 

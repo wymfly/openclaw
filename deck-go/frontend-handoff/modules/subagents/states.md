@@ -2,6 +2,9 @@
 
 > View routing, list states, detail state, dialog state machines, focus, a11y.
 
+> Production note: prototype-only `running | succeeded | killed | stalled` states are visual
+> assumptions. Current Gateway list filters use `active | completed | failed | timeout | all`.
+
 ## View routing
 
 - `view = "list"` → `SubagentsListView`

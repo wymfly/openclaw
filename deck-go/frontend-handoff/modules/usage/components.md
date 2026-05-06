@@ -41,9 +41,12 @@ UsageApp                                          [app.jsx]
 | `StackedAreaTimeseries` | 3-layer stacked area (input / output / cache-read) for per-session timeseries tab.                                                  |
 | `ContextWeightBar`      | 4-segment proportional bar for system / skills / tools / files chars distribution.                                                  |
 
-**Production**: replace `AreaTrend` / `LineSpark` / `BarMini` /
-`StackedAreaTimeseries` with `recharts` equivalents (see `README.md` § Stack
-decision). `QuotaBar` and `ContextWeightBar` stay CSS-only.
+**Production**: `recharts` is dependency-gated until explicitly approved. The
+current implementation uses existing React/CSS chart primitives and records
+tooltip/crosshair/brush fidelity as follow-up. If `recharts` is approved later,
+replace `AreaTrend` / `LineSpark` / `BarMini` / `StackedAreaTimeseries` with
+`recharts` equivalents (see `README.md` Stack decision). `QuotaBar` and
+`ContextWeightBar` stay CSS-only.
 
 ## Local molecules
 

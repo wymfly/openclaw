@@ -491,6 +491,27 @@ func TestAlertsRoutes_CRUD(t *testing.T) {
 		t.Fatalf("missing rule id: %#v", createdPayload)
 	}
 
+	invalidActionReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/alerts", strings.NewReader(`{
+	  "name":"Invalid Action",
+	  "entityType":"usage",
+	  "condition":">=",
+	  "threshold":80,
+	  "action":"email"
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidActionReq.Header.Set("Authorization", "Bearer admin-token")
+	invalidActionReq.Header.Set("Content-Type", "application/json")
+	invalidActionRes, err := http.DefaultClient.Do(invalidActionReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invalidActionRes.Body.Close()
+	if invalidActionRes.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unexpected invalid action status: %d", invalidActionRes.StatusCode)
+	}
+
 	listReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/alerts", nil)
 	if err != nil {
 		t.Fatal(err)
@@ -528,6 +549,21 @@ func TestAlertsRoutes_CRUD(t *testing.T) {
 		t.Fatalf("unexpected patch status: %d", patchRes.StatusCode)
 	}
 
+	invalidPatchReq, err := http.NewRequest(http.MethodPatch, srv.URL+"/api/alerts/"+ruleID, strings.NewReader(`{"action":"email"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	invalidPatchReq.Header.Set("Authorization", "Bearer admin-token")
+	invalidPatchReq.Header.Set("Content-Type", "application/json")
+	invalidPatchRes, err := http.DefaultClient.Do(invalidPatchReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer invalidPatchRes.Body.Close()
+	if invalidPatchRes.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unexpected invalid patch status: %d", invalidPatchRes.StatusCode)
+	}
+
 	deleteReq, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/alerts/"+ruleID, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -540,6 +576,34 @@ func TestAlertsRoutes_CRUD(t *testing.T) {
 	defer deleteRes.Body.Close()
 	if deleteRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected delete status: %d", deleteRes.StatusCode)
+	}
+}
+
+func TestCORSPreflightAllowsDelete(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+	srv := httptest.NewServer(New())
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodOptions, srv.URL+"/api/alerts/ar-test", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Origin", "http://127.0.0.1:4174")
+	req.Header.Set("Access-Control-Request-Method", http.MethodDelete)
+	req.Header.Set("Access-Control-Request-Headers", "authorization")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("unexpected preflight status: %d", res.StatusCode)
+	}
+	if methods := res.Header.Get("Access-Control-Allow-Methods"); !strings.Contains(methods, http.MethodDelete) {
+		t.Fatalf("DELETE not allowed in CORS methods: %q", methods)
 	}
 }
 
@@ -559,6 +623,7 @@ func TestWebhooksRoutes_CRUDAndTestDelivery(t *testing.T) {
 	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks", strings.NewReader(`{
 	  "name":"Audit",
 	  "url":"`+target.URL+`",
+	  "secret":"receiver-secret",
 	  "events":["alert.fired"],
 	  "enabled":true
 	}`))
@@ -582,6 +647,29 @@ func TestWebhooksRoutes_CRUDAndTestDelivery(t *testing.T) {
 	webhookID, _ := created["id"].(string)
 	if webhookID == "" {
 		t.Fatalf("missing webhook id: %#v", created)
+	}
+	if created["secret"] != "***redacted" {
+		t.Fatalf("expected create response to redact secret, got %#v", created)
+	}
+
+	listReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/webhooks", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	listReq.Header.Set("Authorization", "Bearer admin-token")
+	listRes, err := http.DefaultClient.Do(listReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listRes.Body.Close()
+	var listPayload struct {
+		Webhooks []map[string]any `json:"webhooks"`
+	}
+	if err := json.NewDecoder(listRes.Body).Decode(&listPayload); err != nil {
+		t.Fatal(err)
+	}
+	if len(listPayload.Webhooks) != 1 || listPayload.Webhooks[0]["secret"] != "***redacted" {
+		t.Fatalf("expected list response to redact secret, got %#v", listPayload)
 	}
 
 	testReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks/"+webhookID+"/test", nil)
@@ -657,6 +745,34 @@ func TestWebhooksRoutes_CRUDAndTestDelivery(t *testing.T) {
 	defer deleteRes.Body.Close()
 	if deleteRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected delete status: %d", deleteRes.StatusCode)
+	}
+}
+
+func TestWebhooksRoutes_RejectsNonHTTPReceiverURL(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+	srv := httptest.NewServer(New())
+	defer srv.Close()
+
+	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks", strings.NewReader(`{
+	  "name":"Audit",
+	  "url":"not-a-receiver",
+	  "events":["alert.fired"],
+	  "enabled":true
+	}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	createReq.Header.Set("Authorization", "Bearer admin-token")
+	createReq.Header.Set("Content-Type", "application/json")
+	createRes, err := http.DefaultClient.Do(createReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer createRes.Body.Close()
+	if createRes.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected invalid receiver URL to be rejected, got status %d", createRes.StatusCode)
 	}
 }
 
@@ -1178,14 +1294,14 @@ func TestBudgetRoutes_CRUDAndEvaluate(t *testing.T) {
 	}
 	var evaluated struct {
 		Evaluations []struct {
-			CurrentValue float64 `json:"currentValue"`
-			Status       string  `json:"status"`
+			Current float64 `json:"current"`
+			Status  string  `json:"status"`
 		} `json:"evaluations"`
 	}
 	if err := json.NewDecoder(evalRes.Body).Decode(&evaluated); err != nil {
 		t.Fatal(err)
 	}
-	if len(evaluated.Evaluations) != 1 || evaluated.Evaluations[0].CurrentValue != 12 || evaluated.Evaluations[0].Status != "warn" {
+	if len(evaluated.Evaluations) != 1 || evaluated.Evaluations[0].Current != 12 || evaluated.Evaluations[0].Status != "warn" {
 		t.Fatalf("unexpected budget evaluation payload: %#v", evaluated.Evaluations)
 	}
 
@@ -1216,6 +1332,109 @@ func TestBudgetRoutes_CRUDAndEvaluate(t *testing.T) {
 	defer deleteRes.Body.Close()
 	if deleteRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected delete status: %d", deleteRes.StatusCode)
+	}
+}
+
+func TestBudgetRoutes_RejectInvalidThresholds(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bus := events.NewBus(16)
+	supervisor := &testSupervisor{
+		snapshot: openclawrt.ManagedSnapshot{
+			Managed:    true,
+			Configured: true,
+			Status:     openclawrt.ManagedStatusRunning,
+			Health:     openclawrt.ManagedHealthHealthy,
+			GatewayURL: "http://127.0.0.1:1",
+			AutoStart:  false,
+		},
+	}
+	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	defer srv.Close()
+
+	postBudget := func(body string) (*http.Response, map[string]any) {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/usage/budget", strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer admin-token")
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		return res, payload
+	}
+	patchBudget := func(ruleID string, body string) (*http.Response, map[string]any) {
+		t.Helper()
+		req, err := http.NewRequest(http.MethodPatch, srv.URL+"/api/usage/budget/"+ruleID, strings.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer admin-token")
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		_ = res.Body.Close()
+		return res, payload
+	}
+
+	res, payload := postBudget(`{"name":"Bad order","dimension":"cost","warnThreshold":20,"overThreshold":10}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected bad threshold order to be rejected, got %d %#v", res.StatusCode, payload)
+	}
+	if !strings.Contains(payload["error"].(string), "less than over") {
+		t.Fatalf("unexpected bad order payload: %#v", payload)
+	}
+
+	res, payload = postBudget(`{"name":"Bad negative","dimension":"cost","warnThreshold":-1,"overThreshold":10}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected negative threshold to be rejected, got %d %#v", res.StatusCode, payload)
+	}
+	if !strings.Contains(payload["error"].(string), "zero or greater") {
+		t.Fatalf("unexpected negative payload: %#v", payload)
+	}
+
+	res, payload = postBudget(`{"name":"Valid threshold","dimension":"cost","warnThreshold":10,"overThreshold":20}`)
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("expected valid budget rule, got %d %#v", res.StatusCode, payload)
+	}
+	ruleID, _ := payload["id"].(string)
+	if ruleID == "" {
+		t.Fatalf("missing created rule id: %#v", payload)
+	}
+
+	res, payload = patchBudget(ruleID, `{"warnThreshold":30}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected invalid patch threshold order, got %d %#v", res.StatusCode, payload)
+	}
+	if !strings.Contains(payload["error"].(string), "less than over") {
+		t.Fatalf("unexpected patch payload: %#v", payload)
+	}
+
+	res, payload = patchBudget(ruleID, `{"overThreshold":-1}`)
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected invalid patch threshold value, got %d %#v", res.StatusCode, payload)
+	}
+	if !strings.Contains(payload["error"].(string), "zero or greater") {
+		t.Fatalf("unexpected patch negative payload: %#v", payload)
 	}
 }
 

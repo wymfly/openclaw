@@ -48,7 +48,7 @@ function docsPayload() {
         id: "doc-summary",
         title: "Project Summary",
         category: "summary",
-        content: "Summary content",
+        content: "# Summary\n\nSummary content with project notes.\n\n## Decisions\n\n- Use BFF.",
         sourceSession: "sess-main",
         sourceAgent: "main",
         keywords: ["summary", "project"],
@@ -60,10 +60,11 @@ function docsPayload() {
         id: "doc-api",
         title: "API Spec",
         category: "spec",
-        content: "API details",
+        content:
+          "# API Spec\n\nAPI details for localstore and schema.\n\n## Routes\n\n- GET /api/docs",
         sourceSession: "sess-api",
         sourceAgent: "builder",
-        keywords: ["api"],
+        keywords: ["api", "schema"],
         language: "en",
         extractedAt: "2026-04-24T08:30:00Z",
         updatedAt: "2026-04-24T09:30:00Z",
@@ -79,7 +80,7 @@ function docDetail(docId: string) {
   }
   return {
     ...doc,
-    content: `## Detail Heading\n\n${doc.content} from detail route\n\n- migrated docs viewer`,
+    content: `# ${doc.title}\n\n${doc.content} from detail route\n\n## Detail Heading\n\n- migrated docs viewer`,
   };
 }
 
@@ -88,11 +89,12 @@ describe("DocsPanel", () => {
     (
       globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
+    window.history.replaceState(null, "", "/");
     container = document.createElement("div");
     document.body.appendChild(container);
     apiMocks.fetchDocs.mockResolvedValue(docsPayload());
     apiMocks.fetchDoc.mockImplementation((docId: string) => Promise.resolve(docDetail(docId)));
-    apiMocks.extractDocs.mockResolvedValue({ extracted: 2, docs: docsPayload().docs });
+    apiMocks.extractDocs.mockResolvedValue({ extracted: 2, docs: [docsPayload().docs[1]] });
     apiMocks.deleteDoc.mockResolvedValue({ ok: true, id: "doc-api" });
   });
 
@@ -107,40 +109,38 @@ describe("DocsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("loads docs, category summaries, and the first document detail", async () => {
+  it("loads docs into the v2 workbench and renders selected document evidence", async () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
+    await waitFor(() => expect(apiMocks.fetchDoc).toHaveBeenCalledWith("doc-summary"));
 
+    expect(container.querySelector('[data-testid="docs-panel"]')).toBeTruthy();
+    expect(container.querySelector(".docs-panel__topbar")).toBeTruthy();
+    expect(container.querySelector(".docs-panel__workspace")).toBeTruthy();
+    expect(container.querySelector(".docs-panel__tree")).toBeTruthy();
+    expect(container.querySelector(".docs-panel__reader")).toBeTruthy();
+    expect(container.textContent).toContain("Doc Hub");
+    expect(container.textContent).toContain("extracted from sessions");
     expect(container.textContent).toContain("Docs ready");
     expect(container.textContent).toContain("2 docs");
     expect(container.textContent).toContain("active session sess-active");
-    expect(container.textContent).toContain("Summary: 1");
-    expect(container.textContent).toContain("Spec: 1");
-    expect(container.querySelector(".docs-panel")).toBeTruthy();
-    expect(container.querySelector('[data-testid="docs-panel"]')).toBeTruthy();
-    expect(container.querySelectorAll(".docs-panel__card")).toHaveLength(2);
-    expect(container.querySelectorAll(".docs-panel__metrics .deckgo-stat")).toHaveLength(2);
-    expect(container.querySelector(".docs-panel__category-filter")).toBeTruthy();
-    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(2);
-    expect(container.querySelector('[data-category-filter="summary"]')?.textContent).toContain("1");
-    expect(container.textContent).toContain("summary");
-    expect(container.textContent).toContain("project");
-    expect(container.textContent).toContain("Source session");
-    expect(container.textContent).toContain("sess-main");
-    expect(container.textContent).toContain("Source agent");
-    expect(container.textContent).toContain("main");
-    expect(container.textContent).toContain("Open source session");
-    expect(container.textContent).toContain("Open source agent");
+    expect(container.textContent).toContain("Summaries");
+    expect(container.textContent).toContain("Specs");
     expect(container.textContent).toContain("Project Summary");
-    await waitFor(() => expect(apiMocks.fetchDoc).toHaveBeenCalledWith("doc-summary"));
-    expect(container.textContent).toContain("Summary content from detail route");
-    expect(container.querySelector(".docs-panel__hero")).toBeTruthy();
-    expect(container.querySelectorAll(".docs-panel__surface")).toHaveLength(5);
+    expect(container.textContent).toContain("Summary content with project notes");
+    expect(container.textContent).toContain("Source");
+    expect(container.textContent).toContain("sess-main");
+    expect(container.textContent).toContain("main");
+    expect(container.textContent).toContain("On this page");
+    expect(container.textContent).toContain("All keywords");
+    expect(container.textContent).toContain("Doc payload");
+    expect(
+      Array.from(container.querySelectorAll('[data-markdown-mode="static"] h2')).some((heading) =>
+        heading.textContent?.includes("Detail Heading"),
+      ),
+    ).toBe(true);
     expect(container.querySelector("[style]")).toBeNull();
-    expect(container.querySelector('[data-markdown-mode="static"] h2')?.textContent).toBe(
-      "Detail Heading",
-    );
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -155,56 +155,60 @@ describe("DocsPanel", () => {
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
     expect(deckUIMocks.navigateToAgent).toHaveBeenCalledWith(deckUIMocks.ui, "main");
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Project Summary");
   });
 
-  it("refreshes filters and runs extract and delete actions for the selected doc", async () => {
+  it("supports local search, keyword filtering, extraction, and confirmation-gated delete", async () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledTimes(1));
 
     const queryInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="Search docs..."]',
+      'input[placeholder="Search docs... (⌘K)"]',
     );
     expect(queryInput).toBeTruthy();
-    const specFilter = container.querySelector<HTMLButtonElement>('[data-category-filter="spec"]');
-    expect(specFilter).toBeTruthy();
 
     await act(async () => {
-      specFilter?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fireEvent.change(queryInput as HTMLInputElement, { target: { value: "api" } });
     });
 
-    expect(apiMocks.fetchDocs).toHaveBeenCalledTimes(1);
-    expect(container.querySelector('[data-category-filter="summary"]')?.textContent).toContain("1");
-    expect(container.querySelector('[data-doc-id="doc-summary"]')).toBeNull();
-    expect(container.querySelector('[data-doc-id="doc-api"]')).toBeTruthy();
-
-    const apiDocButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("API Spec"),
+    expect(container.textContent).toContain("1 matches");
+    const firstSearchResult = container.querySelector<HTMLButtonElement>(
+      ".docs-panel__search-list button",
     );
-    expect(apiDocButton).toBeTruthy();
+    expect(firstSearchResult?.textContent).toContain("API Spec");
 
     await act(async () => {
-      apiDocButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      firstSearchResult?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() => expect(apiMocks.fetchDoc).toHaveBeenCalledWith("doc-api"));
-    expect(container.textContent).toContain("API details from detail route");
+    expect(container.textContent).toContain("API details for localstore and schema");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll(".docs-panel__keyword-row button"))
+        .find((button) => button.textContent?.includes("api"))
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("Keyword filter: api");
+    expect(container.querySelector('[data-doc-id="doc-summary"]')).toBeNull();
+    expect(container.querySelector('[data-doc-id="doc-api"]')).toBeTruthy();
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Extract active session")
+        .find((button) => button.textContent === "Extract from session")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(container.textContent).toContain("Active session");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Extract Docs")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() => expect(apiMocks.extractDocs).toHaveBeenCalledWith("sess-active"));
     expect(container.textContent).toContain("Last docs action");
-    expect(container.textContent).not.toContain("Extract all");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -213,16 +217,16 @@ describe("DocsPanel", () => {
     });
 
     expect(apiMocks.deleteDoc).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Delete this doc?");
     expect(container.textContent).toContain("Confirm delete");
-    expect(container.textContent).toContain("Cancel delete");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Cancel delete")
+        .find((button) => button.textContent === "Cancel")
         ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.textContent).not.toContain("Confirm delete");
+    expect(container.textContent).not.toContain("Delete this doc?");
 
     await act(async () => {
       Array.from(container.querySelectorAll("button"))
@@ -238,13 +242,13 @@ describe("DocsPanel", () => {
     await waitFor(() => expect(apiMocks.deleteDoc).toHaveBeenCalledWith("doc-api"));
   });
 
-  it("renders empty, no-match, and load error states without legacy classes", async () => {
+  it("renders empty, search-empty, and load error states without legacy classes", async () => {
     apiMocks.fetchDocs.mockResolvedValueOnce({ docs: [] });
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
-    expect(container.textContent).toContain("No docs loaded.");
-    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(0);
+    expect(container.textContent).toContain("No docs loaded");
+    expect(container.querySelectorAll(".docs-panel__doc-row")).toHaveLength(0);
     expect(container.querySelector(".deck-ui-docs")).toBeNull();
 
     act(() => {
@@ -259,13 +263,12 @@ describe("DocsPanel", () => {
     renderPanel();
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
     const queryInput = container.querySelector<HTMLInputElement>(
-      'input[placeholder="Search docs..."]',
+      'input[placeholder="Search docs... (⌘K)"]',
     );
     await act(async () => {
       fireEvent.change(queryInput as HTMLInputElement, { target: { value: "does-not-exist" } });
     });
-    expect(container.textContent).toContain("No docs match filters.");
-    expect(container.querySelectorAll(".docs-panel__row")).toHaveLength(0);
+    expect(container.textContent).toContain("No docs match. Try fewer terms");
 
     act(() => {
       root?.unmount();
@@ -280,7 +283,7 @@ describe("DocsPanel", () => {
     expect(container.querySelector(".docs-panel__error")).toBeTruthy();
   });
 
-  it("renders the migrated docs shell in Chinese", async () => {
+  it("renders the docs workbench in Chinese", async () => {
     renderPanel("zh");
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
@@ -289,6 +292,6 @@ describe("DocsPanel", () => {
     expect(container.textContent).toContain("2 份文档");
     expect(container.textContent).toContain("活跃 session sess-active");
     expect(container.textContent).toContain("文档中心");
-    expect(container.textContent).toContain("当前文档");
+    expect(container.textContent).toContain("从 session 提取");
   });
 });

@@ -394,6 +394,37 @@ export interface ChatSendResult {
   status?: string;
 }
 
+export type CommandsListParams = {
+  agentId?: string;
+  includeArgs?: boolean;
+  provider?: string;
+  scope?: "both" | "native" | "text";
+};
+
+export type CommandsListResult = {
+  commands: {
+    acceptsArgs: boolean;
+    args?: {
+      choices?: {
+        label: string;
+        value: string;
+      }[];
+      description: string;
+      dynamic?: boolean;
+      name: string;
+      required?: boolean;
+      type: "boolean" | "number" | "string";
+    }[];
+    category?: "docks" | "management" | "media" | "options" | "session" | "status" | "tools";
+    description: string;
+    name: string;
+    nativeName?: string;
+    scope: "both" | "native" | "text";
+    source: "native" | "plugin" | "skill";
+    textAliases?: string[];
+  }[];
+};
+
 export type ConfigApplyParams = {
   baseHash?: string;
   deliveryContext?: {
@@ -907,7 +938,7 @@ export type CronRunResult = {
   enqueued?: boolean;
   ok: boolean;
   ran?: boolean;
-  reason?: "already-running" | "not-due";
+  reason?: "already-running" | "invalid-spec" | "not-due";
   runId?: string;
 };
 
@@ -2124,6 +2155,15 @@ export interface DoctorMemoryStatusResult {
   provider?: string;
 }
 
+export type ExecApprovalListParams = Record<string, never>;
+
+export type ExecApprovalListResult = {
+  createdAtMs: number;
+  expiresAtMs: number;
+  id: string;
+  request: unknown;
+}[];
+
 export type ExecApprovalRequestParams = {
   agentId?: null | string;
   ask?: null | string;
@@ -2483,6 +2523,21 @@ export interface HealthResult {
   ts: number;
 }
 
+export interface LogsTailParams {
+  cursor?: number;
+  limit?: number;
+  maxBytes?: number;
+}
+
+export interface LogsTailResult {
+  cursor: number;
+  file: string;
+  lines: string[];
+  reset?: boolean;
+  size: number;
+  truncated?: boolean;
+}
+
 export interface ModelsCatalogProvidersResult {
   providers: {
     api: string;
@@ -2558,6 +2613,22 @@ export interface NodeDescribeResult {
   uiVersion?: string;
   version?: string;
 }
+
+export interface NodeInvokeParams {
+  command: string;
+  idempotencyKey: string;
+  nodeId: string;
+  params?: unknown;
+  timeoutMs?: number;
+}
+
+export type NodeInvokeResult = {
+  command: string;
+  nodeId: string;
+  ok: true;
+  payload?: unknown;
+  payloadJSON: null | string;
+};
 
 export type NodeListParams = Record<string, never>;
 
@@ -2722,6 +2793,28 @@ export interface NodePairVerifyResult {
   ok: boolean;
 }
 
+export interface NodePendingEnqueueParams {
+  expiresInMs?: number;
+  nodeId: string;
+  priority?: string;
+  type: string;
+  wake?: boolean;
+}
+
+export type NodePendingEnqueueResult = {
+  nodeId: string;
+  queued: {
+    createdAtMs: number;
+    expiresAtMs?: null | number;
+    id: string;
+    payload?: Record<string, unknown>;
+    priority: string;
+    type: string;
+  };
+  revision: number;
+  wakeTriggered: boolean;
+};
+
 export interface NodeRenameParams {
   displayName: string;
   nodeId: string;
@@ -2731,6 +2824,15 @@ export interface NodeRenameResult {
   displayName: string;
   nodeId: string;
 }
+
+export type PluginApprovalListParams = Record<string, never>;
+
+export type PluginApprovalListResult = {
+  createdAtMs: number;
+  expiresAtMs: number;
+  id: string;
+  request: unknown;
+}[];
 
 export type PluginApprovalRequestParams = {
   agentId?: string;
@@ -2752,6 +2854,10 @@ export type PluginApprovalRequestParams = {
 export interface PluginApprovalResolveParams {
   decision: string;
   id: string;
+}
+
+export interface PluginApprovalResolveResult {
+  ok: true;
 }
 
 export interface SessionsAbortParams {
@@ -3183,55 +3289,346 @@ export type SessionsUsageParams = {
   utcOffset?: string;
 };
 
-export interface SessionsUsageResult {
-  aggregates: unknown;
+export type SessionsUsageResult = {
+  aggregates: {
+    byAgent: {
+      agentId: string;
+      totals: {
+        cacheRead: number;
+        cacheReadCost: number;
+        cacheWrite: number;
+        cacheWriteCost: number;
+        input: number;
+        inputCost: number;
+        missingCostEntries: number;
+        output: number;
+        outputCost: number;
+        totalCost: number;
+        totalTokens: number;
+      };
+    }[];
+    byChannel: {
+      channel: string;
+      totals: {
+        cacheRead: number;
+        cacheReadCost: number;
+        cacheWrite: number;
+        cacheWriteCost: number;
+        input: number;
+        inputCost: number;
+        missingCostEntries: number;
+        output: number;
+        outputCost: number;
+        totalCost: number;
+        totalTokens: number;
+      };
+    }[];
+    byModel: {
+      count: number;
+      model?: string;
+      provider?: string;
+      totals: {
+        cacheRead: number;
+        cacheReadCost: number;
+        cacheWrite: number;
+        cacheWriteCost: number;
+        input: number;
+        inputCost: number;
+        missingCostEntries: number;
+        output: number;
+        outputCost: number;
+        totalCost: number;
+        totalTokens: number;
+      };
+    }[];
+    byProvider: {
+      count: number;
+      model?: string;
+      provider?: string;
+      totals: {
+        cacheRead: number;
+        cacheReadCost: number;
+        cacheWrite: number;
+        cacheWriteCost: number;
+        input: number;
+        inputCost: number;
+        missingCostEntries: number;
+        output: number;
+        outputCost: number;
+        totalCost: number;
+        totalTokens: number;
+      };
+    }[];
+    daily: {
+      cost: number;
+      date: string;
+      errors: number;
+      messages: number;
+      tokens: number;
+      toolCalls: number;
+    }[];
+    dailyLatency?: {
+      avgMs: number;
+      count: number;
+      date: string;
+      maxMs: number;
+      minMs: number;
+      p95Ms: number;
+    }[];
+    latency?: {
+      avgMs: number;
+      count: number;
+      maxMs: number;
+      minMs: number;
+      p95Ms: number;
+    };
+    messages: {
+      assistant: number;
+      errors: number;
+      toolCalls: number;
+      toolResults: number;
+      total: number;
+      user: number;
+    };
+    modelDaily?: {
+      cost: number;
+      count: number;
+      date: string;
+      model?: string;
+      provider?: string;
+      tokens: number;
+    }[];
+    tools: {
+      tools: {
+        count: number;
+        name: string;
+      }[];
+      totalCalls: number;
+      uniqueTools: number;
+    };
+  };
   endDate: string;
   sessions: {
     agentId?: string;
     channel?: string;
     chatType?: string;
-    contextWeight?: unknown;
+    contextWeight?: {
+      bootstrapMaxChars?: number;
+      bootstrapTotalMaxChars?: number;
+      bootstrapTruncation?: {
+        nearLimitFiles?: number;
+        promptWarningSignature?: string;
+        totalNearLimit?: boolean;
+        truncatedFiles?: number;
+        warningMode?: "always" | "off" | "once";
+        warningShown?: boolean;
+        warningSignaturesSeen?: string[];
+      };
+      generatedAt: number;
+      injectedWorkspaceFiles: {
+        injectedChars: number;
+        missing: boolean;
+        name: string;
+        path: string;
+        rawChars: number;
+        truncated: boolean;
+      }[];
+      model?: string;
+      provider?: string;
+      sandbox?: {
+        mode?: string;
+        sandboxed?: boolean;
+      };
+      sessionId?: string;
+      sessionKey?: string;
+      skills: {
+        entries: {
+          blockChars: number;
+          name: string;
+        }[];
+        promptChars: number;
+      };
+      source: "estimate" | "run";
+      systemPrompt: {
+        chars: number;
+        nonProjectContextChars: number;
+        projectContextChars: number;
+      };
+      tools: {
+        entries: {
+          name: string;
+          propertiesCount?: null | number;
+          schemaChars: number;
+          summaryChars: number;
+        }[];
+        listChars: number;
+        schemaChars: number;
+      };
+      workspaceDir?: string;
+    } | null;
     key: string;
     label?: string;
     model?: string;
     modelOverride?: string;
     modelProvider?: string;
-    origin?: unknown;
+    origin?: {
+      accountId?: string;
+      chatType?: string;
+      from?: string;
+      label?: string;
+      provider?: string;
+      surface?: string;
+      threadId?: number | string;
+      to?: string;
+    };
     providerOverride?: string;
     sessionId?: string;
     updatedAt?: number;
-    usage: unknown;
+    usage: {
+      activityDates?: string[];
+      cacheRead: number;
+      cacheReadCost: number;
+      cacheWrite: number;
+      cacheWriteCost: number;
+      dailyBreakdown?: {
+        cost: number;
+        date: string;
+        tokens: number;
+      }[];
+      dailyLatency?: {
+        avgMs: number;
+        count: number;
+        date: string;
+        maxMs: number;
+        minMs: number;
+        p95Ms: number;
+      }[];
+      dailyMessageCounts?: {
+        assistant: number;
+        date: string;
+        errors: number;
+        toolCalls: number;
+        toolResults: number;
+        total: number;
+        user: number;
+      }[];
+      dailyModelUsage?: {
+        cost: number;
+        count: number;
+        date: string;
+        model?: string;
+        provider?: string;
+        tokens: number;
+      }[];
+      durationMs?: number;
+      firstActivity?: number;
+      input: number;
+      inputCost: number;
+      lastActivity?: number;
+      latency?: {
+        avgMs: number;
+        count: number;
+        maxMs: number;
+        minMs: number;
+        p95Ms: number;
+      };
+      messageCounts?: {
+        assistant: number;
+        errors: number;
+        toolCalls: number;
+        toolResults: number;
+        total: number;
+        user: number;
+      };
+      missingCostEntries: number;
+      modelUsage?: {
+        count: number;
+        model?: string;
+        provider?: string;
+        totals: {
+          cacheRead: number;
+          cacheReadCost: number;
+          cacheWrite: number;
+          cacheWriteCost: number;
+          input: number;
+          inputCost: number;
+          missingCostEntries: number;
+          output: number;
+          outputCost: number;
+          totalCost: number;
+          totalTokens: number;
+        };
+      }[];
+      output: number;
+      outputCost: number;
+      sessionFile?: string;
+      sessionId?: string;
+      toolUsage?: {
+        tools: {
+          count: number;
+          name: string;
+        }[];
+        totalCalls: number;
+        uniqueTools: number;
+      };
+      totalCost: number;
+      totalTokens: number;
+    } | null;
   }[];
   startDate: string;
-  totals: unknown;
+  totals: {
+    cacheRead: number;
+    cacheReadCost: number;
+    cacheWrite: number;
+    cacheWriteCost: number;
+    input: number;
+    inputCost: number;
+    missingCostEntries: number;
+    output: number;
+    outputCost: number;
+    totalCost: number;
+    totalTokens: number;
+  };
   updatedAt: number;
-}
-
-export type SessionsUsageLogsParams = {
-  endDate?: string;
-  includeContextWeight?: boolean;
-  key?: string;
-  limit?: number;
-  mode?: "gateway" | "specific" | "utc";
-  startDate?: string;
-  utcOffset?: string;
 };
 
-export interface SessionsUsageLogsResult {
-  logs: unknown[];
+export interface SessionsUsageLogsParams {
+  key: string;
+  limit?: number;
 }
+
+export type SessionsUsageLogsResult = {
+  logs: {
+    content: string;
+    cost?: number;
+    role: "assistant" | "tool" | "toolResult" | "user";
+    timestamp: number;
+    tokens?: number;
+  }[];
+};
 
 export type SessionsUsageTimeseriesParams = {
   endDate?: string;
-  includeContextWeight?: boolean;
-  key?: string;
-  limit?: number;
+  key: string;
   mode?: "gateway" | "specific" | "utc";
   startDate?: string;
   utcOffset?: string;
 };
 
-export type SessionsUsageTimeseriesResult = unknown;
+export interface SessionsUsageTimeseriesResult {
+  points: {
+    cacheRead: number;
+    cacheWrite: number;
+    cost: number;
+    cumulativeCost: number;
+    cumulativeTokens: number;
+    input: number;
+    output: number;
+    timestamp: number;
+    totalTokens: number;
+  }[];
+  sessionId?: string;
+}
 
 export type SkillsBinsParams = Record<string, never>;
 
@@ -3506,6 +3903,58 @@ export interface TalkSpeakResult {
   voiceCompatible?: boolean;
 }
 
+export interface ToolsCatalogParams {
+  agentId?: string;
+  includePlugins?: boolean;
+}
+
+export type ToolsCatalogResult = {
+  agentId: string;
+  groups: {
+    id: string;
+    label: string;
+    pluginId?: string;
+    source: "core" | "plugin";
+    tools: {
+      defaultProfiles: ("coding" | "full" | "messaging" | "minimal")[];
+      description: string;
+      id: string;
+      label: string;
+      optional?: boolean;
+      pluginId?: string;
+      source: "core" | "plugin";
+    }[];
+  }[];
+  profiles: {
+    id: "coding" | "full" | "messaging" | "minimal";
+    label: string;
+  }[];
+};
+
+export interface ToolsEffectiveParams {
+  agentId?: string;
+  sessionKey: string;
+}
+
+export type ToolsEffectiveResult = {
+  agentId: string;
+  groups: {
+    id: "channel" | "core" | "plugin";
+    label: string;
+    source: "channel" | "core" | "plugin";
+    tools: {
+      channelId?: string;
+      description: string;
+      id: string;
+      label: string;
+      pluginId?: string;
+      rawDescription: string;
+      source: "channel" | "core" | "plugin";
+    }[];
+  }[];
+  profile: string;
+};
+
 export interface UsageCostResult {
   daily: {
     cacheRead: number;
@@ -3642,6 +4091,7 @@ export interface GatewayMethodMap {
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
   "chat.send": { params: ChatSendParams; result: ChatSendResult };
+  "commands.list": { params: CommandsListParams; result: CommandsListResult };
   "config.apply": { params: ConfigApplyParams; result: ConfigApplyResult };
   "config.get": { params: ConfigGetParams; result: ConfigGetResult };
   "config.patch": { params: ConfigPatchParams; result: ConfigPatchResult };
@@ -3742,6 +4192,7 @@ export interface GatewayMethodMap {
     result: DoctorMemoryResetGroundedShortTermResult;
   };
   "doctor.memory.status": { params: Record<string, unknown>; result: DoctorMemoryStatusResult };
+  "exec.approval.list": { params: ExecApprovalListParams; result: ExecApprovalListResult };
   "exec.approval.request": { params: ExecApprovalRequestParams; result: ExecApprovalRequestResult };
   "exec.approval.resolve": { params: ExecApprovalResolveParams; result: ExecApprovalResolveResult };
   "exec.approval.waitDecision": {
@@ -3761,6 +4212,7 @@ export interface GatewayMethodMap {
   "gateway.batch": { params: GatewayBatchParams; result: GatewayBatchResult };
   "gateway.describe": { params: GatewayDescribeParams; result: GatewayDescribeResult };
   health: { params: Record<string, unknown>; result: HealthResult };
+  "logs.tail": { params: LogsTailParams; result: LogsTailResult };
   "models.catalog.providers": {
     params: Record<string, unknown>;
     result: ModelsCatalogProvidersResult;
@@ -3768,15 +4220,21 @@ export interface GatewayMethodMap {
   "models.configured": { params: ModelsConfiguredParams; result: ModelsConfiguredResult };
   "models.list": { params: ModelsListParams; result: ModelsListResult };
   "node.describe": { params: NodeDescribeParams; result: NodeDescribeResult };
+  "node.invoke": { params: NodeInvokeParams; result: NodeInvokeResult };
   "node.list": { params: NodeListParams; result: NodeListResult };
   "node.pair.approve": { params: NodePairApproveParams; result: NodePairApproveResult };
   "node.pair.list": { params: NodePairListParams; result: NodePairListResult };
   "node.pair.reject": { params: NodePairRejectParams; result: NodePairRejectResult };
   "node.pair.request": { params: NodePairRequestParams; result: NodePairRequestResult };
   "node.pair.verify": { params: NodePairVerifyParams; result: NodePairVerifyResult };
+  "node.pending.enqueue": { params: NodePendingEnqueueParams; result: NodePendingEnqueueResult };
   "node.rename": { params: NodeRenameParams; result: NodeRenameResult };
+  "plugin.approval.list": { params: PluginApprovalListParams; result: PluginApprovalListResult };
   "plugin.approval.request": { params: PluginApprovalRequestParams; result: unknown };
-  "plugin.approval.resolve": { params: PluginApprovalResolveParams; result: unknown };
+  "plugin.approval.resolve": {
+    params: PluginApprovalResolveParams;
+    result: PluginApprovalResolveResult;
+  };
   "sessions.abort": { params: SessionsAbortParams; result: SessionsAbortResult };
   "sessions.clear": { params: SessionsClearParams; result: SessionsClearResult };
   "sessions.compact": { params: SessionsCompactParams; result: SessionsCompactResult };
@@ -3831,6 +4289,8 @@ export interface GatewayMethodMap {
   "talk.config": { params: TalkConfigParams; result: TalkConfigResult };
   "talk.mode": { params: TalkModeParams; result: TalkModeResult };
   "talk.speak": { params: TalkSpeakParams; result: TalkSpeakResult };
+  "tools.catalog": { params: ToolsCatalogParams; result: ToolsCatalogResult };
+  "tools.effective": { params: ToolsEffectiveParams; result: ToolsEffectiveResult };
   "usage.cost": { params: Record<string, unknown>; result: UsageCostResult };
   "usage.status": { params: Record<string, unknown>; result: UsageStatusResult };
   "wizard.cancel": { params: WizardCancelParams; result: WizardCancelResult };

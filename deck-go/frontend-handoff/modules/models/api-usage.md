@@ -18,7 +18,7 @@ Wrapper: `fetchModelsConfig()`. Response: `DeckGoModelsConfigResponse`
 
 ### `PATCH /models/config`
 
-Wrapper: `patchModelsConfig(rawDraft, baseHash)`. Response:
+Wrapper: `saveModelsConfig(rawDraft, baseHash)`. Response:
 `DeckGoConfigApplyResponse`.
 
 - Send full updated `raw` + `baseHash`. On 409 reload + re-prompt.
@@ -30,17 +30,24 @@ Wrapper: `patchModelsConfig(rawDraft, baseHash)`. Response:
 Wrapper: `lookupConfigSchema(path)` → JSON schema fragment. Optional
 in prototype.
 
-### `GET /models/usage/cost`
+### `GET /usage/cost`
 
-Wrapper: `fetchUsageCost(window?)`. Response:
+Wrapper: `fetchModelUsageCost(days?)`. Response:
 `DeckGoUsageCostResponse` (`runtimeId`, `currency`, `totals`,
 `perProvider`, `perModel`).
 
-### `GET /models/usage/providers`
+`GET /models/usage/cost` remains available as a Models-compatible BFF
+alias, but the current frontend wrapper uses canonical `/usage/cost`.
 
-Wrapper: `fetchUsageProviders()`. Response:
+### `GET /usage/providers`
+
+Wrapper: `fetchModelUsageProviders()`. Response:
 `DeckGoUsageProvidersResponse` (array of
 `DeckGoUsageProviderStatus`).
+
+`GET /models/usage/providers` remains available as a Models-compatible
+BFF alias, but the current frontend wrapper uses canonical
+`/usage/providers`.
 
 ## Gateway RPC (via runtime)
 
@@ -67,7 +74,7 @@ error | unknown`. `reasonCode` (e.g. `rate-limit`) drives banner copy.
 
 ## BFF projections
 
-### `pricing: Record<modelId, ModelPricing>`
+### `pricing: Record<modelId, ModelPricing>` (projected)
 
 ```ts
 interface ModelPricing {
@@ -77,10 +84,10 @@ interface ModelPricing {
 }
 ```
 
-BFF maintains snapshot of vendor pricing. Vendor invoice is
-authoritative.
+This is a handoff-level projection, not a currently guaranteed
+Deck-facing DTO. Vendor invoice remains authoritative.
 
-### `audit: AuditEntry[]`
+### `audit: AuditEntry[]` (projected)
 
 ```ts
 interface AuditEntry {
@@ -95,27 +102,32 @@ interface AuditEntry {
 }
 ```
 
-BFF projection over `PATCH /models/config` history.
+This is a handoff-level projection over possible `PATCH /models/config`
+history. It is not currently guaranteed by the Deck-facing DTOs.
 
 ## Endpoint summary
 
-| Endpoint                         | Method | When                                               | DTO                                     |
-| -------------------------------- | ------ | -------------------------------------------------- | --------------------------------------- |
-| `/models/config`                 | GET    | Initial load + after PATCH                         | `DeckGoModelsConfigResponse`            |
-| `/models/config`                 | PATCH  | Set default / add / configure auth / fallback edit | `DeckGoConfigApplyResponse`             |
-| `/config/schema-lookup`          | POST   | Form schema hints (optional)                       | JSON schema fragment                    |
-| `/models/usage/cost`             | GET    | KPI strip + Pricing tab + Usage tab                | `DeckGoUsageCostResponse`               |
-| `/models/usage/providers`        | GET    | Usage tab provider-health tiles                    | `DeckGoUsageProvidersResponse`          |
-| `models.configured` (RPC)        | RPC    | List rows                                          | `DeckGoRuntimeConfiguredModelsResponse` |
-| `deck.auth.overview` (RPC)       | RPC    | Provider auth row, OAuth, cooldown, usage windows  | `DeckGoModelAuthOverviewResponse`       |
-| `models.catalog.providers` (RPC) | RPC    | CatalogDialog                                      | `DeckGoModelCatalogProvidersResponse`   |
-| `deck.auth.probe` (RPC)          | RPC    | Per-row probe pill + ProbeResultDialog             | `DeckGoModelProbeResponse`              |
+| Endpoint                               | Method | When                                                                                         | DTO                                     |
+| -------------------------------------- | ------ | -------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Endpoint / method                      | Method | When                                                                                         | DTO                                     |
+| --------------------------------       | ------ | --------------------------------------------------                                           | --------------------------------------- |
+| `/models/config`                       | GET    | Initial load + after PATCH                                                                   | `DeckGoModelsConfigResponse`            |
+| `/models/config`                       | PATCH  | Set default / add / configure auth / fallback edit                                           | `DeckGoConfigApplyResponse`             |
+| `/config/schema-lookup`                | POST   | Form schema hints (optional)                                                                 | `DeckGoConfigLookupResponse`            |
+| `/usage/cost`                          | GET    | KPI strip + Pricing tab + Usage tab                                                          | `DeckGoUsageCostResponse`               |
+| `/usage/providers`                     | GET    | Usage tab provider-health tiles                                                              | `DeckGoUsageProvidersResponse`          |
+| `/models/usage/cost`                   | GET    | Compatibility alias                                                                          | `DeckGoUsageCostResponse`               |
+| `/models/usage/providers`              | GET    | Compatibility alias                                                                          | `DeckGoUsageProvidersResponse`          |
+| `models.configured` (typed RPC)        | POST   | List rows via `/v1/runtimes/{runtimeId}/gateway/rpc`                                         | `DeckGoRuntimeConfiguredModelsResponse` |
+| `deck.auth.overview` (typed RPC)       | POST   | Provider auth row, OAuth, cooldown, usage windows via `/v1/runtimes/{runtimeId}/gateway/rpc` | `DeckGoModelAuthOverviewResponse`       |
+| `models.catalog.providers` (typed RPC) | POST   | CatalogDialog via `/v1/runtimes/{runtimeId}/gateway/rpc`                                     | `DeckGoModelCatalogProvidersResponse`   |
+| `deck.auth.probe` (typed RPC)          | POST   | Per-provider probe via `/v1/runtimes/{runtimeId}/gateway/rpc`                                | `DeckGoModelProbeResponse`              |
 
 ## Backend chain
 
 ```
 ModelsPanel / model helper components
-  → frontend-new/src/api/models.ts
+  → frontend-new/src/api.ts
   → deck-go Go BFF routes
   → runtime openclaw managed adapter
   → Gateway (only behind the BFF / runtime boundary)
@@ -143,5 +155,5 @@ fallback?, local?, lastUsedMs?`). If runtime emits thinner DTO,
   multi-tier (cached vs uncached input), extend with optional fields
   and keep `inputPer1MTokens` as blended baseline.
 - Audit projection is BFF-only and may not exist server-side yet.
-- `deck.auth.probe` is assumed cached ~30s server-side. The dialog's
-  "Run probe" force-refresh assumes a force flag exists.
+- `deck.auth.probe` cache/force-refresh semantics are not guaranteed by
+  the current wrapper, which passes only `{ provider }`.

@@ -1,6 +1,6 @@
 # models — high-fidelity handoff
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
 **Reference prior art:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html) (V1 Codex single-file; do not implement against it)

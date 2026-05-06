@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,13 +17,19 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
 )
 
-func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.HandlerFunc) }) {
+func registerWebhookRoutes(mux interface {
+	MethodFunc(string, string, http.HandlerFunc)
+}) {
 	mux.MethodFunc("GET", "/webhooks", func(w http.ResponseWriter, _ *http.Request) {
 		webhooks := localstore.GetWebhookStore().All()
 		sort.Slice(webhooks, func(i, j int) bool {
 			return webhooks[i].CreatedAt > webhooks[j].CreatedAt
 		})
-		writeJSON(w, http.StatusOK, map[string]any{"webhooks": webhooks})
+		items := make([]map[string]any, 0, len(webhooks))
+		for _, webhook := range webhooks {
+			items = append(items, publicWebhook(webhook))
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"webhooks": items})
 	})
 
 	mux.MethodFunc("POST", "/webhooks", func(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +48,7 @@ func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.Handle
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "name and url are required"})
 			return
 		}
-		if _, err := url.Parse(body.URL); err != nil {
+		if err := validateWebhookURL(body.URL); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid URL"})
 			return
 		}
@@ -64,7 +71,7 @@ func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.Handle
 			UpdatedAt:           now,
 		}
 		localstore.GetWebhookStore().Append(webhook)
-		writeJSON(w, http.StatusCreated, webhook)
+		writeJSON(w, http.StatusCreated, publicWebhook(webhook))
 	})
 
 	mux.MethodFunc("PATCH", "/webhooks/{webhookId}", func(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +93,7 @@ func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.Handle
 			return
 		}
 		if body.URL != nil {
-			if _, err := url.Parse(*body.URL); err != nil {
+			if err := validateWebhookURL(*body.URL); err != nil {
 				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid URL"})
 				return
 			}
@@ -116,7 +123,7 @@ func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.Handle
 			return item
 		})
 		updated, _ := store.Find(func(item localstore.Webhook) bool { return item.ID == webhookID })
-		writeJSON(w, http.StatusOK, updated)
+		writeJSON(w, http.StatusOK, publicWebhook(updated))
 	})
 
 	mux.MethodFunc("DELETE", "/webhooks/{webhookId}", func(w http.ResponseWriter, r *http.Request) {
@@ -156,6 +163,37 @@ func registerWebhookRoutes(mux interface{ MethodFunc(string, string, http.Handle
 		result := deliverWebhook(webhook, "test.ping", map[string]any{"test": true})
 		writeJSON(w, http.StatusOK, result)
 	})
+}
+
+func publicWebhook(webhook localstore.Webhook) map[string]any {
+	var secret any
+	if webhook.Secret != nil && *webhook.Secret != "" {
+		secret = "***redacted"
+	}
+	return map[string]any{
+		"id":                  webhook.ID,
+		"name":                webhook.Name,
+		"url":                 webhook.URL,
+		"secret":              secret,
+		"events":              webhook.Events,
+		"enabled":             webhook.Enabled,
+		"consecutiveFailures": webhook.ConsecutiveFailures,
+		"lastFiredAt":         webhook.LastFiredAt,
+		"lastStatus":          webhook.LastStatus,
+		"createdAt":           webhook.CreatedAt,
+		"updatedAt":           webhook.UpdatedAt,
+	}
+}
+
+func validateWebhookURL(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return err
+	}
+	if parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return errors.New("webhook url must be http or https")
+	}
+	return nil
 }
 
 func deliverWebhook(webhook localstore.Webhook, eventType string, payload map[string]any) map[string]any {

@@ -17,12 +17,13 @@ export function RuleList(props: {
   evaluations: DeckGoBudgetEvaluation[];
   selectedRuleId: string | null;
   onSelect: (rule: DeckGoBudgetRule) => void;
+  emptyLabel: string;
 }) {
   const t = useTranslations("budget");
   const evaluationByRuleId = new Map(props.evaluations.map((item) => [item.ruleId, item]));
 
   if (props.rules.length === 0) {
-    return <p className="budget-panel__empty">{t("noRules")}</p>;
+    return <p className="budget-panel__empty">{props.emptyLabel}</p>;
   }
 
   return (

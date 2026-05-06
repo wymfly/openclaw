@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { allEventNames, allMethodDefs, allMethodNames } from "../method-registry-data.js";
 
 describe("gateway.describe handler", () => {
   it("registers the gateway.describe RPC handler", async () => {
@@ -51,5 +52,99 @@ describe("gateway.describe handler", () => {
     const desc = gatewayMethodRegistry.describe({ filter: "all" });
     expect(desc.methods["deck.auth.overview"]).toBeDefined();
     expect(desc.methods["deck.auth.probe"]).toBeDefined();
+  });
+
+  it("registers Skills methods from metadata-only control-plane definitions", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "typed", includeSchemas: true });
+
+    for (const method of [
+      "skills.status",
+      "skills.bins",
+      "skills.search",
+      "skills.detail",
+      "skills.install",
+      "skills.update",
+    ]) {
+      expect(desc.methods[method], method).toBeDefined();
+      expect(desc.methods[method]?.params, method).toBeDefined();
+      expect(desc.methods[method]?.result, method).toBeDefined();
+    }
+
+    expect(desc.methods["skills.status"]?.scope).toBe("operator.read");
+    expect(desc.methods["skills.bins"]?.scope).toBe("node");
+  });
+
+  it("keeps runtime describe method membership aligned with the runtime registry", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "all", includeSchemas: true });
+    const describedMethods = [...Object.keys(desc.methods), ...desc.untyped].toSorted(
+      (left, right) => left.localeCompare(right),
+    );
+    const runtimeMethods = gatewayMethodRegistry
+      .listMethods()
+      .toSorted((left, right) => left.localeCompare(right));
+    const knownMethodSet = new Set(allMethodNames);
+
+    expect(describedMethods).toEqual(runtimeMethods);
+    expect(runtimeMethods.filter((method) => !knownMethodSet.has(method))).toEqual([]);
+  });
+
+  it("keeps runtime describe typed and untyped filters aligned with metadata", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const typedDesc = gatewayMethodRegistry.describe({ filter: "typed", includeSchemas: true });
+    const untypedDesc = gatewayMethodRegistry.describe({ filter: "untyped", includeSchemas: true });
+    const typedMethods = gatewayMethodRegistry
+      .listMethods()
+      .filter((method) => {
+        const def = gatewayMethodRegistry.getDefinition(method);
+        return Boolean(def?.params || def?.result);
+      })
+      .toSorted((left, right) => left.localeCompare(right));
+    const untypedMethods = gatewayMethodRegistry
+      .listMethods()
+      .filter((method) => {
+        const def = gatewayMethodRegistry.getDefinition(method);
+        return !def?.params && !def?.result;
+      })
+      .toSorted((left, right) => left.localeCompare(right));
+
+    expect(
+      Object.keys(typedDesc.methods).toSorted((left, right) => left.localeCompare(right)),
+    ).toEqual(typedMethods);
+    expect(untypedDesc.untyped.toSorted((left, right) => left.localeCompare(right))).toEqual(
+      untypedMethods,
+    );
+    expect(Object.keys(untypedDesc.methods)).toEqual([]);
+  });
+
+  it("exposes runtime params and result schemas when static metadata exists", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "all", includeSchemas: true });
+
+    for (const method of gatewayMethodRegistry.listMethods()) {
+      const staticDef = allMethodDefs[method];
+      const runtimeEntry = desc.methods[method];
+      if (!staticDef || (!staticDef.params && !staticDef.result)) {
+        continue;
+      }
+      expect(runtimeEntry, method).toBeDefined();
+      if (staticDef.params) {
+        expect(runtimeEntry.params, `${method} params`).toBeDefined();
+      }
+      if (staticDef.result) {
+        expect(runtimeEntry.result, `${method} result`).toBeDefined();
+      }
+    }
+  });
+
+  it("keeps runtime describe event membership aligned with the static event list", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "all", includeSchemas: true });
+
+    expect(Object.keys(desc.events).toSorted((left, right) => left.localeCompare(right))).toEqual(
+      gatewayMethodRegistry.listEvents().toSorted((left, right) => left.localeCompare(right)),
+    );
+    expect(gatewayMethodRegistry.listEvents()).toEqual(allEventNames);
   });
 });

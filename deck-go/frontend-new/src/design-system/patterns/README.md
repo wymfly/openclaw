@@ -31,6 +31,25 @@ Single-panel needs stay panel-local until the second occurrence. Don't promote p
 
 See `openspec/specs/design-system-patterns/` for the full normative requirements.
 
+## Extraction audit — 2026-05-05
+
+The contract-chain matrix follow-up `deck-go-design-system-pattern-extraction`
+closed as an audit/settlement change, not a visual refactor. Current product
+modules do not provide enough reuse-analysis evidence to promote a seventh
+canonical pattern.
+
+Parked candidates from `frontend-handoff/design-system/proposals/` remain
+panel-local until they satisfy the gate above:
+
+- `Avatar`
+- `ListRow`
+- `StatusPill`
+- `FileRow`
+
+Do not extract one of these based on visual similarity alone. Promotion still
+requires a focused proposal naming at least two module call sites, the closest
+existing pattern, and why extending the current pattern set is insufficient.
+
 ## API rules
 
 1. **Tokens-only**: All visual values (color, spacing, radius, shadow, font) come from `--ds-*` tokens. No hex literals, no raw px outside the spacing scale.

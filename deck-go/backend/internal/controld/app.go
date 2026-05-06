@@ -198,7 +198,7 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 				"Access-Control-Allow-Headers",
 				"Authorization, Content-Type, Last-Event-ID, x-deck-token, X-Request-Id",
 			)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			if req.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

@@ -1,0 +1,58 @@
+change: frontend-plugins-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway inventory variation may be degraded, empty-valid, skipped-safe, or handoff-blocked when bounded attempts show an environment or Gateway-data blocker."
+entries:
+  - scenarioId: baseline.plugins-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/plugins/prototype.html and inspect frontend-plugins-hifi-redesign evidence"
+    evidence: "prototype.html loaded with title 'deck-go plugins - interactive prototype' and no browser console/page errors; v2 handoff inspected and refreshed to implemented-real-contract."
+  - scenarioId: audit.plugins-bff-gateway-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF plugins route, runtime facade, Gateway deck.plugins.list path, frontend wrappers, and production Plugins code"
+    evidence: "Verified /api/deck/plugins route, deck.plugins.list typed Gateway path, DeckGoPlugin DTOs, endpoint classification, frontend wrappers, mock Gateway shape, and unsupported manifest/audit/lifecycle gaps."
+  - scenarioId: contract.plugins-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/runtime/Gateway dependency -> capability classification matrix"
+    evidence: "Matrix recorded in deck-go/frontend-handoff/modules/plugins/implementation-notes.md for inventory, scope, search/filter, selection, capabilities, diagnostics, raw evidence, handoff, BFF-only access, and unsupported gaps."
+  - scenarioId: implementation.plugins-v2-and-scoped-fixes
+    ownerTask: "3.2-3.5"
+    status: passed
+    verificationCommand: "Implement deterministic UI/docs/test/BFF fixes and verify unsupported prototype workflows remain inactive, degraded, or documented"
+    evidence: "Production Plugins panel rebuilt as v2 read-only workbench; manifest/audit/lifecycle prototype claims rendered as degraded or unsupported; handoff API docs corrected to current route truth."
+  - scenarioId: frontend.plugins-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Plugins"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/plugins/PluginsPanel.test.tsx src/api.chat-helpers.test.ts -> 55 tests passed."
+  - scenarioId: backend.plugins-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for plugin inventory route and Gateway query behavior"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw ./internal/api/http -run 'TestGatewayFacade_ChannelsAndPlugins|TestGatewayQueriesTyped|TestMountRuntimeRoutes|TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes|TestManagedRuntime|TestLegacyInventorySurface' -> passed."
+  - scenarioId: visual.plugins-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Plugins mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/plugins-visual.spec.ts --config playwright.config.ts -> 1 passed. L1 mock/local populated inventory coverage only."
+  - scenarioId: l2.plugins-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: empty-valid
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for plugin inventory, capability scope, UI render, and no direct browser Gateway calls"
+    evidence: "cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/plugins-real-gateway.spec.ts --config playwright.config.ts -> 2 passed. Real Gateway inventory was empty-valid; response envelopes, UI render, scope switch, and no direct browser Gateway calls verified."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Plugins panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Plugins panel, API facade, endpoint classification, Go BFF route/runtime query path, mock Gateway fixture, L1/L2 specs, and handoff docs; unsupported routes were not added."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-plugins-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate passed; cd deck-go && make endpoint-classification-check passed; cd deck-go && make frontend-build passed; git diff --check passed."

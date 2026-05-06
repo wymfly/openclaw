@@ -530,7 +530,7 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 				},
 			})
 		case "agents.create":
-			if params["name"] != "Ops" || params["workspace"] != "/tmp/default-agents-workspace" {
+			if params["name"] != "Ops" || params["workspace"] != "/tmp/default-agents-workspace" || params["model"] != "gpt-5.4" {
 				t.Fatalf("unexpected agents.create params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
@@ -626,7 +626,10 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 				"payload": map[string]any{"agentId": "main", "name": "Main"},
 			})
 		case "tools.catalog":
-			if params["agentId"] != "main" || params["includePlugins"] != false {
+			if params["agentId"] != "main" {
+				t.Fatalf("unexpected tools.catalog params: %#v", params)
+			}
+			if includePlugins, ok := params["includePlugins"].(bool); ok && includePlugins {
 				t.Fatalf("unexpected tools.catalog params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
@@ -648,7 +651,7 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 		body   string
 		header bool
 	}{
-		{method: http.MethodPost, path: "/api/agents", body: `{"name":"Ops"}`, header: true},
+		{method: http.MethodPost, path: "/api/agents", body: `{"name":"Ops","model":"gpt-5.4"}`, header: true},
 		{method: http.MethodDelete, path: "/api/agents?agentId=ops", header: true},
 		{method: http.MethodGet, path: "/api/agents/main", header: true},
 		{method: http.MethodPatch, path: "/api/agents/main", body: `{"name":"Renamed Main"}`, header: true},
@@ -1069,8 +1072,10 @@ func TestGatewayFacade_CronRoutes(t *testing.T) {
 	}
 }
 
-func TestGatewayFacade_ModelUsageRoutes(t *testing.T) {
+func TestGatewayFacade_UsageCostProviderRoutes(t *testing.T) {
 	expectedCalls := []string{
+		"usage.cost",
+		"usage.status",
 		"usage.cost",
 		"usage.status",
 	}
@@ -1104,6 +1109,8 @@ func TestGatewayFacade_ModelUsageRoutes(t *testing.T) {
 		method string
 		path   string
 	}{
+		{method: http.MethodGet, path: "/api/usage/cost?days=14"},
+		{method: http.MethodGet, path: "/api/usage/providers"},
 		{method: http.MethodGet, path: "/api/models/usage/cost?days=14"},
 		{method: http.MethodGet, path: "/api/models/usage/providers"},
 	}
@@ -1454,6 +1461,21 @@ func TestGatewayFacade_MemoryRoutes(t *testing.T) {
 	dreamRes.Body.Close()
 	if dreamRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected dreams status: %d", dreamRes.StatusCode)
+	}
+
+	searchReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/memory/search", strings.NewReader(`{"query":"test","agentId":"main","scope":"agent"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	searchReq.Header.Set("Authorization", "Bearer admin-token")
+	searchReq.Header.Set("Content-Type", "application/json")
+	searchRes, err := http.DefaultClient.Do(searchReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	searchRes.Body.Close()
+	if searchRes.StatusCode != http.StatusNotImplemented {
+		t.Fatalf("unexpected canonical search status: %d", searchRes.StatusCode)
 	}
 }
 
@@ -1838,7 +1860,7 @@ func TestGatewayFacade_DeckIdentity(t *testing.T) {
 }
 
 func TestGatewayFacade_DeckRouting(t *testing.T) {
-	expectedCalls := []string{"deck.routing.list", "deck.routing.simulate"}
+	expectedCalls := []string{"deck.routing.list", "deck.routing.validate", "deck.routing.add", "deck.routing.remove", "deck.routing.simulate"}
 	callIndex := 0
 
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
@@ -1855,6 +1877,46 @@ func TestGatewayFacade_DeckRouting(t *testing.T) {
 				"id":      params["_requestID"],
 				"ok":      true,
 				"payload": map[string]any{"bindings": []map[string]any{{"id": "binding-1"}}},
+			})
+		case "deck.routing.validate":
+			if params["agentId"] != "main" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type":    "res",
+				"id":      params["_requestID"],
+				"ok":      true,
+				"payload": map[string]any{"ok": true, "tier": "channel", "conflicts": []any{}},
+			})
+		case "deck.routing.add":
+			if params["agentId"] != "main" || params["baseHash"] != "hash-1" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"ok":         true,
+					"binding":    map[string]any{"id": "binding-2"},
+					"configHash": "hash-2",
+					"warnings":   []any{},
+				},
+			})
+		case "deck.routing.remove":
+			if params["id"] != "binding-2" || params["baseHash"] != "hash-2" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"ok":         true,
+					"removed":    map[string]any{"id": "binding-2"},
+					"configHash": "hash-3",
+					"impact":     "messages fall through",
+				},
 			})
 		case "deck.routing.simulate":
 			if params["channel"] != "telegram" {
@@ -1883,6 +1945,51 @@ func TestGatewayFacade_DeckRouting(t *testing.T) {
 	defer listRes.Body.Close()
 	if listRes.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected routing list status: %d", listRes.StatusCode)
+	}
+
+	validateReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/routing", strings.NewReader(`{"action":"validate","agentId":"main","match":{"channel":"telegram"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validateReq.Header.Set("Authorization", "Bearer admin-token")
+	validateReq.Header.Set("Content-Type", "application/json")
+	validateRes, err := http.DefaultClient.Do(validateReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer validateRes.Body.Close()
+	if validateRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected routing validate status: %d", validateRes.StatusCode)
+	}
+
+	addReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/routing", strings.NewReader(`{"action":"add","agentId":"main","match":{"channel":"telegram"},"baseHash":"hash-1"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	addReq.Header.Set("Authorization", "Bearer admin-token")
+	addReq.Header.Set("Content-Type", "application/json")
+	addRes, err := http.DefaultClient.Do(addReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer addRes.Body.Close()
+	if addRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected routing add status: %d", addRes.StatusCode)
+	}
+
+	removeReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/routing", strings.NewReader(`{"action":"remove","id":"binding-2","baseHash":"hash-2"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	removeReq.Header.Set("Authorization", "Bearer admin-token")
+	removeReq.Header.Set("Content-Type", "application/json")
+	removeRes, err := http.DefaultClient.Do(removeReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer removeRes.Body.Close()
+	if removeRes.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected routing remove status: %d", removeRes.StatusCode)
 	}
 
 	simReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/routing", strings.NewReader(`{"action":"simulate","channel":"telegram"}`))

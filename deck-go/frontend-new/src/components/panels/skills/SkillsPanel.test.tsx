@@ -36,38 +36,51 @@ vi.mock("../../../deck-ui/ui-store", () => ({
 let container: HTMLDivElement;
 let root: Root | null = null;
 
-function renderSkillsPanel() {
+function renderSkillsPanel(locale: "en" | "zh" = "en") {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(SkillsPanel)));
+  root.render(createElement(DeckIntlProvider, { locale }, createElement(SkillsPanel)));
 }
 
 function skillsPayload() {
   return {
+    managedSkillsDir: "/tmp/openclaw-skills",
     skills: [
       {
         key: "shell",
         name: "Shell",
         source: "bundled",
+        status: "ready",
         description: "Run shell commands",
-        emoji: "$",
+        enabled: true,
         primaryEnv: "PATH",
-        disabled: false,
       },
       {
-        skillKey: "github",
+        key: "github",
         name: "GitHub",
         source: "plugin",
-        missing: { env: ["GITHUB_TOKEN"], bins: ["gh"] },
+        status: "needs-setup",
+        description: "Manage pull requests",
+        enabled: true,
+        missingRequirements: ["env: GITHUB_TOKEN", "bins: gh"],
         primaryEnv: "GITHUB_TOKEN",
         config: { apiKey: "old-token", env: { GITHUB_TOKEN: "old-token" } },
-        install: [{ id: "brew-gh", label: "Install gh", bins: ["gh"] }],
-        disabled: false,
+        installOptions: [{ id: "brew-gh", label: "Install gh", bins: ["gh"] }],
+      },
+      {
+        key: "design",
+        name: "Frontend Design",
+        source: "managed",
+        status: "ready",
+        description: "Create design prototypes",
+        enabled: true,
       },
       {
         key: "legacy",
         name: "Legacy",
-        source: "unknown",
-        disabled: true,
+        source: "plugin",
+        status: "disabled",
+        description: "Disabled legacy helper",
+        enabled: false,
       },
     ],
   };
@@ -120,7 +133,7 @@ describe("SkillsPanel", () => {
         updatedAt: 1710000000000,
       },
       latestVersion: { version: "1.0.0", changelog: "Initial release" },
-      metadata: { os: ["darwin", "linux"] },
+      metadata: { os: ["darwin", "linux"], systems: ["git"] },
       owner: { handle: "clawhub", displayName: "ClawHub" },
     });
     apiMocks.fetchSkills.mockResolvedValue(skillsPayload());
@@ -133,6 +146,8 @@ describe("SkillsPanel", () => {
           displayName: "Git Helper",
           summary: "Manage git workflows",
           version: "1.0.0",
+          score: 0.98,
+          updatedAt: 1710000000000,
         },
       ],
     });
@@ -158,149 +173,79 @@ describe("SkillsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("normalizes raw skills and selects the first skill by default", async () => {
+  it("renders the prototype-shaped installed catalog by default", async () => {
     await act(async () => {
       renderSkillsPanel();
     });
 
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
-    await waitFor(() =>
-      expect(container.querySelector(".skills-panel__matrix-shell")).toBeTruthy(),
-    );
 
-    expect(container.querySelector(".skills-panel")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__card")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__body")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__pill-row")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__metrics")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__actions")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__input")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__button")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__list")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__page-header")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__toolbar")).toBeTruthy();
+    expect(container.querySelector(".skills-panel__row-head")).toBeTruthy();
     expect(container.querySelector(".skills-panel__row")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__hero")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__surface")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__textarea")).toBeTruthy();
-    expect(container.textContent).toContain("Skills ready");
-    expect(container.textContent).toContain("3 installed");
-    expect(container.textContent).toContain("1 need setup");
-    expect(container.textContent).toContain("Shell");
+    expect(container.textContent).toContain("skill catalog");
+    expect(container.textContent).toContain("Installed");
+    expect(container.textContent).toContain("4");
     expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).toContain("Legacy");
-    expect(container.textContent).toContain("Source: plugin | Status: needs-setup");
-    expect(container.textContent).toContain("Source: bundled | Status: disabled");
-
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("Shell");
+    expect(container.textContent).toContain("GITHUB_TOKEN");
+    expect(container.textContent).toContain("Frontend Design");
   });
 
-  it("filters installed skills by status and search text", async () => {
+  it("filters installed skills by search, status, and source", async () => {
     await act(async () => {
       renderSkillsPanel();
     });
-
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
 
-    const searchInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="installed skill search"]',
-    );
-    const statusSelect = container.querySelector<HTMLSelectElement>(
-      'select[aria-label="installed skill status"]',
-    );
-    expect(searchInput).toBeTruthy();
-    expect(statusSelect).toBeTruthy();
+    const search = container.querySelector<HTMLInputElement>('input[aria-label="Search skills"]');
+    expect(search).toBeTruthy();
 
     await act(async () => {
-      fireEvent.change(statusSelect as HTMLSelectElement, { target: { value: "needs-setup" } });
+      fireEvent.change(search as HTMLInputElement, { target: { value: "pull requests" } });
     });
-
-    let installedList = container.querySelector('ul[aria-label="installed skill list"]');
-    expect(installedList?.textContent).toContain("GitHub");
-    expect(installedList?.textContent).not.toContain("Shell");
-    expect(installedList?.textContent).not.toContain("Legacy");
-    expect(container.textContent).toContain("shown1");
+    expect(container.textContent).toContain("GitHub");
+    expect(container.textContent).not.toContain("ShellRun shell commands");
 
     await act(async () => {
-      fireEvent.change(statusSelect as HTMLSelectElement, { target: { value: "all" } });
-      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "run shell" } });
+      fireEvent.click(buttonWithText("Needs setup"));
     });
-
-    installedList = container.querySelector('ul[aria-label="installed skill list"]');
-    expect(installedList?.textContent).toContain("Shell");
-    expect(installedList?.textContent).not.toContain("GitHub");
+    expect(container.textContent).toContain("GitHub");
+    expect(container.textContent).not.toContain("Frontend Design");
 
     await act(async () => {
-      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "missing skill" } });
+      fireEvent.click(buttonWithText("Managed"));
     });
-
     expect(container.textContent).toContain("No installed skills match filters.");
   });
 
-  it("runs enable and disable updates and preserves the selected skill", async () => {
+  it("opens detail tabs and runs configure, install, and disable through wrappers", async () => {
     await act(async () => {
       renderSkillsPanel();
     });
-
     await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("GitHub"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("GitHub"));
     });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Disable")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    expect(container.textContent).toContain("Identity");
 
-    await waitFor(() =>
-      expect(apiMocks.updateSkill).toHaveBeenCalledWith("github", { enabled: false }),
-    );
-    expect(container.textContent).toContain("Last skill action");
-
-    const selectedAfterDisable = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedAfterDisable?.textContent).toContain("GitHub");
+    for (const tab of ["Setup", "Triggers", "Bins", "Files", "Audit", "Overview"]) {
+      await act(async () => {
+        fireEvent.click(tabButtonWithText(tab));
+      });
+      expect(tabButtonWithText(tab).getAttribute("aria-selected")).toBe("true");
+    }
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Legacy"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Configure"));
     });
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Enable")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    await waitFor(() =>
-      expect(apiMocks.updateSkill).toHaveBeenLastCalledWith("legacy", { enabled: true }),
-    );
-  });
-
-  it("saves selected skill config and runs install options through the skill facade", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
-
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("GitHub"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
+    expect(container.textContent).toContain("Configure skill");
     const apiKeyInput = container.querySelector<HTMLInputElement>('input[type="password"]');
     const envTextarea = container.querySelector<HTMLTextAreaElement>(
       'textarea[aria-label="skill env json"]',
     );
-    expect(apiKeyInput).toBeTruthy();
-    expect(envTextarea).toBeTruthy();
     expect(apiKeyInput?.value).toBe("old-token");
     expect(envTextarea?.value).toContain("GITHUB_TOKEN");
 
@@ -309,14 +254,8 @@ describe("SkillsPanel", () => {
       fireEvent.change(envTextarea as HTMLTextAreaElement, {
         target: { value: JSON.stringify({ GITHUB_TOKEN: "new-token", EXTRA: 42 }, null, 2) },
       });
+      fireEvent.click(buttonWithText("Save config"));
     });
-
-    await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Save config")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
     await waitFor(() =>
       expect(apiMocks.updateSkill).toHaveBeenLastCalledWith("github", {
         apiKey: "new-token",
@@ -325,89 +264,82 @@ describe("SkillsPanel", () => {
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Install")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Install"));
     });
-
+    await act(async () => {
+      fireEvent.click(buttonWithText("Install gh"));
+    });
     await waitFor(() => expect(apiMocks.installSkill).toHaveBeenCalledWith("GitHub", "brew-gh"));
-    expect(container.textContent).toContain("Last skill action");
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Disable"));
+    });
+    await act(async () => {
+      fireEvent.click(lastButtonWithText("Disable"));
+    });
+    await waitFor(() =>
+      expect(apiMocks.updateSkill).toHaveBeenLastCalledWith("github", { enabled: false }),
+    );
   });
 
-  it("searches ClawHub and runs hub install/update actions through the hub facade", async () => {
+  it("searches hub, opens hub detail dialog, installs, and updates all through BFF wrappers", async () => {
     await act(async () => {
       renderSkillsPanel();
     });
-
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(apiMocks.fetchSkillHubBins).toHaveBeenCalledTimes(1));
-    expect(container.textContent).toContain("dev");
-
-    const searchInput = container.querySelector<HTMLInputElement>(
-      'input[aria-label="skill hub search"]',
-    );
-    expect(searchInput).toBeTruthy();
-    await act(async () => {
-      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "git" } });
-    });
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Search hub")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Hub"));
     });
-
+    const search = container.querySelector<HTMLInputElement>('input[aria-label="Search skills"]');
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "git" } });
+      fireEvent.click(buttonWithText("Search hub"));
+    });
     await waitFor(() => expect(apiMocks.searchSkillHub).toHaveBeenCalledWith("git", 20));
     expect(container.textContent).toContain("Git Helper");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent?.includes("Git Helper"))
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Preview"));
     });
-
     await waitFor(() => expect(apiMocks.fetchSkillHubDetail).toHaveBeenCalledWith("git-helper"));
-    expect(container.textContent).toContain("Version: 1.0.0");
+    expect(container.textContent).toContain("Install skill from hub");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Install from ClawHub")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Install from ClawHub"));
     });
-
     await waitFor(() =>
       expect(apiMocks.installSkillHub).toHaveBeenCalledWith("git-helper", "1.0.0"),
     );
-    expect(container.textContent).toContain("Last hub action");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Update all ClawHub")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("Hub"));
+      fireEvent.click(buttonWithText("Update all ClawHub"));
     });
-
     await waitFor(() => expect(apiMocks.updateSkillHub).toHaveBeenCalledWith());
   });
 
-  it("loads and updates the agent skill matrix with Gateway config hashes", async () => {
+  it("keeps the agent skill matrix reachable as a secondary detail surface", async () => {
     await act(async () => {
       renderSkillsPanel();
     });
-
     await waitFor(() => expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(apiMocks.fetchAgentSkills).toHaveBeenCalledWith("builder"));
-
-    expect(container.textContent).toContain("Agent skill matrix");
-    expect(container.textContent).toContain("Main Agent");
-    expect(container.textContent).toContain("Builder Agent");
-    expect(container.textContent).toContain("all skills");
-    expect(container.textContent).toContain("included");
-    expect(container.textContent).toContain("excluded");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Builder Agent")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      fireEvent.click(buttonWithText("GitHub"));
+    });
+    await act(async () => {
+      const summary = container.querySelector("summary");
+      if (!summary) {
+        throw new Error("matrix summary not found");
+      }
+      fireEvent.click(summary);
+    });
+    expect(container.textContent).toContain("Main Agent");
+    expect(container.textContent).toContain("Builder Agent");
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Builder Agent"));
     });
     expect(deckUIMocks.navigateToAgent).toHaveBeenCalledWith(deckUIMocks.ui, "builder", "skills");
 
@@ -415,11 +347,9 @@ describe("SkillsPanel", () => {
       'button[aria-label="Add github for builder"]',
     );
     expect(addGitHubToBuilder).toBeTruthy();
-
     await act(async () => {
       addGitHubToBuilder?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-
     await waitFor(() =>
       expect(apiMocks.updateAgentSkills).toHaveBeenCalledWith("builder", {
         mode: "whitelist",
@@ -427,6 +357,48 @@ describe("SkillsPanel", () => {
         baseHash: "skills-builder-1",
       }),
     );
-    expect(container.textContent).toContain("Last matrix action");
+  });
+
+  it("renders localized Chinese catalog chrome", async () => {
+    await act(async () => {
+      renderSkillsPanel("zh");
+    });
+    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
+
+    expect(container.textContent).toContain("技能管理");
+    expect(container.textContent).toContain("控制 / 技能目录");
+    expect(container.textContent).toContain("已安装");
+    expect(container.textContent).toContain("市场");
   });
 });
+
+function buttonWithText(text: string) {
+  const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
+    candidate.textContent?.includes(text),
+  );
+  if (!button) {
+    throw new Error(`button not found: ${text}\n${container.textContent}`);
+  }
+  return button;
+}
+
+function lastButtonWithText(text: string) {
+  const buttons = Array.from(container.querySelectorAll("button")).filter((candidate) =>
+    candidate.textContent?.includes(text),
+  );
+  const button = buttons.at(-1);
+  if (!button) {
+    throw new Error(`button not found: ${text}\n${container.textContent}`);
+  }
+  return button;
+}
+
+function tabButtonWithText(text: string) {
+  const button = Array.from(container.querySelectorAll('button[role="tab"]')).find((candidate) =>
+    candidate.textContent?.includes(text),
+  );
+  if (!button) {
+    throw new Error(`tab not found: ${text}\n${container.textContent}`);
+  }
+  return button;
+}

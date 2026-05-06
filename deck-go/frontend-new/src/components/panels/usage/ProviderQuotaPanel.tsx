@@ -1,6 +1,6 @@
 import type { DeckGoUsageProviderStatus, DeckGoUsageProviderWindow } from "../../../api";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { ShellStat } from "../../shared/ShellComponents";
 import { formatReset } from "./usage-format";
 
 type ProviderQuotaPanelProps = {
@@ -9,6 +9,16 @@ type ProviderQuotaPanelProps = {
   selectedProvider: DeckGoUsageProviderStatus | null;
   onSelectProvider: (providerId: string) => void;
 };
+
+function quotaTone(window: DeckGoUsageProviderWindow) {
+  if (window.usedPercent >= 90) {
+    return "hot";
+  }
+  if (window.usedPercent >= 60) {
+    return "warm";
+  }
+  return "ok";
+}
 
 export function ProviderQuotaPanel({
   hottestWindow,
@@ -78,11 +88,21 @@ export function ProviderQuotaPanel({
                 <ul className="usage-panel__list deck-ui-usage-list">
                   {selectedProvider.windows.map((window) => (
                     <li key={`${selectedProvider.provider}-${window.label}`}>
-                      <div className="usage-panel__row deck-ui-usage-row">
-                        <strong>{window.label}</strong>
-                        <div className="usage-panel__meta deck-ui-usage-meta">
-                          {t("usedPercent", { percent: window.usedPercent })}
+                      <div
+                        className={`usage-panel__row deck-ui-usage-row usage-panel__quota usage-panel__quota--${quotaTone(window)}`}
+                      >
+                        <div className="usage-panel__quota-head">
+                          <strong>{window.label}</strong>
+                          <span className="usage-panel__pill">
+                            {t("usedPercent", { percent: window.usedPercent })}
+                          </span>
                         </div>
+                        <progress
+                          aria-label={t("quotaWindowUsage", { label: window.label })}
+                          className="usage-panel__quota-progress"
+                          max={100}
+                          value={Math.min(100, Math.max(0, window.usedPercent))}
+                        />
                         <div className="usage-panel__meta deck-ui-usage-meta">
                           {t("resetsIn", { duration: formatReset(window.resetAt) })}
                         </div>
@@ -90,7 +110,6 @@ export function ProviderQuotaPanel({
                     </li>
                   ))}
                 </ul>
-                <JsonDetails title={t("providerPayload")} payload={selectedProvider} />
               </>
             ) : null}
           </>

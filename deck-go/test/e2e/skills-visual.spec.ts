@@ -13,7 +13,7 @@ test.describe("skills mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders skill operations workbench and contract-shaped interaction states", async ({
+  test("renders prototype-shaped catalog, detail tabs, dialogs, hub, and matrix states", async ({
     page,
   }, testInfo) => {
     const unexpected = collectUnexpectedErrors(page);
@@ -24,62 +24,85 @@ test.describe("skills mock visual handoff alignment", () => {
       theme: "dark",
     });
 
-    await expect(page.getByTestId("skills-panel")).toBeVisible();
+    const panel = page.getByTestId("skills-panel");
+    await expect(panel).toBeVisible();
     await waitForGatewayMethod(stack.requestLog, "skills.status");
     await waitForGatewayMethod(stack.requestLog, "skills.bins");
     await waitForGatewayMethod(stack.requestLog, "agents.list");
     await waitForGatewayMethod(stack.requestLog, "deck.agents.skills.get");
-    await expect(page.getByRole("heading", { name: "Skills" }).first()).toBeVisible();
-    await expect(page.getByText("Skills ready").first()).toBeVisible();
-    await expect(page.getByText("4 installed").first()).toBeVisible();
-    await expect(page.getByText("GitHub").first()).toBeVisible();
-    await expect(page.getByText("env: GITHUB_TOKEN").first()).toBeVisible();
-    await expect(page.getByText("Frontend Design").first()).toBeVisible();
-    await expect(page.getByText("Agent skill matrix").first()).toBeVisible();
+    await expect(panel.getByRole("heading", { name: "Skills" })).toBeVisible();
+    await expect(panel.getByText("control / skill catalog")).toBeVisible();
+    await expect(panel.getByText("PPP Generation")).toBeVisible();
+    await expect(panel.getByText("Domain Research")).toBeVisible();
+    await expect(panel.getByLabel("Search skills")).toBeVisible();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
       .toBe(true);
     await page.waitForTimeout(500);
-
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("skills-workbench-ready.png"),
     });
 
+    await panel.getByRole("button", { name: /Open GitHub detail/ }).click();
+    await expect(panel.getByRole("heading", { name: "GitHub" })).toBeVisible();
+    for (const tab of ["Overview", "Setup", "Triggers", "Bins", "Files", "Audit"]) {
+      await panel.getByRole("tab", { name: tab }).click();
+      await expect(panel.getByRole("tab", { name: tab })).toHaveAttribute("aria-selected", "true");
+    }
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("skills-detail-tabs.png"),
+    });
+
+    await panel.getByRole("button", { name: "Configure" }).click();
+    await expect(page.getByRole("dialog", { name: "Configure skill" })).toBeVisible();
     await page.getByRole("button", { name: "Save config" }).click();
     await waitForGatewayMethod(stack.requestLog, "skills.update");
-    await expect(page.getByText("Last skill action").first()).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Configure skill" })).toBeHidden();
+    await expect(panel.getByText("Last skill action").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("skills-config-save.png"),
     });
 
-    await page.getByLabel("skill hub search").fill("git");
-    await page.getByRole("button", { name: "Search hub" }).click();
-    await waitForGatewayMethod(stack.requestLog, "skills.search");
-    await expect(page.getByText("Git Helper").first()).toBeVisible();
+    await panel.getByRole("tab", { name: "Bins" }).click();
+    await panel.getByRole("button", { name: "Install" }).first().click();
+    await expect(page.getByRole("dialog", { name: "Install Skills" })).toBeVisible();
     await page
-      .getByRole("button", { name: /Git Helper/ })
-      .first()
+      .getByRole("dialog", { name: "Install Skills" })
+      .getByRole("button", { name: "Install" })
       .click();
+    await waitForGatewayMethod(stack.requestLog, "skills.install");
+
+    await panel.locator("summary").filter({ hasText: "Agent skill matrix" }).click();
+    await expect(panel.getByText("Builder Agent")).toBeVisible();
+    await panel.getByRole("button", { name: /(Add|Remove) github for builder/ }).click();
+    await waitForGatewayMethod(stack.requestLog, "deck.agents.skills.set");
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("skills-install-and-matrix.png"),
+    });
+
+    await panel.getByRole("button", { name: "Skills" }).click();
+    await panel.getByRole("tab", { name: "Hub" }).click();
+    await panel.getByLabel("Search skills").fill("git");
+    await panel.getByRole("button", { name: "Search hub" }).click();
+    await waitForGatewayMethod(stack.requestLog, "skills.search");
+    await expect(panel.getByText("Git Helper")).toBeVisible();
+    await panel.getByRole("button", { name: "Preview" }).first().click();
     await waitForGatewayMethod(stack.requestLog, "skills.detail");
-    await expect(page.getByText("Hub skill").first()).toBeVisible();
-    await expect(page.getByText("Version: 1.0.0").first()).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Install skill from hub" })).toBeVisible();
+    await expect(page.getByText("Version")).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("skills-clawhub-detail.png"),
     });
-
     await page.getByRole("button", { name: "Install from ClawHub" }).click();
     await waitForGatewayMethod(stack.requestLog, "skills.install");
-    await expect(page.getByText("Last hub action").first()).toBeVisible();
-
-    await page.getByRole("button", { name: /Remove github for builder/ }).click();
-    await waitForGatewayMethod(stack.requestLog, "deck.agents.skills.set");
-    await expect(page.getByText("Last matrix action").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
-      path: testInfo.outputPath("skills-hub-install-and-matrix.png"),
+      path: testInfo.outputPath("skills-hub-install.png"),
     });
 
     expect(unexpected).toEqual([]);

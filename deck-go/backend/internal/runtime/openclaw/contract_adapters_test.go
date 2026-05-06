@@ -70,6 +70,49 @@ func TestContractAdaptersConvertGeneratedGatewayDTOs(t *testing.T) {
 	if len(usageResponse.Sessions) != 1 || usageResponse.Sessions[0].Usage["totalTokens"] != float64(18) {
 		t.Fatalf("usage sessions were not converted: %#v", usageResponse.Sessions)
 	}
+	if usageResponse.Sessions[0].ContextWeight == nil {
+		t.Fatalf("context weight was not preserved: %#v", usageResponse.Sessions[0])
+	}
+	if entries := usageResponse.Sessions[0].ContextWeight.Tools["entries"]; entries == nil {
+		t.Fatalf("context weight tools entries should be normalized to an array: %#v", usageResponse.Sessions[0].ContextWeight.Tools)
+	}
+
+	var partialUsage generated.SessionsUsageResult
+	mustDecode(t, `{
+		"sessions": [
+			{
+				"key": "session-partial",
+				"usage": {"totalTokens": 3},
+				"contextWeight": {
+					"source": "gateway",
+					"systemPrompt": {"chars": 3},
+					"tools": {"listChars": 1},
+					"skills": {"promptChars": 2}
+				}
+			},
+			{
+				"key": "session-empty",
+				"usage": {"totalTokens": 1}
+			}
+		]
+	}`, &partialUsage)
+	partialResponse := normalizeUsageSessions(partialUsage)
+	if len(partialResponse.Sessions) != 2 {
+		t.Fatalf("partial usage sessions were not converted: %#v", partialResponse.Sessions)
+	}
+	partialContext := partialResponse.Sessions[0].ContextWeight
+	if partialContext == nil {
+		t.Fatalf("partial context weight was not preserved: %#v", partialResponse.Sessions[0])
+	}
+	if entries, ok := partialContext.Tools["entries"].([]map[string]any); !ok || len(entries) != 0 {
+		t.Fatalf("partial tools entries should be an empty array, got %#v", partialContext.Tools["entries"])
+	}
+	if entries, ok := partialContext.Skills["entries"].([]map[string]any); !ok || len(entries) != 0 {
+		t.Fatalf("partial skills entries should be an empty array, got %#v", partialContext.Skills["entries"])
+	}
+	if partialResponse.Sessions[1].ContextWeight != nil {
+		t.Fatalf("empty generated context weight should be omitted: %#v", partialResponse.Sessions[1].ContextWeight)
+	}
 
 	var cost generated.UsageCostResult
 	mustDecode(t, `{

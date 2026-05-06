@@ -60,6 +60,10 @@ func registerBudgetRoutes(mux interface {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid period"})
 			return
 		}
+		if message := validateBudgetThresholds(body.WarnThreshold, body.OverThreshold); message != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": message})
+			return
+		}
 		enabled := true
 		if body.Enabled != nil {
 			enabled = *body.Enabled
@@ -86,7 +90,8 @@ func registerBudgetRoutes(mux interface {
 	mux.MethodFunc("PATCH", "/usage/budget/{ruleId}", func(w http.ResponseWriter, r *http.Request) {
 		ruleID := chi.URLParam(r, "ruleId")
 		store := localstore.GetBudgetRuleStore()
-		if _, ok := store.Find(func(item localstore.BudgetRule) bool { return item.ID == ruleID }); !ok {
+		current, ok := store.Find(func(item localstore.BudgetRule) bool { return item.ID == ruleID })
+		if !ok {
 			writeJSON(w, http.StatusNotFound, map[string]any{"error": "Rule not found"})
 			return
 		}
@@ -105,6 +110,32 @@ func registerBudgetRoutes(mux interface {
 		}
 		if len(body) == 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "No fields to update"})
+			return
+		}
+		nextWarnThreshold := current.WarnThreshold
+		if raw, exists := body["warnThreshold"]; exists {
+			if raw == nil {
+				nextWarnThreshold = nil
+			} else if value, ok := raw.(float64); ok {
+				nextWarnThreshold = &value
+			} else {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid warn threshold"})
+				return
+			}
+		}
+		nextOverThreshold := current.OverThreshold
+		if raw, exists := body["overThreshold"]; exists {
+			if raw == nil {
+				nextOverThreshold = nil
+			} else if value, ok := raw.(float64); ok {
+				nextOverThreshold = &value
+			} else {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid over threshold"})
+				return
+			}
+		}
+		if message := validateBudgetThresholds(nextWarnThreshold, nextOverThreshold); message != "" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": message})
 			return
 		}
 		store.UpdateItem(func(item localstore.BudgetRule) bool { return item.ID == ruleID }, func(item localstore.BudgetRule) localstore.BudgetRule {
@@ -192,7 +223,7 @@ func registerBudgetRoutes(mux interface {
 				"ruleName":      rule.Name,
 				"dimension":     rule.Dimension,
 				"status":        status,
-				"currentValue":  currentValue,
+				"current":       currentValue,
 				"warnThreshold": rule.WarnThreshold,
 				"overThreshold": rule.OverThreshold,
 			}
@@ -228,4 +259,17 @@ func defaultString(value string, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func validateBudgetThresholds(warnThreshold *float64, overThreshold *float64) string {
+	if warnThreshold != nil && *warnThreshold < 0 {
+		return "Warn threshold must be zero or greater"
+	}
+	if overThreshold != nil && *overThreshold < 0 {
+		return "Over threshold must be zero or greater"
+	}
+	if warnThreshold != nil && overThreshold != nil && *warnThreshold >= *overThreshold {
+		return "Warn threshold must be less than over threshold"
+	}
+	return ""
 }

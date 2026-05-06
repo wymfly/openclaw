@@ -13,7 +13,7 @@ test.describe("settings mock visual handoff alignment", () => {
     await stack?.stop();
   });
 
-  test("renders settings workbench and token confirmation state with contract-shaped mock data", async ({
+  test("renders Settings section rail, dialogs, and localized variant with contract-shaped mock data", async ({
     page,
   }, testInfo) => {
     const unexpected = collectUnexpectedErrors(page);
@@ -24,20 +24,37 @@ test.describe("settings mock visual handoff alignment", () => {
       theme: "dark",
     });
 
-    await expect(page.getByTestId("settings-panel")).toBeVisible();
-    await expect(page.getByText("Settings ready").first()).toBeVisible();
-    await expect(page.getByText("Devices ready").first()).toBeVisible();
-    await expect(page.getByText("Runtime endpoint").first()).toBeVisible();
-    await expect(page.getByText("Deck-go local settings")).toBeVisible();
-    await expect(page.getByText("Ops laptop")).toBeVisible();
-    await expect(page.getByText("Ops tablet")).toBeVisible();
-    await page.waitForTimeout(500);
-
+    const panel = page.getByTestId("settings-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText("Settings ready").first()).toBeVisible();
+    await expect(panel.getByText("Devices ready").first()).toBeVisible();
+    await expect(panel.getByText("Identity & access").first()).toBeVisible();
+    await expect(panel.getByText("Runtime").first()).toBeVisible();
+    await expect(panel.getByText("Appearance").first()).toBeVisible();
+    await expect(panel.getByText("Paired devices").first()).toBeVisible();
+    await page.waitForTimeout(300);
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("settings-workbench-ready.png"),
     });
 
+    await panel.getByRole("tab", { name: /Appearance/ }).click();
+    await expect(panel.getByText("Theme, density, motion and language").first()).toBeVisible();
+    await panel.getByRole("radio", { name: "Dark" }).click();
+    await expect(panel.getByText("1 unsaved").first()).toBeVisible();
+    await panel.getByRole("button", { name: "Save (1)" }).click();
+    await expect(page.getByRole("dialog", { name: "Save settings" })).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("settings-save-confirm.png"),
+    });
+    await page
+      .getByRole("dialog", { name: "Save settings" })
+      .getByRole("button", { name: "Close" })
+      .click();
+
+    await panel.getByRole("tab", { name: /Paired devices/ }).click();
+    await expect(panel.getByText("Ops tablet").first()).toBeVisible();
     const tabletRow = page.locator(".settings-device-row").filter({ hasText: "Ops tablet" });
     await tabletRow.getByRole("button", { name: "Rotate token" }).click();
     await expect(page.getByText("Rotate viewer token for visual-ops-tablet?")).toBeVisible();
@@ -56,6 +73,21 @@ test.describe("settings mock visual handoff alignment", () => {
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("settings-token-generated.png"),
+    });
+
+    await openDeck(page, stack.frontendBase, "settings", stack.accessToken, {
+      locale: "zh",
+      nav: "expanded",
+      theme: "light",
+    });
+    await expect(page.getByTestId("settings-panel")).toBeVisible();
+    await expect(page.getByText("设置就绪").first()).toBeVisible();
+    await expect(page.getByRole("tab", { name: /外观/ })).toBeVisible();
+    await page.getByRole("tab", { name: /外观/ }).click();
+    await expect(page.getByText("语言更改仅作用于当前 Deck UI 外壳").first()).toBeVisible();
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("settings-light-zh.png"),
     });
 
     expect(unexpected).toEqual([]);

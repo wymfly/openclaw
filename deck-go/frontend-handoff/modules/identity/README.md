@@ -1,6 +1,6 @@
 # identity — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — mock verified; real-stack handoff-blocked by OpenClaw runtime deps staging`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -31,6 +31,7 @@ updating dependent routing/permissions separately).
 | `tokens.css`              | Mirror of canonical `--ds-*` tokens.                                                                                                                 |
 | `tweaks-panel.jsx`        | Design-time state knobs (theme/density).                                                                                                             |
 | `prototype-v1-codex.html` | Original Codex single-file prototype (430 lines).                                                                                                    |
+| `implementation-notes.md` | Implementation matrix, code-truth fixes, smoke evidence, and residual risks from the production rewrite.                                             |
 
 ## Contract truth (today)
 

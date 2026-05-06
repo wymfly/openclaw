@@ -57,10 +57,24 @@ function buttonWithText(text: string) {
   );
 }
 
+function modalButtonWithText(text: string) {
+  const modal = container.querySelector(".alerts-panel__modal");
+  return Array.from(modal?.querySelectorAll("button") ?? []).find((button) =>
+    button.textContent?.includes(text),
+  );
+}
+
 function rowWithText(text: string) {
   return Array.from(container.querySelectorAll(".alerts-panel__row")).find((row) =>
     row.textContent?.includes(text),
   ) as HTMLElement | undefined;
+}
+
+function tileWithText(text: string) {
+  const modal = container.querySelector(".alerts-panel__modal");
+  return Array.from(modal?.querySelectorAll("button") ?? []).find(
+    (button) => button.textContent?.trim() === text || button.textContent?.includes(text),
+  );
 }
 
 function submitButton() {
@@ -110,15 +124,23 @@ describe("AlertsPanel", () => {
     expect(container.textContent).toContain("Alert Management");
     expect(container.textContent).toContain("Local alert policies");
     expect(container.textContent).toContain("Rule inventory");
-    expect(container.textContent).toContain("Selected rule");
-    expect(container.textContent).toContain("Fired Alerts");
     expect(container.textContent).toContain("2 rules");
     expect(container.textContent).toContain("Rules");
+    expect(container.textContent).toContain("Condition");
+    expect(container.textContent).toContain("Threshold");
+    expect(container.textContent).toContain("Last fired");
     expect(container.textContent).toContain("Enabled");
     expect(container.textContent).toContain("Usage warning");
     expect(container.textContent).toContain("Usage critical");
-    expect(container.textContent).toContain("Toast Notification");
+    expect(container.textContent).toContain("Toast");
     expect(container.textContent).toContain("Webhook");
+
+    await act(async () => {
+      rowWithText("Usage warning")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("Selected");
+    expect(container.textContent).toContain("Recent fires");
     expect(container.textContent).toContain("Trigger expression");
     expect(container.textContent).toContain("Action and delivery");
   });
@@ -140,18 +162,14 @@ describe("AlertsPanel", () => {
       fireEvent.change(container.querySelector('input[aria-label="alert rule name"]')!, {
         target: { value: "Created rule" },
       });
-      fireEvent.change(container.querySelector('select[aria-label="alert entity type"]')!, {
-        target: { value: "cron" },
-      });
+      tileWithText("cron")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fireEvent.change(container.querySelector('input[aria-label="alert condition"]')!, {
         target: { value: ">" },
       });
       fireEvent.change(container.querySelector('input[aria-label="alert threshold"]')!, {
         target: { value: "42" },
       });
-      fireEvent.change(container.querySelector('select[aria-label="alert action"]')!, {
-        target: { value: "activity" },
-      });
+      tileWithText("Activity")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fireEvent.change(container.querySelector('input[aria-label="alert cooldown minutes"]')!, {
         target: { value: "2" },
       });
@@ -190,7 +208,7 @@ describe("AlertsPanel", () => {
     expect(apiMocks.deleteAlertRule).not.toHaveBeenCalled();
 
     await act(async () => {
-      buttonWithText("Delete this rule?")?.dispatchEvent(
+      modalButtonWithText("Delete this rule?")?.dispatchEvent(
         new MouseEvent("click", { bubbles: true }),
       );
     });
@@ -216,18 +234,14 @@ describe("AlertsPanel", () => {
       fireEvent.change(container.querySelector('input[aria-label="alert rule name"]')!, {
         target: { value: "Usage critical edited" },
       });
-      fireEvent.change(container.querySelector('select[aria-label="alert entity type"]')!, {
-        target: { value: "agent" },
-      });
+      tileWithText("agent")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fireEvent.change(container.querySelector('input[aria-label="alert condition"]')!, {
         target: { value: ">" },
       });
       fireEvent.change(container.querySelector('input[aria-label="alert threshold"]')!, {
         target: { value: "99" },
       });
-      fireEvent.change(container.querySelector('select[aria-label="alert action"]')!, {
-        target: { value: "activity" },
-      });
+      tileWithText("Activity")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       fireEvent.change(container.querySelector('input[aria-label="alert cooldown minutes"]')!, {
         target: { value: "5" },
       });
@@ -253,13 +267,20 @@ describe("AlertsPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Alerts ready"));
 
     await act(async () => {
-      buttonWithText("Fired Alerts")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      rowWithText("Usage critical")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain("Unavailable");
-    expect(container.textContent).toContain("Fired alert history is not exposed by Gateway");
+    await waitFor(() => expect(container.textContent).toContain("Selected"));
+
+    await act(async () => {
+      buttonWithText("Recent fires")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain(
+      "Fired alert history is not exposed by the Alerts contract",
+    );
     expect(container.textContent).toContain("Usage critical");
-    expect(container.textContent).toContain("2026-04-24T00:00:00Z");
+    expect(container.textContent).toContain("Apr 24");
   });
 
   it("renders localized alert copy when the Deck locale changes", async () => {
@@ -267,7 +288,7 @@ describe("AlertsPanel", () => {
 
     await waitFor(() => expect(container.textContent).toContain("告警已就绪"));
     expect(container.textContent).toContain("告警管理");
-    expect(container.textContent).toContain("触发记录");
+    expect(container.textContent).toContain("上次触发");
     expect(container.textContent).toContain("规则清单");
   });
 });

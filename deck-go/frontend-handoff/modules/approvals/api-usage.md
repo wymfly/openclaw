@@ -31,25 +31,25 @@ Endpoint classification lives in:
 - `fetchApprovalsPolicy()` → `GET /api/approvals/policy`
 - `updateApprovalsPolicy(file)` → `PUT /api/approvals/policy`
 - `fetchPendingApprovals()` → `GET /api/approvals/pending`
-- `resolveApproval(id, decision, reason?)` → `POST /api/approvals`
+- `resolveApproval(id, decision)` → `POST /api/approvals`
 - `fetchPluginApprovals()` → `GET /api/approvals/plugins`
-- `resolvePluginApproval(id, decision, reason?)` → `POST /api/approvals/plugins`
+- `resolvePluginApproval(id, decision)` → `POST /api/approvals/plugins`
 - `useApprovalsStream()` over `streamEvents` (typed `approval.pending` and
   `approval.resolved` event payloads)
 
 ## Backend routes
 
-| UI need                  | Frontend wrapper                               | Deck route                    | Notes                                                                                                |
-| ------------------------ | ---------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Approval policy          | `fetchApprovalsPolicy()`                       | `GET /api/approvals/policy`   | Returns `DeckGoApprovalPolicyResponse` with hash + file.                                             |
-| Update policy            | `updateApprovalsPolicy(file)`                  | `PUT /api/approvals/policy`   | Body matches `file`; returns new hash. Optimistic concurrency: server may reject if hash mismatched. |
-| Pending exec approvals   | `fetchPendingApprovals()`                      | `GET /api/approvals/pending`  | Returns `DeckGoPendingApprovalsResponse`.                                                            |
-| Resolve exec approval    | `resolveApproval(id, decision, reason?)`       | `POST /api/approvals`         | Body: `{ id, decision: "allow_once" \| "allow_always" \| "deny", reason?: string }`.                 |
-| Pending plugin approvals | `fetchPluginApprovals()`                       | `GET /api/approvals/plugins`  | Returns `DeckGoPluginApprovalsResponse` (array OR `{ entries: [] }`).                                |
-| Resolve plugin approval  | `resolvePluginApproval(id, decision, reason?)` | `POST /api/approvals/plugins` | Body: `{ id, decision: "allow_once" \| "allow_always" \| "deny", reason?: string }`.                 |
-| Stream                   | `useApprovalsStream()`                         | `GET /api/events/stream`      | Filters for `approval.pending` and `approval.resolved` event kinds.                                  |
-| Bootstrap                | `useDeckUI()` / `fetchRuntimeGatewayStatus()`  | `GET /api/bootstrap/status`   | Runtime version + heartbeat seconds for topbar subtitle.                                             |
-| Recent decisions audit   | `fetchActivityEvents(limit)` (BFF projection)  | `GET /api/activity?limit=20`  | Filtered by `event.kind LIKE 'approval.%'`. **BFF projection — not part of approvals contract.**     |
+| UI need                  | Frontend wrapper                              | Deck route                    | Notes                                                                                                               |
+| ------------------------ | --------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Approval policy          | `fetchApprovalsPolicy()`                      | `GET /api/approvals/policy`   | Returns `DeckGoApprovalPolicyResponse` with hash + file.                                                            |
+| Update policy            | `updateApprovalsPolicy(file)`                 | `PUT /api/approvals/policy`   | Body matches `file`; returns new hash. Optimistic concurrency: server may reject if hash mismatched.                |
+| Pending exec approvals   | `fetchPendingApprovals()`                     | `GET /api/approvals/pending`  | Returns `DeckGoPendingApprovalsResponse`.                                                                           |
+| Resolve exec approval    | `resolveApproval(id, decision)`               | `POST /api/approvals`         | Body: `{ id, decision: "allow-once" \| "allow-always" \| "deny" }`. Current Gateway params do not include `reason`. |
+| Pending plugin approvals | `fetchPluginApprovals()`                      | `GET /api/approvals/plugins`  | Returns `DeckGoPluginApprovalsResponse` (array OR `{ entries: [] }`).                                               |
+| Resolve plugin approval  | `resolvePluginApproval(id, decision)`         | `POST /api/approvals/plugins` | Body: `{ id, decision: "allow-once" \| "allow-always" \| "deny" }`. Current Gateway params do not include `reason`. |
+| Stream                   | `useApprovalsStream()`                        | `GET /api/stream`             | Filters for `approval.pending` and `approval.resolved` event kinds.                                                 |
+| Bootstrap                | `useDeckUI()` / `fetchRuntimeGatewayStatus()` | `GET /api/bootstrap/status`   | Runtime version + heartbeat seconds for topbar subtitle.                                                            |
+| Recent decisions audit   | `fetchActivityEvents(limit)` (BFF projection) | `GET /api/activity?limit=20`  | Filtered by `event.kind LIKE 'approval.%'`. **BFF projection — not part of approvals contract.**                    |
 
 ## DTO summary
 
@@ -96,14 +96,13 @@ export type DeckGoPendingApprovalsResponse = {
 
 export interface DeckGoPluginApprovalEntry {
   id: string;
-  pluginId: string;
-  pluginName?: string;
-  capabilityKind: "channel" | "tool" | "agent" | "provider";
-  requestedScopes?: string[];
-  origin: "bundled" | "extension";
-  sourceUrl?: string;
-  createdAtMs: number;
-  requester?: string;
+  pluginId?: string;
+  command?: string;
+  description?: string;
+  createdAtMs?: number;
+  expiresAtMs?: number;
+  status?: string;
+  decision?: string | null;
 }
 
 export type DeckGoPluginApprovalsResponse =
@@ -170,8 +169,9 @@ These match README §"Open questions for follow-up":
 1. **Stream event payload shape** — `approval.pending` and `approval.resolved`
    event payload fields are partially open. Should the contract tighten
    to a closed union per kind (exec vs plugin)?
-2. **Reason field length cap** — the contract doesn't specify max length.
-   200 chars seems sane; should it be enforced server-side?
+2. **Reason field support** — current generated Gateway resolve params contain
+   only `id` and `decision`, so reason capture is intentionally disabled in
+   production until Gateway exposes a supported field.
 3. **Allow-always scope** — does it scope to (agent, command) tuple or just
    command? Current behavior is global allowlist (just command); consider
    per-agent allowlist.
@@ -184,9 +184,9 @@ These match README §"Open questions for follow-up":
 
 - Real Gateway event coverage for `approval.pending` is not yet audited
   in this module pass.
-- Upstream `ExecApprovalDecision` is a closed string union; contract widens
-  to plain `string` for forwards-compat. Frontend should treat unknown
-  decision values as `unknown` rather than misrendering.
+- Upstream approval decisions are hyphenated values (`allow-once`,
+  `allow-always`, `deny`). Older prototype text using underscore values is
+  presentation-only and must not be sent to the Gateway.
 - The two untyped methods (`exec.approval.list` and `plugin.approval.list`)
   return opaque shapes — frontend treats them as `Record<string, unknown>`
   and only reads keys that the BFF normalizes into recent-decisions.

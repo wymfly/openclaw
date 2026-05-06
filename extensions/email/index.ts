@@ -6,8 +6,10 @@ import {
 import { emailPluginConfigSchema } from "./src/config.js";
 import {
   createEmailDownloadAttachmentsTool,
+  createEmailDownloadMatchingAttachmentsTool,
   createEmailListTool,
   createEmailReadTool,
+  createEmailSearchTool,
   createEmailSendTool,
 } from "./src/tools.js";
 
@@ -18,8 +20,10 @@ export default definePluginEntry({
   configSchema: emailPluginConfigSchema,
   register(api: OpenClawPluginApi) {
     api.registerTool(createEmailListTool(api) as AnyAgentTool);
+    api.registerTool(createEmailSearchTool(api) as AnyAgentTool);
     api.registerTool(createEmailReadTool(api) as AnyAgentTool);
     api.registerTool(createEmailDownloadAttachmentsTool(api) as AnyAgentTool);
+    api.registerTool(createEmailDownloadMatchingAttachmentsTool(api) as AnyAgentTool);
     api.registerTool(createEmailSendTool(api) as AnyAgentTool);
   },
 });

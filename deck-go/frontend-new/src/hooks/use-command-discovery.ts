@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { commandRegistry } from "@/lib/command-registry";
 import { SOURCE_PRIORITY, type RegisteredCommand } from "@/lib/command-types";
-import { deckFetch, deckStream } from "@/lib/deck-client";
+import { deckFetch } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
+import { useLiveProjectionSubscription } from "./useLiveProjectionSubscription";
 
 type DiscoveredSource = Extract<RegisteredCommand["source"], "builtin" | "skill" | "plugin">;
 
@@ -107,29 +108,28 @@ export function useCommandDiscovery(): void {
     }
   }, []);
 
+  const handleStreamEvent = useCallback(
+    (event: { event?: string }) => {
+      if (event.event === "commands.changed") {
+        void discover(activeAgentId ?? undefined);
+      }
+    },
+    [activeAgentId, discover],
+  );
+
+  useLiveProjectionSubscription({
+    projectionId: "command-discovery",
+    onEvent: handleStreamEvent,
+    onProjectionGap: () => discover(activeAgentId ?? undefined),
+  });
+
   useEffect(() => {
     mountedRef.current = true;
     versionRef.current = null;
     void discover(activeAgentId ?? undefined);
 
-    const controller = new AbortController();
-    void deckStream("/api/stream", {
-      signal: controller.signal,
-      reconnect: true,
-      onEvent(event) {
-        if (event.event === "commands.changed") {
-          void discover(activeAgentId ?? undefined);
-        }
-      },
-    }).catch(() => {
-      console.warn(
-        "[useCommandDiscovery] stream connection error - command updates may be delayed",
-      );
-    });
-
     return () => {
       mountedRef.current = false;
-      controller.abort();
       unregisterDiscoveredCommands();
     };
   }, [activeAgentId, discover]);

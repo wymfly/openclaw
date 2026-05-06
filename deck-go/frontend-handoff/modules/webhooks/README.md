@@ -1,46 +1,48 @@
 # Webhooks
 
-**Status**: ready-for-implementation
+**Status**: implemented-real-contract
 **Design completed**: 2026-05-04
-**Designer**: design agent (multi-file React rebuild — v2)
+**Designer**: design agent (multi-file React rebuild - v2)
 **Depends on atoms**: Button, Input, Toggle, Badge, Tag, Code, StatusPill, Spinner, ConfirmDialog
-**New atoms needed**: none (all local molecules — see components.md)
+**New atoms needed**: none (all local molecules - see components.md)
 **New tokens needed**: none
 **Backend endpoints used**: see `api-usage.md`
 
 ## What this module does
 
-The Webhooks panel is the deck-go automation surface for **outbound event delivery**. Operators register HTTP receivers (Slack, PagerDuty, GitHub, internal QA bridges, monitoring backends), subscribe each one to a curated set of event types, and watch live evidence of every delivery — successful, failed, or retried — without leaving the deck.
+The Webhooks panel is the deck-go automation surface for outbound event delivery. Operators register HTTP receivers, subscribe each receiver to event types, run safe test deliveries, and inspect localstore-backed delivery evidence without leaving the deck.
 
-The panel must answer four operator questions in a single glance:
+The production implementation follows the v2 two-pane CRUD workspace where the current BFF contract supports it:
 
-1. **Are my receivers healthy?** — health badge per row, top-bar "failing" KPI cell, consecutive-failure counter
-2. **What did my last delivery do?** — last-fired relative time + last HTTP status code per row
-3. **Why did this delivery fail?** — click any delivery → expand to payload, response body, error string, retry tree
-4. **Can I get this thing working without leaving the deck?** — Test delivery button right next to Edit/Disable/Delete, with idle → running → done/error inline phases
+1. Are my receivers healthy? Health badge per row, failing KPI, consecutive-failure counter.
+2. What did the last delivery do? Last-fired evidence, last HTTP status, delivery history.
+3. Why did this delivery fail? Expand a delivery to inspect payload, response body, error string, and retry metadata when present.
+4. Can I repair it quickly? Test delivery, edit, disable, and delete actions are beside selected receiver evidence.
 
-Layout is the **2-pane CRUD workspace** (matches cron US-017): filterable list on the left (~620px), tabbed detail on the right; topbar carries 4 KPI cells; create/edit goes through a modal builder; delete is a confirm dialog.
+Layout is a two-pane workbench: filterable receiver inventory on the left, tabbed selected detail on the right, topbar KPIs, modal create/edit builder, and guarded delete confirmation.
 
 ## Contract truth
 
 - BFF endpoints: `GET /api/webhooks`, `POST /api/webhooks`, `PATCH /api/webhooks/{id}`, `DELETE /api/webhooks/{id}`, `GET /api/webhooks/{id}/deliveries`, `POST /api/webhooks/{id}/test`
 - DTO authority: `DeckGoWebhook`, `DeckGoWebhookDelivery`, `DeckGoWebhooksResponse`, `DeckGoWebhookDeliveriesResponse`
-- BFF projections (frontend-only state, **not** in DTO): KPI strip aggregates, available-event catalog, retry tree (parent/child grouping)
-- Browser code must call the Go BFF wrappers only — never reach into Gateway or localstore directly
+- BFF projections: KPI strip aggregates, local available-event chips, delivery row expansion, unsupported-gap copy
+- Browser code must call Go BFF wrappers only. It must never reach into Gateway or localstore directly.
+- Current backend does not expose delivery retry, stats, event catalog, audit timeline, or live webhook-delivery push routes. Production renders those as unsupported gaps instead of active controls.
+- Code truth wins over this handoff package if drift is found later.
 
 ## How to implement
 
-1. Open `prototype.html` (Babel-standalone). Try the 4 row filters, click 4 different webhook types (healthy / degraded / failing / disabled), expand a delivery row to see payload + response, click "Test delivery" to see the running/done phases, click "New webhook" to walk the builder modal, click "Delete" to see the confirm pattern.
-2. Read `components.md` — component tree, props contract, local molecules (StatusCodeBadge, DeliveryStatusBadge, WebhookHealthBadge, EnabledToggle, EventTag, SecretReveal, CountdownTimer)
-3. Read `states.md` — loading / ready / empty / selected / test-running / test-error / saving / saved / deleting / retry-pending state machines
-4. Read `interactions.md` — keyboard, modal lifecycle (backdrop+Esc), test-delivery phase ladder, delete confirm pattern, delivery row expand, retry button, search-events query
-5. Read `api-usage.md` — endpoint table + mutation envelopes + WS/SSE contract for live `webhook.delivery` event
-6. Hardcoded literal strings come straight out of the prototype; once translated, lift them into `frontend-new/src/i18n/{en,zh}.json` per the prototype-string convention
-7. CountdownTimer reused from approvals US-016 + cron US-017; SecretReveal new but minimal — both promotion candidates documented in `implementation-notes.md`
+1. Open `prototype.html` and review the row filters, receiver selection, delivery expansion, test delivery phases, builder modal, and delete confirmation.
+2. Read `components.md` for component structure and local molecule intent.
+3. Read `states.md` for loading, empty, selected, test-running, test-error, saving, deleting, and delivery-row states.
+4. Read `interactions.md` for keyboard, modal lifecycle, test-delivery sequence, delete confirmation, row expansion, and search behavior.
+5. Read `api-usage.md` for endpoint table, mutation envelopes, redacted secret behavior, and unsupported follow-up routes. Treat code truth as authoritative.
+6. Hardcoded strings should be lifted into `frontend-new/src/i18n/{en,zh}.json` when productionized.
+7. Secret values are read-side redacted and edit forms keep the secret blank unless the operator intentionally replaces it.
 
-## Open questions for implementation
+## Open questions / follow-ups
 
-- **Live `webhook.delivery` event over WS** — is the Go backend pushing per-delivery events, or does the frontend poll `/api/webhooks/{id}/deliveries`? Current prototype assumes ad-hoc refresh; `api-usage.md` calls out the WS contract that would unlock real-time updates if the backend supports it.
-- **Retry queue visibility** — `nextRetryAt` lives on the failed delivery DTO. Is there a separate retry queue surface, or do we render upcoming retries inline on the row that triggered them? Prototype goes inline.
-- **Signature header** — prototype assumes the secret produces an `X-Deck-Signature` HMAC-SHA256. If the actual header name differs, surface that in `implementation-notes.md` (it shows up in builder hint copy + audit timeline).
-- **Available event types** — prototype lists 19 hardcoded events (`approval.*`, `cron.*`, `channel.*`, etc). The real catalog should come from a backend introspection endpoint (`GET /api/events/catalog` or similar). Until that exists, hardcode and flag in `api-discrepancy.md`.
+- Live `webhook.delivery` event over WS: not present in current endpoint classification or Go BFF route truth.
+- Retry queue visibility: delivery DTO has retry metadata fields, but no retry mutation route exists.
+- Signature header: Go BFF signs outbound deliveries as `X-Signature-256: sha256=<hmac>` when a secret is configured.
+- Available event types: production uses a bounded frontend-local list. A backend event catalog requires a separate contract proposal.

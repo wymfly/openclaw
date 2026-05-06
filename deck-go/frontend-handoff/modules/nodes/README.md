@@ -2,7 +2,7 @@
 
 > 2-pane operations workbench for device trust + remote-control. Inventory rail on the left, lifecycle + guarded actions on the right. v2 multi-file React rebuild via Babel-standalone.
 
-**Status**: ready-for-implementation
+**Status**: implemented - real-contract verified
 **Design completed**: 2026-05-04 (v2 rebuild from V1 codex single-file)
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Button, Input, Select, Textarea, Checkbox, IconButton, JsonView, Code

@@ -39,7 +39,7 @@ export function parseRfc822Headers(raw: string): Record<string, string> {
       continue;
     }
     const key = line.slice(0, separator).trim().toLowerCase();
-    const value = line.slice(separator + 1).trim();
+    const value = decodeEncodedWords(line.slice(separator + 1).trim());
     if (!key) {
       continue;
     }
@@ -175,7 +175,7 @@ function getMimeParameter(headerValue: string | undefined, name: string): string
   if (value.includes("''")) {
     return decodeURIComponentSafe(value.split("''").slice(1).join("''"));
   }
-  return value;
+  return decodeEncodedWords(value);
 }
 
 function splitMultipartBody(body: Buffer, boundary: string): Buffer[] {
@@ -223,11 +223,44 @@ function decodeQuotedPrintable(body: Buffer): Buffer {
 }
 
 function decodeText(content: Buffer, charset: string | undefined): string {
-  const normalizedCharset = charset?.trim().toLowerCase();
+  const normalizedCharset = charset?.trim().toLowerCase().replace(/^"|"$/g, "");
+  if (!normalizedCharset || normalizedCharset === "utf-8" || normalizedCharset === "utf8") {
+    return content.toString("utf8");
+  }
   if (normalizedCharset === "latin1" || normalizedCharset === "iso-8859-1") {
     return content.toString("latin1");
   }
-  return content.toString("utf8");
+  try {
+    return new TextDecoder(normalizedCharset).decode(content);
+  } catch {
+    return content.toString("utf8");
+  }
+}
+
+function decodeEncodedWords(value: string): string {
+  const joined = value.replace(/(\?=)\s+(=\?)/g, "$1$2");
+  return joined.replace(/=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g, (_match, charset, encoding, text) => {
+    const decoded =
+      String(encoding).toLowerCase() === "b"
+        ? Buffer.from(String(text), "base64")
+        : decodeEncodedWordQuotedPrintable(String(text));
+    return decodeText(decoded, String(charset));
+  });
+}
+
+function decodeEncodedWordQuotedPrintable(value: string): Buffer {
+  const input = value.replace(/_/g, " ");
+  const bytes: number[] = [];
+  for (let index = 0; index < input.length; index += 1) {
+    const char = input[index];
+    if (char === "=" && /^[0-9A-Fa-f]{2}$/.test(input.slice(index + 1, index + 3))) {
+      bytes.push(Number.parseInt(input.slice(index + 1, index + 3), 16));
+      index += 2;
+      continue;
+    }
+    bytes.push(char.charCodeAt(0));
+  }
+  return Buffer.from(bytes);
 }
 
 function stripHtml(html: string): string {

@@ -1,0 +1,32 @@
+change: deck-go-models-providers-contract-completion
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused frontend tests, contract-gate, and OpenSpec validation remain mandatory. Real provider probes or config writes remain skipped-safe/deferred unless safe provider/config scope is proven."
+entries:
+  - scenarioId: audit.models-contract-chain
+    ownerTask: "1.1-1.2"
+    status: passed
+    verificationCommand: "Inspect models/providers matrix row, archived real-contract evidence, generated Gateway methods, Deck DTOs, config-write safety metadata, Go BFF routes, frontend facades, and Models implementation notes"
+    evidence: "Confirmed Models read workflows use typed Gateway transport or Deck BFF contracts; provider probes and config saves are the remaining action evidence gaps."
+  - scenarioId: contract.models-action-evidence
+    ownerTask: "2.1-2.2"
+    status: passed
+    verificationCommand: "cd deck-go && make mutation-evidence-contract-test && make mutation-evidence-contract-check"
+    evidence: "Added `models.config.save` and `models.auth.probe` mutation evidence rows, regenerated `deck-mutations.generated.ts` and `docs/deck-mutation-evidence-contract.md`, and verified source/generated sync."
+  - scenarioId: implementation.models-facades
+    ownerTask: "2.3-2.4"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/lib/mutation-evidence.test.ts src/api.chat-helpers.test.ts src/components/panels/models/ModelsPanel.test.tsx"
+    evidence: "Focused frontend tests passed: 3 files, 78 tests. Models config save and provider probe facades now acknowledge mutation evidence while preserving response DTOs."
+  - scenarioId: evidence.matrix-and-notes
+    ownerTask: "3.1"
+    status: passed
+    verificationCommand: "cd deck-go && make contract-chain-audit-sync"
+    evidence: "Updated Models implementation notes, canonical matrix JSON, generated matrix Markdown, and head proposal evidence for the archived child status."
+  - scenarioId: final.build-contract-openspec-diff
+    ownerTask: "3.2"
+    status: passed
+    verificationCommand: "make frontend-build; make contract-gate; openspec validations; git diff --check"
+    evidence: "`cd deck-go && make frontend-build` passed with existing Vite large-chunk warning. `cd deck-go && make contract-gate` passed. `openspec validate --type change deck-go-models-providers-contract-completion --strict` and head change validation passed. `git diff --check` passed."

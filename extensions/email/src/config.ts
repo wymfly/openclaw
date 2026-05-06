@@ -230,7 +230,9 @@ export async function resolveEmailSmtpRuntimeConfig(params: {
   });
   const smtp = account.smtp;
   if (!smtp) {
-    throw new Error(`plugins.entries.email.config.accounts.${account.id}.smtp: SMTP is not configured`);
+    throw new Error(
+      `plugins.entries.email.config.accounts.${account.id}.smtp: SMTP is not configured`,
+    );
   }
   const accountIndex = params.pluginConfig.accounts.findIndex((entry) => entry.id === account.id);
   const passwordPath = `plugins.entries.email.config.accounts[${accountIndex}].smtp.password`;
@@ -335,9 +337,7 @@ function normalizeAccountConfig(account: EmailAccountConfig): ResolvedEmailAccou
   };
 }
 
-function normalizeSmtpConfig(
-  account: EmailAccountConfig,
-): ResolvedEmailAccountConfig["smtp"] {
+function normalizeSmtpConfig(account: EmailAccountConfig): ResolvedEmailAccountConfig["smtp"] {
   if (!account.smtp) {
     return undefined;
   }

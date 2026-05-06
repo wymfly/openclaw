@@ -39,6 +39,8 @@ type DeckGoUsageCostResponse = {
 The frontend wrapper normalizes legacy `cost` → `totalCost` for backward-compat.
 The chart treats either field as the displayed value.
 
+Legacy alias preserved for compatibility: `GET /api/models/usage/cost`.
+
 ### `GET /api/usage/providers`
 
 Wrapper:
@@ -72,6 +74,8 @@ type DeckGoUsageProvidersResponse = {
 
 The UI renders 4 known providers (anthropic / openai / google / local) with
 typed icons. Unknown providers fall back to `IconShield`.
+
+Legacy alias preserved for compatibility: `GET /api/models/usage/providers`.
 
 ### `GET /api/usage/sessions`
 

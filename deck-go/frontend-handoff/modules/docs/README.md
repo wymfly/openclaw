@@ -1,13 +1,13 @@
 # Docs
 
-**Status**: ready-for-implementation
+**Status**: implemented - real-contract verified
 **Design completed**: 2026-05-04
 **Designer**: design agent (multi-file React rebuild — v2)
 **Depends on atoms**: Button, Input, Tag, Code
 **New atoms needed**: none (all local molecules — see components.md)
 **New tokens needed**: none
 **Backend endpoints used**: `GET /api/docs`, `GET /api/docs/{id}`, `POST /api/docs/extract`, `DELETE /api/docs/{id}` — see `api-usage.md`
-**Stack decisions**: in-house markdown renderer in prototype; production locks **react-markdown + remark-gfm + rehype-highlight**
+**Stack decisions**: in-house markdown renderer in prototype; production uses the existing `MarkdownText`/shared renderer because `frontend-new` does not currently declare `react-markdown`, `remark-gfm`, or `rehype-highlight`
 
 ## What this module does
 
@@ -39,7 +39,7 @@ Layout is the **2-pane workspace** with a search overlay that drops below the to
   - `POST /api/docs/extract` with `{ sessionKey: string }` returns `DeckGoDocsExtractResponse { extracted?: number, docs?: DeckGoDoc[] }`
   - `DELETE /api/docs/{id}` removes the doc from the local store
 - DTO authority: `DeckGoDoc`, `DeckGoDocsResponse`, `DeckGoDocsExtractResponse`, `DeckGoDocCategory` (`deck-go/contracts/source/deck-api.contract.ts:1459-1481`)
-- Body format: GitHub-flavored markdown (GFM) in `DeckGoDoc.content`
+- Body format: Markdown in `DeckGoDoc.content`; production fidelity is bounded by the installed shared renderer until a Markdown dependency change is explicitly approved
 - Browser code calls the Go BFF wrappers only — never reach into the docs filesystem or the agent runtime directly
 
 ## How to implement
@@ -58,6 +58,6 @@ Layout is the **2-pane workspace** with a search overlay that drops below the to
 - **Doc-doc cross-references** — current renderer treats markdown links as external. Production may want internal-link detection (`/docs/<doc-id>` → in-app navigation, no full reload).
 - **Deletion** — is delete soft (mark archived) or hard (drop from store)? V1 codex reads as hard delete; production should add an Archive bin if needed.
 - **Search index source** — prototype scans `content` in-browser (cheap for ~16 docs). Production may have hundreds → switch to BFF-side `GET /api/docs/search?q=...` with a precomputed inverted index.
-- **Code-block syntax highlighting** — prototype emits `<code class="md-codeblock--{lang}">` but doesn't actually highlight. Production locks rehype-highlight (Prism-like) for the production pipeline.
+- **Code-block syntax highlighting** — prototype emits `<code class="md-codeblock--{lang}">` but doesn't actually highlight. Production currently uses the existing shared Markdown renderer without adding a new syntax-highlighting dependency.
 - **Edit on source** — `DeckGoDoc.content` is editable in the local store; should the panel offer inline editing (markdown textarea + save) or stay read-only? Current scope = read-only.
 - **Frontmatter** — `DeckGoDoc.content` is plain markdown. If we want frontmatter (e.g., `version:`, `deprecated:`), the BFF strips it.

@@ -1,0 +1,414 @@
+{
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "authority": "Generated from src/gateway/method-registry-data.ts and deck-go/contracts/source/deck-exceptions.contract.json. Runtime gateway.describe alignment is verified by focused Gateway tests.",
+  "summary": {
+    "documentedDynamicMethods": 0,
+    "eventPayloadSchemas": 5,
+    "events": 24,
+    "methods": 173,
+    "resultSchemas": 135,
+    "typedMethods": 136,
+    "untypedMethods": 37
+  },
+  "methods": {
+    "typed": [
+      "agent.identity.get",
+      "agent.wait",
+      "agents.create",
+      "agents.delete",
+      "agents.files.get",
+      "agents.files.list",
+      "agents.files.set",
+      "agents.list",
+      "agents.update",
+      "channels.logout",
+      "channels.status",
+      "chat.abort",
+      "chat.history",
+      "chat.send",
+      "commands.list",
+      "config.apply",
+      "config.get",
+      "config.patch",
+      "config.schema",
+      "config.schema.lookup",
+      "config.set",
+      "cron.add",
+      "cron.list",
+      "cron.remove",
+      "cron.run",
+      "cron.runs",
+      "cron.status",
+      "cron.update",
+      "deck.agents.detail",
+      "deck.agents.eventStreams.get",
+      "deck.agents.eventStreams.set",
+      "deck.agents.skills.get",
+      "deck.agents.skills.set",
+      "deck.agents.subagents.get",
+      "deck.agents.subagents.set",
+      "deck.agents.systemPrompt.preview",
+      "deck.agents.toolPolicy.preview",
+      "deck.auth.overview",
+      "deck.auth.probe",
+      "deck.commands.discover",
+      "deck.identity.link",
+      "deck.identity.list",
+      "deck.identity.unlink",
+      "deck.plugins.list",
+      "deck.routing.add",
+      "deck.routing.list",
+      "deck.routing.remove",
+      "deck.routing.simulate",
+      "deck.routing.validate",
+      "deck.subagents.kill",
+      "deck.subagents.lineage",
+      "deck.subagents.list",
+      "deck.subagents.steer",
+      "deck.threads.list",
+      "device.pair.approve",
+      "device.pair.list",
+      "device.pair.reject",
+      "device.pair.remove",
+      "device.token.revoke",
+      "device.token.rotate",
+      "doctor.memory.backfillDreamDiary",
+      "doctor.memory.dedupeDreamDiary",
+      "doctor.memory.dreamDiary",
+      "doctor.memory.repairDreamingArtifacts",
+      "doctor.memory.resetDreamDiary",
+      "doctor.memory.resetGroundedShortTerm",
+      "doctor.memory.status",
+      "exec.approval.list",
+      "exec.approval.request",
+      "exec.approval.resolve",
+      "exec.approval.waitDecision",
+      "exec.approvals.get",
+      "exec.approvals.node.get",
+      "exec.approvals.node.set",
+      "exec.approvals.set",
+      "gateway.batch",
+      "gateway.describe",
+      "health",
+      "logs.tail",
+      "models.catalog.providers",
+      "models.configured",
+      "models.list",
+      "node.describe",
+      "node.invoke",
+      "node.list",
+      "node.pair.approve",
+      "node.pair.list",
+      "node.pair.reject",
+      "node.pair.request",
+      "node.pair.verify",
+      "node.pending.enqueue",
+      "node.rename",
+      "plugin.approval.list",
+      "plugin.approval.request",
+      "plugin.approval.resolve",
+      "sessions.abort",
+      "sessions.clear",
+      "sessions.compact",
+      "sessions.compaction.branch",
+      "sessions.compaction.get",
+      "sessions.compaction.list",
+      "sessions.compaction.restore",
+      "sessions.create",
+      "sessions.delete",
+      "sessions.get",
+      "sessions.list",
+      "sessions.messages.subscribe",
+      "sessions.messages.unsubscribe",
+      "sessions.patch",
+      "sessions.preview",
+      "sessions.reset",
+      "sessions.send",
+      "sessions.steer",
+      "sessions.subscribe",
+      "sessions.unsubscribe",
+      "sessions.usage",
+      "sessions.usage.logs",
+      "sessions.usage.timeseries",
+      "skills.bins",
+      "skills.detail",
+      "skills.install",
+      "skills.search",
+      "skills.status",
+      "skills.update",
+      "status",
+      "talk.config",
+      "talk.mode",
+      "talk.speak",
+      "tools.catalog",
+      "tools.effective",
+      "usage.cost",
+      "usage.status",
+      "wizard.cancel",
+      "wizard.next",
+      "wizard.start",
+      "wizard.status"
+    ],
+    "untyped": [
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "agent"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "browser.request"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "chat.inject"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "config.openFile"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "connect"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "exec.approval.get"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "gateway.identity.get"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "last-heartbeat"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "message.action"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.canvas.capability.refresh"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.event"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.invoke.result"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.pending.ack"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.pending.drain"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "node.pending.pull"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "plugin.approval.waitDecision"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "poll"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "push.test"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "secrets.reload"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "secrets.resolve"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "send"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "sessions.resolve"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "set-heartbeats"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "system-event"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "system-presence"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.convert"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.disable"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.enable"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.providers"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.setProvider"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "tts.status"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "update.run"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "voicewake.get"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "voicewake.set"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "wake"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "web.login.start"
+      },
+      {
+        "documented": false,
+        "hasParamsSchema": false,
+        "hasResultSchema": false,
+        "method": "web.login.wait"
+      }
+    ],
+    "withoutResultSchema": [
+      {
+        "documented": false,
+        "hasParamsSchema": true,
+        "hasResultSchema": false,
+        "method": "plugin.approval.request"
+      }
+    ]
+  },
+  "events": {
+    "withPayloadSchema": ["agent", "chat", "session.message", "session.tool", "sessions.changed"],
+    "withoutPayloadSchema": [
+      "connect.challenge",
+      "cron",
+      "device.pair.requested",
+      "device.pair.resolved",
+      "exec.approval.requested",
+      "exec.approval.resolved",
+      "health",
+      "heartbeat",
+      "node.invoke.request",
+      "node.pair.requested",
+      "node.pair.resolved",
+      "plugin.approval.requested",
+      "plugin.approval.resolved",
+      "presence",
+      "shutdown",
+      "talk.mode",
+      "tick",
+      "update.available",
+      "voicewake.changed"
+    ]
+  },
+  "exceptions": {
+    "missingKnownMethod": [],
+    "unused": []
+  },
+  "failures": []
+}

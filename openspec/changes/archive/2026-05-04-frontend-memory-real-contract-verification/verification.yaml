@@ -1,0 +1,58 @@
+change: frontend-memory-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Gateway memory files, LanceDB search, dream diary presence, or destructive maintenance actions may be empty-valid, degraded, skipped-safe, or handoff-blocked when the real stack has no data or the action would mutate user memory after bounded attempts."
+entries:
+  - scenarioId: baseline.memory-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/memory/prototype.html and inspect frontend-memory-hifi-redesign evidence"
+    evidence: "Inspected v2 multi-file handoff package and current Memory production code; prototype.html loaded via local static server and four tabs switched without browser errors."
+  - scenarioId: audit.memory-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF/runtime routes, Gateway method mapping, frontend wrappers, and production Memory code"
+    evidence: "Audited deck-api DTOs, endpoint classification, active/admin BFF routes, runtime adapters, Gateway doctor.memory methods, frontend wrappers, and MemoryPanel behavior. Found POST search missing and Gateway per-agent dreams unsupported."
+  - scenarioId: contract.memory-chain-matrix
+    ownerTask: "2.5,3.1-3.6"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/runtime/Gateway -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/memory/implementation-notes.md. Browse/read supported when workspace resolves; search degraded 501 until LanceDB adapter exists; health supported with single-agent fallback; dreams safe read supported with per-agent Gateway gap."
+  - scenarioId: implementation.memory-v2-and-scoped-fixes
+    ownerTask: "3.2-3.5"
+    status: passed
+    verificationCommand: "Implement deterministic route/wrapper/BFF/UI/docs/test fixes and verify unsupported prototype workflows remain inactive or degraded"
+    evidence: "Implemented canonical POST /api/memory/search in active/admin BFF route trees with GET compatibility alias, switched searchMemory wrapper/tests to POST, refactored MemoryPanel to Browse/Search/Health/Dreams v2, kept unsupported search degraded, and updated handoff docs."
+  - scenarioId: frontend.memory-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Memory"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/memory/MemoryPanel.test.tsx src/api.chat-helpers.test.ts passed: 2 files, 53 tests."
+  - scenarioId: backend.memory-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for memory routes and aliases"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/api/http ./internal/runtime/openclaw -run 'TestGatewayFacade_MemoryRoutes|TestMountAdminRoutes|TestContractAdapters' passed."
+  - scenarioId: visual.memory-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Memory mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "L1 mock/local visual coverage passed: cd deck-go && pnpm exec playwright test test/e2e/memory-visual.spec.ts --config playwright.config.ts."
+  - scenarioId: l2.memory-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: passed
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for memory browse, canonical POST search, legacy GET search, health, dreams read, production render, and no direct browser HTTP/WebSocket calls to real Gateway"
+    evidence: "L2 real Gateway E2E passed on first fresh attempt: cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/memory-real-gateway.spec.ts --config playwright.config.ts. Verified API route shapes, production Memory UI render, and BFF-only browser access."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Memory panel, API facade, Go routes/runtime, contracts, mocks, and verification evidence"
+    evidence: "Reviewed Memory panel/API/BFF route changes and verification evidence. Remaining items are documented capability/product gaps: LanceDB adapter absent, Gateway doctor.memory has no per-agent params, audit/progress/edit/search-history out of scope."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-memory-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate frontend-memory-real-contract-verification --strict passed; cd deck-go && make endpoint-classification-check passed; cd deck-go && make frontend-build passed; git diff --check passed."

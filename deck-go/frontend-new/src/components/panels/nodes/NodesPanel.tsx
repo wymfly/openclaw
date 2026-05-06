@@ -30,6 +30,78 @@ type NodeLifecycleSummary = {
   nextStepKey: string;
 };
 
+type PendingNodeAction =
+  | {
+      kind: "rename";
+      danger?: false;
+      title: string;
+      hint: string;
+      nodeId: string;
+      displayName: string;
+    }
+  | {
+      kind: "approve";
+      danger?: false;
+      title: string;
+      hint: string;
+      requestId: string;
+      preferredNodeId: string;
+    }
+  | {
+      kind: "reject";
+      danger: true;
+      title: string;
+      hint: string;
+      requestId: string;
+      preferredNodeId: string;
+    }
+  | {
+      kind: "request";
+      danger?: false;
+      title: string;
+      hint: string;
+      node: DeckGoNodeSummary;
+    }
+  | {
+      kind: "verify";
+      danger?: false;
+      title: string;
+      hint: string;
+      nodeId: string;
+      token: string;
+    }
+  | {
+      kind: "invoke";
+      danger?: false;
+      title: string;
+      hint: string;
+      nodeId: string;
+      command: string;
+      params: unknown;
+      timeoutMs?: number;
+    }
+  | {
+      kind: "pending";
+      danger?: false;
+      title: string;
+      hint: string;
+      nodeId: string;
+      type: DeckGoNodePendingWorkType;
+      priority: DeckGoNodePendingWorkPriority;
+      wake: boolean;
+    };
+
+type ActionState =
+  | "idle"
+  | "describing"
+  | "renaming"
+  | "approving"
+  | "requesting"
+  | "rejecting"
+  | "verifying"
+  | "invoking"
+  | "enqueueing";
+
 function getNodeLifecycleSummary(
   node: DeckGoNodeSummary,
   pendingRequest: DeckGoPairingRequest | null,
@@ -82,6 +154,32 @@ function formatNodeTimestamp(value?: number) {
   return Number.isNaN(date.getTime()) ? "n/a" : date.toLocaleString();
 }
 
+function formatPlatform(platform?: string) {
+  const value = platform?.trim();
+  return value ? value.toLowerCase() : "unknown";
+}
+
+function actionStateFor(action: PendingNodeAction): ActionState {
+  switch (action.kind) {
+    case "rename":
+      return "renaming";
+    case "approve":
+      return "approving";
+    case "reject":
+      return "rejecting";
+    case "request":
+      return "requesting";
+    case "verify":
+      return "verifying";
+    case "invoke":
+      return "invoking";
+    case "pending":
+      return "enqueueing";
+    default:
+      return "idle";
+  }
+}
+
 export function NodesPanel() {
   const t = useTranslations("nodes");
   const tc = useTranslations("common");
@@ -99,17 +197,8 @@ export function NodesPanel() {
   const [pendingPriority, setPendingPriority] = useState<DeckGoNodePendingWorkPriority>("normal");
   const [pendingWake, setPendingWake] = useState(true);
   const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [actionState, setActionState] = useState<
-    | "idle"
-    | "describing"
-    | "renaming"
-    | "approving"
-    | "requesting"
-    | "rejecting"
-    | "verifying"
-    | "invoking"
-    | "enqueueing"
-  >("idle");
+  const [actionState, setActionState] = useState<ActionState>("idle");
+  const [pendingAction, setPendingAction] = useState<PendingNodeAction | null>(null);
   const [actionResult, setActionResult] = useState<unknown>(null);
   const [error, setError] = useState("");
 
@@ -121,22 +210,32 @@ export function NodesPanel() {
         fetchNodePairing(),
       ]);
       const nextNodes = nodesResponse.nodes ?? [];
+      const nextPending = pairingResponse.pending ?? [];
       setNodes(nextNodes);
-      setPending(pairingResponse.pending ?? []);
+      setPending(nextPending);
       setLoadState("ready");
       setError("");
-      const fallbackId = preferredNodeId?.trim() || nextNodes[0]?.nodeId || "";
-      const nextSelected =
-        fallbackId && nextNodes.some((node) => node.nodeId === fallbackId)
-          ? fallbackId
-          : selectedNodeId && nextNodes.some((node) => node.nodeId === selectedNodeId)
-            ? selectedNodeId
-            : nextNodes[0]?.nodeId || "";
-      setSelectedNodeId(nextSelected);
-      if (nextSelected) {
-        const detail = await describeNode(nextSelected);
-        setNodeDetails((current) => ({ ...current, [nextSelected]: detail }));
-        setRenameValue(detail.displayName || detail.nodeId);
+      const currentStillExists =
+        selectedNodeId &&
+        (nextNodes.some((node) => node.nodeId === selectedNodeId) ||
+          nextPending.some((request) => request.nodeId === selectedNodeId));
+      const preferredStillExists =
+        preferredNodeId &&
+        (nextNodes.some((node) => node.nodeId === preferredNodeId) ||
+          nextPending.some((request) => request.nodeId === preferredNodeId));
+      const nextSelected = preferredStillExists
+        ? preferredNodeId
+        : currentStillExists
+          ? selectedNodeId
+          : (nextPending[0]?.nodeId ?? nextNodes[0]?.nodeId ?? "");
+      setSelectedNodeId(nextSelected || "");
+      const selectedDetail =
+        nextSelected && nextNodes.some((node) => node.nodeId === nextSelected)
+          ? await describeNode(nextSelected)
+          : null;
+      if (selectedDetail) {
+        setNodeDetails((current) => ({ ...current, [nextSelected]: selectedDetail }));
+        setRenameValue(selectedDetail.displayName || selectedDetail.nodeId);
       } else {
         setRenameValue("");
       }
@@ -172,7 +271,7 @@ export function NodesPanel() {
 
   const selectedNode = selectedNodeId
     ? (nodeDetails[selectedNodeId] ?? nodes.find((node) => node.nodeId === selectedNodeId) ?? null)
-    : (nodes[0] ?? null);
+    : null;
   const selectedRequest = selectedNodeId
     ? (pending.find((request) => request.nodeId === selectedNodeId) ?? null)
     : null;
@@ -185,22 +284,22 @@ export function NodesPanel() {
   const selectedInvokeCommand = selectedNode?.commands.includes(invokeCommand)
     ? invokeCommand
     : (selectedNode?.commands[0] ?? "");
+  const connectedCount = nodes.filter((node) => node.connected).length;
+  const pairedCount = nodes.filter((node) => node.paired).length;
+  const actionBusy = actionState !== "idle";
+  const currentName = selectedNode ? selectedNode.displayName || selectedNode.nodeId : "";
+  const renameDirty = Boolean(
+    selectedNode && renameValue.trim() && renameValue.trim() !== currentName,
+  );
+  const verifyReady = verifyToken.trim().length >= 6;
 
-  const renameAction = async () => {
-    if (!selectedNode || !renameValue.trim()) {
-      return;
-    }
-    setActionState("renaming");
-    try {
-      const result = await renameNode(selectedNode.nodeId, renameValue.trim());
-      setActionResult(result);
-      setError("");
-      await refresh(selectedNode.nodeId);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("renameFailed"));
-    } finally {
-      setActionState("idle");
-    }
+  const selectNodeId = (nodeId: string) => {
+    setSelectedNodeId(nodeId);
+    setPendingAction(null);
+    setActionResult(null);
+    setError("");
+    const node = nodeDetails[nodeId] ?? nodes.find((item) => item.nodeId === nodeId);
+    setRenameValue(node?.displayName || node?.nodeId || "");
   };
 
   const parseInvokeParams = () => {
@@ -211,15 +310,22 @@ export function NodesPanel() {
     return JSON.parse(raw) as unknown;
   };
 
-  const invokeAction = async () => {
-    if (!selectedNode || !selectedInvokeCommand) {
+  const queueRenameAction = () => {
+    if (!selectedNode || !renameDirty) {
       return;
     }
-    if (
-      !window.confirm(
-        t("confirmInvoke", { command: selectedInvokeCommand, nodeId: selectedNode.nodeId }),
-      )
-    ) {
+    const displayName = renameValue.trim();
+    setPendingAction({
+      kind: "rename",
+      title: t("confirmRenameTitle"),
+      hint: t("confirmRenameHint", { displayName, nodeId: selectedNode.nodeId }),
+      nodeId: selectedNode.nodeId,
+      displayName,
+    });
+  };
+
+  const queueInvokeAction = () => {
+    if (!selectedNode || !selectedInvokeCommand) {
       return;
     }
     let params: unknown;
@@ -234,129 +340,197 @@ export function NodesPanel() {
       return;
     }
     const timeoutMs = Number.parseInt(invokeTimeoutMs.trim(), 10);
-    setActionState("invoking");
-    try {
-      const result = await invokeNodeCommand(
-        selectedNode.nodeId,
-        selectedInvokeCommand,
-        params,
-        Number.isFinite(timeoutMs) ? timeoutMs : undefined,
-      );
-      setActionResult(result);
-      setError("");
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("invokeFailed"));
-    } finally {
-      setActionState("idle");
-    }
+    setPendingAction({
+      kind: "invoke",
+      title: t("confirmInvokeTitle"),
+      hint: t("confirmInvoke", {
+        command: selectedInvokeCommand,
+        nodeId: selectedNode.nodeId,
+      }),
+      nodeId: selectedNode.nodeId,
+      command: selectedInvokeCommand,
+      params,
+      timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
+    });
   };
 
-  const enqueuePendingWorkAction = async () => {
+  const queuePendingWorkAction = () => {
     if (!selectedNode) {
       return;
     }
-    if (
-      !window.confirm(
-        t("confirmQueuePending", { type: pendingWorkType, nodeId: selectedNode.nodeId }),
-      )
-    ) {
-      return;
-    }
-    setActionState("enqueueing");
-    try {
-      const result = await enqueueNodePendingWork({
-        nodeId: selectedNode.nodeId,
-        priority: pendingPriority,
-        type: pendingWorkType,
-        wake: pendingWake,
-      });
-      setActionResult(result);
-      setError("");
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("enqueueFailed"));
-    } finally {
-      setActionState("idle");
-    }
+    setPendingAction({
+      kind: "pending",
+      title: t("confirmQueuePendingTitle"),
+      hint: t("confirmQueuePending", { type: pendingWorkType, nodeId: selectedNode.nodeId }),
+      nodeId: selectedNode.nodeId,
+      type: pendingWorkType,
+      priority: pendingPriority,
+      wake: pendingWake,
+    });
   };
 
-  const pairingAction = async (decision: "approve" | "reject") => {
+  const queuePairingAction = (decision: "approve" | "reject") => {
     if (!selectedRequest) {
       return;
     }
-    if (
-      !window.confirm(
-        decision === "approve"
-          ? t("confirmApprovePairing", { requestId: selectedRequest.requestId })
-          : t("confirmRejectPairing", { requestId: selectedRequest.requestId }),
-      )
-    ) {
+    if (decision === "approve") {
+      setPendingAction({
+        kind: "approve",
+        title: t("confirmApprovePairingTitle"),
+        hint: t("confirmApprovePairing", { requestId: selectedRequest.requestId }),
+        requestId: selectedRequest.requestId,
+        preferredNodeId: selectedRequest.nodeId,
+      });
       return;
     }
-    setActionState(decision === "approve" ? "approving" : "rejecting");
-    try {
-      const result =
-        decision === "approve"
-          ? await approveNodePairing(selectedRequest.requestId)
-          : await rejectNodePairing(selectedRequest.requestId);
-      setActionResult(result);
-      setError("");
-      await refresh(selectedNodeId);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("pairingActionFailed"));
-    } finally {
-      setActionState("idle");
-    }
+    setPendingAction({
+      kind: "reject",
+      danger: true,
+      title: t("confirmRejectPairingTitle"),
+      hint: t("confirmRejectPairing", { requestId: selectedRequest.requestId }),
+      requestId: selectedRequest.requestId,
+      preferredNodeId: selectedRequest.nodeId,
+    });
   };
 
-  const requestPairingAction = async () => {
+  const queueRequestPairingAction = () => {
     if (!selectedNode) {
       return;
     }
-    if (!window.confirm(t("confirmRequestPairing", { nodeId: selectedNode.nodeId }))) {
+    setPendingAction({
+      kind: "request",
+      title: t("confirmRequestPairingTitle"),
+      hint: t("confirmRequestPairing", { nodeId: selectedNode.nodeId }),
+      node: selectedNode,
+    });
+  };
+
+  const queueVerifyPairingAction = () => {
+    if (!selectedNode) {
       return;
     }
-    setActionState("requesting");
+    const token = verifyToken.trim();
+    if (token.length < 6) {
+      setError(t("verifyTokenTooShort"));
+      return;
+    }
+    setPendingAction({
+      kind: "verify",
+      title: t("confirmVerifyPairingTitle"),
+      hint: t("confirmVerifyPairing", { nodeId: selectedNode.nodeId }),
+      nodeId: selectedNode.nodeId,
+      token,
+    });
+  };
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) {
+      return;
+    }
+    setActionState(actionStateFor(pendingAction));
     try {
-      const result = await requestNodePairing({
-        nodeId: selectedNode.nodeId,
-        displayName: selectedNode.displayName,
-        platform: selectedNode.platform,
-        version: selectedNode.version,
-        coreVersion: selectedNode.coreVersion,
-        uiVersion: selectedNode.uiVersion,
-        deviceFamily: selectedNode.deviceFamily,
-        modelIdentifier: selectedNode.modelIdentifier,
-        caps: selectedNode.caps,
-        commands: selectedNode.commands,
-        remoteIp: selectedNode.remoteIp,
-      });
+      let result: unknown;
+      let refreshNodeId: string | undefined;
+      switch (pendingAction.kind) {
+        case "rename":
+          result = await renameNode(pendingAction.nodeId, pendingAction.displayName);
+          refreshNodeId = pendingAction.nodeId;
+          break;
+        case "approve":
+          result = await approveNodePairing(pendingAction.requestId);
+          refreshNodeId = pendingAction.preferredNodeId;
+          break;
+        case "reject":
+          result = await rejectNodePairing(pendingAction.requestId);
+          refreshNodeId = pendingAction.preferredNodeId;
+          break;
+        case "request":
+          result = await requestNodePairing({
+            nodeId: pendingAction.node.nodeId,
+            displayName: pendingAction.node.displayName,
+            platform: pendingAction.node.platform,
+            version: pendingAction.node.version,
+            coreVersion: pendingAction.node.coreVersion,
+            uiVersion: pendingAction.node.uiVersion,
+            deviceFamily: pendingAction.node.deviceFamily,
+            modelIdentifier: pendingAction.node.modelIdentifier,
+            caps: pendingAction.node.caps,
+            commands: pendingAction.node.commands,
+            remoteIp: pendingAction.node.remoteIp,
+          });
+          refreshNodeId = pendingAction.node.nodeId;
+          break;
+        case "verify":
+          result = await verifyNodePairing(pendingAction.nodeId, pendingAction.token);
+          setVerifyToken("");
+          refreshNodeId = pendingAction.nodeId;
+          break;
+        case "invoke":
+          result = await invokeNodeCommand(
+            pendingAction.nodeId,
+            pendingAction.command,
+            pendingAction.params,
+            pendingAction.timeoutMs,
+          );
+          break;
+        case "pending":
+          result = await enqueueNodePendingWork({
+            nodeId: pendingAction.nodeId,
+            priority: pendingAction.priority,
+            type: pendingAction.type,
+            wake: pendingAction.wake,
+          });
+          break;
+        default:
+          break;
+      }
       setActionResult(result);
       setError("");
-      await refresh(selectedNode.nodeId);
+      setPendingAction(null);
+      if (refreshNodeId) {
+        await refresh(refreshNodeId);
+      }
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("pairingRequestFailed"));
+      setError(actionError instanceof Error ? actionError.message : t("actionFailed"));
     } finally {
       setActionState("idle");
     }
   };
 
-  const verifyPairingAction = async () => {
-    if (!selectedNode || !verifyToken.trim()) {
-      return;
-    }
-    setActionState("verifying");
-    try {
-      const result = await verifyNodePairing(selectedNode.nodeId, verifyToken.trim());
-      setActionResult(result);
-      setVerifyToken("");
-      setError("");
-      await refresh(selectedNode.nodeId);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("pairingVerifyFailed"));
-    } finally {
-      setActionState("idle");
-    }
-  };
+  const renderConfirmRow = () =>
+    pendingAction ? (
+      <div
+        className={`nodes-panel__confirm ${pendingAction.danger ? "is-danger" : ""}`}
+        role="alertdialog"
+        aria-label={pendingAction.title}
+      >
+        <div>
+          <strong>{pendingAction.title}</strong>
+          <p className="nodes-panel__meta">{pendingAction.hint}</p>
+        </div>
+        <div className="nodes-panel__confirm-actions">
+          <button
+            className="nodes-panel__button"
+            disabled={actionBusy}
+            onClick={() => setPendingAction(null)}
+            type="button"
+          >
+            {tc("cancel")}
+          </button>
+          <button
+            className={`nodes-panel__button ${pendingAction.danger ? "is-danger" : "is-primary"}`}
+            disabled={actionBusy}
+            onClick={() => void confirmPendingAction()}
+            type="button"
+          >
+            {actionBusy ? t("runningAction") : t("confirmAction")}
+          </button>
+        </div>
+      </div>
+    ) : null;
+
+  const renderActionResult = () =>
+    actionResult ? <JsonDetails title={t("lastNodeAction")} payload={actionResult} /> : null;
 
   return (
     <section className="nodes-panel" data-testid="nodes-panel">
@@ -364,6 +538,13 @@ export function NodesPanel() {
         <article className="nodes-panel__card">
           <div className="nodes-panel__card-head">
             <h2 className="nodes-panel__card-title">{t("nodesList")}</h2>
+            <button
+              className="nodes-panel__button"
+              type="button"
+              onClick={() => void refresh(selectedNodeId)}
+            >
+              {t("refreshNodes")}
+            </button>
           </div>
           <p className="nodes-panel__description">{t("managementDescription")}</p>
           <div className="nodes-panel__body">
@@ -380,37 +561,37 @@ export function NodesPanel() {
             </div>
             <div className="nodes-panel__metrics">
               <ShellStat label={t("nodesStat")} value={nodes.length} />
+              <ShellStat label={t("connectedStat")} value={connectedCount} />
+              <ShellStat label={t("pairedStat")} value={pairedCount} />
               <ShellStat label={t("pendingRequests")} value={pending.length} />
-            </div>
-            <div className="nodes-panel__actions">
-              <button
-                className="nodes-panel__button"
-                type="button"
-                onClick={() => void refresh(selectedNodeId)}
-              >
-                {t("refreshNodes")}
-              </button>
             </div>
             {error ? <p className="nodes-panel__error">{error}</p> : null}
             {pending.length > 0 ? (
               <div className="nodes-panel__surface">
                 <p className="nodes-panel__label">{t("pendingPairing")}</p>
                 <ul className="nodes-panel__list">
-                  {pending.map((request) => (
-                    <li key={request.requestId}>
-                      <button
-                        type="button"
-                        className={`nodes-panel__row ${selectedRequest?.requestId === request.requestId ? "is-selected" : ""}`}
-                        onClick={() => setSelectedNodeId(request.nodeId)}
-                      >
-                        <strong>{request.displayName || request.nodeId}</strong>
-                        <div className="nodes-panel__meta">
-                          {t("request")}: {request.requestId} | {t("repair")}:{" "}
-                          {request.isRepair ? t("yes") : t("no")}
-                        </div>
-                      </button>
-                    </li>
-                  ))}
+                  {pending.map((request) => {
+                    const orphan = !nodes.some((node) => node.nodeId === request.nodeId);
+                    return (
+                      <li key={request.requestId}>
+                        <button
+                          type="button"
+                          className={`nodes-panel__row ${selectedRequest?.requestId === request.requestId ? "is-selected" : ""}`}
+                          onClick={() => selectNodeId(request.nodeId)}
+                          aria-pressed={selectedRequest?.requestId === request.requestId}
+                        >
+                          <strong>{request.displayName || request.nodeId}</strong>
+                          <div className="nodes-panel__meta">
+                            {t("request")}: {request.requestId} | {t("repair")}:{" "}
+                            {request.isRepair ? t("yes") : t("no")}
+                          </div>
+                          {orphan ? (
+                            <div className="nodes-panel__meta">{t("orphanRequestHint")}</div>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : null}
@@ -423,7 +604,8 @@ export function NodesPanel() {
                     <button
                       type="button"
                       className={`nodes-panel__row ${selectedNode?.nodeId === node.nodeId ? "is-selected" : ""}`}
-                      onClick={() => setSelectedNodeId(node.nodeId)}
+                      onClick={() => selectNodeId(node.nodeId)}
+                      aria-pressed={selectedNode?.nodeId === node.nodeId}
                     >
                       <strong>{node.displayName || node.nodeId}</strong>
                       <div className="nodes-panel__meta">
@@ -432,6 +614,23 @@ export function NodesPanel() {
                       </div>
                       <div className="nodes-panel__meta">
                         {t("paired")}: {node.paired ? t("yes") : t("no")}
+                      </div>
+                      <div className="nodes-panel__pill-row">
+                        <span
+                          className={`nodes-panel__pill is-platform-${formatPlatform(node.platform)}`}
+                        >
+                          {node.platform || t("unknown")}
+                        </span>
+                        {node.caps.slice(0, 2).map((capability) => (
+                          <span className="nodes-panel__pill is-muted" key={capability}>
+                            {capability}
+                          </span>
+                        ))}
+                        {node.caps.length > 2 ? (
+                          <span className="nodes-panel__pill is-muted">
+                            +{node.caps.length - 2}
+                          </span>
+                        ) : null}
                       </div>
                     </button>
                   </li>
@@ -456,7 +655,7 @@ export function NodesPanel() {
                     <p className="nodes-panel__eyebrow">{t("node")}</p>
                     <strong>{selectedNode.displayName || selectedNode.nodeId}</strong>
                     <p className="nodes-panel__meta">
-                      {selectedNode.platform || t("unknownPlatform")}
+                      {selectedNode.nodeId} | {selectedNode.platform || t("unknownPlatform")}
                     </p>
                   </div>
                   <div className="nodes-panel__pill-row">
@@ -468,6 +667,8 @@ export function NodesPanel() {
                     </span>
                   </div>
                 </div>
+                {renderConfirmRow()}
+                {renderActionResult()}
                 <div className="nodes-panel__detail-metrics">
                   <ShellStat
                     label={t("version")}
@@ -534,8 +735,8 @@ export function NodesPanel() {
                   <button
                     className="nodes-panel__button"
                     type="button"
-                    onClick={() => void renameAction()}
-                    disabled={actionState !== "idle"}
+                    onClick={queueRenameAction}
+                    disabled={actionBusy || !renameDirty}
                   >
                     {actionState === "renaming" ? t("renaming") : t("rename")}
                   </button>
@@ -544,16 +745,16 @@ export function NodesPanel() {
                       <button
                         className="nodes-panel__button is-primary"
                         type="button"
-                        onClick={() => void pairingAction("approve")}
-                        disabled={actionState !== "idle"}
+                        onClick={() => queuePairingAction("approve")}
+                        disabled={actionBusy}
                       >
                         {actionState === "approving" ? t("approving") : t("approvePairing")}
                       </button>
                       <button
                         className="nodes-panel__button is-danger"
                         type="button"
-                        onClick={() => void pairingAction("reject")}
-                        disabled={actionState !== "idle"}
+                        onClick={() => queuePairingAction("reject")}
+                        disabled={actionBusy}
                       >
                         {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
                       </button>
@@ -563,8 +764,8 @@ export function NodesPanel() {
                     <button
                       className="nodes-panel__button"
                       type="button"
-                      onClick={() => void requestPairingAction()}
-                      disabled={actionState !== "idle"}
+                      onClick={queueRequestPairingAction}
+                      disabled={actionBusy}
                     >
                       {actionState === "requesting" ? t("requesting") : t("requestPairing")}
                     </button>
@@ -581,8 +782,8 @@ export function NodesPanel() {
                   <button
                     className="nodes-panel__button"
                     type="button"
-                    onClick={() => void verifyPairingAction()}
-                    disabled={actionState !== "idle" || !verifyToken.trim()}
+                    onClick={queueVerifyPairingAction}
+                    disabled={actionBusy || !verifyReady}
                   >
                     {actionState === "verifying" ? t("verifying") : t("verifyPairing")}
                   </button>
@@ -627,11 +828,9 @@ export function NodesPanel() {
                     <button
                       className="nodes-panel__button is-primary"
                       disabled={
-                        actionState !== "idle" ||
-                        !selectedInvokeCommand ||
-                        selectedNode.commands.length === 0
+                        actionBusy || !selectedInvokeCommand || selectedNode.commands.length === 0
                       }
-                      onClick={() => void invokeAction()}
+                      onClick={queueInvokeAction}
                       type="button"
                     >
                       {actionState === "invoking" ? t("invoking") : t("invokeCommand")}
@@ -676,8 +875,8 @@ export function NodesPanel() {
                   <div className="nodes-panel__actions">
                     <button
                       className="nodes-panel__button"
-                      disabled={actionState !== "idle"}
-                      onClick={() => void enqueuePendingWorkAction()}
+                      disabled={actionBusy}
+                      onClick={queuePendingWorkAction}
                       type="button"
                     >
                       {actionState === "enqueueing" ? t("queueing") : t("queuePendingWork")}
@@ -755,6 +954,8 @@ export function NodesPanel() {
                     </span>
                   </div>
                 </div>
+                {renderConfirmRow()}
+                {renderActionResult()}
                 <div className="nodes-panel__surface">
                   <p className="nodes-panel__label">{t("pairingAction")}</p>
                   <p className="nodes-panel__meta">{t("orphanPairingDescription")}</p>
@@ -762,16 +963,16 @@ export function NodesPanel() {
                     <button
                       className="nodes-panel__button is-primary"
                       type="button"
-                      onClick={() => void pairingAction("approve")}
-                      disabled={actionState !== "idle"}
+                      onClick={() => queuePairingAction("approve")}
+                      disabled={actionBusy}
                     >
                       {actionState === "approving" ? t("approving") : t("approvePairing")}
                     </button>
                     <button
                       className="nodes-panel__button is-danger"
                       type="button"
-                      onClick={() => void pairingAction("reject")}
-                      disabled={actionState !== "idle"}
+                      onClick={() => queuePairingAction("reject")}
+                      disabled={actionBusy}
                     >
                       {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
                     </button>
@@ -782,9 +983,6 @@ export function NodesPanel() {
             ) : (
               <p className="nodes-panel__empty">{t("chooseNodeOrPairing")}</p>
             )}
-            {actionResult ? (
-              <JsonDetails title={t("lastNodeAction")} payload={actionResult} />
-            ) : null}
           </div>
         </article>
       </div>

@@ -8,6 +8,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/access"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/platform/audit"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
@@ -39,6 +40,7 @@ func NewRootHandlerWithRuntimeFacade(
 	if bus == nil {
 		panic("managed runtime event bus is required")
 	}
+	auditLog := audit.NewLog(audit.DefaultMaxEntries)
 
 	r := chi.NewRouter()
 	r.Use(accessLogMiddleware)
@@ -49,7 +51,7 @@ func NewRootHandlerWithRuntimeFacade(
 				"Access-Control-Allow-Headers",
 				"Authorization, Content-Type, Last-Event-ID, x-deck-token, X-Request-Id",
 			)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			if req.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return
@@ -80,6 +82,7 @@ func NewRootHandlerWithRuntimeFacade(
 
 	r.Route("/api", func(api chi.Router) {
 		api.Use(GatewayConfiguredMiddleware(runtimeFacade))
+		api.Use(audit.Middleware(auditLog))
 		registerOnboardingRoutes(api, managed)
 		registerSettingsRoutes(api, store, managed)
 		registerGatewayRoutes(api, managed)
@@ -90,6 +93,7 @@ func NewRootHandlerWithRuntimeFacade(
 		registerWebhookRoutes(api)
 		registerDocsRoutes(api, managed)
 		registerActivityMonitorRoutes(api, bus)
+		registerControlAuditRoutes(api, auditLog)
 		registerMemoryRoutes(api, managed)
 		registerAssetRoutes(api, store)
 		registerChatRoutes(api, managed)

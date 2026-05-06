@@ -3,6 +3,10 @@
 > v2 multi-file handoff. Engineering target is
 > `frontend-new/src/components/panels/subagents/`.
 
+> Production note: code truth wins over prototype shape. Current production uses
+> `/api/deck/subagents` and `/api/deck/agents` action envelopes, and status filters are
+> `active | completed | failed | timeout | all`.
+
 ## Production component skeleton
 
 ```

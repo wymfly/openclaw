@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "metadataSourceFormat": "deck-live-projections-json",
+  "statusValues": ["idle", "connecting", "connected", "reconnecting", "stale", "error"],
+  "gapPolicies": ["none", "mark-stale", "refresh"],
+  "streams": [
+    {
+      "id": "deck-main",
+      "endpoint": "GET /stream",
+      "transport": "sse",
+      "lastEventId": true,
+      "gapEvent": "projection.gap",
+      "notes": "Shared Deck Go control stream backed by the runtime event bus."
+    },
+    {
+      "id": "deck-logs",
+      "endpoint": "GET /logs/stream",
+      "transport": "sse",
+      "lastEventId": true,
+      "gapEvent": null,
+      "notes": "Log tail stream backed by logs.tail polling."
+    }
+  ],
+  "projections": [
+    {
+      "id": "agent-status",
+      "panel": "agents",
+      "stream": "deck-main",
+      "events": ["agent.status.changed", "activity.event", "projection.gap"],
+      "refreshEndpoints": ["GET /deck/agents?agentId=..."],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:agent-status:lastEventId",
+      "notes": "Agent list/detail projections recover from the agent inventory BFF."
+    },
+    {
+      "id": "activity-feed",
+      "panel": "activity",
+      "stream": "deck-main",
+      "events": ["activity.event", "chat", "agent", "projection.gap"],
+      "refreshEndpoints": ["GET /activity", "GET /monitor/runs", "GET /monitor/stats"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:activity-feed:lastEventId",
+      "notes": "Activity and monitor projections recover by reloading read models from Deck Go BFF endpoints."
+    },
+    {
+      "id": "approval-queue",
+      "panel": "approvals",
+      "stream": "deck-main",
+      "events": ["approval.pending", "approval.resolved", "projection.gap"],
+      "refreshEndpoints": ["GET /approvals/pending", "GET /approvals"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:approval-queue:lastEventId",
+      "notes": "Pending approval state is opportunistic live state and recovers from the pending approvals endpoint."
+    },
+    {
+      "id": "device-pairing",
+      "panel": "settings",
+      "stream": "deck-main",
+      "events": ["device.pair.requested", "device.pair.resolved", "projection.gap"],
+      "refreshEndpoints": ["GET /devices", "GET /devices/self"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:device-pairing:lastEventId",
+      "notes": "Device pairing live updates are advisory; the device list endpoint remains authoritative."
+    },
+    {
+      "id": "command-discovery",
+      "panel": "shell",
+      "stream": "deck-main",
+      "events": ["commands.changed", "projection.gap"],
+      "refreshEndpoints": ["POST /deck/commands/discover"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:command-discovery:lastEventId",
+      "notes": "Command registry refreshes when Gateway-discovered commands change."
+    },
+    {
+      "id": "chat-session",
+      "panel": "chat",
+      "stream": "deck-main",
+      "events": [
+        "chat",
+        "agent",
+        "session.message",
+        "session.tool",
+        "sessions.changed",
+        "session-msg",
+        "session-tool",
+        "session-state",
+        "approval.pending",
+        "approval.resolved",
+        "canvas",
+        "projection.gap"
+      ],
+      "refreshEndpoints": ["GET /chat/snapshot", "GET /sessions", "POST /chat/session-events"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:chat-session:lastEventId",
+      "notes": "Chat keeps a specialized dispatcher but follows the same gap-to-refresh policy."
+    },
+    {
+      "id": "log-tail",
+      "panel": "logs",
+      "stream": "deck-logs",
+      "events": ["log.batch", "log.reset"],
+      "refreshEndpoints": ["GET /logs"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "none",
+      "cursorStorageKey": "deckGoLogsLastEventId",
+      "notes": "Log tailing persists Last-Event-ID independently from the log cursor used by GET /logs."
+    },
+    {
+      "id": "session-list",
+      "panel": "sessions",
+      "stream": "deck-main",
+      "events": ["sessions.changed", "session-state", "projection.gap"],
+      "refreshEndpoints": ["GET /sessions"],
+      "staleAfterMs": 30000,
+      "gapPolicy": "refresh",
+      "cursorStorageKey": "deckGoLiveProjection:session-list:lastEventId",
+      "notes": "Session list projections recover by reloading the session list BFF."
+    },
+    {
+      "id": "routing-bindings",
+      "panel": "routing",
+      "stream": null,
+      "events": [],
+      "refreshEndpoints": ["GET /deck/routing"],
+      "staleAfterMs": 60000,
+      "gapPolicy": "none",
+      "cursorStorageKey": null,
+      "notes": "Routing is refresh-only until Gateway exposes a routing change event."
+    },
+    {
+      "id": "subagent-topology",
+      "panel": "subagents",
+      "stream": null,
+      "events": [],
+      "refreshEndpoints": ["GET /deck/subagents"],
+      "staleAfterMs": 60000,
+      "gapPolicy": "none",
+      "cursorStorageKey": null,
+      "notes": "Subagent topology is refresh-only until Gateway exposes a topology change event."
+    },
+    {
+      "id": "usage-observability",
+      "panel": "usage",
+      "stream": null,
+      "events": [],
+      "refreshEndpoints": ["GET /usage/cost", "GET /usage/providers", "GET /usage/sessions"],
+      "staleAfterMs": 60000,
+      "gapPolicy": "none",
+      "cursorStorageKey": null,
+      "notes": "Usage is read-model refresh only; live deltas are not claimed."
+    }
+  ]
+}

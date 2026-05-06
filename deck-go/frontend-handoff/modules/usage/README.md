@@ -1,6 +1,6 @@
 # usage — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented - real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -143,7 +143,7 @@ Endpoints (read-only):
 - `GET /api/usage/sessions/logs` → `DeckGoUsageSessionLogsResponse`
 - `GET /api/usage/timeseries` → `DeckGoUsageTimeseriesResponse`
 
-## Stack decision: chart library — RECHARTS (LOCKED)
+## Stack decision: chart library — RECHARTS (dependency-gated)
 
 This panel **triggers** the deck-go chart-lib stack decision. The PRD flagged
 budget (US-013) as the trigger; budget turned out to be a CSS-only meter panel
@@ -151,7 +151,13 @@ with no time-series. Real time-series rendering lives **here** — daily cost
 trend, daily aggregates, per-session stacked timeseries, and (future)
 per-rule history for budget if added.
 
-**Locked decision:** **`recharts` (v2.x)**.
+**Handoff recommendation:** **`recharts` (v2.x)**.
+
+**Production status:** dependency-gated. `frontend-new/package.json` does not
+declare `recharts`, and the repository requires explicit approval before adding
+new dependencies. The real implementation therefore uses existing React/CSS
+chart primitives in this pass and records richer tooltip/crosshair/brush
+behavior as follow-up.
 
 **Why recharts:**
 
@@ -173,12 +179,12 @@ per-rule history for budget if added.
 - Hand-rolled SVG (this prototype) — fine for prototype; **not extensible** to
   per-axis legend / responsive container / brush / tooltip / a11y.
 
-**Engineering implementation note:** when translating to
-`frontend-new/src/components/panels/usage/`, replace the prototype's `AreaTrend`
-/ `LineSpark` / `BarMini` / `StackedAreaTimeseries` with `recharts` equivalents
-(`AreaChart` + `Area` / `LineChart` + `Line` / `BarChart` + `Bar` /
-`AreaChart` + multiple stacked `Area`). Keep the prototype's `QuotaBar` and
-`ContextWeightBar` as plain CSS — they don't need recharts.
+**Engineering implementation note:** when `recharts` is explicitly approved,
+replace the prototype's `AreaTrend` / `LineSpark` / `BarMini` /
+`StackedAreaTimeseries` with `recharts` equivalents (`AreaChart` + `Area` /
+`LineChart` + `Line` / `BarChart` + `Bar` / `AreaChart` + multiple stacked
+`Area`). Keep the prototype's `QuotaBar` and `ContextWeightBar` as plain CSS -
+they don't need recharts.
 
 The same `recharts` install will serve any future budget-history view (US-013
 flagged this in its open questions), gateway throughput chart (US-015), and
@@ -230,8 +236,9 @@ Per-provider icons (`IconAnthropic` / `IconOpenAI` / `IconGoogle` / `IconLocal`)
   `usage/`. **`ProviderPill` and `QuotaBar` are strong promotion candidates** —
   gateway and channels both surface provider+quota info.
 
-`recharts` lives in `frontend-new/src/lib/charts/` re-exports (production
-implementation; not in this prototype).
+If approved later, `recharts` should live behind
+`frontend-new/src/lib/charts/` re-exports (production implementation; not in
+this prototype).
 
 ## How to implement
 
@@ -240,7 +247,8 @@ implementation; not in this prototype).
 2. Translate to `frontend-new/src/components/panels/usage/` keeping the
    class-name shape (`usage-app__*`, `provider-card__*`, `quota-bar__*`,
    `session-table__*`, `session-detail__*`).
-3. **Replace prototype's hand-rolled SVG charts with `recharts`**:
+3. If `recharts` is approved, replace prototype's hand-rolled SVG charts with
+   `recharts`:
    - `AreaTrend` → `<AreaChart>` + `<Area>` + `<XAxis>` + `<YAxis>` + `<Tooltip>` + `<CartesianGrid>` + `<ResponsiveContainer>`
    - `BarMini` → `<BarChart>` + `<Bar>`
    - `LineSpark` → `<LineChart>` (no axes, no tooltip; bare sparkline)

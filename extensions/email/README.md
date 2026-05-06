@@ -1,26 +1,111 @@
 # Email (plugin)
 
-Bundled native email plugin for **OpenClaw**.
+Bundled OpenClaw-native email plugin for IMAP mailbox access, attachment
+automation, and SMTP sending.
 
-Current scope:
+This plugin is designed for agent workflows such as:
 
-- IMAP message listing
-- IMAP message read / preview
-- IMAP attachment download
-- SMTP send
-- SMTP send with attachments
+- searching a configured mailbox by date, sender, recipient, subject, or
+  attachment filename
+- reading message headers, body previews, and attachment inventories
+- downloading one message's attachments by `uid` or `messageId`
+- downloading all attachments from matching messages for daily automation
+- sending email through SMTP, including file attachments from allowed roots
 
 The plugin is intentionally built with **no new third-party mail dependency**.
-That keeps the first iterations easy to ship and reason about, but it also
-means future iterations should expand carefully, with explicit validation at
-each step.
+The first implementation keeps IMAP, SMTP, MIME parsing, and filesystem safety
+inside the plugin so the OpenClaw core stays extension-agnostic.
 
-## Current Tools
+## Installation And Deployment
 
-- `email_list`
-- `email_read`
-- `email_download_attachments`
-- `email_send`
+For local development, install or link the plugin through the official plugin
+CLI:
+
+```bash
+openclaw plugins install ./extensions/email
+openclaw plugins install -l ./extensions/email
+```
+
+The first command copies the plugin into the user's plugin install root. The
+second command links the local source tree and should be used only for
+development iteration.
+
+Installation only makes the plugin discoverable. The plugin still needs
+`plugins.entries.email.enabled` and account config under
+`plugins.entries.email.config` before the tools are usable.
+
+For bundled releases or legacy Windows deploy hot installs, do not rely on a
+development link. Ship the plugin as part of the release artifact, or follow
+the controlled server procedure in:
+
+```text
+extensions/SELF-DEVELOPED-PLUGIN-DEPLOYMENT.md
+```
+
+Avoid leaving another active `email` copy under `plugins.load.paths` when the
+same plugin id is already bundled, because duplicate plugin ids can shadow the
+deployed copy.
+
+## Agent Experience
+
+When this plugin is enabled, OpenClaw exposes the email tools through the normal
+agent tool surface and loads the plugin skill directory declared in
+`openclaw.plugin.json`.
+
+The bundled `email-attachment-automation` skill teaches the agent this preferred
+workflow:
+
+- Use `email_download_matching_attachments` for "download today's attachments",
+  "save attachments whose title contains ...", or similar automation requests.
+- Use `email_search` first only when the user asks to inspect, preview, or
+  confirm matching messages before download.
+- Use `email_read` when the user identifies a specific message and wants body
+  text or exact attachment details.
+- Use `email_download_attachments` only after a specific `uid` or `messageId`
+  is known.
+
+This means a sufficiently capable agent can understand a request like
+"download today's PDF attachments from emails with subject containing
+performance test" and map it to the bulk download tool without needing the user
+to name IMAP concepts.
+
+## Tool Reference
+
+| Tool                                  | Purpose                                                                   | Typical Inputs                                                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `email_list`                          | List recent message headers from a mailbox.                               | `accountId`, `mailbox`, `limit`, `since`, `unseenOnly`                                                                           |
+| `email_search`                        | Search messages and optionally include attachment inventory.              | `onDate`, `since`, `before`, `subjectContains`, `fromContains`, `toContains`, `attachmentFilenameContains`, `includeAttachments` |
+| `email_read`                          | Read one message by UID or Message-ID.                                    | `uid` or `messageId`, `mailbox`, `markSeen`                                                                                      |
+| `email_download_attachments`          | Download attachments from one known message.                              | `uid` or `messageId`, `outputDir`                                                                                                |
+| `email_download_matching_attachments` | Search messages and download attachments in one automation-oriented call. | date filters, text filters, `attachmentFilenameContains`, `outputDir`                                                            |
+| `email_send`                          | Send email with optional attachments.                                     | `to`, `cc`, `bcc`, `subject`, `text`, `html`, `attachments`                                                                      |
+
+### Daily Attachment Automation
+
+Use `email_download_matching_attachments` for recurring download jobs. It
+supports:
+
+- `onDate`: `"today"`, `"yesterday"`, or `YYYY-MM-DD`
+- `since` / `before`: date range where `before` is exclusive
+- `subjectContains`, `fromContains`, `toContains`
+- `attachmentFilenameContains`
+- `maxScanMessages` and `limit`
+- `outputDir` under the configured allowed write root
+
+Example tool arguments:
+
+```json5
+{
+  onDate: "today",
+  subjectContains: "performance test",
+  attachmentFilenameContains: "pdf",
+  outputDir: "./email-attachments/today",
+}
+```
+
+The tool returns the matched message count, downloaded file paths, per-message
+results, and failures. By default, files are grouped under `uid-<uid>`
+subdirectories to avoid filename collisions across messages.
 
 ## Config Shape
 
@@ -46,7 +131,7 @@ High-level shape:
               password: {
                 source: "env",
                 provider: "default",
-                id: "EMAIL_IMAP_PASSWORD"
+                id: "EMAIL_IMAP_PASSWORD",
               },
               mailbox: "INBOX",
               smtp: {
@@ -58,25 +143,80 @@ High-level shape:
                 password: {
                   source: "env",
                   provider: "default",
-                  id: "EMAIL_SMTP_PASSWORD"
+                  id: "EMAIL_SMTP_PASSWORD",
                 },
                 from: "agent@example.com",
-                authMethod: "login"
-              }
-            }
+                authMethod: "login",
+              },
+            },
           ],
           sendPolicy: {
-            allowedReadRoots: ["./tmp/email-send"]
+            allowedReadRoots: ["./tmp/email-send"],
           },
           downloadPolicy: {
-            allowedWriteRoots: ["./tmp/email-downloads"]
-          }
-        }
-      }
-    }
-  }
+            allowedWriteRoots: ["./tmp/email-downloads"],
+          },
+        },
+      },
+    },
+  },
 }
 ```
+
+### Account Fields
+
+- `defaultAccountId`: account used when a tool call omits `accountId`.
+- `accounts[].id`: stable account identifier used by tools.
+- `accounts[].host`, `port`, `secure`: IMAP endpoint.
+- `accounts[].user`, `password`: IMAP login. `password` may be a string or
+  SecretRef.
+- `accounts[].mailbox`: default mailbox, usually `INBOX`.
+- `accounts[].smtp`: optional SMTP endpoint for `email_send`.
+- `sendPolicy.allowedReadRoots`: roots from which SMTP attachments may be read.
+- `downloadPolicy.allowedWriteRoots`: roots where downloaded attachments may be
+  written.
+
+Passwords should normally use SecretRef or environment-backed config rather
+than plaintext.
+
+## Filesystem Safety
+
+The plugin applies separate read/write policies:
+
+- Attachment downloads are restricted by `downloadPolicy.allowedWriteRoots`.
+- SMTP attachments are restricted by `sendPolicy.allowedReadRoots`.
+- Filenames are sanitized before writing to disk.
+- Duplicate attachment filenames receive unique suffixes.
+
+For automation, choose a stable output directory under an allowed root, for
+example `./email-attachments/YYYY-MM-DD`.
+
+## MIME And Charset Handling
+
+The plugin includes a lightweight MIME parser for the supported workflows:
+
+- RFC 2047 encoded-word decoding for common header and filename cases
+- quoted-printable and base64 body/attachment decoding
+- multipart traversal for body and attachment extraction
+- non-UTF-8 charset decoding through `TextDecoder` when available
+
+The current MIME layer is intentionally scoped. If future live-provider evidence
+shows broader MIME compatibility is needed, add fixtures and validation before
+expanding parser behavior.
+
+## PDF Workflow
+
+This plugin downloads PDF attachments as files. PDF analysis is handled by
+OpenClaw's built-in `pdf` tool, not by the email plugin itself.
+
+For a combined workflow, the agent should:
+
+1. Call `email_download_matching_attachments` with date/title/filename filters.
+2. Pass the returned `.pdf` file paths to the `pdf` tool with the user's
+   analysis prompt.
+
+Make sure the email download output directory is readable by the agent and is
+compatible with any active filesystem policy.
 
 ## Design Intent
 

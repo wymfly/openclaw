@@ -6,6 +6,20 @@ import {
 } from "../../../infra/plugin-approvals.js";
 import { NonEmptyString } from "./primitives.js";
 
+export const PluginApprovalListParamsSchema = Type.Object({}, { additionalProperties: false });
+
+export const PluginApprovalListRecordSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    request: Type.Unknown(),
+    createdAtMs: Type.Integer({ minimum: 0 }),
+    expiresAtMs: Type.Integer({ minimum: 0 }),
+  },
+  { additionalProperties: false },
+);
+
+export const PluginApprovalListResultSchema = Type.Array(PluginApprovalListRecordSchema);
+
 export const PluginApprovalRequestParamsSchema = Type.Object(
   {
     pluginId: Type.Optional(NonEmptyString),
@@ -30,6 +44,13 @@ export const PluginApprovalResolveParamsSchema = Type.Object(
   {
     id: NonEmptyString,
     decision: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const PluginApprovalResolveResultSchema = Type.Object(
+  {
+    ok: Type.Literal(true),
   },
   { additionalProperties: false },
 );

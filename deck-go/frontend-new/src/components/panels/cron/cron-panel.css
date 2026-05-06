@@ -2,8 +2,6 @@
   display: grid;
   gap: 14px;
   min-width: 0;
-  max-width: none;
-  margin: 0;
   color: var(--ds-text-1);
 }
 
@@ -12,51 +10,68 @@
   box-sizing: border-box;
 }
 
-.cron-panel__header,
+.cron-panel__topbar,
 .cron-panel__card-head,
-.cron-panel__header-actions,
+.cron-panel__detail-hero,
+.cron-panel__detail-actions,
+.cron-panel__topbar-actions,
 .cron-panel__pill-row,
-.cron-panel__actions,
-.cron-panel__hero,
-.cron-panel__row,
-.cron-panel__run-row {
+.cron-panel__modal-head,
+.cron-panel__modal-foot,
+.cron-panel__template-row {
   display: flex;
   gap: 10px;
   min-width: 0;
 }
 
-.cron-panel__header,
+.cron-panel__topbar,
 .cron-panel__card-head,
-.cron-panel__hero,
-.cron-panel__row,
-.cron-panel__run-row {
+.cron-panel__detail-hero,
+.cron-panel__modal-head,
+.cron-panel__modal-foot {
   align-items: center;
   justify-content: space-between;
 }
 
-.cron-panel__header-actions,
+.cron-panel__topbar-actions,
+.cron-panel__detail-actions,
 .cron-panel__pill-row,
-.cron-panel__actions {
+.cron-panel__template-row {
   align-items: center;
   flex-wrap: wrap;
 }
 
-.cron-panel__title-stack,
+.cron-panel__brand,
 .cron-panel__card,
-.cron-panel__body,
+.cron-panel__filters,
 .cron-panel__surface,
-.cron-panel__catalog,
 .cron-panel__details,
 .cron-panel__field,
-.cron-panel__form {
+.cron-panel__detail-body,
+.cron-panel__empty-state,
+.cron-panel__modal,
+.cron-panel__confirm,
+.cron-panel__builder {
   display: grid;
   gap: 10px;
   min-width: 0;
 }
 
-.cron-panel__workspace {
+.cron-panel__topbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(360px, 1fr) auto;
+  padding: 14px 16px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: color-mix(in srgb, var(--ds-bg-1) 94%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.cron-panel__main {
   display: grid;
-  grid-template-columns: minmax(380px, 0.86fr) minmax(500px, 1.14fr);
+  grid-template-columns: minmax(520px, 0.95fr) minmax(500px, 1.05fr);
   gap: 12px;
   align-items: start;
   min-width: 0;
@@ -64,10 +79,13 @@
 
 .cron-panel__card,
 .cron-panel__surface,
-.cron-panel__metric,
-.cron-panel__row,
+.cron-panel__detail-hero,
+.cron-panel__job-row,
 .cron-panel__run-row,
-.cron-panel__hero {
+.cron-panel__metric,
+.cron-panel__banner,
+.cron-panel__modal,
+.cron-panel__confirm {
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-md);
   background: var(--ds-bg-1);
@@ -78,40 +96,107 @@
   overflow: hidden;
 }
 
+.cron-panel__jobs-card,
+.cron-panel__detail-card {
+  min-height: 640px;
+}
+
 .cron-panel__card-head {
   padding: 14px 16px 0;
 }
 
-.cron-panel__surface > .cron-panel__card-head {
-  padding: 0;
-}
-
-.cron-panel__body {
+.cron-panel__detail-card {
   padding: 14px 16px 16px;
 }
 
-.cron-panel__title,
-.cron-panel__card-title {
-  margin: 0;
+.cron-panel__filters {
+  grid-template-columns: 1fr minmax(160px, 0.6fr);
+  padding: 14px 16px 10px;
+}
+
+.cron-panel__segmented {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 6px;
+  min-width: 0;
+  padding: 3px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-0);
+}
+
+.cron-panel__segmented-button,
+.cron-panel__button,
+.cron-panel__input,
+.cron-panel__select,
+.cron-panel__textarea,
+.cron-panel__tab {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
   color: var(--ds-text-1);
+  font: inherit;
+}
+
+.cron-panel__segmented-button {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 30px;
+  padding: 5px 8px;
+  color: var(--ds-text-2);
+  font-size: 0.78rem;
   font-weight: 750;
-  letter-spacing: 0;
 }
 
-.cron-panel__title {
-  font-size: 1.28rem;
-  line-height: 1.15;
+.cron-panel__segmented-button.is-active {
+  border-color: color-mix(in srgb, var(--ds-accent) 45%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-accent) 14%, transparent);
+  color: var(--ds-accent);
 }
 
-.cron-panel__card-title {
-  font-size: 1rem;
-  line-height: 1.2;
+.cron-panel__search,
+.cron-panel__sort {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
 }
 
-.cron-panel__eyebrow,
-.cron-panel__label,
+.cron-panel__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(76px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.cron-panel__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.cron-panel__metrics.is-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cron-panel__metric,
+.cron-panel__surface,
+.cron-panel__detail-hero,
+.cron-panel__run-row,
+.cron-panel__empty-state,
+.cron-panel__banner {
+  padding: 11px;
+}
+
 .cron-panel__metric span,
-.cron-panel__field > span {
+.cron-panel__eyebrow,
+.cron-panel__field > span,
+.cron-panel__search > span,
+.cron-panel__sort > span {
   margin: 0;
   color: var(--ds-text-3);
   font-size: 0.68rem;
@@ -120,57 +205,54 @@
   text-transform: uppercase;
 }
 
+.cron-panel__metric strong {
+  display: block;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--ds-text-1);
+  font-size: 1rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cron-panel__title,
+.cron-panel__card-title,
+.cron-panel__detail-title {
+  margin: 0;
+  color: var(--ds-text-1);
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.cron-panel__title {
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.cron-panel__card-title,
+.cron-panel__detail-title {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
 .cron-panel__description,
-.cron-panel__meta,
-.cron-panel__note {
+.cron-panel__note,
+.cron-panel__empty,
+.cron-panel__kv,
+.cron-panel__job-row span {
   margin: 0;
   color: var(--ds-text-2);
   font-size: 0.82rem;
   line-height: 1.45;
 }
 
-.cron-panel__pill,
-.cron-panel__button,
-.cron-panel__input,
-.cron-panel__select,
-.cron-panel__textarea {
-  border: 1px solid var(--ds-border);
-  border-radius: var(--ds-radius-sm);
-  background: var(--ds-bg-2);
-  color: var(--ds-text-1);
-  font: inherit;
-}
-
-.cron-panel__pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  min-width: 0;
-  padding: 4px 8px;
-  color: var(--ds-text-2);
-  font-size: 0.74rem;
-  font-weight: 750;
-  line-height: 1.2;
-  overflow-wrap: anywhere;
-}
-
-.cron-panel__pill.is-positive,
-.cron-panel__metric.is-positive {
-  border-color: color-mix(in srgb, var(--ds-success) 36%, var(--ds-border));
-}
-
-.cron-panel__pill.is-positive {
-  background: color-mix(in srgb, var(--ds-success) 13%, transparent);
-  color: var(--ds-success);
-}
-
-.cron-panel__pill.is-danger,
-.cron-panel__metric.is-danger {
-  border-color: color-mix(in srgb, var(--ds-error) 36%, var(--ds-border));
-}
-
-.cron-panel__pill.is-danger {
-  color: var(--ds-error);
+.cron-panel__brand code,
+.cron-panel__job-name code,
+.cron-panel__kv code,
+.cron-panel__note code {
+  font-family: var(--ds-font-mono);
+  font-size: 0.76rem;
 }
 
 .cron-panel__button {
@@ -181,13 +263,16 @@
   line-height: 1.2;
 }
 
-.cron-panel__button:disabled {
+.cron-panel__button:disabled,
+.cron-panel__tab:disabled {
   cursor: not-allowed;
   opacity: 0.55;
 }
 
 .cron-panel__button:hover:not(:disabled),
-.cron-panel__row:hover {
+.cron-panel__tab:hover,
+.cron-panel__segmented-button:hover,
+.cron-panel__job-row:hover {
   transform: none;
   border-color: color-mix(in srgb, var(--ds-accent) 34%, var(--ds-border));
   background: color-mix(in srgb, var(--ds-accent) 9%, var(--ds-bg-1));
@@ -198,7 +283,9 @@
 .cron-panel__input:focus-visible,
 .cron-panel__select:focus-visible,
 .cron-panel__textarea:focus-visible,
-.cron-panel__row:focus-visible {
+.cron-panel__tab:focus-visible,
+.cron-panel__segmented-button:focus-visible,
+.cron-panel__job-row:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--ds-accent) 42%, transparent);
   outline-offset: 1px;
 }
@@ -213,38 +300,171 @@
   color: var(--ds-error);
 }
 
-.cron-panel__metrics {
+.cron-panel__pill,
+.cron-panel__count {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-2);
+  color: var(--ds-text-2);
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.cron-panel__pill {
+  min-height: 26px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  overflow-wrap: anywhere;
+}
+
+.cron-panel__count {
+  min-height: 18px;
+  padding: 2px 5px;
+  font-size: 0.68rem;
+}
+
+.cron-panel__pill.is-positive,
+.cron-panel__metric.is-positive {
+  border-color: color-mix(in srgb, var(--ds-success) 36%, var(--ds-border));
+}
+
+.cron-panel__pill.is-positive {
+  background: color-mix(in srgb, var(--ds-success) 13%, transparent);
+  color: var(--ds-success);
+}
+
+.cron-panel__pill.is-warning,
+.cron-panel__metric.is-warning {
+  border-color: color-mix(in srgb, var(--ds-warning) 36%, var(--ds-border));
+}
+
+.cron-panel__pill.is-danger,
+.cron-panel__metric.is-danger,
+.cron-panel__banner.is-danger {
+  border-color: color-mix(in srgb, var(--ds-error) 36%, var(--ds-border));
+}
+
+.cron-panel__pill.is-danger,
+.cron-panel__banner.is-danger {
+  color: var(--ds-error);
+}
+
+.cron-panel__table {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  padding: 0 16px 16px;
+}
+
+.cron-panel__table-head,
+.cron-panel__job-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.35fr) minmax(112px, 1fr) minmax(130px, 1fr) minmax(82px, 0.7fr) minmax(82px, 0.75fr) minmax(76px, 0.7fr);
   gap: 8px;
+  align-items: center;
   min-width: 0;
 }
 
-.cron-panel__metrics.is-two {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.cron-panel__table-head {
+  padding: 0 10px;
+  color: var(--ds-text-3);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.cron-panel__metric {
+.cron-panel__job-row {
+  width: 100%;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cron-panel__job-row.is-selected {
+  border-color: color-mix(in srgb, var(--ds-accent) 50%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-accent) 14%, transparent);
+  box-shadow: inset 2px 0 0 var(--ds-accent);
+}
+
+.cron-panel__job-row.is-disabled {
+  opacity: 0.74;
+}
+
+.cron-panel__job-row span,
+.cron-panel__job-name,
+.cron-panel__job-name strong,
+.cron-panel__description,
+.cron-panel__note,
+.cron-panel__empty {
   min-width: 0;
-  padding: 10px 11px;
+  overflow-wrap: anywhere;
 }
 
-.cron-panel__metric strong {
-  display: block;
-  margin-top: 5px;
+.cron-panel__job-name {
+  display: grid;
+  gap: 2px;
+}
+
+.cron-panel__job-name strong {
   overflow: hidden;
   color: var(--ds-text-1);
-  font-size: 1rem;
-  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.cron-panel__surface,
-.cron-panel__hero,
-.cron-panel__row,
-.cron-panel__run-row {
-  padding: 11px;
+.cron-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.cron-panel__tab {
+  min-height: 30px;
+  padding: 5px 9px;
+  color: var(--ds-text-2);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.cron-panel__tab.is-active {
+  border-color: color-mix(in srgb, var(--ds-accent) 45%, var(--ds-border));
+  color: var(--ds-accent);
+}
+
+.cron-panel__kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cron-panel__kv div {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-0);
+}
+
+.cron-panel__kv dt {
+  color: var(--ds-text-3);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.cron-panel__kv dd {
+  min-width: 0;
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.cron-panel__run-history {
+  min-width: 0;
 }
 
 .cron-panel__list {
@@ -256,41 +476,19 @@
   list-style: none;
 }
 
-.cron-panel__list > li {
-  min-width: 0;
+.cron-panel__run-row {
+  align-items: center;
+  justify-content: space-between;
 }
 
-.cron-panel__row {
-  width: 100%;
-  border: 1px solid var(--ds-border);
-  color: inherit;
-  text-align: left;
+.cron-panel__field {
+  align-content: start;
 }
 
-button.cron-panel__row {
-  cursor: pointer;
-}
-
-.cron-panel__row.is-selected {
-  border-color: color-mix(in srgb, var(--ds-accent) 50%, var(--ds-border));
-  background: color-mix(in srgb, var(--ds-accent) 14%, transparent);
-  box-shadow: inset 2px 0 0 var(--ds-accent);
-}
-
-.cron-panel__row strong,
-.cron-panel__run-row strong,
-.cron-panel__hero strong,
-.cron-panel__meta,
-.cron-panel__note,
-.cron-panel__description {
-  overflow-wrap: anywhere;
-}
-
-.cron-panel__field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  min-width: 0;
+.cron-panel__field.is-wide,
+.cron-panel__checkbox-row.is-wide,
+.cron-panel__note.is-wide {
+  grid-column: 1 / -1;
 }
 
 .cron-panel__input,
@@ -314,23 +512,31 @@ button.cron-panel__row {
   font-size: 0.82rem;
 }
 
-.cron-panel__error {
-  color: var(--ds-error);
+.cron-panel__modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(4, 9, 18, 0.58);
 }
 
-.cron-panel__run-history {
-  min-width: 0;
+.cron-panel__modal {
+  width: min(760px, 100%);
+  max-height: min(820px, calc(100vh - 48px));
+  overflow: auto;
+  padding: 16px;
 }
 
-.cron-panel details {
-  min-width: 0;
+.cron-panel__confirm {
+  width: min(440px, 100%);
+  padding: 16px;
 }
 
-.cron-panel summary {
-  cursor: pointer;
-  color: var(--ds-text-2);
-  font-size: 0.82rem;
-  font-weight: 750;
+.cron-panel__builder {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding-top: 4px;
 }
 
 .cron-panel .deckgo-code {
@@ -345,29 +551,40 @@ button.cron-panel__row {
   font-size: 0.76rem;
 }
 
-@media (max-width: 1080px) {
-  .cron-panel__workspace {
+@media (max-width: 1180px) {
+  .cron-panel__topbar,
+  .cron-panel__main {
     grid-template-columns: 1fr;
+  }
+
+  .cron-panel__kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 640px) {
-  .cron-panel__header,
+@media (max-width: 760px) {
+  .cron-panel__topbar,
   .cron-panel__card-head,
-  .cron-panel__hero,
-  .cron-panel__row,
-  .cron-panel__run-row {
+  .cron-panel__detail-hero,
+  .cron-panel__modal-head,
+  .cron-panel__modal-foot {
     align-items: stretch;
     flex-direction: column;
   }
 
+  .cron-panel__filters,
+  .cron-panel__builder,
   .cron-panel__metrics,
-  .cron-panel__metrics.is-two,
-  .cron-panel__field-grid {
+  .cron-panel__metrics.is-four,
+  .cron-panel__kv {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .cron-panel__actions {
-    align-items: stretch;
+  .cron-panel__table-head {
+    display: none;
+  }
+
+  .cron-panel__job-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

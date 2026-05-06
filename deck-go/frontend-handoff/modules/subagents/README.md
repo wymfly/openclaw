@@ -1,6 +1,6 @@
 # Subagents (Runs + Permissions)
 
-**Status**: revised v2 — pending implementation
+**Status**: implemented — real-contract verified
 **Design completed**: 2026-05-04
 **Designer**: design agent (Claude)
 **Depends on atoms**: Pill, Badge, Tag, Button, IconButton, Modal, Tabs, KbdHint, Avatar,
@@ -33,6 +33,11 @@ operator switches between:
 Unlike plugins (read-only) or skills (config + hub), subagents has live operational concerns —
 this is the only deck-go panel that can intervene on a running session via Steer + Kill.
 
+Production implementation is complete in `frontend-new/src/components/panels/subagents/`.
+Everything below is design handoff context; code truth remains the authority. Current production
+uses `/api/deck/subagents` and `/api/deck/agents` action envelopes, and Gateway status filters are
+`active | completed | failed | timeout | all`.
+
 ## How to implement
 
 1. Open `prototype.html` in a browser:
@@ -51,22 +56,22 @@ this is the only deck-go panel that can intervene on a running session via Steer
 3. Translate each `.jsx` file to TypeScript at the production target listed in `components.md`.
    Replace `__fixtures__` mock with real fetch hooks. Keep kebab-case classes verbatim.
 
-## Open questions for Claude Code
+## Open questions / follow-up
 
 - **Lineage navigation off-tree.** Lineage renders nodes from `lineageMap[requesterSessionKey]`.
   When a sibling node references a different session (recursive subagent spawn jumps sessions),
   the prototype falls back to "navigate by runId" — production needs a `lineageMap[childSessionKey]`
   fallback too.
-- **Steer dedupKey ergonomics.** Backend may auto-generate `dedupKey`, or the Deck client may
-  pass one in. Prototype shows a server-generated one. Confirm with backend.
-- **Stalled detection.** Prototype models `status: "stalled"` as a backend signal. If the backend
-  emits only a `lastProgressMs`, the deck-go frontend needs to compute stalled itself with a
-  config-driven threshold.
-- **Permissions write path.** `DeckGoAgentSubagentConfigSetResponse` returns `configHash`, so the
-  Edit dialog should pass the previous hash for optimistic locking. Prototype omits this; production
-  must add the `If-Match`-style check + retry on hash mismatch.
+- **Steer dedupKey ergonomics.** Current contract accepts `instruction` only and returns optional
+  server-generated dedup fields; client-generated dedup keys are not implemented.
+- **Stalled detection.** Prototype models `status: "stalled"` as a backend signal. Current Gateway
+  filter schema does not include it.
+- **Permissions write path.** Production passes the previous `configHash` as `baseHash`; retry UI
+  for hash mismatch remains follow-up.
 - **Kill cascade.** Killing a parent run leaves its descendants orphaned. Confirm whether backend
   cascades the kill or if the operator has to walk the lineage manually.
+- **Audit tab.** The v2 design includes audit, but no `/api/deck/subagents/<runId>/audit` route is
+  declared. Production renders this as degraded.
 
 ## File inventory (v2)
 
@@ -94,4 +99,5 @@ subagents/
 
 ## Reverse sign-off
 
-(pending Claude Code implementation in `frontend-new/src/components/panels/subagents/`)
+Implemented in `frontend-new/src/components/panels/subagents/` with L1 mock visual and L2
+real-stack BFF evidence on 2026-05-04. See `implementation-notes.md`.

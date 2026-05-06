@@ -1,6 +1,6 @@
 # cron — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -91,15 +91,17 @@ export type DeckGoCronJobsResponse = { jobs?: DeckGoCronJob[] };
 export type DeckGoCronRunsResponse = { entries?: DeckGoCronRunEntry[] };
 ```
 
-Endpoints (read + 4 mutations):
+Endpoints (read + 4 mutations). Code truth uses the current deck-go BFF route
+family below; older `/api/cron/jobs*` names are prototype shorthand only and
+must not be implemented against.
 
 - `GET    /api/cron/status` → `DeckGoCronStatus`
-- `GET    /api/cron/jobs` → `DeckGoCronJobsResponse` (with `DeckGoCronJobsParams` filters)
-- `POST   /api/cron/jobs` → create (body: `DeckGoCronJobInput`)
-- `PUT    /api/cron/jobs/:id` → update (body: partial `DeckGoCronJobInput`)
-- `DELETE /api/cron/jobs/:id` → delete
-- `POST   /api/cron/jobs/:id/run` → trigger now (body: `DeckGoCronRunParams` `{ mode: "due" | "force" }`)
-- `GET    /api/cron/runs` → `DeckGoCronRunsResponse` (with `DeckGoCronRunsParams` filters)
+- `GET    /api/cron` → `DeckGoCronJobsResponse` (with `DeckGoCronJobsParams` filters)
+- `POST   /api/cron` → create (body: `DeckGoCronJobInput`)
+- `PATCH  /api/cron/:id` → update (body: partial `DeckGoCronJobInput`)
+- `DELETE /api/cron/:id` → delete
+- `POST   /api/cron/:id/run` → trigger now (body: `DeckGoCronRunParams` `{ mode: "due" | "force" }`)
+- `GET    /api/cron/:id/runs` → `DeckGoCronRunsResponse` (with `DeckGoCronRunsParams` filters)
 
 ## Section model
 
@@ -129,13 +131,13 @@ Endpoints (read + 4 mutations):
 
 This panel exposes 4 mutation surfaces:
 
-| Surface            | Mutation                                                |
-| ------------------ | ------------------------------------------------------- |
-| New job button     | `POST /api/cron/jobs` with `DeckGoCronJobInput`.        |
-| Edit (CronBuilder) | `PUT /api/cron/jobs/:id` with partial input.            |
-| Run now            | `POST /api/cron/jobs/:id/run` with `{ mode: "force" }`. |
-| Disable / Enable   | `PUT /api/cron/jobs/:id` with `{ enabled }`.            |
-| Delete             | `DELETE /api/cron/jobs/:id`.                            |
+| Surface            | Mutation                                           |
+| ------------------ | -------------------------------------------------- |
+| New job button     | `POST /api/cron` with `DeckGoCronJobInput`.        |
+| Edit (CronBuilder) | `PATCH /api/cron/:id` with partial input.          |
+| Run now            | `POST /api/cron/:id/run` with `{ mode: "force" }`. |
+| Disable / Enable   | `PATCH /api/cron/:id` with `{ enabled }`.          |
+| Delete             | `DELETE /api/cron/:id`.                            |
 
 Delete is gated by an explicit confirm dialog. Run-now disabled when the
 job is disabled.
@@ -165,14 +167,14 @@ stay local to cron (highly domain-specific).
 2. Translate to `frontend-new/src/components/panels/cron/` keeping
    class-name shape (`cron-app__*`, `jobs-row__*`, `job-detail__*`,
    `builder-*`).
-3. Wire real fetcher in `frontend-new/src/api/cron.ts`:
+3. Wire real fetchers through `frontend-new/src/api.ts`:
    - `fetchCronStatus()` → `GET /api/cron/status`
-   - `fetchCronJobs(params)` → `GET /api/cron/jobs`
-   - `createCronJob(input)` → `POST /api/cron/jobs`
-   - `updateCronJob(id, input)` → `PUT /api/cron/jobs/:id`
-   - `deleteCronJob(id)` → `DELETE /api/cron/jobs/:id`
-   - `runCronJob(id, mode)` → `POST /api/cron/jobs/:id/run`
-   - `fetchCronRuns(params)` → `GET /api/cron/runs`
+   - `fetchCronJobs(params)` → `GET /api/cron`
+   - `createCronJob(input)` → `POST /api/cron`
+   - `updateCronJob(id, input)` → `PATCH /api/cron/:id`
+   - `deleteCronJob(id)` → `DELETE /api/cron/:id`
+   - `runCronJob(id, mode)` → `POST /api/cron/:id/run`
+   - `fetchCronRuns(jobId, params)` → `GET /api/cron/:id/runs`
 4. Hardcoded literal strings get extracted to
    `frontend-new/src/i18n/{en,zh}.json`.
 5. CronBuilder cron-expression input: production should add a humanized

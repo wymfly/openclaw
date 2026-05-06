@@ -1,5 +1,10 @@
 # approvals — states (v2)
 
+> Contract note: this file includes prototype state used to evaluate the v2
+> design. Production contract truth is in `api-usage.md` and
+> `implementation-notes.md`; current Gateway resolve params use hyphenated
+> decisions and do not support reason capture.
+
 ## Top-level state
 
 ```ts

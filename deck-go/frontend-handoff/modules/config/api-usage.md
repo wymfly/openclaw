@@ -7,8 +7,8 @@
 ## Source of truth
 
 The config module reads bindings from the deck-go BFF, which forwards to
-upstream OpenClaw `gateway.config.snapshot` / `gateway.config.apply` /
-`gateway.config.lookup`. Browser code never calls Gateway directly.
+upstream OpenClaw Gateway `config.get` / `config.apply` /
+`config.schema.lookup`. Browser code never calls Gateway directly.
 
 ## Deck-facing API
 
@@ -17,7 +17,7 @@ upstream OpenClaw `gateway.config.snapshot` / `gateway.config.apply` /
 Wrapper:
 
 ```ts
-fetchSnapshot(): Promise<DeckGoConfigSnapshotResponse>
+fetchDeckConfig(): Promise<DeckGoConfigSnapshotResponse>
 ```
 
 Response:
@@ -37,8 +37,10 @@ type DeckGoConfigSnapshotResponse = {
 Empty / error rules:
 
 - `exists: false` → prototype seeds `exists: true`. Production should render
-  an EmptyState with a CTA ("Create config from defaults") that POSTs an
-  initial scaffold.
+  an EmptyState. A "Create config from defaults" CTA is follow-up until a
+  scaffold endpoint exists.
+- `raw: null` or omitted → production must treat synthesized JSON as read-only
+  and block raw apply / structured writes until a writable raw payload exists.
 - `valid: false` → form pane is hidden; raw pane forces `mode: "raw"`.
 - 5xx → full-width retry overlay.
 
@@ -47,8 +49,7 @@ Empty / error rules:
 Wrapper:
 
 ```ts
-applyConfig({ baseHash, raw }: { baseHash: string; raw: string })
-  : Promise<DeckGoConfigApplyResponse>
+applyDeckConfig(raw: string, baseHash?: string): Promise<DeckGoConfigApplyResponse>
 ```
 
 Body:
@@ -72,11 +73,13 @@ type DeckGoConfigApplyResponse = {
 
 Errors:
 
-- `409 Conflict` — `baseHash` mismatch (someone else applied changes). UI
-  enters apply-dialog `phase--error` and prompts Refresh & retry.
-- `422 Unprocessable Entity` — schema validation failure. Server returns
-  `{ ok: false, errors: [{ path, message }, …] }` (BFF projection); UI
-  echoes errors inline on the offending fields.
+- Base-hash mismatch — Gateway returns a config-changed/base-hash error. The
+  current Go BFF wraps Gateway write errors as HTTP 502 with `{ ok: false,
+method: "config.apply", error }`; production detects the conflict from the
+  message and prompts Refresh & retry.
+- Schema validation failure — Gateway returns a validation error through the
+  same BFF error wrapper today. Field-level error projection is follow-up until
+  a Deck-facing validation DTO exists.
 - `5xx` — generic error overlay; user can retry.
 
 ### `POST /api/config/schema-lookup`
@@ -84,7 +87,8 @@ Errors:
 Wrapper:
 
 ```ts
-lookupSchema(path: string): Promise<DeckGoConfigLookupResponse>
+lookupConfigPath(path: string): Promise<DeckGoConfigLookupResponse>
+postConfigSchemaLookup({ path }: { path: string }): Promise<DeckGoConfigLookupResponse>
 ```
 
 Body:
@@ -157,8 +161,9 @@ interface ApplyEvent {
 }
 ```
 
-BFF projection over the BFF mutation log. The contract has **no apply audit
-endpoint**. Used by the **History** tab in the right pane.
+Prototype/local session projection only. The contract has **no apply audit
+endpoint** and the Go BFF does not currently expose a durable mutation log for
+Config. The **History** tab must be local/mock-only or disabled in production.
 
 ### Section catalog
 
@@ -194,12 +199,11 @@ new tones.
 
 ```
 ConfigApp
-  → frontend-new/src/api/config.ts
+  → frontend-new/src/api.ts
   → deck-go Go BFF routes
-    ├── Gateway RPC config.snapshot
+    ├── Gateway RPC config.get
     ├── Gateway RPC config.apply (with baseHash gate)
-    ├── Gateway RPC config.lookup (per path)
-    └── BFF projection: recentApplies (mutation log)
+    └── Gateway RPC config.schema.lookup (per path)
   → Gateway (only via the BFF / runtime boundary)
 ```
 

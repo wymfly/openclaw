@@ -146,6 +146,14 @@
   background: var(--ds-bg-1);
 }
 
+.routing-card-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ds-sp-2);
+  min-width: 0;
+}
+
 .routing-card-body {
   display: grid;
   gap: var(--ds-sp-3);
@@ -170,6 +178,7 @@
 }
 
 .routing-scope-card,
+.routing-confirm,
 .routing-selected,
 .routing-result,
 .routing-tier-row,
@@ -181,6 +190,7 @@
 }
 
 .routing-scope-card,
+.routing-confirm,
 .routing-selected,
 .routing-result {
   display: grid;
@@ -198,6 +208,18 @@
 
 .routing-panel__error {
   color: var(--ds-error);
+}
+
+.routing-confirm {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  border-color: color-mix(in srgb, var(--ds-warn) 42%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-warn) 8%, var(--ds-bg-2));
+}
+
+.routing-confirm.is-danger {
+  border-color: color-mix(in srgb, var(--ds-error) 48%, var(--ds-border));
+  background: color-mix(in srgb, var(--ds-error) 8%, var(--ds-bg-2));
 }
 
 .routing-binding-list,
@@ -363,7 +385,9 @@
 @media (max-width: 760px) {
   .routing-panel__header,
   .routing-panel__header-actions,
+  .routing-card-header__actions,
   .routing-inline-actions,
+  .routing-confirm,
   .routing-card-header {
     align-items: stretch;
     flex-direction: column;
@@ -372,6 +396,7 @@
   .routing-panel__metrics,
   .routing-filter-row,
   .routing-form-grid,
+  .routing-confirm,
   .routing-selected {
     grid-template-columns: minmax(0, 1fr);
   }

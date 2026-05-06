@@ -784,7 +784,7 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 	deck := &stubDeckProvider{
 		plugins:   map[string]any{"plugins": []map[string]any{{"id": "plugin-1"}}},
 		agent:     map[string]any{"agentId": "main", "name": "Main"},
-		identity:  map[string]any{"identities": []map[string]any{{"canonical": "user:1"}}},
+		identity:  map[string]any{"configHash": "hash-1", "links": []map[string]any{{"canonical": "user:1", "peers": []map[string]any{}}}},
 		routing:   map[string]any{"bindings": []map[string]any{{"id": "route-1"}}},
 		subagents: map[string]any{"runs": []map[string]any{{"runId": "sub-1"}}},
 		threads:   map[string]any{"threads": []map[string]any{{"id": "thread-1"}}},
@@ -2176,7 +2176,7 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 			t.Fatal(err)
 		}
-		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["identities"] == nil {
+		if payload.RuntimeID != DefaultRuntimeID || payload.Payload["links"] == nil {
 			t.Fatalf("unexpected deck identity payload: %#v", payload)
 		}
 		if deck.lastKey != DefaultRuntimeID+"/deck/identity" {

@@ -32,14 +32,18 @@ export { Users as IconSubagents } from "lucide-react"; // subagent group
 
 // ── Action / verb icons ────────────────────────────────────────────────────
 export { Check as IconCheck } from "lucide-react"; // confirm / saved
+export { Clock as IconClock } from "lucide-react"; // time / recent activity
 export { Copy as IconCopy } from "lucide-react"; // copy to clipboard
 export { Pencil as IconEdit } from "lucide-react"; // edit
 export { Filter as IconFilter } from "lucide-react"; // filter
+export { Hash as IconHash } from "lucide-react"; // identifier / hash token
+export { Link as IconLink } from "lucide-react"; // link / bind
 export { Plus as IconPlus } from "lucide-react"; // create / add
 export { RefreshCw as IconRefresh } from "lucide-react"; // reload / recompute
 export { Save as IconSave } from "lucide-react"; // save changes
 export { Search as IconSearch } from "lucide-react"; // search
 export { Trash2 as IconTrash } from "lucide-react"; // delete
+export { Unlink as IconUnlink } from "lucide-react"; // unlink / detach
 export { X as IconX } from "lucide-react"; // close / dismiss
 
 // ── Navigation arrows ──────────────────────────────────────────────────────

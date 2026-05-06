@@ -5,7 +5,7 @@
     "gateway-protocol-adapter": "Deck Go routes or retired route rows that adapt an OpenClaw Gateway method or event through generated protocol bindings when available.",
     "stream-binary-upload": "Binary asset, iframe, upload, download, or SSE transport endpoints that stay outside JSON DTO typing."
   },
-  "sourceAudited": "deck-go/frontend/src/api.ts",
+  "sourceAudited": "deck-go/frontend-new/src/api.ts",
   "endpoints": [
     {
       "category": "gateway-protocol-adapter",
@@ -44,10 +44,22 @@
       "paths": ["POST /v1/runtimes/{runtimeId}/gateway/rpc"]
     },
     {
+      "category": "gateway-protocol-adapter",
+      "migrationTarget": "gw.gateway.batch({ calls, options })",
+      "notes": "Typed batch transport endpoint for runtime-scoped Gateway calls. The Gateway panel restricts this route to bundled-mode read-only child methods because `gateway.batch` executes real upstream calls.",
+      "paths": ["POST /v1/runtimes/{runtimeId}/gateway/batch"]
+    },
+    {
       "category": "deck-go-bff",
       "migrationTarget": "Keep `fetchDeckJson`",
       "notes": "Deck settings storage, not a direct Gateway RPC proxy.",
       "paths": ["GET /settings", "PUT /settings"]
+    },
+    {
+      "category": "deck-go-bff",
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "notes": "Deck-owned control-plane audit history for authenticated mutation metadata.",
+      "paths": ["GET /audit/events"]
     },
     {
       "category": "deck-go-bff",
@@ -93,7 +105,7 @@
     {
       "category": "deck-go-bff",
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
-      "notes": "Diagnostic/introspection routes stay BFF-owned; typed RPC transport uses `/v1/runtimes/{runtimeId}/gateway/rpc`.",
+      "notes": "Diagnostic/introspection routes stay BFF-owned; typed RPC and batch transports use `/v1/runtimes/{runtimeId}/gateway/rpc` and `/v1/runtimes/{runtimeId}/gateway/batch`.",
       "paths": ["GET /gateway/health", "GET /gateway/status", "GET /gateway/describe"]
     },
     {
@@ -220,6 +232,7 @@
       "paths": [
         "GET /memory/browse",
         "GET /memory/search",
+        "POST /memory/search",
         "GET /memory/health",
         "POST /memory/dreams"
       ]
@@ -239,8 +252,10 @@
     {
       "category": "deck-go-bff",
       "migrationTarget": "Keep `fetchDeckJson`",
-      "notes": "Usage aggregation remains Deck BFF-shaped.",
+      "notes": "Usage aggregation remains Deck BFF-shaped. `/usage/*` is canonical for Usage; `/models/usage/*` remains a legacy Models-compatible alias.",
       "paths": [
+        "GET /usage/cost",
+        "GET /usage/providers",
         "GET /models/usage/cost",
         "GET /models/usage/providers",
         "GET /usage/sessions",

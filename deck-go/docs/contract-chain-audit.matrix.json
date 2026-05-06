@@ -1,0 +1,1864 @@
+{
+  "schemaVersion": 1,
+  "authority": "Code, contract source, generated artifacts, route handlers, frontend facades, and tests are authoritative. When this audit drifts from code truth, update this JSON and regenerate the Markdown report rather than preserving stale prose.",
+  "generatedMarkdown": "deck-go/docs/contract-chain-audit.matrix.md",
+  "matrixFields": [
+    "id",
+    "module",
+    "capability",
+    "productRole",
+    "coreWorkflow",
+    "classification",
+    "gatewaySupportBasis",
+    "gatewaySource",
+    "deckSource",
+    "goAdapter",
+    "bffEndpoint",
+    "contractSource",
+    "generatedArtifacts",
+    "frontendFacade",
+    "panelSurface",
+    "mockEvidence",
+    "realEvidence",
+    "realEvidenceStatus",
+    "status",
+    "gap",
+    "followUpChange"
+  ],
+  "continuationRules": [
+    "Reload openspec/changes/deck-go-contract-chain-audit-and-real-e2e-foundation/proposal.md, design.md, tasks.md, specs/**/*.md, verification.yaml, this JSON matrix, and the generated Markdown report before acting after compaction or resume.",
+    "Explore Gateway support, Deck-facing product design, source authority, generated drift, BFF ownership, frontend facade usage, and E2E evidence before deciding or implementing unclear contract-chain work.",
+    "Directly fix deterministic P0 drift only when code truth, source authority, and verification path are clear; otherwise record the item in decisionIndex or proposalMatrix.",
+    "Use existing Gateway contracts as the default authority. Do not assume new Gateway API, method, or event additions unless a separate Gateway evolution proposal is explicitly approved.",
+    "Treat seed-covered L2 evidence as shared connectivity evidence only. It is not module-specific real Gateway proof."
+  ],
+  "capabilities": [
+    {
+      "id": "activity.control-projection",
+      "module": "activity",
+      "capability": "Activity feed and monitor projection",
+      "productRole": "Give operators a recent operational timeline derived from Gateway/runtime events.",
+      "coreWorkflow": "Open Activity, review event feed, inspect monitor runs and stats, then jump to related module context.",
+      "classification": "deck-derived",
+      "gatewaySupportBasis": "Runtime lifecycle, activity monitor, and monitor run projections are derived from Gateway/session events exposed by deck-go.",
+      "gatewaySource": ["src/gateway/server-methods/describe.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/projection/sessions.go",
+        "deck-go/backend/internal/server/activity_monitor.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/managed_runtime.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/activity", "/api/monitor/runs", "/api/monitor/stats"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-streams.contract.json",
+        "deck-go/contracts/source/deck-live-projections.contract.json",
+        "deck-go/contracts/source/deck-list-queries.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-live-projections.generated.ts",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/hooks/useLiveProjectionSubscription.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.tsx",
+        "deck-go/frontend-handoff/modules/activity/implementation-notes.md"
+      ],
+      "mockEvidence": ["deck-go/test/e2e/activity-visual.spec.ts"],
+      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Activity/Monitor list-query and live-projection semantics are archived; diagnostic event data parsing remains best-effort until event-specific schemas are productized.",
+      "followUpChange": {
+        "id": "deck-go-live-projection-subscription-contract",
+        "status": "archived",
+        "lane": "Wave 3",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "agents.control-surface",
+      "module": "agents",
+      "capability": "Agent inventory, detail, files, skills, tools, subagent policy, and health actions",
+      "productRole": "Let operators inspect and safely adjust configured OpenClaw agents as control-plane resources.",
+      "coreWorkflow": "List agents, inspect one agent, review files/identity/tools/skills/subagents/event streams, then perform a guarded create/update/delete or action.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "Gateway exposes agents.* plus deck.agents.* read/action methods; deck-go adapts them into BFF views and command wrappers.",
+      "gatewaySource": [
+        "src/gateway/server-methods/agents.ts",
+        "src/gateway/server-methods/deck/agents.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/contract_adapters.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/inventory.go"
+      ],
+      "bffEndpoint": [
+        "/api/deck/agents",
+        "/api/agents/{agentId}/files",
+        "/api/agents/{agentId}/identity"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-exceptions.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/backend/internal/gateway/generated/methods.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx",
+        "deck-go/frontend-handoff/modules/agents/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
+        "deck-go/test/e2e/agents-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Agents actions are mutation-evidence known; real create/update/delete/save mutation remains deferred until disposable agent state is proven.",
+      "followUpChange": {
+        "id": "deck-go-agents-control-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "alerts.local-policy",
+      "module": "alerts",
+      "capability": "Alert rules and fired-alert history",
+      "productRole": "Let operators configure deck-go alert rules that react to Gateway-derived operational signals.",
+      "coreWorkflow": "List alert rules, create or edit a rule, validate local form rules, and review fired-alert availability.",
+      "classification": "deck-local",
+      "gatewaySupportBasis": "Rules are deck-go local state; evaluation inputs come from Gateway-derived usage/activity projections.",
+      "gatewaySource": ["src/gateway/server-methods/usage.ts"],
+      "deckSource": ["deck-go/backend/internal/server/alerts.go"],
+      "goAdapter": [
+        "deck-go/backend/internal/server/alerts.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/alerts", "/api/alerts/{ruleId}"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.tsx",
+        "deck-go/frontend-handoff/modules/alerts/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
+        "deck-go/test/e2e/alerts-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"],
+      "realEvidenceStatus": "fixture-checked",
+      "status": "verified",
+      "gap": "Alerts rule CRUD is fixture-safe and mutation-evidence known; durable fired-alert history, audit history, evaluator/dry-run, condition DSL semantics, and webhook target binding remain unsupported/deferred product contracts.",
+      "followUpChange": {
+        "id": "deck-go-budget-alerts-webhooks-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "api-explorer.gateway-rpc",
+      "module": "api-explorer",
+      "capability": "Gateway describe and safe RPC invocation",
+      "productRole": "Give operators and developers a typed Gateway contract explorer that still routes through deck-go BFF.",
+      "coreWorkflow": "Fetch gateway.describe, choose an allowed method, inspect schema metadata, run a guarded invocation, and inspect response/error shape.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "gateway.describe plus runtime RPC proxy and generated allowlist define available methods.",
+      "gatewaySource": [
+        "src/gateway/server-methods/describe.ts",
+        "src/gateway/method-registry-data.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/api/http/runtimes.go",
+        "deck-go/backend/internal/server/gateway.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/api/http/runtimes.go"
+      ],
+      "bffEndpoint": ["/api/gateway/describe", "/api/v1/runtimes/{runtimeId}/gateway/rpc"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/client.ts",
+        "deck-go/backend/internal/gateway/generated/allowlist.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/lib/gateway-client.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/api-explorer/ApiExplorerPanel.tsx",
+        "deck-go/frontend-handoff/modules/api-explorer/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/api-explorer/ApiExplorerPanel.test.tsx",
+        "deck-go/test/e2e/api-explorer-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/api-explorer-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Static generated coverage and runtime describe schema completeness still need a dedicated regression gate.",
+      "followUpChange": {
+        "id": "deck-go-gateway-describe-and-schema-completeness",
+        "status": "archived",
+        "lane": "Wave 1",
+        "priority": "P0"
+      }
+    },
+    {
+      "id": "approvals.queues",
+      "module": "approvals",
+      "capability": "Exec and plugin approval queues plus policy controls",
+      "productRole": "Let operators inspect pending approval queues and safely adjust approval policy.",
+      "coreWorkflow": "Open Approvals, review exec/plugin queues, resolve or reject available items, and inspect policy state.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "Gateway exec/plugin approval methods expose pending queues; deck-go adapts policy state and SSE refresh.",
+      "gatewaySource": [
+        "src/gateway/server-methods/exec-approval.ts",
+        "src/gateway/server-methods/plugin-approval.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/approvals/policy", "/api/approvals/pending", "/api/approvals/plugins"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/methods.go",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.tsx",
+        "deck-go/frontend-handoff/modules/approvals/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
+        "deck-go/test/e2e/approvals-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Approval list result schemas are typed after protocol codegen fix; policy save and exec/plugin decisions are mutation-evidence known. Real policy save remains deferred and real decision resolution remains skipped-safe without disposable approval fixtures; decision reason, recent decisions, and summary KPI projections remain unsupported follow-ups.",
+      "followUpChange": {
+        "id": "deck-go-approvals-permissions-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "budget.local-policy",
+      "module": "budget",
+      "capability": "Budget rules, evaluation, and usage linkage",
+      "productRole": "Let operators define local budget guardrails over Gateway-derived cost and token usage.",
+      "coreWorkflow": "List rules, create/update/delete a rule, run evaluation, and review usage aggregates.",
+      "classification": "deck-local",
+      "gatewaySupportBasis": "Rules are deck-go local; evaluation consumes usage/cost projections from Gateway session data.",
+      "gatewaySource": ["src/gateway/server-methods/usage.ts"],
+      "deckSource": ["deck-go/backend/internal/server/budget.go"],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/legacy_admin_budget.go",
+        "deck-go/backend/internal/server/budget.go"
+      ],
+      "bffEndpoint": ["/api/usage/budget", "/api/usage/budget/evaluate"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.tsx",
+        "deck-go/frontend-handoff/modules/budget/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
+        "deck-go/test/e2e/budget-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidenceStatus": "fixture-checked",
+      "status": "verified",
+      "gap": "Budget rule CRUD/evaluate is fixture-safe and mutation-evidence known; evaluation now emits DeckGoBudgetEvaluation.current. Forecast, billing enforcement, period-specific aggregation, quota policy semantics, durable change history, and richer notification routing remain unsupported/deferred product contracts.",
+      "followUpChange": {
+        "id": "deck-go-budget-alerts-webhooks-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "channels.status-control",
+      "module": "channels",
+      "capability": "Channel status, account actions, and throughput projection",
+      "productRole": "Let operators inspect configured channel health and perform safe account-level actions.",
+      "coreWorkflow": "List channel accounts, inspect status/auth, run allowed test/logout actions, and review throughput availability.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "channels.status/logout are Gateway methods; deck-go adds BFF normalization and degrades throughput when unavailable.",
+      "gatewaySource": [
+        "src/gateway/server-methods/channels.ts",
+        "src/gateway/protocol/schema/channels.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": [
+        "/api/channels",
+        "/api/channels/{channelId}/test",
+        "/api/channels/{channelId}/logout",
+        "/api/channels/{channelId}/throughput",
+        "/api/channels/{channelId}"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-ui.contract.json",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.tsx",
+        "deck-go/frontend-handoff/modules/channels/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
+        "deck-go/test/e2e/channels-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Channel probe, logout, and config patch actions are mutation-evidence known. Real logout/config mutation remains skipped-safe or deferred until disposable channel/config state is proven, and throughput remains degraded/unavailable because no real metric source exists.",
+      "followUpChange": {
+        "id": "deck-go-channels-control-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "chat.early-pilot",
+      "module": "chat",
+      "capability": "Chat/session pilot",
+      "productRole": "Primary operator workspace for sending messages to the configured main agent.",
+      "coreWorkflow": "Create a session, send a message, stream updates, inspect transcript and run metadata.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "sessions.* and chat.send are Gateway methods; this row marks chat as the early pilot and outside the current module queue.",
+      "gatewaySource": [
+        "src/gateway/server-methods/sessions.ts",
+        "src/gateway/server-methods/chat.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/server/chat.go",
+        "deck-go/backend/internal/runtime/openclaw/session_commands.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/session_commands.go",
+        "deck-go/backend/internal/server/chat.go"
+      ],
+      "bffEndpoint": [
+        "/api/chat/sessions/create",
+        "/api/chat/send",
+        "/api/chat/abort",
+        "/api/chat/steer",
+        "/api/chat/projection",
+        "/api/stream"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-streams.contract.json",
+        "deck-go/contracts/source/deck-live-projections.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/deck-live-projections.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/chat/chat-api.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/chat/ChatPanel.tsx",
+        "deck-go/frontend-handoff/modules/chat/README.md"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/chat-visual.spec.ts",
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.test.ts"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/real-gateway.spec.ts",
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "realEvidenceStatus": "seed-covered",
+      "status": "verified",
+      "gap": "Chat seed/create/send are fixture-safe through isolated cpa+main evidence; abort, steer, and projection persistence are mutation-evidence known with real runtime/destructive execution deferred where safety is not proven.",
+      "followUpChange": {
+        "id": "deck-go-sessions-chat-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "config.safe-edit",
+      "module": "config",
+      "capability": "Config view, schema lookup, patch, and apply",
+      "productRole": "Let operators inspect and safely edit OpenClaw configuration through conflict-aware Deck contracts.",
+      "coreWorkflow": "Load config snapshot, inspect schema/fields, preview changes, submit patch/apply with base hash, and handle conflict.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "config.get/schema/patch/apply are Gateway methods; deck-go exposes guarded BFF routes and hash-aware DTOs.",
+      "gatewaySource": [
+        "src/gateway/server-methods/config.ts",
+        "src/gateway/server-methods/config-method-defs.ts"
+      ],
+      "deckSource": ["deck-go/backend/internal/server/config.go"],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/config.go"
+      ],
+      "bffEndpoint": ["/api/config", "/api/config/schema-lookup", "/api/config/apply"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/types.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/lib/config-diff.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/config/ConfigPanel.tsx",
+        "deck-go/frontend-handoff/modules/config/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
+        "deck-go/test/e2e/config-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "degraded",
+      "gap": "Shared config-write base-hash/idempotency/rollback semantics need a P0 hardening contract.",
+      "followUpChange": {
+        "id": "deck-go-config-write-safety-contracts",
+        "status": "archived",
+        "lane": "Wave 1",
+        "priority": "P0"
+      }
+    },
+    {
+      "id": "cron.scheduler",
+      "module": "cron",
+      "capability": "Cron job inventory, status, run history, and guarded actions",
+      "productRole": "Let operators inspect scheduled jobs and trigger safe cron actions when the Gateway surface supports them.",
+      "coreWorkflow": "Open Cron, review scheduler status, inspect jobs/runs, and use disabled or safe manual actions.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "Cron BFF routes call Gateway-backed cron/list/run/status methods where available and degrade empty states otherwise.",
+      "gatewaySource": ["src/gateway/server-methods/cron.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/server/server.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": [
+        "/api/cron",
+        "/api/cron/status",
+        "/api/cron/{jobId}",
+        "/api/cron/{jobId}/run",
+        "/api/cron/{jobId}/runs"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json",
+        "deck-go/contracts/source/deck-api-dynamic-surfaces.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/types.go",
+        "deck-go/docs/deck-mutation-evidence-contract.md",
+        "deck-go/docs/deck-api-dynamic-surfaces.md"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/cron/CronPanel.tsx",
+        "deck-go/frontend-handoff/modules/cron/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
+        "deck-go/test/e2e/cron-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Cron status/list/runs and create/update/delete/run routes are contract-known; create/update/delete real write fixtures remain deferred until disposable scheduler cleanup is proven, manual run remains skipped-safe because it can trigger operator workload, payload/delivery leaves remain dynamic, and preview/bulk/live-run-stream/optimistic-concurrency capabilities remain unsupported or deferred.",
+      "followUpChange": {
+        "id": "deck-go-cron-control-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "docs.registry",
+      "module": "docs",
+      "capability": "Docs registry, detail, extraction, and search affordances",
+      "productRole": "Let operators inspect deck-go/OpenClaw documents and run safe extraction checks.",
+      "coreWorkflow": "List docs, open a document, inspect extraction status, and see unavailable search clearly.",
+      "classification": "deck-local",
+      "gatewaySupportBasis": "Docs registry is deck-go local/static plus safe extraction wrappers; Gateway does not currently provide a full docs search contract.",
+      "gatewaySource": ["src/gateway/server-methods/describe.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/server/docs.go",
+        "deck-go/backend/internal/runtime/openclaw/legacy_admin_docs_memory.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/server/docs.go",
+        "deck-go/backend/internal/runtime/openclaw/legacy_admin_docs_memory.go"
+      ],
+      "bffEndpoint": ["/api/docs", "/api/docs/{docId}", "/api/docs/extract"],
+      "contractSource": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/docs/DocsPanel.tsx",
+        "deck-go/frontend-handoff/modules/docs/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
+        "deck-go/test/e2e/docs-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Docs list/detail/local query search/extract/delete are contract-known; extract/delete real mutation fixtures remain skipped-safe without disposable session/doc fixtures, and server semantic search, session picker, soft delete/archive, edit, and full GFM/highlight fidelity remain unsupported or deferred.",
+      "followUpChange": {
+        "id": "deck-go-docs-memory-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "gateway.diagnostics",
+      "module": "gateway",
+      "capability": "Runtime diagnostics, gateway.describe, health/status, batch console, and BFF-only browser access",
+      "productRole": "Give operators a safe control-plane view of the real Gateway without direct browser-to-Gateway calls.",
+      "coreWorkflow": "Open Gateway, inspect health/status/describe/methods/events, run a BFF batch call, and verify browser traffic remains BFF-only.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "gateway.describe/health/status plus deck-go runtime proxy and generated allowlist.",
+      "gatewaySource": ["src/gateway/server-methods/describe.ts", "src/gateway/method-registry.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/server/gateway.go",
+        "deck-go/backend/internal/api/http/runtimes.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/api/http/runtimes.go"
+      ],
+      "bffEndpoint": [
+        "/api/gateway/health",
+        "/api/gateway/status",
+        "/api/gateway/describe",
+        "/api/v1/runtimes/{runtimeId}/gateway/batch"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/gateway/client.ts",
+        "deck-go/backend/internal/gateway/generated/methods.go",
+        "deck-go/backend/internal/gateway/generated/events.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/lib/gateway-client.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.tsx",
+        "deck-go/frontend-handoff/modules/gateway/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.test.tsx",
+        "deck-go/test/e2e/gateway-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/gateway-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Runtime describe/static schema completeness comparison remains a P0 hardening follow-up.",
+      "followUpChange": {
+        "id": "deck-go-gateway-describe-and-schema-completeness",
+        "status": "archived",
+        "lane": "Wave 1",
+        "priority": "P0"
+      }
+    },
+    {
+      "id": "identity.links",
+      "module": "identity",
+      "capability": "Canonical identity links",
+      "productRole": "Let operators review and safely edit channel identity mappings used by routing and thread projections.",
+      "coreWorkflow": "List canonical identities, inspect linked peers, perform a guarded link/unlink when config hash is available.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "deck.identity.* Gateway methods expose config-backed identity links and base-hash mutation semantics.",
+      "gatewaySource": ["src/gateway/server-methods/deck/identity.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/views/identity_list.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/views/identity_list.go"
+      ],
+      "bffEndpoint": ["/api/deck/identity", "/api/agents/{agentId}/identity"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.tsx",
+        "deck-go/frontend-handoff/modules/identity/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx",
+        "deck-go/test/e2e/identity-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Identity list/link/unlink are typed and mutation-evidence known; real link/unlink writes remain deferred without reversible config fixtures, and peer activity/recent audit projections remain unsupported.",
+      "followUpChange": {
+        "id": "deck-go-routing-identity-threads-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "logs.tail",
+      "module": "logs",
+      "capability": "Log tailing and filtering",
+      "productRole": "Let operators inspect recent runtime/Gateway logs through deck-go without opening host files directly.",
+      "coreWorkflow": "Open Logs, tail recent entries, filter by severity/source, and inspect entry metadata.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "logs.tail exposes typed Gateway params/result for tail reads; /logs/stream is a Deck Go SSE projection over log tail polling with dynamic event payload leaves.",
+      "gatewaySource": ["src/gateway/server-methods/logs.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/logs"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-api-dynamic-surfaces.contract.json",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-live-projections.contract.json",
+        "deck-go/contracts/source/deck-streams.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/methods.go",
+        "deck-go/docs/deck-api-dynamic-surfaces.json",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-live-projections.generated.ts",
+        "deck-go/backend/internal/gateway/generated/types_extra_2.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts",
+        "deck-go/frontend-new/src/hooks/useLiveProjectionSubscription.ts",
+        "deck-go/frontend-new/src/stream-contract.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/logs/LogsPanel.tsx",
+        "deck-go/frontend-handoff/modules/logs/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/logs/LogsPanel.test.tsx",
+        "deck-go/test/e2e/logs-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/logs-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "logs.tail is typed at Gateway and Deck-facing tail envelopes; /logs/stream SSE json payload leaves remain documented dynamic, and durable export/server-side filters remain unsupported.",
+      "followUpChange": {
+        "id": "deck-go-usage-logs-observability-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "memory.health-search",
+      "module": "memory",
+      "capability": "Memory browse, search, health, and dream actions",
+      "productRole": "Let operators inspect memory state and run safe health/dream actions for an agent workspace.",
+      "coreWorkflow": "Choose agent, browse memory, run search, inspect health, and trigger safe dream diagnostics.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "Memory actions derive from agent workspace plus Gateway doctor/memory methods; mutation safety remains constrained.",
+      "gatewaySource": [
+        "src/gateway/server-methods/doctor.ts",
+        "src/gateway/server-methods/agents.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/server/memory.go",
+        "deck-go/backend/internal/runtime/openclaw/legacy_admin_docs_memory.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/server/memory.go",
+        "deck-go/backend/internal/runtime/openclaw/legacy_admin_docs_memory.go"
+      ],
+      "bffEndpoint": [
+        "/api/memory/browse",
+        "/api/memory/search",
+        "/api/memory/health",
+        "/api/memory/dreams"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.tsx",
+        "deck-go/frontend-handoff/modules/memory/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
+        "deck-go/test/e2e/memory-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Memory browse/read/health and dream read are contract-known; POST/GET search intentionally returns degraded 501 until LanceDB exists, and mutating dreams remain skipped-safe/deferred without disposable memory fixtures or per-agent Gateway semantics.",
+      "followUpChange": {
+        "id": "deck-go-docs-memory-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "models.providers",
+      "module": "models",
+      "capability": "Configured models, provider auth overview, catalog, usage, and safe config patch",
+      "productRole": "Let operators understand configured LLM providers/models and verify auth state without leaking credentials.",
+      "coreWorkflow": "Review configured models, provider auth, catalog, usage, and run safe no-op config writes or explicit probes.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "models.configured, models.catalog.providers, deck.auth.overview/probe, and usage methods expose model/provider truth.",
+      "gatewaySource": [
+        "src/gateway/server-methods/models-configured.ts",
+        "src/gateway/server-methods/deck-auth.ts",
+        "src/gateway/server-methods/models-catalog-providers.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/server/server.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": [
+        "/api/models/config",
+        "/api/models/usage/cost",
+        "/api/models/usage/providers",
+        "/api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/types.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/lib/gateway-client.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/models/ModelsPanel.tsx",
+        "deck-go/frontend-handoff/modules/models/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx",
+        "deck-go/test/e2e/models-visual.spec.ts",
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.test.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Config save and provider probe are mutation-evidence known; real config mutation remains deferred without reversible config fixtures and real provider probe remains skipped-safe unless safe scope is proven.",
+      "followUpChange": {
+        "id": "deck-go-models-providers-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "nodes.commands",
+      "module": "nodes",
+      "capability": "Node inventory, pairing, command invocation, and pending work",
+      "productRole": "Let operators inspect connected nodes and exercise safe command/pairing rejection shapes.",
+      "coreWorkflow": "List nodes/pairing state, inspect advertised actions, run describe/rejection-safe actions, and avoid unsafe device mutation.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "node.invoke and node.pending.enqueue exist as Gateway dynamic methods plus BFF action wrappers.",
+      "gatewaySource": [
+        "src/gateway/server-methods/nodes.ts",
+        "src/gateway/server-methods/nodes-pending.ts",
+        "src/gateway/server-methods/commands.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/server/server.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/nodes", "/api/nodes/pair"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-exceptions.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.tsx",
+        "deck-go/frontend-handoff/modules/nodes/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
+        "deck-go/test/e2e/nodes-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Node invoke and pending enqueue have typed params/result outer envelopes; command-specific payload leaves remain documented dynamic surfaces. Node rename/invoke/pending and pairing mutations are mutation-evidence known but real device/trust-state execution remains skipped-safe without disposable node fixtures.",
+      "followUpChange": {
+        "id": "deck-go-nodes-command-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "plugins.inventory",
+      "module": "plugins",
+      "capability": "Plugin inventory and capability scopes",
+      "productRole": "Let operators inspect bundled/workspace plugin inventory and channel/plugin capability ownership.",
+      "coreWorkflow": "Filter plugin inventory, inspect a plugin, and connect plugin capabilities to approvals/channels.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "deck.plugins.list derives plugin registry facts and extension envelopes from Gateway/plugin runtime.",
+      "gatewaySource": ["src/gateway/server-methods/deck/plugins.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/deck/plugins"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/plugins/PluginsPanel.tsx",
+        "deck-go/frontend-handoff/modules/plugins/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/plugins/PluginsPanel.test.tsx",
+        "deck-go/test/e2e/plugins-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/plugins-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Plugins inventory has no accidental DeckGoPlugin dynamic DTO leaves; manifest/audit routes, lifecycle mutations, marketplace trust, and package signature verification remain unsupported or degraded until dedicated contracts exist.",
+      "followUpChange": {
+        "id": "deck-go-skills-plugins-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "routing.bindings",
+      "module": "routing",
+      "capability": "Routing binding list, simulation, validation, add/remove",
+      "productRole": "Let operators reason about channel/thread/agent routing without editing raw config directly.",
+      "coreWorkflow": "List bindings, simulate a routing decision, validate a proposed binding, and perform guarded add/remove with base hash.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "deck.routing.* methods expose config-derived routing state and mutations with validation.",
+      "gatewaySource": [
+        "src/gateway/server-methods/deck/routing-list.ts",
+        "src/gateway/server-methods/deck/routing-simulate.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/views/routing_list.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/views/routing_list.go"
+      ],
+      "bffEndpoint": ["/api/deck/routing"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx",
+        "deck-go/frontend-handoff/modules/routing/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx",
+        "deck-go/test/e2e/routing-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Routing list/validate/simulate/add/remove and DM-scope patch are typed or product-action known; real config writes remain deferred without reversible routing/config fixtures, and first-class reorder/route history/conflict reason details remain unsupported.",
+      "followUpChange": {
+        "id": "deck-go-routing-identity-threads-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "sessions.history",
+      "module": "sessions",
+      "capability": "Session list, preview, timeline, mutations, and compaction affordances",
+      "productRole": "Let operators inspect and manage conversation history and run metadata outside the primary chat composer.",
+      "coreWorkflow": "List sessions, open detail/preview/timeline, validate safe mutation shapes, and inspect compaction state.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "sessions.* Gateway methods and deck-go projections provide session history and mutation routes.",
+      "gatewaySource": ["src/gateway/server-methods/sessions.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/session_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/session_commands.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/session_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/session_commands.go"
+      ],
+      "bffEndpoint": [
+        "/api/sessions",
+        "/api/chat/sessions/preview",
+        "/api/chat/history",
+        "/api/chat/sessions/reset",
+        "/api/chat/sessions/clear",
+        "/api/chat/sessions",
+        "/api/chat/sessions/patch",
+        "/api/chat/compact",
+        "/api/chat/compaction"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-streams.contract.json",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-live-projections.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-live-projections.generated.ts",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/chat/chat-api.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx",
+        "deck-go/frontend-handoff/modules/sessions/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx",
+        "deck-go/test/e2e/sessions-visual.spec.ts",
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.test.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "List-query, live projection, and mutation evidence contracts now cover sessions. Destructive real reset/clear/delete/patch/compact/branch/restore remains deferred until disposable session fixtures are proven.",
+      "followUpChange": {
+        "id": "deck-go-sessions-chat-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "settings.runtime",
+      "module": "settings",
+      "capability": "deck-go settings, runtime endpoint, bootstrap, and version state",
+      "productRole": "Let operators configure deck-go runtime access and inspect bootstrap/version health.",
+      "coreWorkflow": "Open Settings, inspect runtime mode/token state/version/bootstrap, update local deck-go settings, and test connection.",
+      "classification": "deck-local",
+      "gatewaySupportBasis": "deck-go owns settings storage while Gateway health/version/test endpoints prove the remote/bundled target.",
+      "gatewaySource": [
+        "src/gateway/server-methods/health.ts",
+        "src/gateway/server-methods/system.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/config/store.go",
+        "deck-go/backend/internal/server/settings.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/controld/app.go",
+        "deck-go/backend/internal/server/settings.go"
+      ],
+      "bffEndpoint": [
+        "/api/settings",
+        "/api/settings/version",
+        "/api/bootstrap/status",
+        "/api/runtime/endpoint"
+      ],
+      "contractSource": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx",
+        "deck-go/frontend-handoff/modules/settings/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx",
+        "deck-go/test/e2e/settings-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Runtime settings are local deck-go state; broader config-write safety belongs to config hardening.",
+      "followUpChange": {
+        "id": "deck-go-config-write-safety-contracts",
+        "status": "archived",
+        "lane": "Wave 1",
+        "priority": "P0"
+      }
+    },
+    {
+      "id": "skills.inventory",
+      "module": "skills",
+      "capability": "Skills inventory, hub actions, agent skill matrix, and configuration",
+      "productRole": "Let operators inspect and adjust skills exposed to agents while respecting extension/workspace boundaries.",
+      "coreWorkflow": "List skills, inspect selected skill/config, inspect agent skill matrix, and run safe hub/update actions.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "skills.* and deck.agents skills methods expose inventory/config; workspace skill mutation remains safety-sensitive.",
+      "gatewaySource": [
+        "src/gateway/server-methods/skills.ts",
+        "src/gateway/server-methods/skills-method-defs.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": ["/api/skills", "/api/skills/hub", "/api/deck/agents"],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-api-dynamic-surfaces.contract.json",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/docs/deck-api-dynamic-surfaces.json",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.tsx",
+        "deck-go/frontend-handoff/modules/skills/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
+        "deck-go/test/e2e/skills-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Skills inventory is normalized to DeckGoSkillEntry[], Skills update/install and Skill Hub install/update are mutation-evidence known, and remaining per-skill config plus real workspace/config writes remain dynamic, deferred, or skipped-safe until disposable fixtures exist.",
+      "followUpChange": {
+        "id": "deck-go-skills-plugins-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    },
+    {
+      "id": "subagents.runs-policy",
+      "module": "subagents",
+      "capability": "Subagent run list, lineage, steering, kill action, and per-agent spawn policy",
+      "productRole": "Let operators inspect subagent activity and adjust spawn policy with config-hash safety.",
+      "coreWorkflow": "List subagent runs, inspect lineage, view policy for an agent, and run safe steering/kill or policy update actions.",
+      "classification": "gateway-backed",
+      "gatewaySupportBasis": "deck.subagents.* and deck.agents.subagents.* methods expose run/policy data on top of Gateway session records.",
+      "gatewaySource": [
+        "src/gateway/server-methods/deck/subagents.ts",
+        "src/gateway/server-methods/deck/agents-subagents-config.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/views/subagents.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/views/subagents.go"
+      ],
+      "bffEndpoint": ["/api/deck/subagents", "/api/deck/agents"],
+      "contractSource": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.tsx",
+        "deck-go/frontend-handoff/modules/subagents/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.test.tsx",
+        "deck-go/test/e2e/subagents-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/subagents-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Live projection and shared safe mutation evidence are archived; real steer/kill mutation remains deferred until disposable subagent runs are proven.",
+      "followUpChange": {
+        "id": "deck-go-agents-control-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "threads.projection",
+      "module": "threads",
+      "capability": "Thread list, status filters, and thread/session projection",
+      "productRole": "Let operators inspect channel threads and session linkage without raw Gateway inspection.",
+      "coreWorkflow": "Filter threads, inspect a selected thread, and understand related session/routing state.",
+      "classification": "deck-derived",
+      "gatewaySupportBasis": "deck.threads.list derives channel/thread state from Gateway session/config data.",
+      "gatewaySource": [
+        "src/gateway/server-methods/deck/threads.ts",
+        "src/gateway/server-methods/sessions.ts"
+      ],
+      "deckSource": [
+        "deck-go/backend/internal/runtime/openclaw/views/threads_list.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/runtime/openclaw/views/threads_list.go"
+      ],
+      "bffEndpoint": ["/api/deck/threads"],
+      "contractSource": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/threads/ThreadsPanel.tsx",
+        "deck-go/frontend-handoff/modules/threads/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/threads/ThreadsPanel.test.tsx",
+        "deck-go/test/e2e/threads-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/threads-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Thread list/filter projection is verified read-only; rename/rebind/unbind/route history/transcript/branch/live-refresh mutations remain unsupported until Gateway and Deck contracts expose them.",
+      "followUpChange": {
+        "id": "deck-go-routing-identity-threads-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "usage.observability",
+      "module": "usage",
+      "capability": "Cost, provider, session logs, and timeseries usage",
+      "productRole": "Let operators monitor LLM cost and token usage across sessions/providers/models.",
+      "coreWorkflow": "Choose time range, inspect cost/provider/session aggregates, drill into logs, and compare timeseries.",
+      "classification": "deck-derived",
+      "gatewaySupportBasis": "Usage routes derive from Gateway session store, model usage metadata, and cost aggregation.",
+      "gatewaySource": ["src/gateway/server-methods/usage.ts"],
+      "deckSource": [
+        "deck-go/backend/internal/server/server.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
+      ],
+      "goAdapter": [
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": [
+        "/api/usage/cost",
+        "/api/usage/providers",
+        "/api/usage/sessions",
+        "/api/usage/timeseries"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-list-queries.contract.json",
+        "deck-go/contracts/source/deck-live-projections.contract.json",
+        "deck-go/contracts/source/deck-api-dynamic-surfaces.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/gateway/protocol.ts",
+        "deck-go/backend/internal/gateway/generated/methods.go",
+        "deck-go/backend/internal/gateway/generated/types_extra_2.go",
+        "deck-go/contracts/generated/ts/deck-list-queries.generated.ts",
+        "deck-go/contracts/generated/ts/deck-live-projections.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/list-query-contract.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/usage/UsagePanel.tsx",
+        "deck-go/frontend-handoff/modules/usage/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/usage/UsagePanel.test.tsx",
+        "deck-go/test/e2e/usage-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/usage-real-gateway.spec.ts"],
+      "realEvidenceStatus": "read-path-checked",
+      "status": "verified",
+      "gap": "Usage cost/provider/session/log/timeseries read models are typed and list-query governed; totals/aggregates/context-weight extension leaves remain intentional, and billing accuracy/quota-policy semantics remain product-limited.",
+      "followUpChange": {
+        "id": "deck-go-usage-logs-observability-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P1"
+      }
+    },
+    {
+      "id": "webhooks.local-delivery",
+      "module": "webhooks",
+      "capability": "Webhook CRUD, test delivery, secret redaction, and delivery history",
+      "productRole": "Let operators configure outbound notifications from deck-go control events.",
+      "coreWorkflow": "Create/edit webhook, verify secret redaction, run test delivery, review deliveries, and delete fixture.",
+      "classification": "deck-local",
+      "gatewaySupportBasis": "Webhooks are deck-go local product state and may consume Gateway-derived alert/activity events.",
+      "gatewaySource": ["src/gateway/server-methods/usage.ts"],
+      "deckSource": ["deck-go/backend/internal/server/webhooks.go"],
+      "goAdapter": [
+        "deck-go/backend/internal/server/webhooks.go",
+        "deck-go/backend/internal/server/server.go"
+      ],
+      "bffEndpoint": [
+        "/api/webhooks",
+        "/api/webhooks/{webhookId}/test",
+        "/api/webhooks/{webhookId}/deliveries"
+      ],
+      "contractSource": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-endpoints.contract.json",
+        "deck-go/contracts/source/deck-mutations.contract.json"
+      ],
+      "generatedArtifacts": [
+        "deck-go/contracts/generated/ts/deck-api.generated.ts",
+        "deck-go/backend/internal/deckapi/types.generated.go",
+        "deck-go/contracts/generated/ts/deck-mutations.generated.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/api-types.ts",
+        "deck-go/frontend-new/src/lib/mutation-evidence.ts"
+      ],
+      "panelSurface": [
+        "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.tsx",
+        "deck-go/frontend-handoff/modules/webhooks/implementation-notes.md"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
+        "deck-go/test/e2e/webhooks-visual.spec.ts"
+      ],
+      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidenceStatus": "fixture-checked",
+      "status": "verified",
+      "gap": "Webhook CRUD, manual test delivery, delivery-history reads, secret redaction, and mutation evidence are fixture-safe; retry scheduling/mutation, delivery retention policy, stats, event catalog, audit timeline, live delivery push, and real platform event dispatch remain unsupported/deferred product contracts.",
+      "followUpChange": {
+        "id": "deck-go-budget-alerts-webhooks-contract-completion",
+        "status": "archived",
+        "lane": "Wave 4",
+        "priority": "P2"
+      }
+    }
+  ],
+  "decisionIndex": [
+    {
+      "id": "p0.describe-schema-completeness",
+      "priority": "P0",
+      "lane": "Contract Hardening",
+      "ownerArea": "Gateway protocol generation and runtime describe evidence",
+      "affectedModules": ["gateway", "api-explorer", "all"],
+      "followUpChange": "deck-go-gateway-describe-and-schema-completeness",
+      "status": "archived",
+      "suggestedNextAction": "Compare static generated method/event coverage with runtime gateway.describe and fail on typed membership without complete result schema where required.",
+      "evidence": "Archived child proposal added generated gateway-describe-completeness report, runtime describe/static metadata tests, method-registry drift fixes, and contract-gate coverage."
+    },
+    {
+      "id": "p0.untyped-gateway-methods",
+      "priority": "P0",
+      "lane": "Contract Hardening",
+      "ownerArea": "Gateway exceptions and Deck-facing DTO envelopes",
+      "affectedModules": ["agents", "approvals", "logs", "nodes", "skills"],
+      "followUpChange": "deck-go-untyped-gateway-method-hardening",
+      "status": "archived",
+      "suggestedNextAction": "Use the generated typed Gateway bindings for tools.catalog, tools.effective, exec.approval.list, plugin.approval.list, logs.tail, commands.list, node.invoke, and node.pending.enqueue.",
+      "evidence": "Archived child proposal typed the eight documented P0 methods, removed untyped exceptions and inline allow markers, refreshed generated TS/Go artifacts, and passed contract-gate."
+    },
+    {
+      "id": "p0.deck-api-dynamic-surface",
+      "priority": "P0",
+      "lane": "Contract Hardening",
+      "ownerArea": "Deck-facing DTO source and generated TS/Go artifacts",
+      "affectedModules": ["all"],
+      "followUpChange": "deck-go-deck-api-dynamic-surface-hardening",
+      "status": "archived",
+      "suggestedNextAction": "Use the generated dynamic-surface report as the guardrail for future Deck API DTO changes.",
+      "evidence": "Archived child proposal added a Deck API dynamic-surface classification source/report covering 67 dynamic leaves, narrowed logs.tail lines to string[] and node.pending.enqueue queued to DeckGoNodePendingWorkItem, fixed typed logs stream handling, and passed contract-gate."
+    },
+    {
+      "id": "p0.bff-route-governance",
+      "priority": "P0",
+      "lane": "Contract Hardening",
+      "ownerArea": "Go BFF route registration, endpoint classification, frontend facade ownership",
+      "affectedModules": ["all"],
+      "followUpChange": "deck-go-bff-route-contract-governance",
+      "status": "archived",
+      "suggestedNextAction": "Use route-governance check as the guardrail for future Go BFF route registrations.",
+      "evidence": "Archived child proposal added deck-route-governance source plus generated route-governance report/check covering 136 registered routes, corrected active frontend references to frontend-new, moved DeckGoGatewayInvokeResult into Deck API contract authority with dynamic-surface classification, and passed contract-gate."
+    },
+    {
+      "id": "p0.config-write-safety",
+      "priority": "P0",
+      "lane": "Contract Hardening",
+      "ownerArea": "Config-like write semantics",
+      "affectedModules": [
+        "config",
+        "agents",
+        "models",
+        "routing",
+        "identity",
+        "skills",
+        "settings"
+      ],
+      "followUpChange": "deck-go-config-write-safety-contracts",
+      "status": "archived",
+      "suggestedNextAction": "Use config-write-safety check as the guardrail for future config-like writes; leave audit/history/rollback to the P1 platform-control proposal.",
+      "evidence": "Archived child proposal added config-write-safety source/report/check covering 16 action-level writes, wired the check into contract-gate, typed channel and approval config-write facades to DeckGoConfigApplyResponse, recorded all current idempotency/rollback/audit support as unsupported/deferred, and passed isolated real Config L2."
+    },
+    {
+      "id": "p1.platform-audit-history",
+      "priority": "P1",
+      "lane": "Platform-Control Contracts",
+      "ownerArea": "deck-go mutation audit/history",
+      "affectedModules": [
+        "agents",
+        "config",
+        "models",
+        "routing",
+        "identity",
+        "budget",
+        "webhooks",
+        "alerts"
+      ],
+      "followUpChange": "deck-go-control-audit-history-contract",
+      "status": "archived",
+      "suggestedNextAction": "Use the Deck-owned process-memory audit route as the first control history contract; defer durable storage and before/after diffs to later safe-mutation proposals.",
+      "evidence": "Archived child proposal added authenticated mutation audit middleware, a bounded process-memory audit log, typed GET /api/audit/events DTO/facade/governance, retention metadata, and focused backend tests."
+    },
+    {
+      "id": "p1.platform-live-projections",
+      "priority": "P1",
+      "lane": "Platform-Control Contracts",
+      "ownerArea": "SSE projection and refresh semantics",
+      "affectedModules": [
+        "agents",
+        "activity",
+        "approvals",
+        "chat",
+        "command-discovery",
+        "gateway",
+        "logs",
+        "routing",
+        "sessions",
+        "settings",
+        "subagents",
+        "usage"
+      ],
+      "followUpChange": "deck-go-live-projection-subscription-contract",
+      "status": "archived",
+      "suggestedNextAction": "Use the generated live projection metadata and shared frontend hook for future BFF/SSE panel work; handle module-specific live E2E in module completion proposals.",
+      "evidence": "Archived child proposal added a Deck-owned live projection source contract, generated Markdown/TypeScript metadata, stream contract event coverage, shared frontend subscription helper, non-chat consumer migration, chat contract linkage, and focused contract/frontend/build verification."
+    },
+    {
+      "id": "p1.platform-list-query",
+      "priority": "P1",
+      "lane": "Platform-Control Contracts",
+      "ownerArea": "Server-side list/search/filter/sort/pagination",
+      "affectedModules": [
+        "sessions",
+        "logs",
+        "usage",
+        "docs",
+        "webhooks",
+        "activity",
+        "plugins",
+        "skills"
+      ],
+      "followUpChange": "deck-go-list-query-contracts",
+      "status": "archived",
+      "suggestedNextAction": "Use the generated list-query metadata and shared frontend helper for future list/search/filter/sort facade work; handle module-specific data completeness in module completion proposals.",
+      "evidence": "Archived child proposal added a Deck-owned list-query source contract, generated Markdown/TypeScript metadata, contract gate coverage, shared frontend serialization helper, representative facade migration, and focused contract/frontend/build verification."
+    },
+    {
+      "id": "p1.real-e2e-fixtures",
+      "priority": "P1",
+      "lane": "Real E2E And Evidence",
+      "ownerArea": "Playwright real Gateway fixture lifecycle",
+      "affectedModules": ["agents", "cron", "budget", "alerts", "webhooks", "routing", "docs"],
+      "followUpChange": "deck-go-real-e2e-fixture-library",
+      "status": "archived",
+      "suggestedNextAction": "Use shared budget, alert, and webhook fixture helpers for current safe writable real specs; keep agents, cron, routing, docs, channels, skills, device tokens, and memory fixtures deferred until module proposals prove disposable cleanup.",
+      "evidence": "Archived child proposal added shared run-id-scoped budget, alert, and webhook fixture helpers, cleanup refusal before delete, deferred fixture-class metadata, migrated the matching real specs, and passed focused real Gateway API fixture verification."
+    },
+    {
+      "id": "p2.design-system-extraction",
+      "priority": "P2",
+      "lane": "Design-System Deferred",
+      "ownerArea": "frontend-new design-system patterns",
+      "affectedModules": ["all"],
+      "followUpChange": "deck-go-design-system-pattern-extraction",
+      "status": "archived",
+      "suggestedNextAction": "Do not promote new patterns without a focused reuse-analysis proposal naming at least two module call sites.",
+      "evidence": "2026-05-05 extraction audit found the six canonical patterns already tested and sufficient for current stable cross-module shells; Agents reflowback candidates remain parked because they do not yet satisfy the promotion gate."
+    }
+  ],
+  "proposalMatrix": [
+    {
+      "change": "deck-go-contract-chain-audit-and-real-e2e-foundation",
+      "priority": "P0",
+      "wave": "Wave 0 Foundation",
+      "dependsOn": [],
+      "status": "implementing",
+      "exitCriteria": "This JSON matrix, generated Markdown, isolated real E2E root, cpa+main seed evidence, fixture safety helpers, child proposal matrix, OpenSpec validation, and focused checks are complete."
+    },
+    {
+      "change": "deck-go-gateway-describe-and-schema-completeness",
+      "priority": "P0",
+      "wave": "Wave 1 Contract Hardening",
+      "dependsOn": ["deck-go-contract-chain-audit-and-real-e2e-foundation"],
+      "status": "archived",
+      "exitCriteria": "Static generated coverage and runtime gateway.describe coverage compare method, event, params schema, and result schema completeness."
+    },
+    {
+      "change": "deck-go-untyped-gateway-method-hardening",
+      "priority": "P0",
+      "wave": "Wave 1 Contract Hardening",
+      "dependsOn": ["deck-go-gateway-describe-and-schema-completeness"],
+      "status": "archived",
+      "exitCriteria": "Each upstream-schema-missing method is either typed, represented by a Deck-facing DTO, or narrowed to a typed outer envelope."
+    },
+    {
+      "change": "deck-go-deck-api-dynamic-surface-hardening",
+      "priority": "P0",
+      "wave": "Wave 1 Contract Hardening",
+      "dependsOn": ["deck-go-contract-chain-audit-and-real-e2e-foundation"],
+      "status": "archived",
+      "exitCriteria": "Stable UI claims map to named DTO fields or documented dynamic exceptions; generated TS/Go artifacts stay synchronized."
+    },
+    {
+      "change": "deck-go-bff-route-contract-governance",
+      "priority": "P0",
+      "wave": "Wave 1 Contract Hardening",
+      "dependsOn": ["deck-go-contract-chain-audit-and-real-e2e-foundation"],
+      "status": "archived",
+      "exitCriteria": "Every product BFF route links to owner, DTO/stream/exception, frontend facade, and mock/real evidence."
+    },
+    {
+      "change": "deck-go-config-write-safety-contracts",
+      "priority": "P0",
+      "wave": "Wave 1 Contract Hardening",
+      "dependsOn": ["deck-go-bff-route-contract-governance"],
+      "status": "archived",
+      "exitCriteria": "Config-like writes share base-hash/idempotency/conflict/rollback/error contracts and focused tests."
+    },
+    {
+      "change": "deck-go-real-e2e-seed-and-evidence",
+      "priority": "P0",
+      "wave": "Wave 2 Real E2E And Evidence",
+      "dependsOn": ["deck-go-contract-chain-audit-and-real-e2e-foundation"],
+      "status": "archived",
+      "exitCriteria": "A repeatable isolated cpa+main seed records machine-readable evidence without mutating operator state."
+    },
+    {
+      "change": "deck-go-real-e2e-fixture-library",
+      "priority": "P1",
+      "wave": "Wave 2 Real E2E And Evidence",
+      "dependsOn": ["deck-go-real-e2e-seed-and-evidence"],
+      "status": "archived",
+      "exitCriteria": "Writable fixture helpers create and clean only run-id-scoped resources for safe modules."
+    },
+    {
+      "change": "deck-go-real-e2e-reporting-and-circuit-breakers",
+      "priority": "P1",
+      "wave": "Wave 2 Real E2E And Evidence",
+      "dependsOn": ["deck-go-real-e2e-seed-and-evidence"],
+      "status": "archived",
+      "exitCriteria": "Real E2E attempts produce passed/degraded/empty-valid/skipped-safe/handoff-blocked evidence with bounded retry counts."
+    },
+    {
+      "change": "deck-go-control-audit-history-contract",
+      "priority": "P1",
+      "wave": "Wave 3 Platform-Control Contracts",
+      "dependsOn": ["deck-go-config-write-safety-contracts"],
+      "status": "archived",
+      "exitCriteria": "Mutations emit product-level audit/history entries with retention rules."
+    },
+    {
+      "change": "deck-go-live-projection-subscription-contract",
+      "priority": "P1",
+      "wave": "Wave 3 Platform-Control Contracts",
+      "dependsOn": ["deck-go-real-e2e-reporting-and-circuit-breakers"],
+      "status": "archived",
+      "exitCriteria": "Panels share subscription, refresh, stale-state, and projection-gap behavior."
+    },
+    {
+      "change": "deck-go-list-query-contracts",
+      "priority": "P1",
+      "wave": "Wave 3 Platform-Control Contracts",
+      "dependsOn": ["deck-go-bff-route-contract-governance"],
+      "status": "archived",
+      "exitCriteria": "List endpoints share cursor/filter/search/sort semantics and facade helpers."
+    },
+    {
+      "change": "deck-go-safe-mutation-evidence-contract",
+      "priority": "P1",
+      "wave": "Wave 3 Platform-Control Contracts",
+      "dependsOn": ["deck-go-config-write-safety-contracts", "deck-go-real-e2e-fixture-library"],
+      "status": "archived",
+      "exitCriteria": "Create/update/delete actions return consistent requestId/result/error/conflict evidence."
+    },
+    {
+      "change": "deck-go-agents-control-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": [
+        "deck-go-untyped-gateway-method-hardening",
+        "deck-go-config-write-safety-contracts"
+      ],
+      "status": "archived",
+      "exitCriteria": "Agents panel claims map to typed Gateway/Deck DTOs and real evidence."
+    },
+    {
+      "change": "deck-go-sessions-chat-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-real-e2e-seed-and-evidence", "deck-go-list-query-contracts"],
+      "status": "archived",
+      "exitCriteria": "Chat/session data, actions, streams, and history have real E2E evidence."
+    },
+    {
+      "change": "deck-go-models-providers-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-config-write-safety-contracts"],
+      "status": "archived",
+      "exitCriteria": "Provider/model states are typed and real-Gateway verified."
+    },
+    {
+      "change": "deck-go-channels-control-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-deck-api-dynamic-surface-hardening"],
+      "status": "archived",
+      "exitCriteria": "Throughput/product-only claims are contracted or removed/deferred."
+    },
+    {
+      "change": "deck-go-approvals-permissions-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-untyped-gateway-method-hardening"],
+      "status": "archived",
+      "exitCriteria": "Approval queues and resolution flows are typed or exception-narrowed."
+    },
+    {
+      "change": "deck-go-nodes-command-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-untyped-gateway-method-hardening"],
+      "status": "archived",
+      "exitCriteria": "Node invoke/pending work have typed outer envelopes and safe action evidence."
+    },
+    {
+      "change": "deck-go-routing-identity-threads-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-config-write-safety-contracts", "deck-go-list-query-contracts"],
+      "status": "archived",
+      "exitCriteria": "Routing and identity config writes are mutation-evidence known; thread projection is verified read-only with unsupported mutations explicit."
+    },
+    {
+      "change": "deck-go-usage-logs-observability-contract-completion",
+      "priority": "P1",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-list-query-contracts", "deck-go-untyped-gateway-method-hardening"],
+      "status": "archived",
+      "exitCriteria": "Log tail and usage logs/timeseries generated envelopes are typed; remaining observability dynamic leaves and product-limited claims are explicit."
+    },
+    {
+      "change": "deck-go-budget-alerts-webhooks-contract-completion",
+      "priority": "P2",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-safe-mutation-evidence-contract", "deck-go-real-e2e-fixture-library"],
+      "status": "archived",
+      "exitCriteria": "Budget evaluation DTO drift fixed, webhook test-delivery response and mutation evidence typed, Alerts fired-history copy aligned to the control contract boundary, fixture-safe real evidence preserved, and unsupported forecast/history/retry leaves documented."
+    },
+    {
+      "change": "deck-go-docs-memory-contract-completion",
+      "priority": "P2",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-list-query-contracts"],
+      "status": "archived",
+      "exitCriteria": "Docs extract/delete action evidence and delete DTO are typed, Memory search degraded semantics are explicit, and remaining semantic-search/docs-policy/memory-mutation limits are documented."
+    },
+    {
+      "change": "deck-go-skills-plugins-contract-completion",
+      "priority": "P2",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-deck-api-dynamic-surface-hardening"],
+      "status": "archived",
+      "exitCriteria": "Skills inventory and Skill Hub mutation DTOs are narrowed, Skills writes are mutation-evidence known, Plugin inventory has no accidental dynamic DTO leaves, and unsupported plugin lifecycle/trust plus unsafe skill writes remain explicit."
+    },
+    {
+      "change": "deck-go-cron-control-contract-completion",
+      "priority": "P2",
+      "wave": "Wave 4 Module/Product Completion",
+      "dependsOn": ["deck-go-real-e2e-fixture-library"],
+      "status": "archived",
+      "exitCriteria": "Cron status, job list, run history, create, update, delete, and manual run are contract-known; delete/run DTOs and mutation evidence are typed; cron.run invalid-spec schema drift is fixed; dynamic payload/delivery and unsafe scheduler fixtures remain explicit."
+    },
+    {
+      "change": "deck-go-design-system-pattern-extraction",
+      "priority": "P2",
+      "wave": "Wave 5 Design-System Deferred",
+      "dependsOn": ["deck-go-contract-chain-audit-and-real-e2e-foundation"],
+      "status": "archived",
+      "exitCriteria": "Pattern extraction audit completed without speculative new abstractions; design-system-patterns Purpose is fixed, existing canonical patterns remain authoritative, and future candidates must pass the reuse-analysis gate."
+    }
+  ]
+}

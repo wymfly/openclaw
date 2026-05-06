@@ -157,7 +157,7 @@ func (m *ManagedRuntime) BrowseMemory(ctx context.Context, agentID string, subPa
 	return map[string]any{"files": files}, http.StatusOK, nil
 }
 
-func (m *ManagedRuntime) SearchMemory(ctx context.Context, query string, agentID string) (any, int, error) {
+func (m *ManagedRuntime) SearchMemory(ctx context.Context, query string, agentID string, scope string) (any, int, error) {
 	if strings.TrimSpace(query) == "" {
 		return map[string]any{"error": "q is required"}, http.StatusBadRequest, nil
 	}

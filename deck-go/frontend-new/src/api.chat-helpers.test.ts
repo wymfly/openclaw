@@ -17,28 +17,40 @@ import {
   addRoutingBinding,
   approveDeviceRequest,
   approveNodePairing,
+  abortChatRun,
   branchCompactionCheckpoint,
+  clearSession,
   compactChatSession,
   createAgent,
+  createChatSession,
   createCronJob,
   deleteAgent,
+  deleteCronJob,
   deleteDoc,
+  deleteSession,
   describeNode,
+  fetchChannelThroughput,
+  fetchChannels,
   fetchCompactionCheckpoints,
   fetchCronJobs,
   fetchCronRuns,
   fetchCronStatus,
   fetchAgentDetail,
+  fetchAgentEventStreams,
   fetchAgentFile,
   fetchAgentFiles,
   fetchAgentIdentity,
+  fetchAgentSkills,
   fetchAgentsList,
   fetchDevices,
   fetchIdentityLinks,
   extractDocs,
   fetchDoc,
   fetchDocs,
+  fetchDeckConfig,
   fetchLogsTail,
+  fetchModelUsageCost,
+  fetchModelUsageProviders,
   fetchMonitorStats,
   fetchPluginsWithCapability,
   fetchPluginApprovals,
@@ -56,7 +68,9 @@ import {
   fetchSessions,
   installSkill,
   installSkillHub,
+  invokeGatewayMethod,
   linkIdentityPeer,
+  logoutChannel,
   enqueueNodePendingWork,
   invokeNodeCommand,
   probeRuntimeModelAuth,
@@ -68,11 +82,17 @@ import {
   fetchUsageSessions,
   fetchUsageTimeseries,
   evaluateBudgetRules,
+  patchChannelConfig,
   patchChatSession,
+  patchSession,
+  patchDeckConfig,
+  patchRoutingDmScope,
   persistChatProjection,
   resolveCanvasEval,
+  resolveApproval,
   resolvePluginApproval,
   rejectNodePairing,
+  requestNodePairing,
   unlinkIdentityPeer,
   rejectDeviceRequest,
   removeRoutingBinding,
@@ -86,18 +106,27 @@ import {
   searchSkillHub,
   simulateRouting,
   restoreCompactionCheckpoint,
+  resetSession,
   saveAgentFile,
+  saveModelsConfig,
+  sendChatMessage,
   updateApprovalsPolicy,
   updateAgentRawConfig,
   updateAgent,
+  updateAgentEventStreams,
+  updateAgentSkills,
   updateAlertRule,
   updateBudgetRule,
   updateCronJob,
   updateSkillHub,
+  updateSkill,
   updateWebhook,
   validateRoutingBinding,
   verifyNodePairing,
+  steerChatSession,
+  testWebhook,
   testSettingsConnection,
+  testChannel,
 } from "./api";
 
 afterEach(() => {
@@ -149,6 +178,108 @@ describe("chat helper seam requests", () => {
       "/api/sessions?agentId=main&search=handoff&limit=25&activeMinutes=60",
       undefined,
     );
+  });
+
+  it("posts chat create, send, abort, and steer through mutation-known routes", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, key: "sess-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "started", runId: "run-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, status: "aborted" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, status: "started", runId: "run-2" }), {
+          status: 200,
+        }),
+      );
+
+    await expect(createChatSession({ agentId: "main" })).resolves.toMatchObject({
+      key: "sess-1",
+    });
+    await expect(sendChatMessage({ sessionKey: "sess-1", message: "hi" })).resolves.toMatchObject({
+      status: "started",
+    });
+    await expect(abortChatRun({ sessionKey: "sess-1", runId: "run-1" })).resolves.toMatchObject({
+      status: "aborted",
+    });
+    await expect(
+      steerChatSession({ sessionKey: "sess-1", message: "continue" }),
+    ).resolves.toMatchObject({
+      status: "started",
+    });
+
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/chat/sessions/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: "main" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/chat/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", message: "hi" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/chat/abort", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", runId: "run-1" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/chat/steer", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", message: "continue" }),
+    });
+  });
+
+  it("posts session reset, clear, delete, and patch through mutation-known routes", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, key: "sess-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, key: "sess-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, key: "sess-1" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, key: "sess-1" }), { status: 200 }),
+      );
+
+    await expect(resetSession({ sessionKey: "sess-1", reason: "reset" })).resolves.toMatchObject({
+      ok: true,
+    });
+    await expect(clearSession({ sessionKey: "sess-1" })).resolves.toMatchObject({ ok: true });
+    await expect(deleteSession({ sessionKey: "sess-1", agentId: "main" })).resolves.toMatchObject({
+      ok: true,
+    });
+    await expect(patchSession({ sessionKey: "sess-1", label: "Review" })).resolves.toMatchObject({
+      ok: true,
+    });
+
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/chat/sessions/reset", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", reason: "reset" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/chat/sessions/clear", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/chat/sessions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", agentId: "main" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/chat/sessions/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionKey: "sess-1", label: "Review" }),
+    });
   });
 
   it("posts chat compaction to the compact endpoint", async () => {
@@ -207,7 +338,10 @@ describe("chat helper seam requests", () => {
 
     await fetchRuntimeModelAuthOverview("rt_custom");
     await fetchRuntimeModelCatalogProviders();
-    await probeRuntimeModelAuth("openai");
+    await expect(probeRuntimeModelAuth("openai")).resolves.toMatchObject({
+      provider: "openai",
+      status: "ok",
+    });
 
     expect(createDeckGatewayClientMock).toHaveBeenNthCalledWith(1, { runtimeId: "rt_custom" });
     expect(createDeckGatewayClientMock).toHaveBeenNthCalledWith(2, { runtimeId: "rt_local" });
@@ -216,6 +350,23 @@ describe("chat helper seam requests", () => {
     expect(client.models.catalog.providers).toHaveBeenCalledWith({});
     expect(client.deck.auth.probe).toHaveBeenCalledWith({ provider: "openai" });
     expect(deckFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("saves models config through the config-write mutation evidence route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, hash: "h2" }), { status: 200 }),
+    );
+
+    await expect(saveModelsConfig('{"models":{"providers":{}}}', "h1")).resolves.toMatchObject({
+      ok: true,
+      hash: "h2",
+    });
+
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/models/config", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ raw: '{"models":{"providers":{}}}', baseHash: "h1" }),
+    });
   });
 
   it("passes plugin capability filters through the deck plugins route", async () => {
@@ -233,16 +384,43 @@ describe("chat helper seam requests", () => {
     expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/deck/plugins?capability=all", undefined);
   });
 
-  it("posts node pairing decisions with Gateway requestId and verify token fields", async () => {
+  it("posts node pairing decisions with Gateway request, requestId, and verify token fields", async () => {
     deckFetchMock
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ requestId: "req-1", node: { nodeId: "node-1" } }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ requestId: "req-2", nodeId: "node-2" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: false }), { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            created: true,
+            request: { requestId: "req-3", nodeId: "node-2", ts: 1 },
+            status: "pending",
+          }),
+          { status: 200 },
+        ),
+      );
 
-    await approveNodePairing("req-1");
-    await rejectNodePairing("req-2");
-    await verifyNodePairing("node-1", "token-1");
+    const approved = await approveNodePairing("req-1");
+    const rejected = await rejectNodePairing("req-2");
+    const verified = await verifyNodePairing("node-1", "token-1");
+    const requested = await requestNodePairing({
+      nodeId: "node-2",
+      displayName: "Field Node",
+      platform: "linux",
+      caps: ["status"],
+      commands: ["status.request"],
+    });
 
+    expect(approved).toMatchObject({ requestId: "req-1" });
+    expect(rejected).toMatchObject({ requestId: "req-2" });
+    expect(verified).toEqual({ ok: false });
+    expect(requested).toMatchObject({ request: { requestId: "req-3" } });
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/nodes/pair", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -258,16 +436,31 @@ describe("chat helper seam requests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "verify", nodeId: "node-1", token: "token-1" }),
     });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/nodes/pair", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "request",
+        nodeId: "node-2",
+        displayName: "Field Node",
+        platform: "linux",
+        caps: ["status"],
+        commands: ["status.request"],
+      }),
+    });
   });
 
   it("posts node describe and rename with Gateway node fields", async () => {
-    deckFetchMock
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+    deckFetchMock.mockResolvedValueOnce(new Response("{}", { status: 200 })).mockResolvedValueOnce(
+      new Response(JSON.stringify({ nodeId: "node-1", displayName: "Renamed Node" }), {
+        status: 200,
+      }),
+    );
 
     await describeNode("node-1");
-    await renameNode("node-1", "Renamed Node");
+    const renamed = await renameNode("node-1", "Renamed Node");
 
+    expect(renamed).toEqual({ nodeId: "node-1", displayName: "Renamed Node" });
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/nodes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -286,21 +479,33 @@ describe("chat helper seam requests", () => {
 
   it("posts node invoke and pending enqueue through the current node action route", async () => {
     deckFetchMock
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ queued: { id: "pending-1" } }), {
+        new Response(
+          JSON.stringify({
+            command: "system.notify",
+            nodeId: "node-1",
+            ok: true,
+            payloadJSON: null,
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ nodeId: "node-1", queued: { id: "pending-1" } }), {
           status: 200,
         }),
       );
 
-    await invokeNodeCommand("node-1", "system.notify", { title: "Deck" }, 5000);
-    await enqueueNodePendingWork({
+    const invoked = await invokeNodeCommand("node-1", "system.notify", { title: "Deck" }, 5000);
+    const enqueued = await enqueueNodePendingWork({
       nodeId: "node-1",
       priority: "high",
       type: "status.request",
       wake: true,
     });
 
+    expect(invoked).toMatchObject({ command: "system.notify", nodeId: "node-1", ok: true });
+    expect(enqueued).toMatchObject({ nodeId: "node-1", queued: { id: "pending-1" } });
     const invokeInit = deckFetchMock.mock.calls[0]?.[1] as RequestInit;
     expect(typeof invokeInit.body).toBe("string");
     const invokeBody = JSON.parse(invokeInit.body as string) as Record<string, unknown>;
@@ -400,6 +605,98 @@ describe("chat helper seam requests", () => {
     });
   });
 
+  it("routes agents section reads and saves through the deck agents action endpoint", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            agentId: "main",
+            mode: "whitelist",
+            skills: ["read"],
+            available: [],
+            configHash: "skills-hash",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            mode: "whitelist",
+            skills: ["read", "write"],
+            configHash: "skills-hash-2",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            agentId: "main",
+            eventStreams: ["lifecycle", "assistant"],
+            configHash: "streams-hash",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            eventStreams: ["lifecycle", "assistant", "session.message"],
+            configHash: "streams-hash-2",
+          }),
+          { status: 200 },
+        ),
+      );
+
+    await fetchAgentSkills("main");
+    await updateAgentSkills("main", {
+      mode: "whitelist",
+      skills: ["read", "write"],
+      baseHash: "skills-hash",
+    });
+    await fetchAgentEventStreams("main");
+    await updateAgentEventStreams(
+      "main",
+      ["lifecycle", "assistant", "session.message"],
+      "streams-hash",
+    );
+
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/deck/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "skills.get", agentId: "main" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/deck/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "skills.set",
+        agentId: "main",
+        mode: "whitelist",
+        skills: ["read", "write"],
+        baseHash: "skills-hash",
+      }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/deck/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "eventStreams.get", agentId: "main" }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/deck/agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "eventStreams.set",
+        agentId: "main",
+        eventStreams: ["lifecycle", "assistant", "session.message"],
+        baseHash: "streams-hash",
+      }),
+    });
+  });
+
   it("routes identity list/link/unlink with the required config base hash", async () => {
     deckFetchMock
       .mockResolvedValueOnce(
@@ -407,12 +704,22 @@ describe("chat helper seam requests", () => {
           status: 200,
         }),
       )
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, configHash: "hash-2" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, configHash: "hash-3" }), { status: 200 }),
+      );
 
     await fetchIdentityLinks();
-    await linkIdentityPeer("user:1", "telegram", "42", "hash-1");
-    await unlinkIdentityPeer("user:1", "telegram", "42", "hash-2");
+    await expect(linkIdentityPeer("user:1", "telegram", "42", "hash-1")).resolves.toEqual({
+      ok: true,
+      configHash: "hash-2",
+    });
+    await expect(unlinkIdentityPeer("user:1", "telegram", "42", "hash-2")).resolves.toEqual({
+      ok: true,
+      configHash: "hash-3",
+    });
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/deck/identity", undefined);
     expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/deck/identity", {
@@ -446,12 +753,16 @@ describe("chat helper seam requests", () => {
       .mockResolvedValueOnce(
         new Response(JSON.stringify({ extracted: 0, docs: [] }), { status: 200 }),
       )
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Document not found" }), { status: 404 }),
+      );
 
     await fetchDocs({ category: "spec", query: " api " });
     await fetchDoc("doc/1");
-    await extractDocs("sess-1");
-    await deleteDoc("doc/1");
+    await expect(extractDocs("sess-1")).resolves.toEqual({ extracted: 0, docs: [] });
+    await expect(deleteDoc("doc/1")).resolves.toMatchObject({ ok: true, id: "doc/1" });
+    await expect(deleteDoc("missing/doc")).resolves.toMatchObject({ ok: true, missing: true });
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/docs?category=spec&q=api", undefined);
     expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/docs/doc%2F1", undefined);
@@ -463,16 +774,67 @@ describe("chat helper seam requests", () => {
     expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/docs/doc%2F1", {
       method: "DELETE",
     });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(5, "/api/docs/missing%2Fdoc", {
+      method: "DELETE",
+    });
+  });
+
+  it("routes API Explorer invocation through the typed runtime Gateway RPC endpoint", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            requestId: "req-1",
+            result: { ok: true },
+          }),
+          {
+            status: 200,
+            headers: { "x-deck-duration-ms": "12" },
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { code: "INVALID_GATEWAY_METHOD", message: "not typed" },
+            requestId: "req-2",
+          }),
+          { status: 400 },
+        ),
+      );
+
+    await expect(
+      invokeGatewayMethod("gateway.describe", { includeSchemas: true }, { timeoutMs: 2500 }),
+    ).resolves.toMatchObject({
+      body: { ok: true },
+      ok: true,
+      requestId: "req-1",
+      statusCode: 200,
+    });
+    await expect(invokeGatewayMethod("legacy.raw", {})).resolves.toMatchObject({
+      error: "not typed",
+      ok: false,
+      requestId: "req-2",
+      statusCode: 400,
+    });
+
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/v1/runtimes/rt_local/gateway/rpc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        method: "gateway.describe",
+        params: { includeSchemas: true },
+        timeoutMs: 2500,
+      }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/v1/runtimes/rt_local/gateway/rpc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ method: "legacy.raw", params: {} }),
+    });
   });
 
   it("routes deck routing helpers through Gateway-shaped actions and filters", async () => {
-    deckFetchMock
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
-
     const match = {
       channel: "discord",
       accountId: "acct-1",
@@ -480,16 +842,56 @@ describe("chat helper seam requests", () => {
       roles: ["admin"],
     };
 
+    deckFetchMock
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            binding: { id: "bind-new", agentId: "main", tier: "peer", match },
+            configHash: "hash-2",
+            warnings: [],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ok: true,
+            removed: { id: "bind-1", agentId: "main", tier: "peer", match },
+            configHash: "hash-3",
+            impact: "messages fall through",
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response("{}", { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, hash: "hash-scope" }), { status: 200 }),
+      );
+
     await fetchRoutingBindings({ agentId: " main ", channel: " discord ", accountId: " acct-1 " });
     await validateRoutingBinding({ agentId: "main", match });
-    await addRoutingBinding({
-      agentId: "main",
-      match,
-      baseHash: "hash-1",
-      comment: "route support",
-      position: 2,
+    await expect(
+      addRoutingBinding({
+        agentId: "main",
+        match,
+        baseHash: "hash-1",
+        comment: "route support",
+        position: 2,
+      }),
+    ).resolves.toMatchObject({
+      binding: { id: "bind-new" },
+      configHash: "hash-2",
     });
-    await removeRoutingBinding({ id: "bind-1", baseHash: "hash-2" });
+    await expect(removeRoutingBinding({ id: "bind-1", baseHash: "hash-2" })).resolves.toMatchObject(
+      {
+        removed: { id: "bind-1" },
+        configHash: "hash-3",
+      },
+    );
     await simulateRouting({
       channel: "discord",
       accountId: "acct-1",
@@ -497,6 +899,10 @@ describe("chat helper seam requests", () => {
       guildId: "guild-1",
       teamId: "team-1",
       memberRoleIds: ["admin", "ops"],
+    });
+    await expect(patchRoutingDmScope("per-account-channel-peer", "hash-3")).resolves.toEqual({
+      ok: true,
+      hash: "hash-scope",
     });
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(
@@ -539,6 +945,88 @@ describe("chat helper seam requests", () => {
         memberRoleIds: ["admin", "ops"],
       }),
     });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(6, "/api/config/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patch: { session: { dmScope: "per-account-channel-peer" } },
+        baseHash: "hash-3",
+      }),
+    });
+  });
+
+  it("routes channels helpers through Deck BFF endpoints and preserves probe errors", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ channelOrder: [], channels: {}, channelAccounts: {} }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ buckets: [], messagesIn: 0, messagesOut: 0 }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ channel: "discord/workspace", accountId: "default", cleared: true }),
+          {
+            status: 200,
+          },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, hash: "channel-h2" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ hash: "h1", config: {} }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, hash: "h2" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: false, error: "probe unavailable" }), { status: 502 }),
+      );
+
+    await fetchChannels();
+    await fetchChannelThroughput("discord/workspace", "6h");
+    const logout = await logoutChannel("discord/workspace");
+    const channelPatch = await patchChannelConfig("discord/workspace", { enabled: false });
+    await fetchDeckConfig();
+    await patchDeckConfig({ channels: { discord: { enabled: false } } }, "h1");
+    const probe = await testChannel("discord/workspace");
+
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/channels", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/channels/discord%2Fworkspace/throughput?window=6h",
+      undefined,
+    );
+    expect(deckFetchMock).toHaveBeenNthCalledWith(3, "/api/channels/discord%2Fworkspace/logout", {
+      method: "POST",
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(4, "/api/channels/discord%2Fworkspace", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: false }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(5, "/api/config", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(6, "/api/config/patch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patch: { channels: { discord: { enabled: false } } },
+        baseHash: "h1",
+      }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(7, "/api/channels/discord%2Fworkspace/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(logout).toMatchObject({ cleared: true, channel: "discord/workspace" });
+    expect(channelPatch).toMatchObject({ ok: true, hash: "channel-h2" });
+    expect(probe).toMatchObject({ ok: false, error: "probe unavailable" });
   });
 
   it("returns a raw response for patchChatSession", async () => {
@@ -675,6 +1163,26 @@ describe("chat helper seam requests", () => {
     );
   });
 
+  it("fetches usage cost through the canonical usage route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ daily: [] }), { status: 200 }),
+    );
+
+    await fetchModelUsageCost(14);
+
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/usage/cost?days=14", undefined);
+  });
+
+  it("fetches usage providers through the canonical usage route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ providers: [] }), { status: 200 }),
+    );
+
+    await fetchModelUsageProviders();
+
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/usage/providers", undefined);
+  });
+
   it("fetches usage session logs through the current usage logs route", async () => {
     deckFetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ logs: [] }), { status: 200 }),
@@ -738,8 +1246,11 @@ describe("chat helper seam requests", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ entries: [] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
 
-    await fetchPluginApprovals();
-    await resolvePluginApproval("plugin-ap-1", "allow-once");
+    const list = await fetchPluginApprovals();
+    const resolved = await resolvePluginApproval("plugin-ap-1", "allow-once");
+
+    expect(list).toEqual({ entries: [] });
+    expect(resolved).toEqual({ ok: true });
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/approvals/plugins", undefined);
     expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/approvals/plugins", {
@@ -749,12 +1260,32 @@ describe("chat helper seam requests", () => {
     });
   });
 
-  it("puts approval policy edits through the current approvals policy route", async () => {
+  it("routes exec approval resolution through the current approvals route", async () => {
     deckFetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), { status: 200 }),
     );
 
-    await updateApprovalsPolicy(
+    const resolved = await resolveApproval("approval-build", "allow-always");
+
+    expect(resolved).toEqual({ ok: true });
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/approvals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "approval-build", decision: "allow-always" }),
+    });
+  });
+
+  it("puts approval policy edits through the current approvals policy route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ hash: "policy-hash-2", file: { defaults: { ask: "always" } } }),
+        {
+          status: 200,
+        },
+      ),
+    );
+
+    const response = await updateApprovalsPolicy(
       {
         defaults: { security: "deny", ask: "always" },
         agents: { main: { security: "full" } },
@@ -763,6 +1294,7 @@ describe("chat helper seam requests", () => {
       "policy-hash",
     );
 
+    expect(response).toMatchObject({ hash: "policy-hash-2" });
     expect(deckFetchMock).toHaveBeenCalledWith("/api/approvals/policy", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -777,14 +1309,32 @@ describe("chat helper seam requests", () => {
     });
   });
 
-  it("posts skill installs through the current skills install route", async () => {
-    deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ ok: true }), { status: 200 }),
-    );
+  it("routes skill updates and installs through mutation-known skills routes", async () => {
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, skillKey: "github", config: {} }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ ok: true, message: "installed", stdout: "", stderr: "", code: 0 }),
+          { status: 200 },
+        ),
+      );
 
-    await installSkill("GitHub", "brew-gh");
+    await expect(updateSkill("github", { enabled: false })).resolves.toMatchObject({
+      ok: true,
+      skillKey: "github",
+    });
+    await expect(installSkill("GitHub", "brew-gh")).resolves.toMatchObject({ ok: true });
 
-    expect(deckFetchMock).toHaveBeenCalledWith("/api/skills/install", {
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/skills/github", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: false }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/skills/install", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: "GitHub", installId: "brew-gh" }),
@@ -796,8 +1346,12 @@ describe("chat helper seam requests", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ bins: ["dev"] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ results: [] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ skill: null }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, slug: "test-skill" }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, skillKey: "*" }), { status: 200 }),
+      );
 
     await fetchSkillHubBins();
     await searchSkillHub("tool", 5);
@@ -970,7 +1524,43 @@ describe("chat helper seam requests", () => {
     });
   });
 
-  it("normalizes budget evaluation currentValue from the Go usage budget route", async () => {
+  it("uses current as the budget evaluation contract field", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          evaluations: [
+            {
+              ruleId: "budget-1",
+              ruleName: "Monthly cost",
+              status: "warn",
+              current: 12,
+              warnThreshold: 10,
+              overThreshold: 20,
+              dimension: "cost",
+            },
+          ],
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(evaluateBudgetRules()).resolves.toEqual({
+      evaluations: [
+        {
+          ruleId: "budget-1",
+          ruleName: "Monthly cost",
+          status: "warn",
+          current: 12,
+          warnThreshold: 10,
+          overThreshold: 20,
+          dimension: "cost",
+        },
+      ],
+    });
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/usage/budget/evaluate", undefined);
+  });
+
+  it("keeps compatibility with older budget evaluation currentValue wire data", async () => {
     deckFetchMock.mockResolvedValueOnce(
       new Response(
         JSON.stringify({
@@ -1004,6 +1594,32 @@ describe("chat helper seam requests", () => {
       ],
     });
     expect(deckFetchMock).toHaveBeenCalledWith("/api/usage/budget/evaluate", undefined);
+  });
+
+  it("posts webhook test delivery through the typed current webhooks route", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          statusCode: 200,
+          durationMs: 12,
+          error: null,
+          deliveryId: "delivery-1",
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(testWebhook("webhook/1")).resolves.toEqual({
+      success: true,
+      statusCode: 200,
+      durationMs: 12,
+      error: null,
+      deliveryId: "delivery-1",
+    });
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/webhooks/webhook%2F1/test", {
+      method: "POST",
+    });
   });
 
   it("patches alert rule edits through the current alerts route", async () => {
@@ -1047,15 +1663,17 @@ describe("chat helper seam requests", () => {
       new Response(JSON.stringify({ id: "job-1" }), { status: 200 }),
     );
 
-    await createCronJob({
-      name: "Daily review",
-      schedule: { kind: "cron", expr: "0 8 * * *" },
-      sessionTarget: "isolated",
-      wakeMode: "now",
-      payload: { kind: "agentTurn", message: "brief me" },
-      description: "Daily prompt",
-      enabled: true,
-    });
+    await expect(
+      createCronJob({
+        name: "Daily review",
+        schedule: { kind: "cron", expr: "0 8 * * *" },
+        sessionTarget: "isolated",
+        wakeMode: "now",
+        payload: { kind: "agentTurn", message: "brief me" },
+        description: "Daily prompt",
+        enabled: true,
+      }),
+    ).resolves.toMatchObject({ id: "job-1" });
 
     expect(deckFetchMock).toHaveBeenCalledWith("/api/cron", {
       method: "POST",
@@ -1077,10 +1695,12 @@ describe("chat helper seam requests", () => {
       new Response(JSON.stringify({ id: "job-1" }), { status: 200 }),
     );
 
-    await updateCronJob("job/1", {
-      enabled: false,
-      schedule: { kind: "every", everyMs: 120000 },
-    });
+    await expect(
+      updateCronJob("job/1", {
+        enabled: false,
+        schedule: { kind: "every", everyMs: 120000 },
+      }),
+    ).resolves.toMatchObject({ id: "job-1" });
 
     expect(deckFetchMock).toHaveBeenCalledWith("/api/cron/job%2F1", {
       method: "PATCH",
@@ -1096,7 +1716,9 @@ describe("chat helper seam requests", () => {
     deckFetchMock
       .mockResolvedValueOnce(new Response(JSON.stringify({ jobs: [] }), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ entries: [] }), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ ok: true, enqueued: true, runId: "run-1" }), { status: 200 }),
+      );
 
     await fetchCronJobs({
       limit: 10,
@@ -1113,7 +1735,10 @@ describe("chat helper seam requests", () => {
       sortDir: "desc",
       statuses: ["ok", "error"],
     });
-    await runCronJob("job/1", { mode: "force" });
+    await expect(runCronJob("job/1", { mode: "force" })).resolves.toMatchObject({
+      ok: true,
+      runId: "run-1",
+    });
 
     expect(deckFetchMock).toHaveBeenNthCalledWith(
       1,
@@ -1130,6 +1755,16 @@ describe("chat helper seam requests", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "force" }),
     });
+  });
+
+  it("deletes cron jobs through mutation evidence by route id", async () => {
+    deckFetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: true, removed: true }), { status: 200 }),
+    );
+
+    await expect(deleteCronJob("job/1")).resolves.toMatchObject({ ok: true, removed: true });
+
+    expect(deckFetchMock).toHaveBeenCalledWith("/api/cron/job%2F1", { method: "DELETE" });
   });
 
   it("normalizes generated cron status fields through the current cron route", async () => {
@@ -1209,12 +1844,22 @@ describe("chat helper seam requests", () => {
       lanceDbEnabled: false,
     });
 
-    expect(deckFetchMock).toHaveBeenNthCalledWith(
-      1,
-      "/api/memory/search?q=remembered+context&agentId=main&scope=global",
-      undefined,
-    );
-    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/memory/search?q=vectors", undefined);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(1, "/api/memory/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "remembered context",
+        agentId: "main",
+        scope: "global",
+      }),
+    });
+    expect(deckFetchMock).toHaveBeenNthCalledWith(2, "/api/memory/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: "vectors",
+      }),
+    });
   });
 });
 

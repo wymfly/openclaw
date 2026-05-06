@@ -1,6 +1,6 @@
 # channels — high-fidelity handoff
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `revised v2 — implemented in real-contract pass`
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
 **Reference prior art:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html) (Codex V1, kept as reference; do not implement against it)

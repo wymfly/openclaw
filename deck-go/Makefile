@@ -4,7 +4,7 @@ GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOMODCACHE=/tmp/deck-go-gomodcache GOP
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 REPO_ROOT := $(abspath ..)
 
-.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check contract-inventory contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
+.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check live-projection-contract-sync live-projection-contract-check live-projection-contract-test list-query-contract-sync list-query-contract-check list-query-contract-test mutation-evidence-contract-sync mutation-evidence-contract-check mutation-evidence-contract-test deck-api-dynamic-surfaces-sync deck-api-dynamic-surfaces-check route-governance-sync route-governance-check config-write-safety-sync config-write-safety-check gateway-describe-completeness-sync gateway-describe-completeness-check contract-inventory contract-chain-audit-sync contract-chain-audit-check contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify real-e2e-seed smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
 
 contracts-sync:
 	node contracts/scripts/sync-deck-api-generated.mjs
@@ -44,10 +44,67 @@ stream-contract-sync:
 stream-contract-check:
 	CHECK_MODE=1 node contracts/scripts/sync-stream-contract.mjs
 
+live-projection-contract-sync:
+	node contracts/scripts/sync-live-projection-contract.mjs
+
+live-projection-contract-check:
+	CHECK_MODE=1 node contracts/scripts/sync-live-projection-contract.mjs
+
+live-projection-contract-test:
+	node contracts/scripts/sync-live-projection-contract.test.mjs
+
+list-query-contract-sync:
+	node contracts/scripts/sync-list-query-contract.mjs
+
+list-query-contract-check:
+	CHECK_MODE=1 node contracts/scripts/sync-list-query-contract.mjs
+
+list-query-contract-test:
+	node contracts/scripts/sync-list-query-contract.test.mjs
+
+mutation-evidence-contract-sync:
+	node contracts/scripts/sync-mutation-evidence-contract.mjs
+
+mutation-evidence-contract-check:
+	CHECK_MODE=1 node contracts/scripts/sync-mutation-evidence-contract.mjs
+
+mutation-evidence-contract-test:
+	node contracts/scripts/sync-mutation-evidence-contract.test.mjs
+
+deck-api-dynamic-surfaces-sync:
+	node contracts/scripts/sync-deck-api-dynamic-surfaces.mjs
+
+deck-api-dynamic-surfaces-check:
+	CHECK_MODE=1 node contracts/scripts/sync-deck-api-dynamic-surfaces.mjs
+
+route-governance-sync:
+	node contracts/scripts/sync-route-governance.mjs
+
+route-governance-check:
+	CHECK_MODE=1 node contracts/scripts/sync-route-governance.mjs
+
+config-write-safety-sync:
+	node contracts/scripts/sync-config-write-safety.mjs
+
+config-write-safety-check:
+	CHECK_MODE=1 node contracts/scripts/sync-config-write-safety.mjs
+
+gateway-describe-completeness-sync:
+	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/gateway-describe-completeness.ts
+
+gateway-describe-completeness-check:
+	cd "$(REPO_ROOT)" && CHECK_MODE=1 pnpm exec tsx deck-go/contracts/scripts/gateway-describe-completeness.ts
+
 contract-inventory:
 	node contracts/scripts/deck-contract-inventory.mjs
 
-contract-gate: contracts-codegen-test ui-metadata-test contracts-check endpoint-classification-check contract-exceptions-check stream-contract-check protocol-check gateway-typecheck contract-inventory
+contract-chain-audit-sync:
+	node scripts/sync-contract-chain-audit.mjs
+
+contract-chain-audit-check:
+	CHECK_MODE=1 node scripts/sync-contract-chain-audit.mjs
+
+contract-gate: contracts-codegen-test ui-metadata-test live-projection-contract-test list-query-contract-test mutation-evidence-contract-test contracts-check endpoint-classification-check contract-exceptions-check stream-contract-check live-projection-contract-check list-query-contract-check mutation-evidence-contract-check deck-api-dynamic-surfaces-check route-governance-check config-write-safety-check protocol-check gateway-typecheck gateway-describe-completeness-check contract-inventory contract-chain-audit-check
 
 protocol-gen-ts:
 	cd "$(REPO_ROOT)" && pnpm exec tsx deck-go/contracts/scripts/protocol-gen-ts.ts
@@ -106,6 +163,9 @@ frontend-build:
 	cd frontend-new && $(NPM_ENV) npm run build
 
 verify: contracts-check host-check backend-test frontend-build
+
+real-e2e-seed:
+	DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config playwright.config.ts test/e2e/real-gateway.spec.ts --grep "exercises the real Gateway control plane"
 
 smoke-stage3-host:
 	@echo "smoke-stage3-host is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2

@@ -106,7 +106,7 @@ opened ─[Cancel]─▶ closed
                                                                           └─[Done]─▶ closed
 ```
 
-Production: POST `/api/runtime/endpoint/test` with the current draft.
+Production: POST `/api/runtime/endpoint:test` with the current draft.
 Returns `DeckGoRuntimeEndpointTestResponse`. Render `latencyMs`,
 `gatewayVersion`, `tlsVerified`.
 
@@ -117,14 +117,14 @@ opened ─[Cancel]─▶ closed
        ─[Rotate]─▶ running ─(720ms)─▶ done ─(600ms)─▶ closed (parent records save event)
 ```
 
-Production: POST `/api/settings/rotate-token` (TBD endpoint — see open
-question §3 in README). Server returns the new token; UI may surface it
+Production: access-token rotation is unsupported today. Per-device token
+rotation uses `POST /api/devices/token/rotate`; the new token is surfaced
 once for copying, then never again.
 
 ### UnpairDeviceDialog
 
-Stateless. Confirm or cancel. On confirm, parent removes the device from
-`draftSettings.pairedDevices` and posts the change as part of a Save.
+Stateless. Confirm or cancel. On confirm, production calls
+`POST /api/devices/remove`; prototype-only draft removal is visual state.
 
 ### SaveDialog
 

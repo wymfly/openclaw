@@ -50,6 +50,10 @@ type AlertProvider interface {
 	DeleteAlert(ctx context.Context, ruleID string) (bool, error)
 }
 
+func isAlertAction(action string) bool {
+	return action == "toast" || action == "activity" || action == "webhook"
+}
+
 type WebhookCreateInput struct {
 	Name    string   `json:"name"`
 	URL     string   `json:"url"`
@@ -94,7 +98,7 @@ type DocsProvider interface {
 
 type MemoryBrowseProvider interface {
 	BrowseMemory(ctx context.Context, agentID string, subPath string, readMode bool) (any, int, error)
-	SearchMemory(ctx context.Context, query string, agentID string) (any, int, error)
+	SearchMemory(ctx context.Context, query string, agentID string, scope string) (any, int, error)
 }
 
 type EventStreamProvider interface {
@@ -138,6 +142,7 @@ type BudgetProvider interface {
 
 type UsageProvider interface {
 	GetUsageCost(ctx context.Context, days int) (any, error)
+	GetUsageProviders(ctx context.Context) (any, error)
 	GetUsageSessions(ctx context.Context, params map[string]any) (any, error)
 	GetUsageSessionLogs(ctx context.Context, params map[string]any) (any, error)
 	GetUsageTimeseries(ctx context.Context, params map[string]any) (any, error)
@@ -227,6 +232,10 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Missing required fields: name, entityType, condition, threshold"})
 				return
 			}
+			if body.Action != "" && !isAlertAction(body.Action) {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid alert action"})
+				return
+			}
 			payload, err := alerts.CreateAlert(req.Context(), body)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
@@ -243,6 +252,10 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 			}
 			if body.Name == nil && body.EntityType == nil && body.Condition == nil && body.Threshold == nil && body.Action == nil && body.CooldownMs == nil && body.Enabled == nil {
 				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "No fields to update"})
+				return
+			}
+			if body.Action != nil && !isAlertAction(*body.Action) {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "Invalid alert action"})
 				return
 			}
 			payload, found, err := alerts.UpdateAlert(req.Context(), chi.URLParam(req, "ruleId"), body)
@@ -590,17 +603,41 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 			writeJSON(w, status, payload)
 		})
 
-		r.Get("/memory/search", func(w http.ResponseWriter, req *http.Request) {
+		handleMemorySearch := func(w http.ResponseWriter, req *http.Request, query string, agentID string, scope string) {
 			payload, status, err := memory.SearchMemory(
 				req.Context(),
-				req.URL.Query().Get("q"),
-				req.URL.Query().Get("agentId"),
+				query,
+				agentID,
+				scope,
 			)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 				return
 			}
 			writeJSON(w, status, payload)
+		}
+
+		r.Get("/memory/search", func(w http.ResponseWriter, req *http.Request) {
+			handleMemorySearch(
+				w,
+				req,
+				req.URL.Query().Get("q"),
+				req.URL.Query().Get("agentId"),
+				req.URL.Query().Get("scope"),
+			)
+		})
+
+		r.Post("/memory/search", func(w http.ResponseWriter, req *http.Request) {
+			var body struct {
+				Query   string `json:"query"`
+				AgentID string `json:"agentId"`
+				Scope   string `json:"scope"`
+			}
+			if err := json.NewDecoder(req.Body).Decode(&body); err != nil {
+				writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid json body"})
+				return
+			}
+			handleMemorySearch(w, req, body.Query, body.AgentID, body.Scope)
 		})
 	}
 
@@ -891,6 +928,15 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 			writeJSON(w, http.StatusOK, payload)
 		})
 
+		r.Get("/usage/providers", func(w http.ResponseWriter, req *http.Request) {
+			payload, err := usage.GetUsageProviders(req.Context())
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		})
+
 		r.Get("/usage/sessions", func(w http.ResponseWriter, req *http.Request) {
 			params := map[string]any{}
 			for _, key := range []string{"startDate", "endDate", "key"} {
@@ -976,33 +1022,6 @@ func MountAdminRoutes(r chi.Router, settings SettingsProvider, alerts AlertProvi
 				return
 			}
 			payload, err := models.PatchModelsConfig(req.Context(), body.Raw, body.BaseHash, body.Note)
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/models/usage/providers", func(w http.ResponseWriter, req *http.Request) {
-			payload, err := models.GetModelUsageProviders(req.Context())
-			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/models/usage/cost", func(w http.ResponseWriter, req *http.Request) {
-			days := 7
-			if raw := req.URL.Query().Get("days"); raw != "" {
-				parsed, err := strconv.Atoi(raw)
-				if err != nil {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid days"})
-					return
-				}
-				days = parsed
-			}
-			payload, err := models.GetModelUsageCost(req.Context(), days)
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 				return

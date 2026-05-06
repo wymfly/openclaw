@@ -1,0 +1,58 @@
+change: frontend-threads-real-contract-verification
+archiveReady: true
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 3
+  continueWhenBlocked: true
+  blockingRule: "Static contract/code review, focused tests, and L1 mock visual evidence remain mandatory. L2 real Threads coverage is read-only; an empty contract-shaped real response is valid when runtime readiness and production empty-state rendering are proven."
+entries:
+  - scenarioId: baseline.threads-handoff
+    ownerTask: "1.2-1.4"
+    status: passed
+    verificationCommand: "Smoke-test deck-go/frontend-handoff/modules/threads/prototype.html and inspect archived frontend-threads-hifi-contract-redesign evidence"
+    evidence: "Inspected v2 handoff inventory and archived frontend-threads-hifi-contract-redesign; prototype.html loaded with HTTP 200 and only the expected Babel standalone warning."
+  - scenarioId: audit.threads-bff-capability
+    ownerTask: "2.1-2.6"
+    status: passed
+    verificationCommand: "Inspect DTOs, endpoint classification, Go BFF forwarding/projection, Gateway views, frontend wrappers, and production Threads code"
+    evidence: "Confirmed DeckGoThreadEntry/DeckGoThreadsResponse, fetchThreads({agentId, channel, status}), /api/deck/threads forwarding, Gateway deck.threads.list projection, mock Gateway support, and BFF-only browser access."
+  - scenarioId: contract.threads-chain-matrix
+    ownerTask: "2.5,3.1-3.5"
+    status: passed
+    verificationCommand: "Record workflow -> wrapper -> endpoint/DTO -> Go route/projection -> Gateway behavior -> capability classification matrix"
+    evidence: "Recorded matrix in deck-go/frontend-handoff/modules/threads/implementation-notes.md; list/filter/detail/raw/copy/navigation are supported, real empty is real-empty-valid, mutation/activity/audit/transcript/branches are unsupported."
+  - scenarioId: implementation.threads-v2-and-scoped-fixes
+    ownerTask: "3.2-3.4"
+    status: passed
+    verificationCommand: "Implement or refine v2 production UI and verify deterministic Threads-scoped fixes"
+    evidence: "Production UI already uses the contract-backed v2 workbench. Deterministic handoff drift fixed: channelKind -> channel and gateway.threads.list -> deck.threads.list. Added L2 real-stack E2E."
+  - scenarioId: frontend.threads-focused-tests
+    ownerTask: "4.1"
+    status: passed
+    verificationCommand: "Run focused frontend tests for deck-go/frontend-new Threads"
+    evidence: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/threads/ThreadsPanel.test.tsx src/api.chat-helpers.test.ts passed, 50 tests."
+  - scenarioId: backend.threads-focused-tests
+    ownerTask: "4.2"
+    status: passed
+    verificationCommand: "Run focused Go tests for thread forwarding/projection behavior"
+    evidence: "cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw ./internal/api/http -run 'TestGatewayFacade_DeckSubagentsAndThreads|TestManagedRuntime|TestMountRoutes|TestRegistry|TestGatewayQueries' passed."
+  - scenarioId: visual.threads-mock-e2e
+    ownerTask: "4.3"
+    status: passed
+    verificationCommand: "Run Threads mock/local visual Playwright E2E and label evidence as L1 mock/local visual coverage"
+    evidence: "cd deck-go && pnpm exec playwright test test/e2e/threads-visual.spec.ts --config playwright.config.ts passed, 1 test."
+  - scenarioId: l2.threads-real-api-ui
+    ownerTask: "4.4-4.5"
+    status: real-empty-valid
+    maxAttempts: 3
+    verificationCommand: "Real stack API/UI smoke for runtime readiness, GET /api/deck/threads shape, production Threads render, and non-mutating handoff controls"
+    evidence: "cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/threads-real-gateway.spec.ts --config playwright.config.ts passed, 2 tests. Current real stack sample returned HTTP 200 with {\"threads\":[]}, so UI empty state was verified without fabricated rows."
+  - scenarioId: review.code-level
+    ownerTask: "5.1-5.2"
+    status: passed
+    verificationCommand: "Manual code review of Threads panel, API facade, Go forwarding/projection, contracts, mocks, and verification evidence"
+    evidence: "Reviewed production panel, frontend wrapper, route forwarding, Gateway projection, mock fixture, hifi docs, and L1/L2 evidence; residual unsupported capabilities documented in implementation-notes.md."
+  - scenarioId: final.openspec-and-build
+    ownerTask: "4.6-4.9,5.4"
+    status: passed
+    verificationCommand: "openspec validate frontend-threads-real-contract-verification --strict; relevant contract checks; make frontend-build; git diff --check"
+    evidence: "openspec validate frontend-threads-real-contract-verification --strict passed; cd deck-go && make frontend-build passed; git diff --check passed. No source contract changed, so contract regeneration/check was not applicable."

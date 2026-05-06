@@ -21,7 +21,7 @@
   dialog: { kind: "apply" | "reset" | "snapshot" } | null,
 
   // History
-  recentApplies: ApplyEvent[],            // last 8 apply attempts (BFF projection)
+  recentApplies: ApplyEvent[],            // prototype/local-only; no Deck-facing audit contract yet
   now: number,                            // for relative-time formatting
 }
 ```

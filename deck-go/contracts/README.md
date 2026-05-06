@@ -62,9 +62,9 @@ wins. Update this README after verifying the actual implementation.
 
 For normal UI development, start with:
 
-- `frontend/src/api-types.ts` — frontend `DeckGo*` type facade. Prefer these
+- `frontend-new/src/api-types.ts` — frontend `DeckGo*` type facade. Prefer these
   exports over importing generated DTOs directly from panel code.
-- `frontend/src/api.ts` — Deck Go API request functions. UI components should
+- `frontend-new/src/api.ts` — Deck Go API request functions. UI components should
   call these wrappers instead of scattering endpoint strings.
 - `contracts/source/deck-ui.contract.json` — UI metadata source for fields,
   labels, tables, actions, status semantics, safety, refresh behavior, and empty

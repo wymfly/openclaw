@@ -1,6 +1,6 @@
 # logs — high-fidelity handoff (v2)
 
-**Status:** `revised v2 — pending implementation`
+**Status:** `implemented — real-contract verified`
 **Protocol version:** `protocol-v1`
 **Visual target:** [`./prototype.html`](./prototype.html) (multi-file Babel React)
 **V1 archive:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html)
@@ -47,19 +47,22 @@ export interface DeckGoLogStreamEvent {
 
 export type DeckGoLogsTailResponse = {
   cursor?: number;
-  lines?: unknown[];
+  file?: string;
+  lines?: string[];
   reset?: boolean;
+  size?: number;
+  truncated?: boolean;
 };
 ```
 
 Endpoints:
 
-- `GET /api/deck/logs?cursor=&limit=&maxBytes=` → `DeckGoLogsTailResponse`
-- `GET /api/deck/logs/stream` (SSE) → frames of `DeckGoLogStreamEvent` with
+- `GET /api/logs?cursor=&limit=&maxBytes=` -> `DeckGoLogsTailResponse`
+- `GET /api/logs/stream` (SSE) -> frames of `DeckGoLogStreamEvent` with
   `event = log.batch | log.reset`
 
-`lines` is `unknown[]` in the raw contract. The prototype assumes a normalized
-shape:
+`lines` is now `string[]` in the current Deck/Gateway contract chain. The
+prototype still models the UI around a parsed normalized shape:
 
 ```ts
 type LogLine = {
@@ -75,8 +78,9 @@ type LogLine = {
 };
 ```
 
-Production must defensively parse strings vs objects. The shape assumption is
-flagged in `api-usage.md`.
+Production parses string rows into this local shape and keeps defensive
+compatibility for older object-shaped fixtures or future richer rows. Stream
+event `json` payload leaves remain dynamic; see `api-usage.md`.
 
 ## Depends on canonical patterns / icons
 
@@ -103,9 +107,9 @@ The level pills (`LevelPill`) and source tiles (`SourceTile`) stay local to
 2. Translate to `frontend-new/src/components/panels/logs/` keeping the
    class-name shape (`logs-app__*`, `log-stream__*`, `log-row__*`,
    `details-pane__*`).
-3. Wire real fetchers in `frontend-new/src/api/logs.ts` — fetch tail with
+3. Wire real fetchers through `frontend-new/src/api.ts` — fetch tail with
    `cursor + limit + maxBytes`, stream `/logs/stream` with the existing
-   helper.
+   helper. There is no separate `src/api/logs.ts` module today.
 4. Hardcoded literal strings get extracted into `frontend-new/src/i18n/{en,zh}.json`
    in one pass (see `frontend-handoff/CLAUDE.md` "Prototype string rule").
 5. Buffer cap, copy-to-clipboard, and export logic stays client-side.
@@ -114,8 +118,9 @@ The level pills (`LevelPill`) and source tiles (`SourceTile`) stay local to
 
 ## Open questions for follow-up
 
-- Should the `lines` array gain a typed `DeckGoLogLine` schema upstream so the
-  prototype's normalized shape becomes contractual?
+- Should the `lines` array evolve from typed strings to a typed
+  `DeckGoLogLine` schema upstream so the prototype's normalized shape becomes
+  contractual?
 - Should `/logs/stream` carry structured `level` / `source` / `correlationId`
   fields directly in the SSE event envelope, or stay generic?
 - Should real-time level/source filtering move server-side once log volume

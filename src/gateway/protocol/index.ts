@@ -129,10 +129,22 @@ import {
   type ExecApprovalsSnapshot,
   type ExecApprovalGetParams,
   ExecApprovalGetParamsSchema,
+  type ExecApprovalListParams,
+  ExecApprovalListParamsSchema,
+  type ExecApprovalListRecord,
+  ExecApprovalListRecordSchema,
+  type ExecApprovalListResult,
+  ExecApprovalListResultSchema,
   type ExecApprovalRequestParams,
   ExecApprovalRequestParamsSchema,
   type ExecApprovalResolveParams,
   ExecApprovalResolveParamsSchema,
+  type PluginApprovalListParams,
+  PluginApprovalListParamsSchema,
+  type PluginApprovalListRecord,
+  PluginApprovalListRecordSchema,
+  type PluginApprovalListResult,
+  PluginApprovalListResultSchema,
   type PluginApprovalRequestParams,
   PluginApprovalRequestParamsSchema,
   type PluginApprovalResolveParams,
@@ -171,6 +183,8 @@ import {
   NodePendingEnqueueResultSchema,
   type NodeInvokeParams,
   NodeInvokeParamsSchema,
+  type NodeInvokeResult,
+  NodeInvokeResultSchema,
   type NodeInvokeResultParams,
   NodeInvokeResultParamsSchema,
   type NodeListParams,
@@ -354,6 +368,7 @@ export const validateNodePendingAckParams = ajv.compile<NodePendingAckParams>(
 );
 export const validateNodeDescribeParams = ajv.compile<NodeDescribeParams>(NodeDescribeParamsSchema);
 export const validateNodeInvokeParams = ajv.compile<NodeInvokeParams>(NodeInvokeParamsSchema);
+export const validateNodeInvokeResult = ajv.compile<NodeInvokeResult>(NodeInvokeResultSchema);
 export const validateNodeInvokeResultParams = ajv.compile<NodeInvokeResultParams>(
   NodeInvokeResultParamsSchema,
 );
@@ -485,11 +500,23 @@ export const validateExecApprovalsSetParams = ajv.compile<ExecApprovalsSetParams
 export const validateExecApprovalGetParams = ajv.compile<ExecApprovalGetParams>(
   ExecApprovalGetParamsSchema,
 );
+export const validateExecApprovalListParams = ajv.compile<ExecApprovalListParams>(
+  ExecApprovalListParamsSchema,
+);
+export const validateExecApprovalListResult = ajv.compile<ExecApprovalListResult>(
+  ExecApprovalListResultSchema,
+);
 export const validateExecApprovalRequestParams = ajv.compile<ExecApprovalRequestParams>(
   ExecApprovalRequestParamsSchema,
 );
 export const validateExecApprovalResolveParams = ajv.compile<ExecApprovalResolveParams>(
   ExecApprovalResolveParamsSchema,
+);
+export const validatePluginApprovalListParams = ajv.compile<PluginApprovalListParams>(
+  PluginApprovalListParamsSchema,
+);
+export const validatePluginApprovalListResult = ajv.compile<PluginApprovalListResult>(
+  PluginApprovalListResultSchema,
 );
 export const validatePluginApprovalRequestParams = ajv.compile<PluginApprovalRequestParams>(
   PluginApprovalRequestParamsSchema,
@@ -582,6 +609,7 @@ export {
   NodeListParamsSchema,
   NodePendingAckParamsSchema,
   NodeInvokeParamsSchema,
+  NodeInvokeResultSchema,
   NodePendingDrainParamsSchema,
   NodePendingDrainResultSchema,
   NodePendingEnqueueParamsSchema,
@@ -667,8 +695,14 @@ export {
   ExecApprovalsGetParamsSchema,
   ExecApprovalsSetParamsSchema,
   ExecApprovalGetParamsSchema,
+  ExecApprovalListParamsSchema,
+  ExecApprovalListRecordSchema,
+  ExecApprovalListResultSchema,
   ExecApprovalRequestParamsSchema,
   ExecApprovalResolveParamsSchema,
+  PluginApprovalListParamsSchema,
+  PluginApprovalListRecordSchema,
+  PluginApprovalListResultSchema,
   ChatHistoryParamsSchema,
   ChatSendParamsSchema,
   ChatInjectParamsSchema,
@@ -768,6 +802,7 @@ export type {
   NodePairVerifyParams,
   NodeListParams,
   NodeInvokeParams,
+  NodeInvokeResult,
   NodeInvokeResultParams,
   NodeEventParams,
   NodePendingDrainParams,
@@ -796,8 +831,14 @@ export type {
   ExecApprovalsSetParams,
   ExecApprovalsSnapshot,
   ExecApprovalGetParams,
+  ExecApprovalListParams,
+  ExecApprovalListRecord,
+  ExecApprovalListResult,
   ExecApprovalRequestParams,
   ExecApprovalResolveParams,
+  PluginApprovalListParams,
+  PluginApprovalListRecord,
+  PluginApprovalListResult,
   LogsTailParams,
   LogsTailResult,
   PollParams,

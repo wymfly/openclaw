@@ -1,0 +1,33 @@
+scenarios:
+  live-event-list-state:
+    status: passed
+    evidence:
+      - "deck-go/frontend-new/src/stores/agents.ts now preserves explicit null selectedAgentId for live server events."
+      - "npm run test:deck-ui -- src/stores/__tests__/agents-store.test.ts -> 5 passed."
+  real-fixture-data:
+    status: passed
+    evidence:
+      - "createAgentFixture/deleteAgentFixture create run-id-scoped agents through /api/agents and refuse non-run-scoped cleanup targets."
+      - "Mutation evidence contract marks agents.create, agents.delete, and agents.files.save fixture-safe for run-scoped isolated real E2E."
+      - "make mutation-evidence-contract-check -> mutation evidence contract is up to date."
+      - "make mutation-evidence-contract-test -> sync-mutation-evidence-contract tests passed."
+  real-ui-variants-and-navigation:
+    status: passed
+    evidence:
+      - "Attempt 1 found a strict selector issue (Agents also matched Subagents) and an over-specific file-save disabled assertion."
+      - "Attempt 2 found Gateway truth: arbitrary *-note.md agent files are unsupported; test changed to Gateway-supported MEMORY.md in an isolated workspace."
+      - "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/agents-real-gateway.spec.ts --config playwright.config.ts --output .local/agents-real-e2e-hardening --reporter=line -> 3 passed."
+  focused-frontend:
+    status: passed
+    evidence:
+      - "npm run test:deck-ui -- src/stores/__tests__/agents-store.test.ts -> 5 passed."
+      - "go test ./internal/server -run TestGatewayFacade_AgentsAndToolsCatalog -> passed."
+  build:
+    status: passed
+    evidence:
+      - "make frontend-build -> passed after mutation evidence regeneration."
+  openspec:
+    status: passed
+    evidence:
+      - "openspec validate deck-go-frontend-agents-real-e2e-hardening --strict -> valid."
+      - "openspec validate deck-go-frontend-prototype-parity-remediation --strict -> valid."

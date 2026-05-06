@@ -35,11 +35,15 @@ import {
   SessionsSendParamsSchema,
   SessionsSendResultSchema,
   SessionsSubscribeResultSchema,
-  SessionsUsageLogsResultSchema,
   SessionsUsageParamsSchema,
-  SessionsUsageResultSchema,
-  SessionsUsageTimeseriesResultSchema,
 } from "../protocol/schema/sessions.js";
+import {
+  SessionsUsageLogsParamsSchema,
+  SessionsUsageLogsResultSchema,
+  SessionsUsageResultSchema,
+  SessionsUsageTimeseriesParamsSchema,
+  SessionsUsageTimeseriesResultSchema,
+} from "../protocol/schema/usage-result-schemas.js";
 
 export const sessionsMethodDefs: Record<string, MethodMetadata> = {
   "sessions.list": {
@@ -150,12 +154,12 @@ export const sessionsMethodDefs: Record<string, MethodMetadata> = {
     scope: READ_SCOPE,
   },
   "sessions.usage.timeseries": {
-    params: SessionsUsageParamsSchema,
+    params: SessionsUsageTimeseriesParamsSchema,
     result: SessionsUsageTimeseriesResultSchema,
     scope: READ_SCOPE,
   },
   "sessions.usage.logs": {
-    params: SessionsUsageParamsSchema,
+    params: SessionsUsageLogsParamsSchema,
     result: SessionsUsageLogsResultSchema,
     scope: READ_SCOPE,
   },

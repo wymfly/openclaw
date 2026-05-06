@@ -57,7 +57,11 @@ export class SmtpClient {
 
   async sendMail(request: SmtpSendRequest): Promise<void> {
     const capabilities = await this.ehlo("openclaw.local");
-    if (!this.config.secure && this.config.startTls && capabilities.some((line) => /STARTTLS/i.test(line))) {
+    if (
+      !this.config.secure &&
+      this.config.startTls &&
+      capabilities.some((line) => /STARTTLS/i.test(line))
+    ) {
       const startTls = await this.exec("STARTTLS");
       this.expectCode(startTls, 220, "STARTTLS");
       await this.upgradeToTls();
@@ -96,9 +100,10 @@ export class SmtpClient {
 
   private async authenticate(): Promise<void> {
     if (this.config.authMethod === "plain") {
-      const payload = Buffer.from(`\u0000${this.config.user}\u0000${this.config.password}`, "utf8").toString(
-        "base64",
-      );
+      const payload = Buffer.from(
+        `\u0000${this.config.user}\u0000${this.config.password}`,
+        "utf8",
+      ).toString("base64");
       this.expectCode(await this.exec(`AUTH PLAIN ${payload}`), 235, "AUTH PLAIN");
       return;
     }
@@ -273,10 +278,7 @@ function buildAttachmentPart(attachment: SmtpSendRequest["attachments"][number])
   ];
 }
 
-function buildMultipartBody(params: {
-  boundary: string;
-  parts: string[][];
-}): string[] {
+function buildMultipartBody(params: { boundary: string; parts: string[][] }): string[] {
   const lines: string[] = [];
   for (const part of params.parts) {
     lines.push(`--${params.boundary}`, ...part);

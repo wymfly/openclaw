@@ -185,7 +185,7 @@ export function emitNamedTSType(lines: string[], name: string, schema: TSchema):
     lines.push("");
     return;
   }
-  if (body.startsWith("{") && !body.includes("|")) {
+  if (body.startsWith("{\n") && body.endsWith("\n}") && !body.includes("|")) {
     lines.push(`export interface ${name} ${body}`);
     lines.push("");
     return;

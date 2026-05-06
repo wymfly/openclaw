@@ -105,6 +105,9 @@ import {
   ExecApprovalsSetParamsSchema,
   ExecApprovalsSnapshotSchema,
   ExecApprovalGetParamsSchema,
+  ExecApprovalListParamsSchema,
+  ExecApprovalListRecordSchema,
+  ExecApprovalListResultSchema,
   ExecApprovalRequestParamsSchema,
   ExecApprovalResolveParamsSchema,
 } from "./exec-approvals.js";
@@ -136,6 +139,7 @@ import {
   NodePendingEnqueueParamsSchema,
   NodePendingEnqueueResultSchema,
   NodeInvokeParamsSchema,
+  NodeInvokeResultSchema,
   NodeInvokeResultParamsSchema,
   NodeInvokeRequestEventSchema,
   NodeListParamsSchema,
@@ -148,8 +152,12 @@ import {
   NodeRenameParamsSchema,
 } from "./nodes.js";
 import {
+  PluginApprovalListParamsSchema,
+  PluginApprovalListRecordSchema,
+  PluginApprovalListResultSchema,
   PluginApprovalRequestParamsSchema,
   PluginApprovalResolveParamsSchema,
+  PluginApprovalResolveResultSchema,
 } from "./plugin-approvals.js";
 import { ProtocolExtensionSchemas } from "./protocol-schemas-extensions.js";
 import { PushTestParamsSchema, PushTestResultSchema } from "./push.js";
@@ -225,6 +233,7 @@ export const ProtocolSchemas = {
   NodePendingAckParams: NodePendingAckParamsSchema,
   NodeDescribeParams: NodeDescribeParamsSchema,
   NodeInvokeParams: NodeInvokeParamsSchema,
+  NodeInvokeResult: NodeInvokeResultSchema,
   NodeInvokeResultParams: NodeInvokeResultParamsSchema,
   NodeEventParams: NodeEventParamsSchema,
   NodePendingDrainParams: NodePendingDrainParamsSchema,
@@ -343,10 +352,17 @@ export const ProtocolSchemas = {
   ExecApprovalsNodeSetParams: ExecApprovalsNodeSetParamsSchema,
   ExecApprovalsSnapshot: ExecApprovalsSnapshotSchema,
   ExecApprovalGetParams: ExecApprovalGetParamsSchema,
+  ExecApprovalListParams: ExecApprovalListParamsSchema,
+  ExecApprovalListRecord: ExecApprovalListRecordSchema,
+  ExecApprovalListResult: ExecApprovalListResultSchema,
   ExecApprovalRequestParams: ExecApprovalRequestParamsSchema,
   ExecApprovalResolveParams: ExecApprovalResolveParamsSchema,
+  PluginApprovalListParams: PluginApprovalListParamsSchema,
+  PluginApprovalListRecord: PluginApprovalListRecordSchema,
+  PluginApprovalListResult: PluginApprovalListResultSchema,
   PluginApprovalRequestParams: PluginApprovalRequestParamsSchema,
   PluginApprovalResolveParams: PluginApprovalResolveParamsSchema,
+  PluginApprovalResolveResult: PluginApprovalResolveResultSchema,
   DevicePairListParams: DevicePairListParamsSchema,
   DevicePairApproveParams: DevicePairApproveParamsSchema,
   DevicePairRejectParams: DevicePairRejectParamsSchema,
