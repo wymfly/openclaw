@@ -46,17 +46,17 @@
 
 .logs-panel h2 {
   font-size: 1.08rem;
-  font-weight: 680;
+  font-weight: 600;
 }
 
 .logs-panel h3 {
   font-size: 0.95rem;
-  font-weight: 660;
+  font-weight: 600;
 }
 
 .logs-panel h4 {
   font-size: var(--ds-fs-body);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .logs-panel p,
@@ -75,7 +75,7 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -139,7 +139,7 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -262,13 +262,13 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
 .logs-metric strong {
   font-size: 1rem;
-  font-weight: 680;
+  font-weight: 600;
   line-height: 1.2;
 }
 
@@ -383,7 +383,7 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 

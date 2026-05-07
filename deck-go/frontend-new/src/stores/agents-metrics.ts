@@ -2,7 +2,10 @@ import type { DeckGoAgentStatus, DeckGoAgentSummary, DeckGoServerEvent } from "@
 import { parseServerEvent } from "@/stream-contract";
 
 const KNOWN_STATUSES = new Set<DeckGoAgentStatus>(["idle", "busy", "error", "offline"]);
-type AgentMetricSummary = Omit<DeckGoAgentSummary, "isDefault"> & { isDefault?: boolean };
+type AgentMetricSummary = Partial<DeckGoAgentSummary> & {
+  id: string;
+  status?: DeckGoAgentStatus;
+};
 
 export type AgentMetricsAction =
   | { kind: "none" }

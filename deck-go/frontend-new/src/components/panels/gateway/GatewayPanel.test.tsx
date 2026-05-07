@@ -240,6 +240,14 @@ describe("GatewayPanel", () => {
     expect(container.textContent).toContain("Runtime Gateway");
     expect(container.textContent).toContain("ws://127.0.0.1:18789");
     expect(container.textContent).not.toMatch(/\b(Start|Stop|Restart)\b/);
+    const gatewayOkPill = Array.from(container.querySelectorAll(".gateway-pill")).find(
+      (pill) => pill.textContent === "Gateway OK",
+    );
+    expect(gatewayOkPill?.className).toContain("is-good");
+    const bootstrapOkPill = Array.from(container.querySelectorAll(".gateway-pill")).find(
+      (pill) => pill.textContent === "bootstrap OK",
+    );
+    expect(bootstrapOkPill?.className).toContain("is-good");
     expect(container.querySelector(".gateway-app__topbar")).toBeTruthy();
     expect(container.querySelector(".describe-explorer")).toBeTruthy();
     expect(container.querySelector("[style]")).toBeNull();
@@ -367,6 +375,10 @@ describe("GatewayPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("Describe unavailable"));
     expect(container.textContent).toContain("Gateway control plane");
     expect(container.textContent).toContain("Gateway OK");
+    const gatewayOkPill = Array.from(container.querySelectorAll(".gateway-pill")).find(
+      (pill) => pill.textContent === "Gateway OK",
+    );
+    expect(gatewayOkPill?.className).toContain("is-good");
     expect(container.textContent).toContain("Throughput projection");
     expect(container.querySelector('[data-testid="empty-state-not-configured"]')).toBeNull();
   });

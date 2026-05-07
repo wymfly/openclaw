@@ -75,9 +75,10 @@ DECK_GO_STACK_ENV=.local/deck-go-real-stack/env-isolated-real-e2e scripts/dev/ru
 Important operational notes:
 
 - Prefer the real-stack script over ad hoc Gateway startup.
-- Avoid `pnpm openclaw gateway run` for this workflow when it triggers
-  runtime-postbuild dirty-tree staging; the maintained script uses the safer
-  startup path already discussed for this project.
+- Avoid `pnpm openclaw gateway run` for this workflow. The maintained real-stack
+  path starts Gateway with `node dist/entry.js gateway run ...` so it does not
+  enter `scripts/run-node.mjs` dirty-tree rebuilds or runtime-postbuild
+  dependency staging during interactive E2E.
 - Use Vite dev mode for visual debugging so frontend fixes hot reload.
 - Keep the browser page open during collaborative E2E; refresh the same page
   after hot updates instead of closing the user's browser.

@@ -33,8 +33,22 @@ describe("agents store", () => {
     await useAgentsStore.getState().loadAgents(async () => ({
       defaultId: "ops",
       agents: [
-        { id: "main", name: "Main", status: "idle", isDefault: false },
-        { id: "ops", name: "Ops", status: "busy", isDefault: true },
+        {
+          id: "main",
+          name: "Main",
+          status: "idle",
+          isDefault: false,
+          isConfiguredDefault: false,
+          isMainProtected: true,
+        },
+        {
+          id: "ops",
+          name: "Ops",
+          status: "busy",
+          isDefault: true,
+          isConfiguredDefault: true,
+          isMainProtected: false,
+        },
       ],
     }));
 

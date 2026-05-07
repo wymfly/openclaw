@@ -19,6 +19,7 @@ related:
   - "../contract-inventory.md"
   - "../../contracts/README.md"
   - "../../frontend-new/CLAUDE.md"
+  - "./module-convergence-workflow.md"
   - "../../../openspec/changes/deck-go-contract-chain-audit-and-real-e2e-foundation/proposal.md"
 ---
 

@@ -17,6 +17,8 @@ const frontendRoot = path.join(deckRoot, "frontend-new");
 const mockGatewayEntry = path.join(deckRoot, "test/fixtures/mock-gateway.mjs");
 const localNoProxy = "localhost,127.0.0.1,::1";
 const openClawConfigFile = "openclaw.json";
+const realGatewayPortPlaceholderPattern =
+  /\{\{\s*gatewayPort\s*\}\}|\$\{\s*gatewayPort\s*\}|\{gatewayPort\}/g;
 const maxBootstrapCopyBytes = 512 * 1024;
 const maxSidecarCopyBytes = 1024 * 1024;
 const realGatewayReadyTimeoutMs = Number(
@@ -320,6 +322,37 @@ async function waitForGatewayRPC(
 
 function tailOutput(output: string) {
   return output.length > 40_000 ? output.slice(output.length - 40_000) : output;
+}
+
+function resolveRealGatewayLaunch(gatewayPort: number) {
+  const command = process.env.DECK_GO_REAL_GATEWAY_COMMAND?.trim() || process.execPath;
+  const argsTemplate =
+    process.env.DECK_GO_REAL_GATEWAY_ARGS?.trim() ||
+    "dist/entry.js gateway run --bind loopback --port {gatewayPort} --allow-unconfigured";
+  const args = argsTemplate.replace(realGatewayPortPlaceholderPattern, String(gatewayPort));
+  const workdir = process.env.DECK_GO_REAL_GATEWAY_WORKDIR?.trim() || repoRoot;
+
+  if (isUnstableSourceGatewayLauncher(command, args)) {
+    throw new Error(
+      [
+        "refusing to start real Gateway E2E through `pnpm openclaw` because it can trigger",
+        "`scripts/run-node.mjs` dirty-tree rebuilds and runtime-postbuild dependency staging.",
+        "Use the default direct-dist launcher or set DECK_GO_REAL_GATEWAY_COMMAND=node and",
+        'DECK_GO_REAL_GATEWAY_ARGS="dist/entry.js gateway run --bind loopback --port {gatewayPort} --allow-unconfigured".',
+        "Set DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER=1 only for a deliberate source-run diagnostic.",
+      ].join(" "),
+    );
+  }
+
+  return { command, args, workdir };
+}
+
+function isUnstableSourceGatewayLauncher(command: string, args: string) {
+  if (process.env.DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER === "1") {
+    return false;
+  }
+  const executable = path.basename(command).replace(/\.(?:cmd|exe)$/i, "");
+  return executable === "pnpm" && /\bopenclaw\b/.test(args);
 }
 
 async function startFrontend(backendBase: string, frontendPort: number, accessToken?: string) {
@@ -1394,6 +1427,7 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
   const binary = await buildBackendBinary();
   const accessToken = `real-e2e-deck-token-${testInfo.workerIndex}`;
   const gatewayToken = `real-e2e-gateway-token-${testInfo.workerIndex}`;
+  const gatewayLaunch = resolveRealGatewayLaunch(gatewayPort);
   const realE2E = await prepareIsolatedOpenClawState({
     root,
     dataDir,
@@ -1413,9 +1447,9 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
       DECK_STATE_PATH: path.join(dataDir, "deck-state.json"),
       RUNTIME_ADMIN_SOCKET: path.join(dataDir, "admin.sock"),
       RUNTIME_MODE: "bundled",
-      RUNTIME_BUNDLED_COMMAND: "pnpm",
-      RUNTIME_BUNDLED_ARGS: `openclaw gateway run --bind loopback --port ${gatewayPort} --allow-unconfigured`,
-      RUNTIME_BUNDLED_WORKDIR: repoRoot,
+      RUNTIME_BUNDLED_COMMAND: gatewayLaunch.command,
+      RUNTIME_BUNDLED_ARGS: gatewayLaunch.args,
+      RUNTIME_BUNDLED_WORKDIR: gatewayLaunch.workdir,
       RUNTIME_BUNDLED_BIND_HOST: "127.0.0.1",
       RUNTIME_BUNDLED_BIND_PORT: String(gatewayPort),
       RUNTIME_BUNDLED_TOKEN: gatewayToken,

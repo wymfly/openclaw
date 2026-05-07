@@ -118,7 +118,7 @@
   margin: 0;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -130,7 +130,7 @@
 .identity-panel__dialog h3 {
   margin: 0;
   color: var(--ds-text-1);
-  font-weight: 760;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -252,7 +252,7 @@
   align-items: center;
   color: var(--ds-text-1);
   font-size: 0.84rem;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .identity-nav__count,
@@ -269,7 +269,7 @@
   background: var(--ds-bg-2);
   color: var(--ds-text-2);
   font-size: 0.73rem;
-  font-weight: 720;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -410,7 +410,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.82rem;
-  font-weight: 740;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -555,7 +555,7 @@
   color: var(--ds-accent);
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .peer-row__id-line {
@@ -592,7 +592,7 @@
   padding: 3px 7px;
   background: color-mix(in srgb, currentColor 10%, transparent);
   font-size: 0.74rem;
-  font-weight: 740;
+  font-weight: 700;
 }
 
 .channel-pill__dot {
@@ -612,7 +612,7 @@
   margin: 0;
   color: var(--ds-text-1);
   font-size: 0.88rem;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .identity-panel__notice,
@@ -637,7 +637,7 @@
   cursor: pointer;
   color: var(--ds-text-2);
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .identity-panel__raw pre {

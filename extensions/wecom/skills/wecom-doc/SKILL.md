@@ -143,7 +143,7 @@ docid **只能**通过 `create_doc` 的返回结果获取。创建成功后需�
 5. 查询已有字段 → `smartsheet_get_fields` → 获取 `field_id`、`field_title`、`field_type`
 6. 如需添加字段 → `wedoc_smartsheet_add_fields`
 7. 如需更新字段 → `wedoc_smartsheet_update_fields`（**不能改变字段类型**）
-8. 添加数据记录 → `smartsheet_add_records`（values 的 key **必须**使用字段标题 field_title，不能用 field_id）
+8. 添加数据记录 → `smartsheet_add_records`（默认 `key_type` 为字段标题；如需用字段 ID，显式传 `CELL_VALUE_KEY_TYPE_FIELD_ID`）
 
 ### 从零创建智能表完整流程
 
@@ -191,14 +191,14 @@ smartsheet_get_sheet(docid) → sheet_id
 
 ### FieldType ↔ CellValue 对照表
 
-添加记录（`smartsheet_add_records`）时，`values` 中每个字段的 **key 必须使用字段标题（field_title），不能使用 field_id**。value 必须匹配其字段类型：
+添加记录（`smartsheet_add_records`）时，`values` 中每个字段的 key 必须和 `key_type` 匹配：默认 `CELL_VALUE_KEY_TYPE_FIELD_TITLE` 使用字段标题（field_title）；显式传 `CELL_VALUE_KEY_TYPE_FIELD_ID` 时使用字段 ID（field_id）。value 必须匹配其字段类型：
 
 | 字段类型        | CellValue 格式                    | 示例                                                                                           |
 | --------------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `TEXT`          | CellTextValue 数组                | `[{"type": "text", "text": "内容"}]`                                                           |
 | `NUMBER`        | number                            | `85`                                                                                           |
 | `CHECKBOX`      | boolean                           | `true`                                                                                         |
-| `DATE_TIME`     | 日期时间**字符串**                | `"2023-01-01 12:00:00"`、`"2023-01-01 12:00"`、`"2023-01-01"`                                  |
+| `DATE_TIME`     | 毫秒 Unix 时间戳**字符串**        | `"1704067200000"`                                                                              |
 | `URL`           | CellUrlValue 数组（限 1 个）      | `[{"type": "url", "text": "百度", "link": "https://baidu.com"}]`                               |
 | `USER`          | CellUserValue 数组                | `[{"user_id": "zhangsan"}]`                                                                    |
 | `IMAGE`         | CellImageValue 数组               | `[{"image_url": "https://..."}]`（`id`、`title` 可选）                                         |
@@ -216,13 +216,13 @@ smartsheet_get_sheet(docid) → sheet_id
 
 ### 易错点
 
-- `DATE_TIME` 的值是**日期时间字符串**，支持 `"YYYY-MM-DD HH:MM:SS"`（精确到秒）、`"YYYY-MM-DD HH:MM"`（精确到分）、`"YYYY-MM-DD"`（精确到天），系统自动按东八区转换为时间戳，无需手动计算
+- `DATE_TIME` 的值是**13 位毫秒 Unix 时间戳字符串**，例如 `"1704067200000"`；不要传 `"2024-01-01"` 或秒级时间戳，否则企业微信会返回 invalid datetime field
 - `CellUrlValue` 的链接字段名是 **`link`**，不是 `url`
 - `TEXT` 类型的值**必须**使用数组格式 `[{"type": "text", "text": "内容"}]`，外层方括号不可省略，不能传单个对象 `{"type":"text","text":"内容"}`
 - `SINGLE_SELECT`/`SELECT` 类型的值**必须**使用数组格式 `[{"text": "选项内容"}]`，不能直接传字符串
 - `PROGRESS` 的值范围是 **0~100 整数**（85 = 85%）；`PERCENTAGE` 的值范围是 **0~1**（0.85 = 85%），两者不同注意区分
 - `wedoc_smartsheet_update_fields` **不能更改字段类型**，只能改标题和属性
-- `values` 的 key **必须**使用**字段标题**（field_title），**不能**使用 field_id
+- `values` 的 key 必须匹配 `key_type`：默认字段标题；传 `CELL_VALUE_KEY_TYPE_FIELD_ID` 时使用字段 ID
 - 不可写入的字段类型：创建时间、最后编辑时间、创建人、最后编辑人
 
 ## 错误处理

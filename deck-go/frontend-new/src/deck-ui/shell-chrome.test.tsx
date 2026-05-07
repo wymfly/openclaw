@@ -142,8 +142,12 @@ describe("Deck shell chrome parity", () => {
 
     expect(container.textContent).toContain("监控");
     expect(container.textContent).toContain("已连接");
+    const statusChip = Array.from(container.querySelectorAll(".deck-ui-status-chip")).find(
+      (chip) => chip.textContent === "已连接",
+    );
+    expect(statusChip?.className).toContain("is-healthy");
     act(() => {
-      container.querySelector<HTMLButtonElement>(".deck-ui-status-chip")?.click();
+      (statusChip as HTMLButtonElement | undefined)?.click();
     });
 
     expect(uiState.setActivePanel).toHaveBeenCalledWith("gateway");

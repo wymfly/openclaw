@@ -93,9 +93,17 @@ load_env() {
     exit 1
   fi
 
-  : "${RUNTIME_BUNDLED_COMMAND:=pnpm}"
-  : "${RUNTIME_BUNDLED_ARGS:=openclaw gateway run --bind loopback --port 18789 --allow-unconfigured}"
+  : "${RUNTIME_BUNDLED_COMMAND:=node}"
+  : "${RUNTIME_BUNDLED_ARGS:=dist/entry.js gateway run --bind loopback --port 18789 --allow-unconfigured}"
   : "${RUNTIME_BUNDLED_WORKDIR:=${REPO_ROOT}}"
+  if [[ "${RUNTIME_BUNDLED_COMMAND}" == "pnpm" && "${RUNTIME_BUNDLED_ARGS}" == *"openclaw"* && "${DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER:-0}" != "1" ]]; then
+    echo "[real-stack] refusing RUNTIME_BUNDLED_COMMAND=pnpm with openclaw args for real-stack." >&2
+    echo "[real-stack] That route can trigger dirty-tree rebuilds and runtime-postbuild dependency staging." >&2
+    echo "[real-stack] Use: RUNTIME_BUNDLED_COMMAND=node" >&2
+    echo "[real-stack]      RUNTIME_BUNDLED_ARGS=\"dist/entry.js gateway run --bind loopback --port ${RUNTIME_BUNDLED_BIND_PORT:-18789} --allow-unconfigured\"" >&2
+    echo "[real-stack] Set DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER=1 only for deliberate diagnostics." >&2
+    exit 1
+  fi
   : "${RUNTIME_BUNDLED_BIND_HOST:=127.0.0.1}"
   : "${RUNTIME_BUNDLED_BIND_PORT:=18789}"
   : "${RUNTIME_BUNDLED_TOKEN:=real-stack-gateway-token}"

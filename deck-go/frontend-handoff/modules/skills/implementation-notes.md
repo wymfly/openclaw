@@ -163,3 +163,34 @@ OpenSpec change: `deck-go-frontend-skills-prototype-parity-remediation`
 - `cd deck-go && pnpm exec playwright test test/e2e/skills-visual.spec.ts --config playwright.config.ts --output .local/skills-remediation-mock-visual --reporter=line --timeout=60000` passed.
 - `cd deck-go && node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir .local/skills-remediation-mock-visual --out-dir .local/skills-prototype-remediation-parity-report --sheet-size 1` generated the Skills parity report.
 - `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/skills-real-gateway.spec.ts --config playwright.config.ts --output .local/skills-remediation-real-e2e-strengthened --reporter=line` passed, 2 tests.
+
+## Product control-plane closeout — 2026-05-07
+
+OpenSpec change: `deck-go-skills-product-control-plane`
+
+### Product boundary
+
+- Skills is now a product control plane for installed-skill identity, source/activation, secret posture, env config, eligibility health, read-only agent usage, owning-plugin relationship, ClawHub install/update, and unsupported-capability handoffs.
+- The previous Skills-owned agent matrix write path was intentionally removed. `updateAgentSkills` remains in `frontend-new/src/api.ts` for Agents, but no file under `frontend-new/src/components/panels/skills/` imports or invokes it.
+- The active UI rhythm is `list workbench + detail hero + section nav`; the old `SkillHubTab`, `SkillMatrixTab`, `SkillInfoTab`, and `InstallSkillDialog` components are deleted.
+
+### Safety model
+
+- L0: enable/disable is inline and shows agent-usage impact.
+- L1: env edits and global ClawHub update-all use guarded drawers.
+- L2: apiKey update/clear uses a secret dialog; saved plaintext and last-4 hints are not displayed.
+- L3: ClawHub install uses a five-step wizard. Because Gateway install does not accept `apiKey` or `env`, the UI runs `installSkillHub(slug)` first and then chains `updateSkill(skillKey, {apiKey?, env?})`; chain failure is recoverable, not transactional.
+
+### Gateway truth and handoffs
+
+- No `skills.uninstall` or rotate RPC exists today; the Danger zone renders a `gateway-rpc-missing` handoff banner and no destructive button.
+- No safe ClawHub installed-version/tracking-status read exists today; the UI exposes only guarded global update-all, not per-skill upgrade or version selection.
+- `owningPlugin` is best-effort through `deck.plugins.list`; unresolved joins render `unknown plugin`.
+
+### Verification tier
+
+- Component: `cd deck-go/frontend-new && pnpm test:deck-ui src/components/panels/skills/SkillsPanel.test.tsx` passed, 8 tests.
+- Mock visual: `cd deck-go && pnpm exec playwright test test/e2e/skills-visual.spec.ts --config playwright.config.ts --reporter=line --timeout=90000` passed.
+- Build: `cd deck-go && make frontend-build` passed.
+- Contracts/backend: `cd deck-go && make protocol-check`, `cd deck-go && make contract-gate`, and `cd deck-go && make backend-test` passed.
+- Real Gateway tier: L2 read/UI passed. `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 DECK_GO_REAL_GATEWAY_READY_TIMEOUT_MS=180000 pnpm exec playwright test test/e2e/skills-real-gateway.spec.ts --config playwright.config.ts --reporter=line --timeout=300000` passed, 2 tests. The real E2E launcher now uses direct `node dist/entry.js gateway run ...` startup instead of `pnpm openclaw`, so it no longer enters dirty-tree `runtime-postbuild` during isolated verification. ClawHub/package-manager mutations remain skipped-safe unless a staging slug is configured.

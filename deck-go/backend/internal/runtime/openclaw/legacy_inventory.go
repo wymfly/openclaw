@@ -38,7 +38,7 @@ func (s *LegacyInventorySurface) AgentsCreate(ctx context.Context, params map[st
 }
 
 func (s *LegacyInventorySurface) AgentsDelete(ctx context.Context, agentID string) (deckapi.DeckGoAgentMutationResponse, error) {
-	payload, err := s.managed.GatewayQueries().AgentsDelete(ctx, agentID)
+	payload, err := s.managed.GatewayQueries().AgentsDelete(ctx, agentID, false)
 	if err != nil {
 		return deckapi.DeckGoAgentMutationResponse{}, err
 	}

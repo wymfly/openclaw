@@ -2,6 +2,26 @@
 
 package generated
 
+type GatewayBatchResult struct {
+	Results []struct {
+		Error struct {
+			Code         string `json:"code"`
+			Details      any    `json:"details,omitempty"`
+			Message      string `json:"message"`
+			Retryable    bool   `json:"retryable,omitempty"`
+			RetryAfterMs int    `json:"retryAfterMs,omitempty"`
+		} `json:"error,omitempty"`
+		Id     string `json:"id"`
+		Ok     bool   `json:"ok"`
+		Result any    `json:"result,omitempty"`
+	} `json:"results"`
+}
+
+type GatewayDescribeParams struct {
+	Filter         string `json:"filter,omitempty"`
+	IncludeSchemas bool   `json:"includeSchemas,omitempty"`
+}
+
 type GatewayDescribeResult struct {
 	Events map[string]struct {
 		Payload map[string]any `json:"payload,omitempty"`

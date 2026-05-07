@@ -1321,6 +1321,39 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 		}
 	})
 
+	t.Run("typed gateway rpc rejects skills uninstall because Gateway contract is missing", func(t *testing.T) {
+		diagnostics.lastKey = ""
+		req, err := http.NewRequest(http.MethodPost, server.URL+"/runtimes/"+DefaultRuntimeID+"/gateway/rpc", strings.NewReader(`{"method":"skills.uninstall","params":{"skillKey":"demo"}}`))
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer res.Body.Close()
+		if res.StatusCode != http.StatusBadRequest {
+			body, _ := io.ReadAll(res.Body)
+			t.Fatalf("unexpected status: %d body=%s", res.StatusCode, body)
+		}
+		var payload struct {
+			Error struct {
+				Code    string         `json:"code"`
+				Details map[string]any `json:"details"`
+			} `json:"error"`
+		}
+		if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload.Error.Code != "INVALID_GATEWAY_METHOD" || payload.Error.Details["method"] != "skills.uninstall" {
+			t.Fatalf("unexpected error payload: %#v", payload)
+		}
+		if diagnostics.lastKey != "" {
+			t.Fatalf("skills.uninstall should not reach Gateway diagnostics, got %q", diagnostics.lastKey)
+		}
+	})
+
 	t.Run("typed gateway rpc preserves scope denied envelope decision", func(t *testing.T) {
 		diagnostics.rpcErr = &gateway.ErrCode{
 			Code:    "scope_denied",

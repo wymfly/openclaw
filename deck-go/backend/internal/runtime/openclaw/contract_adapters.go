@@ -11,19 +11,49 @@ import (
 func normalizeAgentsList(payload generated.AgentsListResult) deckapi.DeckGoAgentsListResponse {
 	response := deckapi.DeckGoAgentsListResponse{
 		DefaultId: payload.DefaultId,
+		MainKey:   payload.MainKey,
 		Agents:    make([]deckapi.DeckGoAgentSummary, 0, len(payload.Agents)),
 	}
 	for _, agent := range payload.Agents {
 		agentID := agent.Id
+		isMainProtected := agentID == "main"
+		protectedReasons := []string(nil)
+		deleteDisabledReason := ""
+		guardedEditReasons := []string{"Runtime edits can change live agent behavior"}
+		if isMainProtected {
+			protectedReasons = []string{"main is the protected system/fallback agent and cannot be deleted"}
+			deleteDisabledReason = "main is the protected system/fallback agent"
+			guardedEditReasons = []string{"Runtime edits affect the protected system/fallback agent"}
+		}
 		response.Agents = append(response.Agents, deckapi.DeckGoAgentSummary{
-			Id:        agentID,
-			Name:      firstNonEmpty(agent.Name, agent.Identity.Name, agentID),
-			Emoji:     agent.Identity.Emoji,
-			Avatar:    firstNonEmpty(agent.Identity.Avatar, agent.Identity.AvatarUrl),
-			Workspace: agent.Workspace,
-			Model:     agent.Model.Primary,
-			IsDefault: agentID == payload.DefaultId,
-			Status:    deckapi.DeckGoAgentStatus("idle"),
+			Id:                  agentID,
+			Name:                firstNonEmpty(agent.Name, agent.Identity.Name, agentID),
+			Emoji:               agent.Identity.Emoji,
+			Avatar:              firstNonEmpty(agent.Identity.Avatar, agent.Identity.AvatarUrl),
+			Workspace:           agent.Workspace,
+			Model:               agent.Model.Primary,
+			IsDefault:           agentID == payload.DefaultId,
+			IsConfiguredDefault: agentID == payload.DefaultId,
+			IsMainProtected:     isMainProtected,
+			MainKey:             payload.MainKey,
+			ProtectedReasons:    protectedReasons,
+			AvailableActions: deckapi.DeckGoAgentAvailableActions{
+				CanEditIdentity:      true,
+				CanEditRuntime:       true,
+				CanDelete:            !isMainProtected,
+				CanChangeDefault:     false,
+				DeleteDisabledReason: deleteDisabledReason,
+				GuardedEditReasons:   guardedEditReasons,
+				UnsupportedReasons:   []string{"Default-agent switching is read-only in this pass"},
+			},
+			EffectiveSources: deckapi.DeckGoAgentEffectiveSources{
+				Workspace: deckapi.DeckGoAgentEffectiveSource("gateway"),
+				Model:     deckapi.DeckGoAgentEffectiveSource("gateway"),
+			},
+			Impact: deckapi.DeckGoAgentImpactSummary{
+				DeleteRemovesFiles: false,
+			},
+			Status: deckapi.DeckGoAgentStatus("idle"),
 		})
 	}
 	return response

@@ -18,7 +18,7 @@ function readString(value: unknown): string {
 }
 
 function mapDocTypeLabel(docType: number): string {
-  if (docType === 10) return "智能表格";
+  if (docType === 10) {return "智能表格";}
   return docType === 4 ? "表格" : "文档";
 }
 
@@ -39,13 +39,13 @@ function readBooleanFlag(value: unknown): boolean | null {
 }
 
 function formatDocMemberRef(value: Record<string, unknown>) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  if (!value || typeof value !== "object" || Array.isArray(value)) {return "";}
   const userid = readString(value.userid ?? value.userId);
-  if (userid) return `userid:${userid}`;
+  if (userid) {return `userid:${userid}`;}
   const partyid = readString(value.partyid);
-  if (partyid) return `partyid:${partyid}`;
+  if (partyid) {return `partyid:${partyid}`;}
   const tagid = readString(value.tagid);
-  if (tagid) return `tagid:${tagid}`;
+  if (tagid) {return `tagid:${tagid}`;}
   return "";
 }
 
@@ -61,8 +61,8 @@ function describeFlagState(
   disabledLabel: string,
   unknownLabel = "未知",
 ) {
-  if (value === true) return enabledLabel;
-  if (value === false) return disabledLabel;
+  if (value === true) {return enabledLabel;}
+  if (value === false) {return disabledLabel;}
   return unknownLabel;
 }
 
@@ -136,7 +136,7 @@ function summarizeDocAuthDiagnosis(diagnosis: Record<string, unknown> = {}) {
 
 function buildDocIdUsageHint(docId?: string) {
   const normalizedDocId = readString(docId);
-  if (!normalizedDocId) return "";
+  if (!normalizedDocId) {return "";}
   return `后续权限、分享和诊断操作请使用真实 docId：${normalizedDocId}；不要直接使用分享链接路径中的片段。`;
 }
 
@@ -150,13 +150,13 @@ function safeParseJson(text: string) {
 
 function extractEmbeddedJson(html: string, variableName: string) {
   const source = String(html ?? "");
-  if (!source) return null;
+  if (!source) {return null;}
   const marker = `window.${variableName}=`;
   const start = source.indexOf(marker);
-  if (start < 0) return null;
+  if (start < 0) {return null;}
   const valueStart = start + marker.length;
   const end = source.indexOf(";</script>", valueStart);
-  if (end < 0) return null;
+  if (end < 0) {return null;}
   return safeParseJson(source.slice(valueStart, end));
 }
 
@@ -255,7 +255,7 @@ function buildShareLinkDiagnosis(params: {
 async function inspectWecomShareLink(params: { shareUrl: string }) {
   const { shareUrl } = params;
   const normalizedUrl = readString(shareUrl);
-  if (!normalizedUrl) throw new Error("shareUrl required");
+  if (!normalizedUrl) {throw new Error("shareUrl required");}
   let parsed;
   try {
     parsed = new URL(normalizedUrl);
@@ -304,10 +304,10 @@ function summarizeSheetProperties(result: Record<string, unknown> = {}) {
 
 function summarizeDocAccess(result: Record<string, unknown> = {}) {
   const parts = [];
-  if (result.addedViewerCount) parts.push(`新增查看成员 ${result.addedViewerCount}`);
-  if (result.addedCollaboratorCount) parts.push(`新增协作者 ${result.addedCollaboratorCount}`);
-  if (result.removedViewerCount) parts.push(`移除查看成员 ${result.removedViewerCount}`);
-  if (result.removedCollaboratorCount) parts.push(`移除协作者 ${result.removedCollaboratorCount}`);
+  if (result.addedViewerCount) {parts.push(`新增查看成员 ${result.addedViewerCount}`);}
+  if (result.addedCollaboratorCount) {parts.push(`新增协作者 ${result.addedCollaboratorCount}`);}
+  if (result.removedViewerCount) {parts.push(`移除查看成员 ${result.removedViewerCount}`);}
+  if (result.removedCollaboratorCount) {parts.push(`移除协作者 ${result.removedCollaboratorCount}`);}
   return parts.length > 0 ? `文档权限已更新：${parts.join("，")}` : "文档权限已更新";
 }
 
@@ -328,8 +328,8 @@ function summarizeFormStatistic(result: Record<string, unknown> = {}) {
 }
 
 function summarizeAdvancedAccount(result: Record<string, unknown> = {}, action: string) {
-  if (action === "assign") return `高级功能账号分配任务已提交，jobid: ${result.jobid || "未知"}`;
-  if (action === "cancel") return `高级功能账号取消任务已提交，jobid: ${result.jobid || "未知"}`;
+  if (action === "assign") {return `高级功能账号分配任务已提交，jobid: ${result.jobid || "未知"}`;}
+  if (action === "cancel") {return `高级功能账号取消任务已提交，jobid: ${result.jobid || "未知"}`;}
   const userList = Array.isArray(result.userList) ? result.userList : [];
   return `高级功能账号列表已获取：${userList.length} 个`;
 }
@@ -338,14 +338,14 @@ function readMemberUserId(value: unknown) {
   if (typeof value === "string" || typeof value === "number") {
     return readString(value);
   }
-  if (!value || typeof value !== "object" || Array.isArray(value)) return "";
+  if (!value || typeof value !== "object" || Array.isArray(value)) {return "";}
   const obj = value as Record<string, unknown>;
   return readString(obj.userid ?? obj.userId);
 }
 
 function hasMemberUserId(values: unknown, requesterSenderId: string) {
   const normalizedRequesterSenderId = readString(requesterSenderId);
-  if (!normalizedRequesterSenderId) return false;
+  if (!normalizedRequesterSenderId) {return false;}
   return (
     Array.isArray(values) &&
     values.some((item) => readMemberUserId(item) === normalizedRequesterSenderId)
@@ -361,25 +361,25 @@ function resolveCreateCollaborators(params: {
     ? [...requestParams.collaborators]
     : [];
   const requesterSenderId = readString(toolContext?.senderId || toolContext?.requesterSenderId); // align with OpenClaw standard `senderId`
-  if (!requesterSenderId) return explicitCollaborators;
+  if (!requesterSenderId) {return explicitCollaborators;}
   // By default, let's always auto-grant requester
-  if (hasMemberUserId(explicitCollaborators, requesterSenderId)) return explicitCollaborators;
-  if (hasMemberUserId(requestParams?.viewers, requesterSenderId)) return explicitCollaborators;
+  if (hasMemberUserId(explicitCollaborators, requesterSenderId)) {return explicitCollaborators;}
+  if (hasMemberUserId(requestParams?.viewers, requesterSenderId)) {return explicitCollaborators;}
   explicitCollaborators.push(requesterSenderId);
   return explicitCollaborators;
 }
 
 function buildDocToolResult(payload: Record<string, unknown>) {
   // To avoid formatting issues with URLs having underscores rendering as markdown Italics
-  if (payload.url) payload.url = `<${payload.url}>`;
+  if (payload.url) {payload.url = `<${payload.url}>`;}
   const diagnosis = payload.diagnosis as Record<string, unknown> | undefined;
-  if (diagnosis?.finalUrl) diagnosis.finalUrl = `<${diagnosis.finalUrl}>`;
-  if (diagnosis?.shareUrl) diagnosis.shareUrl = `<${diagnosis.shareUrl}>`;
+  if (diagnosis?.finalUrl) {diagnosis.finalUrl = `<${diagnosis.finalUrl}>`;}
+  if (diagnosis?.shareUrl) {diagnosis.shareUrl = `<${diagnosis.shareUrl}>`;}
   return buildBaseToolResult(payload);
 }
 
 export function registerWecomDocTools(api: OpenClawPluginApi) {
-  if (typeof api?.registerTool !== "function") return;
+  if (typeof api?.registerTool !== "function") {return;}
   const docClient = new WecomDocClient();
 
   api.registerTool((toolContext: WecomToolContext) => ({
@@ -518,7 +518,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                         `Failed to upload first image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
                       );
                       throw new Error(
-                        `First image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                        `First image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`, { cause: uploadErr },
                       );
                     }
                   } else {
@@ -612,12 +612,12 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                         `Failed to upload image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
                       );
                       throw new Error(
-                        `Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                        `Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`, { cause: uploadErr },
                       );
                     }
                   } else {
                     const text = getText(item);
-                    if (!text) continue;
+                    if (!text) {continue;}
 
                     // Insert text: create paragraph and insert text in one batch (2 operations ≤ 30)
                     // Per API spec: all indices are based on the same document snapshot
@@ -1170,70 +1170,6 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               raw: result.raw,
             });
           }
-          case "smartsheet_add_records": {
-            const result = await docClient.smartTableOperate({
-              agent: account,
-              docId: params.docId as string,
-              operation: "add_records",
-              bodyData: params,
-            });
-            return buildDocToolResult({
-              ok: true,
-              action,
-              accountId: account.accountId,
-              docId: params.docId,
-              summary: "智能表格记录已添加",
-              raw: result.raw,
-            });
-          }
-          case "smartsheet_update_records": {
-            const result = await docClient.smartTableOperate({
-              agent: account,
-              docId: params.docId as string,
-              operation: "update_records",
-              bodyData: params,
-            });
-            return buildDocToolResult({
-              ok: true,
-              action,
-              accountId: account.accountId,
-              docId: params.docId,
-              summary: "智能表格记录已更新",
-              raw: result.raw,
-            });
-          }
-          case "smartsheet_del_records": {
-            const result = await docClient.smartTableOperate({
-              agent: account,
-              docId: params.docId as string,
-              operation: "del_records",
-              bodyData: params,
-            });
-            return buildDocToolResult({
-              ok: true,
-              action,
-              accountId: account.accountId,
-              docId: params.docId,
-              summary: "智能表格记录已删除",
-              raw: result.raw,
-            });
-          }
-          case "smartsheet_get_records": {
-            const result = await docClient.smartTableOperate({
-              agent: account,
-              docId: params.docId as string,
-              operation: "get_records",
-              bodyData: params,
-            });
-            return buildDocToolResult({
-              ok: true,
-              action,
-              accountId: account.accountId,
-              docId: params.docId,
-              summary: "智能表格记录已获取",
-              raw: result.raw,
-            });
-          }
           case "smartsheet_add_sheet": {
             const result = await docClient.smartTableAddSheet({
               agent: account,
@@ -1518,6 +1454,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               agent: account,
               docId: params.docId as string,
               sheetId: params.sheetId as string,
+              keyType: params.key_type as string | undefined,
               records: params.records as Array<Record<string, unknown>>,
             });
             return buildDocToolResult({
@@ -1534,6 +1471,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               agent: account,
               docId: params.docId as string,
               sheetId: params.sheetId as string,
+              keyType: params.key_type as string | undefined,
               records: params.records as Array<Record<string, unknown>>,
             });
             return buildDocToolResult({
@@ -1567,6 +1505,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId as string,
               sheetId: params.sheetId as string,
               record_ids: params.record_ids as string[] | undefined,
+              keyType: params.key_type as string | undefined,
               offset: params.offset as number | undefined,
               limit: params.limit as number | undefined,
             });

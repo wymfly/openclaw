@@ -34,7 +34,7 @@
 .agents-detail-placeholder h3 {
   margin: 0;
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -87,7 +87,7 @@
 .agent-metric strong {
   overflow: hidden;
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -399,6 +399,53 @@
   gap: var(--ds-sp-2);
 }
 
+.agent-section-toolbar {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: var(--ds-sp-3);
+  align-items: center;
+}
+
+.agent-section-toolbar .ds-input {
+  min-width: 0;
+}
+
+.agent-impact-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ds-sp-3);
+}
+
+.agent-impact-grid > div {
+  display: grid;
+  gap: var(--ds-sp-1);
+  min-height: 58px;
+  padding: var(--ds-sp-3);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-2);
+}
+
+.agent-impact-grid span {
+  overflow: hidden;
+  color: var(--ds-text-3);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-impact-grid strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-guarded-list {
+  display: grid;
+  gap: var(--ds-sp-2);
+}
+
 .agent-option-list {
   display: grid;
   gap: var(--ds-sp-2);
@@ -501,6 +548,8 @@
   }
 
   .agents-panel__filters,
+  .agent-section-toolbar,
+  .agent-impact-grid,
   .agent-form-grid,
   .agents-table__row {
     grid-template-columns: 1fr;
@@ -532,7 +581,7 @@
 .agents-panel__toolbar h1 {
   margin: 0;
   font-size: 1.24rem;
-  font-weight: 680;
+  font-weight: 600;
   line-height: 1.18;
   letter-spacing: 0;
 }
@@ -656,7 +705,7 @@
 
 .agents-list__name strong {
   overflow: hidden;
-  font-weight: 650;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -764,7 +813,7 @@
   gap: var(--ds-sp-2);
   margin: 0;
   font-size: 1.18rem;
-  font-weight: 680;
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0;
 }

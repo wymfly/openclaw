@@ -58,6 +58,25 @@ func (r *typedOnlyRequester) RequestTyped(_ context.Context, method string, para
 	return map[string]any{}, nil
 }
 
+func TestGatewayQueriesAgentsDeletePreservesDeleteFilesFalse(t *testing.T) {
+	requester := &typedOnlyRequester{}
+	queries := NewGatewayQueries(requester)
+
+	if _, err := queries.AgentsDelete(context.Background(), "ops", false); err != nil {
+		t.Fatal(err)
+	}
+	if len(requester.calls) != 1 || requester.calls[0].method != "agents.delete" {
+		t.Fatalf("unexpected calls: %#v", requester.calls)
+	}
+	params, ok := requester.calls[0].params.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map params so false is not omitted, got %T", requester.calls[0].params)
+	}
+	if params["agentId"] != "ops" || params["deleteFiles"] != false {
+		t.Fatalf("unexpected agents.delete params: %#v", params)
+	}
+}
+
 func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 	requester := &typedOnlyRequester{}
 	queries := NewGatewayQueries(requester)

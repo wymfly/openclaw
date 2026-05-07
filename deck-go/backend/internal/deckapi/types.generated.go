@@ -707,18 +707,45 @@ type DeckGoCompactionActionResponse struct {
 
 type DeckGoSkillStatus string
 
+type DeckGoSkillProductSource string
+
+type DeckGoSkillAvailableAction string
+
 type DeckGoSkillInstallOption struct {
 	Id string `json:"id"`
 	Label string `json:"label"`
 	Bins []string `json:"bins"`
 }
 
+type DeckGoSkillAgentUsage struct {
+	Count float64 `json:"count"`
+	AgentIds []string `json:"agentIds"`
+}
+
+type DeckGoSkillUnsupportedReasons struct {
+	Uninstall string `json:"uninstall,omitempty"`
+	Rotate string `json:"rotate,omitempty"`
+	PerSkillUpgrade string `json:"perSkillUpgrade,omitempty"`
+	ApiKeyHint string `json:"apiKeyHint,omitempty"`
+}
+
+type DeckGoSkillOwningPluginRef struct {
+	Id string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
+}
+
 type DeckGoSkillEntry struct {
 	Key string `json:"key"`
 	Name string `json:"name"`
 	Status DeckGoSkillStatus `json:"status"`
-	Source string `json:"source"`
+	Source DeckGoSkillProductSource `json:"source"`
+	SourceRaw string `json:"sourceRaw"`
 	Enabled bool `json:"enabled"`
+	ApiKeyConfigured bool `json:"apiKeyConfigured"`
+	AgentUsage DeckGoSkillAgentUsage `json:"agentUsage"`
+	AvailableActions []DeckGoSkillAvailableAction `json:"availableActions,omitempty"`
+	UnsupportedReasons DeckGoSkillUnsupportedReasons `json:"unsupportedReasons,omitempty"`
+	OwningPlugin *DeckGoSkillOwningPluginRef `json:"owningPlugin,omitempty"`
 	MissingRequirements []string `json:"missingRequirements,omitempty"`
 	Config map[string]any `json:"config,omitempty"`
 	Description string `json:"description,omitempty"`
@@ -1016,6 +1043,41 @@ type DeckGoConfigLookupResponse struct {
 
 type DeckGoAgentStatus string
 
+type DeckGoAgentEffectiveSource string
+
+type DeckGoAgentEffectiveSources struct {
+	Workspace DeckGoAgentEffectiveSource `json:"workspace,omitempty"`
+	Model DeckGoAgentEffectiveSource `json:"model,omitempty"`
+	Skills DeckGoAgentEffectiveSource `json:"skills,omitempty"`
+	Subagents DeckGoAgentEffectiveSource `json:"subagents,omitempty"`
+	EventStreams DeckGoAgentEffectiveSource `json:"eventStreams,omitempty"`
+}
+
+type DeckGoAgentAvailableActions struct {
+	CanEditIdentity bool `json:"canEditIdentity"`
+	CanEditRuntime bool `json:"canEditRuntime"`
+	CanDelete bool `json:"canDelete"`
+	CanChangeDefault bool `json:"canChangeDefault"`
+	DeleteDisabledReason string `json:"deleteDisabledReason,omitempty"`
+	GuardedEditReasons []string `json:"guardedEditReasons,omitempty"`
+	UnsupportedReasons []string `json:"unsupportedReasons,omitempty"`
+}
+
+type DeckGoAgentImpactSummary struct {
+	BindingCount float64 `json:"bindingCount,omitempty"`
+	SessionCount float64 `json:"sessionCount,omitempty"`
+	ActiveSubagentCount float64 `json:"activeSubagentCount,omitempty"`
+	WorkspaceFileCount float64 `json:"workspaceFileCount,omitempty"`
+	DeleteRemovesFiles bool `json:"deleteRemovesFiles"`
+}
+
+type DeckGoAgentGuardedEditMetadata struct {
+	Field string `json:"field"`
+	Risk string `json:"risk"`
+	Reason string `json:"reason"`
+	RequiresConfirmation bool `json:"requiresConfirmation"`
+}
+
 type DeckGoAgentSummary struct {
 	Id string `json:"id"`
 	Name string `json:"name"`
@@ -1024,6 +1086,13 @@ type DeckGoAgentSummary struct {
 	Workspace string `json:"workspace,omitempty"`
 	Model string `json:"model,omitempty"`
 	IsDefault bool `json:"isDefault"`
+	IsConfiguredDefault bool `json:"isConfiguredDefault"`
+	IsMainProtected bool `json:"isMainProtected"`
+	MainKey string `json:"mainKey,omitempty"`
+	ProtectedReasons []string `json:"protectedReasons,omitempty"`
+	AvailableActions DeckGoAgentAvailableActions `json:"availableActions,omitempty"`
+	EffectiveSources DeckGoAgentEffectiveSources `json:"effectiveSources,omitempty"`
+	Impact DeckGoAgentImpactSummary `json:"impact,omitempty"`
 	Status DeckGoAgentStatus `json:"status"`
 	SessionCount float64 `json:"sessionCount,omitempty"`
 	BindingCount float64 `json:"bindingCount,omitempty"`
@@ -1033,6 +1102,7 @@ type DeckGoAgentSummary struct {
 type DeckGoAgentsListResponse struct {
 	Agents []DeckGoAgentSummary `json:"agents"`
 	DefaultId string `json:"defaultId,omitempty"`
+	MainKey string `json:"mainKey,omitempty"`
 }
 
 type DeckGoAgentDetailResponse struct {
@@ -1043,6 +1113,14 @@ type DeckGoAgentDetailResponse struct {
 	ReasoningDefault string `json:"reasoningDefault,omitempty"`
 	FastModeDefault bool `json:"fastModeDefault,omitempty"`
 	IsDefault bool `json:"isDefault"`
+	IsConfiguredDefault bool `json:"isConfiguredDefault"`
+	IsMainProtected bool `json:"isMainProtected"`
+	MainKey string `json:"mainKey,omitempty"`
+	ProtectedReasons []string `json:"protectedReasons,omitempty"`
+	AvailableActions DeckGoAgentAvailableActions `json:"availableActions,omitempty"`
+	EffectiveSources DeckGoAgentEffectiveSources `json:"effectiveSources,omitempty"`
+	Impact DeckGoAgentImpactSummary `json:"impact,omitempty"`
+	GuardedEdits []DeckGoAgentGuardedEditMetadata `json:"guardedEdits,omitempty"`
 	BindingCount float64 `json:"bindingCount"`
 	SessionCount float64 `json:"sessionCount"`
 	ActiveSubagentCount float64 `json:"activeSubagentCount"`
@@ -2165,6 +2243,7 @@ type DeckGoCanvasBridgeEvalRequest struct {
 type DeckGoAgentCreateRequest struct {
 	Name string `json:"name"`
 	Workspace string `json:"workspace,omitempty"`
+	Model string `json:"model,omitempty"`
 	Emoji string `json:"emoji,omitempty"`
 	Avatar string `json:"avatar,omitempty"`
 }

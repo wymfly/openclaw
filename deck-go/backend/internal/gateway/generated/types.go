@@ -670,16 +670,49 @@ type DeckAgentsDetailParams struct {
 }
 
 type DeckAgentsDetailResult struct {
-	ActiveSubagentCount int      `json:"activeSubagentCount"`
-	BindingCount        int      `json:"bindingCount"`
-	EffectiveSkills     []string `json:"effectiveSkills"`
-	FallbackModels      []string `json:"fallbackModels,omitempty"`
-	FastModeDefault     bool     `json:"fastModeDefault,omitempty"`
-	Id                  string   `json:"id"`
-	IdentityExists      bool     `json:"identityExists"`
+	ActiveSubagentCount int `json:"activeSubagentCount"`
+	AvailableActions    struct {
+		CanChangeDefault     bool     `json:"canChangeDefault"`
+		CanDelete            bool     `json:"canDelete"`
+		CanEditIdentity      bool     `json:"canEditIdentity"`
+		CanEditRuntime       bool     `json:"canEditRuntime"`
+		DeleteDisabledReason string   `json:"deleteDisabledReason,omitempty"`
+		GuardedEditReasons   []string `json:"guardedEditReasons,omitempty"`
+		UnsupportedReasons   []string `json:"unsupportedReasons,omitempty"`
+	} `json:"availableActions,omitempty"`
+	BindingCount     int      `json:"bindingCount"`
+	EffectiveSkills  []string `json:"effectiveSkills"`
+	EffectiveSources struct {
+		EventStreams string `json:"eventStreams,omitempty"`
+		Model        string `json:"model,omitempty"`
+		Skills       string `json:"skills,omitempty"`
+		Subagents    string `json:"subagents,omitempty"`
+		Workspace    string `json:"workspace,omitempty"`
+	} `json:"effectiveSources,omitempty"`
+	FallbackModels  []string `json:"fallbackModels,omitempty"`
+	FastModeDefault bool     `json:"fastModeDefault,omitempty"`
+	GuardedEdits    []struct {
+		Field                string `json:"field"`
+		Reason               string `json:"reason"`
+		RequiresConfirmation bool   `json:"requiresConfirmation"`
+		Risk                 string `json:"risk"`
+	} `json:"guardedEdits,omitempty"`
+	Id             string `json:"id"`
+	IdentityExists bool   `json:"identityExists"`
+	Impact         struct {
+		ActiveSubagentCount int  `json:"activeSubagentCount,omitempty"`
+		BindingCount        int  `json:"bindingCount,omitempty"`
+		DeleteRemovesFiles  bool `json:"deleteRemovesFiles"`
+		SessionCount        int  `json:"sessionCount,omitempty"`
+		WorkspaceFileCount  int  `json:"workspaceFileCount,omitempty"`
+	} `json:"impact,omitempty"`
+	IsConfiguredDefault bool     `json:"isConfiguredDefault"`
 	IsDefault           bool     `json:"isDefault"`
+	IsMainProtected     bool     `json:"isMainProtected"`
+	MainKey             string   `json:"mainKey,omitempty"`
 	Model               string   `json:"model,omitempty"`
 	Name                string   `json:"name,omitempty"`
+	ProtectedReasons    []string `json:"protectedReasons,omitempty"`
 	ReasoningDefault    string   `json:"reasoningDefault,omitempty"`
 	Sandbox             any      `json:"sandbox,omitempty"`
 	SessionCount        int      `json:"sessionCount"`
@@ -1754,24 +1787,4 @@ type GatewayBatchParams struct {
 		FailFast  bool `json:"failFast,omitempty"`
 		TimeoutMs int  `json:"timeoutMs,omitempty"`
 	} `json:"options,omitempty"`
-}
-
-type GatewayBatchResult struct {
-	Results []struct {
-		Error struct {
-			Code         string `json:"code"`
-			Details      any    `json:"details,omitempty"`
-			Message      string `json:"message"`
-			Retryable    bool   `json:"retryable,omitempty"`
-			RetryAfterMs int    `json:"retryAfterMs,omitempty"`
-		} `json:"error,omitempty"`
-		Id     string `json:"id"`
-		Ok     bool   `json:"ok"`
-		Result any    `json:"result,omitempty"`
-	} `json:"results"`
-}
-
-type GatewayDescribeParams struct {
-	Filter         string `json:"filter,omitempty"`
-	IncludeSchemas bool   `json:"includeSchemas,omitempty"`
 }

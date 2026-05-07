@@ -324,6 +324,47 @@ export const DeckRoutingSimulateResultSchema = Type.Object({
 
 // === deck.agents.* results ===
 
+const DeckAgentEffectiveSourceSchema = Type.Union([
+  Type.Literal("agent"),
+  Type.Literal("default"),
+  Type.Literal("derived"),
+  Type.Literal("gateway"),
+  Type.Literal("unknown"),
+]);
+
+const DeckAgentEffectiveSourcesSchema = Type.Object({
+  workspace: Type.Optional(DeckAgentEffectiveSourceSchema),
+  model: Type.Optional(DeckAgentEffectiveSourceSchema),
+  skills: Type.Optional(DeckAgentEffectiveSourceSchema),
+  subagents: Type.Optional(DeckAgentEffectiveSourceSchema),
+  eventStreams: Type.Optional(DeckAgentEffectiveSourceSchema),
+});
+
+const DeckAgentAvailableActionsSchema = Type.Object({
+  canEditIdentity: Type.Boolean(),
+  canEditRuntime: Type.Boolean(),
+  canDelete: Type.Boolean(),
+  canChangeDefault: Type.Boolean(),
+  deleteDisabledReason: Type.Optional(Type.String()),
+  guardedEditReasons: Type.Optional(Type.Array(Type.String())),
+  unsupportedReasons: Type.Optional(Type.Array(Type.String())),
+});
+
+const DeckAgentImpactSummarySchema = Type.Object({
+  bindingCount: Type.Optional(Type.Integer()),
+  sessionCount: Type.Optional(Type.Integer()),
+  activeSubagentCount: Type.Optional(Type.Integer()),
+  workspaceFileCount: Type.Optional(Type.Integer()),
+  deleteRemovesFiles: Type.Boolean(),
+});
+
+const DeckAgentGuardedEditMetadataSchema = Type.Object({
+  field: Type.String(),
+  risk: Type.Union([Type.Literal("medium"), Type.Literal("high")]),
+  reason: Type.String(),
+  requiresConfirmation: Type.Boolean(),
+});
+
 export const DeckAgentsDetailResultSchema = Type.Object({
   id: Type.String(),
   name: Type.Optional(Type.String()),
@@ -334,6 +375,14 @@ export const DeckAgentsDetailResultSchema = Type.Object({
   ),
   fastModeDefault: Type.Optional(Type.Boolean()),
   isDefault: Type.Boolean(),
+  isConfiguredDefault: Type.Boolean(),
+  isMainProtected: Type.Boolean(),
+  mainKey: Type.Optional(Type.String()),
+  protectedReasons: Type.Optional(Type.Array(Type.String())),
+  availableActions: Type.Optional(DeckAgentAvailableActionsSchema),
+  effectiveSources: Type.Optional(DeckAgentEffectiveSourcesSchema),
+  impact: Type.Optional(DeckAgentImpactSummarySchema),
+  guardedEdits: Type.Optional(Type.Array(DeckAgentGuardedEditMetadataSchema)),
   bindingCount: Type.Integer(),
   sessionCount: Type.Integer(),
   activeSubagentCount: Type.Integer(),

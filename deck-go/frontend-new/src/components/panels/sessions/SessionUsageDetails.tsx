@@ -28,7 +28,7 @@ type ContextWeightSummary = {
   total: number;
 };
 
-function numericValue(value: unknown) {
+function numericValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 

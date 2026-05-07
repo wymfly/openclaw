@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2026-05-06T14:17:46.771Z",
+  "generatedAt": "2026-05-07T07:24:12.891Z",
   "summary": {
     "apiFunctions": 170,
     "classifiedEndpointRows": 150,
-    "contractTypes": 284,
-    "dynamicSurfaceLines": 1409,
+    "contractTypes": 294,
+    "dynamicSurfaceLines": 1435,
     "endpoints": 137,
     "exceptionRecordsMissingFields": 0,
     "frontendDeckGoTypes": 240,
@@ -17,7 +17,7 @@
     "missingContractTypes": 0,
     "duplicateDtoAuthorityIssues": 0,
     "unclassifiedEndpoints": 0,
-    "undocumentedDynamicSurfaceLines": 1409,
+    "undocumentedDynamicSurfaceLines": 1435,
     "endpointsWithFrontendCallers": 88,
     "uiMetadataActions": 62,
     "uiMetadataCoveredDtos": 111,
@@ -608,7 +608,10 @@
         "migrationStatus": "migrated"
       },
       {
-        "actions": ["gateway.refresh", "gateway.batch.readOnly"],
+        "actions": [
+          "gateway.refresh",
+          "gateway.batch.readOnly"
+        ],
         "dtos": [
           "DeckGoActivityResponse",
           "DeckGoGatewayBatchRequest",
@@ -704,7 +707,11 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": ["identity.refresh", "identity.link", "identity.unlink"],
+        "actions": [
+          "identity.refresh",
+          "identity.link",
+          "identity.unlink"
+        ],
         "dtos": [
           "DeckGoAgentIdentityResponse",
           "DeckGoIdentityLink",
@@ -834,7 +841,10 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": ["usage.refresh", "monitor.runs.refresh"],
+        "actions": [
+          "usage.refresh",
+          "monitor.runs.refresh"
+        ],
         "dtos": [
           "DeckGoChannelThroughputBucket",
           "DeckGoChannelThroughputResponse",
@@ -885,7 +895,7 @@
   },
   "typeDomains": {
     "contract": {
-      "agents": 25,
+      "agents": 31,
       "alerts-webhooks": 9,
       "approvals": 11,
       "budget": 6,
@@ -897,12 +907,12 @@
       "memory": 10,
       "nodes": 18,
       "other": 21,
-      "plugins": 7,
+      "plugins": 8,
       "routing": 10,
       "runtime": 29,
       "sessions-chat": 46,
       "settings": 5,
-      "skills": 12,
+      "skills": 15,
       "subagents": 6,
       "tools": 10,
       "usage-monitor": 23
@@ -954,37 +964,37 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 94,
+      "line": 101,
       "method": "GET",
       "path": "/api/agents/{agentId}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 120,
+      "line": 127,
       "method": "PATCH",
       "path": "/api/agents/{agentId}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 151,
+      "line": 158,
       "method": "GET",
       "path": "/api/agents/{agentId}/files"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 170,
+      "line": 177,
       "method": "POST",
       "path": "/api/agents/{agentId}/files"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 211,
+      "line": 218,
       "method": "GET",
       "path": "/api/agents/{agentId}/files/*"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 231,
+      "line": 238,
       "method": "GET",
       "path": "/api/agents/{agentId}/identity"
     },
@@ -1014,43 +1024,43 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1351,
+      "line": 1366,
       "method": "GET",
       "path": "/api/approvals"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1362,
+      "line": 1377,
       "method": "POST",
       "path": "/api/approvals"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1381,
+      "line": 1396,
       "method": "GET",
       "path": "/api/approvals/pending"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1441,
+      "line": 1456,
       "method": "GET",
       "path": "/api/approvals/plugins"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1452,
+      "line": 1467,
       "method": "POST",
       "path": "/api/approvals/plugins"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1411,
+      "line": 1426,
       "method": "GET",
       "path": "/api/approvals/policy"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1422,
+      "line": 1437,
       "method": "PUT",
       "path": "/api/approvals/policy"
     },
@@ -1074,31 +1084,31 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 968,
+      "line": 983,
       "method": "GET",
       "path": "/api/channels"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1056,
+      "line": 1071,
       "method": "PATCH",
       "path": "/api/channels/{channelId}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 988,
+      "line": 1003,
       "method": "POST",
       "path": "/api/channels/{channelId}/logout"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1004,
+      "line": 1019,
       "method": "POST",
       "path": "/api/channels/{channelId}/test"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1048,
+      "line": 1063,
       "method": "GET",
       "path": "/api/channels/{channelId}/throughput"
     },
@@ -1200,7 +1210,7 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 528,
+      "line": 543,
       "method": "GET",
       "path": "/api/commands"
     },
@@ -1230,55 +1240,55 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 655,
+      "line": 670,
       "method": "GET",
       "path": "/api/cron"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 693,
+      "line": 708,
       "method": "POST",
       "path": "/api/cron"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 736,
+      "line": 751,
       "method": "DELETE",
       "path": "/api/cron/{jobId}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 712,
+      "line": 727,
       "method": "PATCH",
       "path": "/api/cron/{jobId}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 752,
+      "line": 767,
       "method": "POST",
       "path": "/api/cron/{jobId}/run"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 779,
+      "line": 794,
       "method": "GET",
       "path": "/api/cron/{jobId}/runs"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 816,
+      "line": 831,
       "method": "GET",
       "path": "/api/cron/status"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1167,
+      "line": 1182,
       "method": "GET",
       "path": "/api/deck/agents"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1186,
+      "line": 1201,
       "method": "POST",
       "path": "/api/deck/agents"
     },
@@ -1290,103 +1300,103 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1307,
+      "line": 1322,
       "method": "POST",
       "path": "/api/deck/commands/discover"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1471,
+      "line": 1486,
       "method": "GET",
       "path": "/api/deck/identity"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1482,
+      "line": 1497,
       "method": "POST",
       "path": "/api/deck/identity"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1152,
+      "line": 1167,
       "method": "GET",
       "path": "/api/deck/plugins"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1521,
+      "line": 1536,
       "method": "GET",
       "path": "/api/deck/routing"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1543,
+      "line": 1558,
       "method": "POST",
       "path": "/api/deck/routing"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1596,
+      "line": 1611,
       "method": "GET",
       "path": "/api/deck/subagents"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1628,
+      "line": 1643,
       "method": "POST",
       "path": "/api/deck/subagents"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1674,
+      "line": 1689,
       "method": "GET",
       "path": "/api/deck/threads"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1329,
+      "line": 1344,
       "method": "POST",
       "path": "/api/deck/tools-effective"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 413,
+      "line": 428,
       "method": "GET",
       "path": "/api/devices"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 424,
+      "line": 439,
       "method": "POST",
       "path": "/api/devices/approve"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 443,
+      "line": 458,
       "method": "POST",
       "path": "/api/devices/reject"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 462,
+      "line": 477,
       "method": "POST",
       "path": "/api/devices/remove"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 519,
+      "line": 534,
       "method": "GET",
       "path": "/api/devices/self"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 500,
+      "line": 515,
       "method": "POST",
       "path": "/api/devices/token/revoke"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 481,
+      "line": 496,
       "method": "POST",
       "path": "/api/devices/token/rotate"
     },
@@ -1416,7 +1426,7 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1392,
+      "line": 1407,
       "method": "POST",
       "path": "/api/exec/approval"
     },
@@ -1440,7 +1450,7 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1696,
+      "line": 1711,
       "method": "GET",
       "path": "/api/logs"
     },
@@ -1488,13 +1498,13 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 931,
+      "line": 946,
       "method": "GET",
       "path": "/api/models/config"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 942,
+      "line": 957,
       "method": "PATCH",
       "path": "/api/models/config"
     },
@@ -1518,25 +1528,25 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 539,
+      "line": 554,
       "method": "GET",
       "path": "/api/nodes"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 550,
+      "line": 565,
       "method": "POST",
       "path": "/api/nodes"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 597,
+      "line": 612,
       "method": "GET",
       "path": "/api/nodes/pair"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 608,
+      "line": 623,
       "method": "POST",
       "path": "/api/nodes/pair"
     },
@@ -1596,13 +1606,13 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1092,
+      "line": 1107,
       "method": "GET",
       "path": "/api/sessions"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 1127,
+      "line": 1142,
       "method": "GET",
       "path": "/api/sessions/{sessionKey}"
     },
@@ -1632,31 +1642,31 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 272,
+      "line": 279,
       "method": "GET",
       "path": "/api/skills"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 287,
+      "line": 302,
       "method": "PATCH",
       "path": "/api/skills/{skillKey}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 351,
+      "line": 366,
       "method": "POST",
       "path": "/api/skills/hub"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 312,
+      "line": 327,
       "method": "POST",
       "path": "/api/skills/install"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 331,
+      "line": 346,
       "method": "POST",
       "path": "/api/skills/update-clawhub"
     },
@@ -1668,7 +1678,7 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 250,
+      "line": 257,
       "method": "POST",
       "path": "/api/tools/catalog"
     },
@@ -1704,19 +1714,19 @@
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 866,
+      "line": 881,
       "method": "GET",
       "path": "/api/usage/sessions"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 894,
+      "line": 909,
       "method": "GET",
       "path": "/api/usage/sessions/logs"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "line": 914,
+      "line": 929,
       "method": "GET",
       "path": "/api/usage/timeseries"
     },
@@ -1761,49 +1771,49 @@
     {
       "endpoint": "DELETE /api/chat/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2702,
+      "line": 2768,
       "literal": "/chat/sessions",
       "symbol": "deleteSession"
     },
     {
       "endpoint": "GET /api/activity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1979,
+      "line": 2040,
       "literal": "/activity",
       "symbol": "fetchActivityEvents"
     },
     {
       "endpoint": "GET /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1350,
+      "line": 1411,
       "literal": "/alerts",
       "symbol": "fetchAlertRules"
     },
     {
       "endpoint": "GET /api/approvals/pending",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1025,
+      "line": 1086,
       "literal": "/approvals/pending",
       "symbol": "fetchPendingApprovals"
     },
     {
       "endpoint": "GET /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1067,
+      "line": 1128,
       "literal": "/approvals/plugins",
       "symbol": "fetchPluginApprovals"
     },
     {
       "endpoint": "GET /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1017,
+      "line": 1078,
       "literal": "/approvals/policy",
       "symbol": "fetchApprovalsPolicy"
     },
     {
       "endpoint": "GET /api/audit/events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1987,
+      "line": 2048,
       "literal": "/audit/events",
       "symbol": "fetchControlAuditEvents"
     },
@@ -1831,7 +1841,7 @@
     {
       "endpoint": "GET /api/chat/history",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2606,
+      "line": 2672,
       "literal": "/chat/history",
       "symbol": "fetchChatHistory"
     },
@@ -1845,21 +1855,21 @@
     {
       "endpoint": "GET /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1214,
+      "line": 1275,
       "literal": "/cron",
       "symbol": "fetchCronJobs"
     },
     {
       "endpoint": "GET /api/cron/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1231,
+      "line": 1292,
       "literal": "/cron/status",
       "symbol": "raw"
     },
     {
       "endpoint": "GET /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1749,
+      "line": 1810,
       "literal": "/deck/identity",
       "symbol": "fetchIdentityLinks"
     },
@@ -1880,14 +1890,14 @@
     {
       "endpoint": "GET /api/docs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1301,
+      "line": 1362,
       "literal": "/docs",
       "symbol": "fetchDocs"
     },
     {
       "endpoint": "GET /api/gateway/describe",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 953,
+      "line": 1014,
       "literal": "/gateway/describe",
       "symbol": "fetchGatewayDescribe"
     },
@@ -1908,14 +1918,14 @@
     {
       "endpoint": "GET /api/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 945,
+      "line": 1006,
       "literal": "/logs",
       "symbol": "fetchLogsTail"
     },
     {
       "endpoint": "GET /api/logs/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2949,
+      "line": 3015,
       "literal": "/logs/stream",
       "symbol": "streamLogEvents"
     },
@@ -1929,42 +1939,42 @@
     {
       "endpoint": "GET /api/memory/health",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1630,
+      "line": 1691,
       "literal": "/memory/health",
       "symbol": "fetchMemoryHealth"
     },
     {
       "endpoint": "GET /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2201,
+      "line": 2262,
       "literal": "/models/config",
       "symbol": "fetchModelsConfig"
     },
     {
       "endpoint": "GET /api/monitor/runs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2003,
+      "line": 2064,
       "literal": "/monitor/runs",
       "symbol": "fetchMonitorRuns"
     },
     {
       "endpoint": "GET /api/monitor/stats",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2011,
+      "line": 2072,
       "literal": "/monitor/stats",
       "symbol": "fetchMonitorStats"
     },
     {
       "endpoint": "GET /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1462,
+      "line": 1523,
       "literal": "/nodes",
       "symbol": "fetchNodes"
     },
     {
       "endpoint": "GET /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1467,
+      "line": 1528,
       "literal": "/nodes/pair",
       "symbol": "fetchNodePairing"
     },
@@ -1992,7 +2002,7 @@
     {
       "endpoint": "GET /api/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2549,
+      "line": 2615,
       "literal": "/sessions",
       "symbol": "fetchSessions"
     },
@@ -2006,7 +2016,7 @@
     {
       "endpoint": "GET /api/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2945,
+      "line": 3011,
       "literal": "/stream",
       "symbol": "streamEvents"
     },
@@ -2020,203 +2030,203 @@
     {
       "endpoint": "GET /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1693,
+      "line": 1754,
       "literal": "/usage/budget",
       "symbol": "fetchBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/budget/evaluate",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1738,
+      "line": 1799,
       "literal": "/usage/budget/evaluate",
       "symbol": "evaluateBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/providers",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2040,
+      "line": 2101,
       "literal": "/usage/providers",
       "symbol": "fetchModelUsageProviders"
     },
     {
       "endpoint": "GET /api/usage/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2054,
+      "line": 2115,
       "literal": "/usage/sessions",
       "symbol": "fetchUsageSessions"
     },
     {
       "endpoint": "GET /api/usage/sessions/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2062,
+      "line": 2123,
       "literal": "/usage/sessions/logs",
       "symbol": "fetchUsageSessionLogs"
     },
     {
       "endpoint": "GET /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1391,
+      "line": 1452,
       "literal": "/webhooks",
       "symbol": "fetchWebhooks"
     },
     {
       "endpoint": "PATCH /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2258,
+      "line": 2319,
       "literal": "/models/config",
       "symbol": "saveModelsConfig"
     },
     {
       "endpoint": "POST /api/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2507,
+      "line": 2573,
       "literal": "/agents",
       "symbol": "createAgent"
     },
     {
       "endpoint": "POST /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1357,
+      "line": 1418,
       "literal": "/alerts",
       "symbol": "createAlertRule"
     },
     {
       "endpoint": "POST /api/approvals",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1036,
+      "line": 1097,
       "literal": "/approvals",
       "symbol": "resolveApproval"
     },
     {
       "endpoint": "POST /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1078,
+      "line": 1139,
       "literal": "/approvals/plugins",
       "symbol": "resolvePluginApproval"
     },
     {
       "endpoint": "POST /api/chat/abort",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2642,
+      "line": 2708,
       "literal": "/chat/abort",
       "symbol": "abortChatRun"
     },
     {
       "endpoint": "POST /api/chat/compact",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2752,
+      "line": 2818,
       "literal": "/chat/compact",
       "symbol": "compactChatSession"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2774,
+      "line": 2840,
       "literal": "/chat/compaction",
       "symbol": "fetchCompactionCheckpoints"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2791,
+      "line": 2857,
       "literal": "/chat/compaction",
       "symbol": "branchCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2811,
+      "line": 2877,
       "literal": "/chat/compaction",
       "symbol": "restoreCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/projection",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2844,
+      "line": 2910,
       "literal": "/chat/projection",
       "symbol": "persistChatProjection"
     },
     {
       "endpoint": "POST /api/chat/send",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2627,
+      "line": 2693,
       "literal": "/chat/send",
       "symbol": "sendChatMessage"
     },
     {
       "endpoint": "POST /api/chat/session-events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2826,
+      "line": 2892,
       "literal": "/chat/session-events",
       "symbol": "setSessionEventsSubscription"
     },
     {
       "endpoint": "POST /api/chat/sessions/clear",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2687,
+      "line": 2753,
       "literal": "/chat/sessions/clear",
       "symbol": "clearSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/create",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2614,
+      "line": 2680,
       "literal": "/chat/sessions/create",
       "symbol": "createChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2717,
+      "line": 2783,
       "literal": "/chat/sessions/patch",
       "symbol": "patchSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2731,
+      "line": 2797,
       "literal": "/chat/sessions/patch",
       "symbol": "patchChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/preview",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2557,
+      "line": 2623,
       "literal": "/chat/sessions/preview",
       "symbol": "fetchSessionPreviews"
     },
     {
       "endpoint": "POST /api/chat/sessions/reset",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2672,
+      "line": 2738,
       "literal": "/chat/sessions/reset",
       "symbol": "resetSession"
     },
     {
       "endpoint": "POST /api/chat/steer",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2657,
+      "line": 2723,
       "literal": "/chat/steer",
       "symbol": "steerChatSession"
     },
     {
       "endpoint": "POST /api/config/apply",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2102,
+      "line": 2163,
       "literal": "/config/apply",
       "symbol": "applyDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2114,
+      "line": 2175,
       "literal": "/config/patch",
       "symbol": "patchDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2186,
+      "line": 2247,
       "literal": "/config/patch",
       "symbol": "nextEntry"
     },
@@ -2230,84 +2240,84 @@
     {
       "endpoint": "POST /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1250,
+      "line": 1311,
       "literal": "/cron",
       "symbol": "createCronJob"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2291,
+      "line": 2356,
       "literal": "/deck/agents",
       "symbol": "fetchAgentHealthSnapshot"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2303,
+      "line": 2368,
       "literal": "/deck/agents",
       "symbol": "fetchAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2319,
+      "line": 2384,
       "literal": "/deck/agents",
       "symbol": "updateAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2334,
+      "line": 2399,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2349,
+      "line": 2414,
       "literal": "/deck/agents",
       "symbol": "updateAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2368,
+      "line": 2433,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2401,
+      "line": 2467,
       "literal": "/deck/agents",
       "symbol": "updateAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2422,
+      "line": 2488,
       "literal": "/deck/agents",
       "symbol": "fetchAgentToolPolicyPreview"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2434,
+      "line": 2500,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSystemPromptPreview"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2867,
+      "line": 2933,
       "literal": "/deck/canvas",
       "symbol": "setCanvasBridgeReady"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2883,
+      "line": 2949,
       "literal": "/deck/canvas",
       "symbol": "resolveCanvasEval"
     },
@@ -2321,70 +2331,70 @@
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1762,
+      "line": 1823,
       "literal": "/deck/identity",
       "symbol": "linkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1780,
+      "line": 1841,
       "literal": "/deck/identity",
       "symbol": "unlinkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1842,
+      "line": 1903,
       "literal": "/deck/routing",
       "symbol": "validateRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1860,
+      "line": 1921,
       "literal": "/deck/routing",
       "symbol": "addRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1873,
+      "line": 1934,
       "literal": "/deck/routing",
       "symbol": "removeRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1893,
+      "line": 1954,
       "literal": "/deck/routing",
       "symbol": "simulateRouting"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1941,
+      "line": 2002,
       "literal": "/deck/subagents",
       "symbol": "fetchSubagentLineage"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1953,
+      "line": 2014,
       "literal": "/deck/subagents",
       "symbol": "killSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1966,
+      "line": 2027,
       "literal": "/deck/subagents",
       "symbol": "steerSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/tools-effective",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2495,
+      "line": 2561,
       "literal": "/deck/tools-effective",
       "symbol": "fetchEffectiveTools"
     },
@@ -2426,77 +2436,77 @@
     {
       "endpoint": "POST /api/docs/extract",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1317,
+      "line": 1378,
       "literal": "/docs/extract",
       "symbol": "extractDocs"
     },
     {
       "endpoint": "POST /api/memory/dreams",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1681,
+      "line": 1742,
       "literal": "/memory/dreams",
       "symbol": "runMemoryDreams"
     },
     {
       "endpoint": "POST /api/memory/search",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1650,
+      "line": 1711,
       "literal": "/memory/search",
       "symbol": "res"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1475,
+      "line": 1536,
       "literal": "/nodes",
       "symbol": "describeNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1487,
+      "line": 1548,
       "literal": "/nodes",
       "symbol": "renameNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1522,
+      "line": 1583,
       "literal": "/nodes",
       "symbol": "invokeNodeCommand"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1540,
+      "line": 1601,
       "literal": "/nodes",
       "symbol": "enqueueNodePendingWork"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1555,
+      "line": 1616,
       "literal": "/nodes/pair",
       "symbol": "approveNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1570,
+      "line": 1631,
       "literal": "/nodes/pair",
       "symbol": "requestNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1583,
+      "line": 1644,
       "literal": "/nodes/pair",
       "symbol": "rejectNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1596,
+      "line": 1657,
       "literal": "/nodes/pair",
       "symbol": "verifyNodePairing"
     },
@@ -2517,70 +2527,70 @@
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1127,
+      "line": 1188,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubBins"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1139,
+      "line": 1200,
       "literal": "/skills/hub",
       "symbol": "searchSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1151,
+      "line": 1212,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubDetail"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1167,
+      "line": 1228,
       "literal": "/skills/hub",
       "symbol": "installSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1184,
+      "line": 1245,
       "literal": "/skills/hub",
       "symbol": "updateSkillHub"
     },
     {
       "endpoint": "POST /api/skills/install",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1114,
+      "line": 1175,
       "literal": "/skills/install",
       "symbol": "installSkill"
     },
     {
       "endpoint": "POST /api/tools/catalog",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2483,
+      "line": 2549,
       "literal": "/tools/catalog",
       "symbol": "fetchToolsCatalog"
     },
     {
       "endpoint": "POST /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1703,
+      "line": 1764,
       "literal": "/usage/budget",
       "symbol": "createBudgetRule"
     },
     {
       "endpoint": "POST /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1402,
+      "line": 1463,
       "literal": "/webhooks",
       "symbol": "createWebhook"
     },
     {
       "endpoint": "PUT /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1051,
+      "line": 1112,
       "literal": "/approvals/policy",
       "symbol": "updateApprovalsPolicy"
     },
@@ -3841,368 +3851,356 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 88,
+      "line": 85,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 95,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agents.delete\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 91,
+      "line": 98,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 97,
+      "line": 104,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 107,
+      "line": 114,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 114,
+      "line": 121,
       "text": "writeJSON(w, http.StatusOK, agent)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 117,
+      "line": 124,
       "text": "writeJSON(w, http.StatusNotFound, map[string]any{\"error\": \"Agent not found\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 123,
+      "line": 130,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 129,
+      "line": 136,
       "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 131,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 138,
-      "text": "body = map[string]any{}"
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 145,
+      "text": "body = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 152,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agents.update\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 148,
+      "line": 155,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 154,
+      "line": 161,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 164,
+      "line": 171,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agents.files.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 167,
+      "line": 174,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 173,
+      "line": 180,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 179,
+      "line": 186,
       "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 181,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 188,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 195,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 194,
+      "line": 201,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"name is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 198,
+      "line": 205,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"content is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 205,
+      "line": 212,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agents.files.set\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 208,
+      "line": 215,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 215,
+      "line": 222,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 225,
+      "line": 232,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agents.files.get\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 228,
+      "line": 235,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 234,
+      "line": 241,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 244,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agent.identity.get\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 247,
-      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 251,
-      "text": "var body map[string]any"
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"agent.identity.get\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 254,
+      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 253,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+      "line": 258,
+      "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 260,
-      "text": "body = map[string]any{}"
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 266,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"tools.catalog\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 269,
-      "text": "writeJSON(w, http.StatusOK, payload)"
+      "line": 267,
+      "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 273,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"tools.catalog\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 276,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 280,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 281,
+      "line": 288,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.status\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 296,
+      "text": "if pluginPayload, err := adapter.DeckPluginsList(ctx, map[string]any{\"capability\": \"all\"}); err == nil {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 284,
-      "text": "writeJSON(w, http.StatusOK, normalizeSkillsResponse(payload))"
+      "line": 299,
+      "text": "writeJSON(w, http.StatusOK, normalizeSkillsResponse(payload, normalization))"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 290,
+      "line": 305,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"skillKey is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 293,
+      "line": 308,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 295,
+      "line": 310,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 299,
+      "line": 314,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 306,
+      "line": 321,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.update\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 309,
+      "line": 324,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 313,
-      "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 315,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 319,
-      "text": "body = map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 325,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.install\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
       "line": 328,
-      "text": "writeJSON(w, http.StatusOK, payload)"
+      "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 332,
-      "text": "var body map[string]any"
+      "line": 330,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 334,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 338,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 345,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.update\", \"error\": err.Error()})"
+      "line": 340,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.install\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 348,
+      "line": 343,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 352,
+      "line": 347,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 354,
+      "line": 349,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 358,
+      "line": 353,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 369,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.search\", \"error\": err.Error()})"
+      "line": 360,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.update\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 372,
+      "line": 363,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 376,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.detail\", \"error\": err.Error()})"
+      "line": 367,
+      "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 379,
-      "text": "writeJSON(w, http.StatusOK, payload)"
+      "kind": "map-string-any",
+      "line": 369,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 373,
+      "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 384,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.install\", \"error\": err.Error()})"
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.search\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
@@ -4213,584 +4211,596 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 395,
+      "line": 391,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.detail\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 394,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 399,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.install\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 402,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 410,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.update\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 398,
+      "line": 413,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 402,
+      "line": 417,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"skills.bins\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 405,
+      "line": 420,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 407,
+      "line": 422,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 418,
+      "line": 433,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 421,
+      "line": 436,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 425,
-      "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 427,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 431,
-      "text": "body = map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 437,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.approve\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
       "line": 440,
-      "text": "writeJSON(w, http.StatusOK, payload)"
+      "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 444,
-      "text": "var body map[string]any"
+      "line": 442,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 446,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 450,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 456,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.reject\", \"error\": err.Error()})"
+      "line": 452,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.approve\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 459,
+      "line": 455,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 463,
+      "line": 459,
       "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 461,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 465,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 469,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 475,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.remove\", \"error\": err.Error()})"
+      "line": 471,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.reject\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 478,
+      "line": 474,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 482,
+      "line": 478,
       "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 480,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 484,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 488,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 494,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.token.rotate\", \"error\": err.Error()})"
+      "line": 490,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.pair.remove\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 497,
+      "line": 493,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 501,
+      "line": 497,
       "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 499,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 503,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 507,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 513,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.token.revoke\", \"error\": err.Error()})"
+      "line": 509,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.token.rotate\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 516,
+      "line": 512,
       "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 516,
+      "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 518,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 522,
+      "text": "body = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 528,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"device.token.revoke\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 531,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 537,
       "text": "writeJSON(w, http.StatusOK, map[string]any{\"deviceId\": nil})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 525,
+      "line": 540,
       "text": "writeJSON(w, http.StatusOK, map[string]any{\"deviceId\": deviceID})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 533,
+      "line": 548,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"commands.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 536,
+      "line": 551,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 544,
+      "line": 559,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 547,
+      "line": 562,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 551,
+      "line": 566,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 553,
+      "line": 568,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 557,
+      "line": 572,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 567,
+      "line": 582,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.describe\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 570,
+      "line": 585,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 574,
+      "line": 589,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.rename\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 577,
+      "line": 592,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 581,
+      "line": 596,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.invoke\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 584,
+      "line": 599,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 588,
+      "line": 603,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pending.enqueue\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 591,
+      "line": 606,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 593,
+      "line": 608,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"Invalid action\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 602,
+      "line": 617,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pair.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 605,
+      "line": 620,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 609,
+      "line": 624,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 611,
+      "line": 626,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 615,
+      "line": 630,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 625,
+      "line": 640,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pair.request\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 628,
+      "line": 643,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 632,
+      "line": 647,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pair.approve\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 635,
+      "line": 650,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 639,
+      "line": 654,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pair.reject\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 642,
+      "line": 657,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 646,
+      "line": 661,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"node.pair.verify\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 649,
+      "line": 664,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 651,
+      "line": 666,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"Invalid action\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 656,
+      "line": 671,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 687,
+      "line": 702,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 690,
+      "line": 705,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 694,
+      "line": 709,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 696,
+      "line": 711,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 700,
-      "text": "body = map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 706,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.add\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 709,
-      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 715,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 718,
-      "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 720,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 724,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
+      "line": 721,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.add\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 724,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
       "line": 730,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.update\", \"error\": err.Error()})"
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
+      "kind": "map-string-any",
       "line": 733,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 739,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 746,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.remove\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 749,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 755,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 758,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 760,
+      "line": 735,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 763,
-      "text": "params := map[string]any{\"id\": jobID}"
+      "line": 739,
+      "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 773,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.run\", \"error\": err.Error()})"
+      "line": 745,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.update\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 776,
+      "line": 748,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 782,
+      "line": 754,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 785,
+      "line": 761,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.remove\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 764,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 770,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 773,
+      "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 775,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 778,
+      "text": "params := map[string]any{\"id\": jobID}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 788,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.run\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 791,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 797,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"jobId is required\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 800,
       "text": "params := map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 810,
+      "line": 825,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.runs\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 813,
+      "line": 828,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 821,
+      "line": 836,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"cron.status\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 824,
+      "line": 839,
       "text": "writeJSON(w, http.StatusOK, normalizeCronStatusResponse(payload))"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 829,
+      "line": 844,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 842,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"usage.cost\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 845,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
       "line": 857,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"usage.status\", \"error\": err.Error()})"
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"usage.cost\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
@@ -4801,1123 +4811,1273 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 867,
+      "line": 872,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"usage.status\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 875,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 882,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 879,
+      "line": 894,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid limit\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 888,
+      "line": 903,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"sessions.usage\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 891,
+      "line": 906,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 895,
+      "line": 910,
       "text": "params := map[string]any{\"key\": r.URL.Query().Get(\"key\")}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 899,
+      "line": 914,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid limit\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 908,
+      "line": 923,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"sessions.usage.logs\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 911,
+      "line": 926,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 915,
+      "line": 930,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 925,
+      "line": 940,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"sessions.usage.timeseries\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 928,
+      "line": 943,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 936,
+      "line": 951,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"config.get\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 939,
+      "line": 954,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 943,
+      "line": 958,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 945,
+      "line": 960,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"invalid json body\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 949,
+      "line": 964,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 953,
+      "line": 968,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"error\": \"raw config content is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 962,
+      "line": 977,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"config.patch\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 965,
+      "line": 980,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 969,
+      "line": 984,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 982,
+      "line": 997,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"channels.status\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 985,
+      "line": 1000,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 991,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"channelId is required\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 998,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"channels.logout\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1001,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1007,
+      "line": 1006,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"channelId is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1013,
-      "text": "payload, err := adapter.ChannelsStatus(ctx, map[string]any{\"probe\": true})"
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"channels.logout\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1016,
+      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1015,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1027,
-      "text": "writeJSON(w, http.StatusOK, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1039,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1049,
-      "text": "writeJSON(w, http.StatusOK, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "raw-any-result",
-      "line": 1050,
-      "text": "\"buckets\":     []any{},"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1059,
+      "line": 1022,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"channelId is required\"})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1062,
-      "text": "var patch map[string]any"
+      "line": 1028,
+      "text": "payload, err := adapter.ChannelsStatus(ctx, map[string]any{\"probe\": true})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1064,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"invalid json body\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1072,
+      "line": 1030,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1080,
-      "text": "payload, err = adapter.ConfigPatch(ctx, mustJSONString(map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1081,
-      "text": "\"channels\": map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1086,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"config.patch\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1089,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1093,
-      "text": "params := map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1116,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1122,
+      "line": 1042,
       "text": "writeJSON(w, http.StatusOK, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1130,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"sessionKey is required\"})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1146,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1149,
-      "text": "writeJSON(w, http.StatusOK, detail)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1153,
-      "text": "params := map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1161,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.plugins.list\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1164,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1170,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1180,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.detail\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1183,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1187,
-      "text": "var body map[string]any"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1189,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1196,
-      "text": "body = map[string]any{}"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1207,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"health\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1210,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1214,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.skills.get\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1217,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1221,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.skills.set\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1224,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1228,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.subagents.get\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1231,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1235,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.subagents.set\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1238,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1242,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.toolPolicy.preview\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1245,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1249,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.systemPrompt.preview\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1252,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1256,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.eventStreams.get\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1259,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1263,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.eventStreams.set\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1266,
-      "text": "writeJSON(w, http.StatusOK, payload)"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1270,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1277,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1286,
+      "line": 1054,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1295,
+      "line": 1064,
+      "text": "writeJSON(w, http.StatusOK, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 1065,
+      "text": "\"buckets\":     []any{},"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1074,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"channelId is required\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1077,
+      "text": "var patch map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1079,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"invalid json body\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1087,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1095,
+      "text": "payload, err = adapter.ConfigPatch(ctx, mustJSONString(map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1096,
+      "text": "\"channels\": map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1101,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"config.patch\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1298,
+      "line": 1104,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1300,
+      "line": 1108,
+      "text": "params := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1131,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1137,
+      "text": "writeJSON(w, http.StatusOK, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1145,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": \"sessionKey is required\"})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1161,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1164,
+      "text": "writeJSON(w, http.StatusOK, detail)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1168,
+      "text": "params := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1176,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.plugins.list\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1179,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1185,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1308,
+      "line": 1195,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.detail\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1198,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1202,
       "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1204,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1211,
+      "text": "body = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1222,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"health\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1225,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1229,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.skills.get\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1232,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1236,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.skills.set\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1239,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1243,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.subagents.get\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1246,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1250,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.subagents.set\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1253,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1257,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.toolPolicy.preview\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1260,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1264,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.systemPrompt.preview\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1267,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1271,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.eventStreams.get\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1274,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1278,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.agents.eventStreams.set\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1281,
+      "text": "writeJSON(w, http.StatusOK, payload)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1285,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1292,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1301,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1310,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"config.patch\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1313,
+      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1317,
-      "text": "body = map[string]any{}"
+      "line": 1315,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1323,
-      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.commands.discover\", \"error\": err.Error()})"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "write-json-any",
-      "line": 1326,
-      "text": "writeJSON(w, http.StatusOK, payload)"
+      "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1330,
-      "text": "var body map[string]any"
+      "line": 1325,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1332,
-      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+      "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1339,
-      "text": "body = map[string]any{}"
+      "line": 1338,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.commands.discover\", \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "write-json-any",
+      "line": 1341,
+      "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1345,
+      "text": "var body map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1347,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1354,
+      "text": "body = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1360,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"tools.effective\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1348,
+      "line": 1363,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1356,
+      "line": 1371,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"exec.approvals.get\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1359,
+      "line": 1374,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1363,
+      "line": 1378,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1365,
+      "line": 1380,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1375,
+      "line": 1390,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"exec.approval.resolve\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1378,
+      "line": 1393,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1386,
+      "line": 1401,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1389,
+      "line": 1404,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1393,
+      "line": 1408,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1395,
+      "line": 1410,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1405,
+      "line": 1420,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"exec.approval.resolve\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1408,
+      "line": 1423,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1416,
+      "line": 1431,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"exec.approvals.get\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1419,
+      "line": 1434,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1423,
+      "line": 1438,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1425,
+      "line": 1440,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1435,
+      "line": 1450,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"exec.approvals.set\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1438,
+      "line": 1453,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1446,
+      "line": 1461,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"plugin.approval.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1449,
+      "line": 1464,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1453,
+      "line": 1468,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1455,
+      "line": 1470,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1465,
+      "line": 1480,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"plugin.approval.resolve\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1468,
+      "line": 1483,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1476,
+      "line": 1491,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.identity.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1479,
+      "line": 1494,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1483,
+      "line": 1498,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1485,
+      "line": 1500,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1492,
+      "line": 1507,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1502,
+      "line": 1517,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.identity.link\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1505,
+      "line": 1520,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1509,
+      "line": 1524,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.identity.unlink\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1512,
+      "line": 1527,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1514,
+      "line": 1529,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "map-string-any",
-      "line": 1522,
-      "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
       "line": 1537,
+      "text": "params := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1552,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.routing.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1540,
+      "line": 1555,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1544,
+      "line": 1559,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1546,
+      "line": 1561,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1553,
+      "line": 1568,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1563,
+      "line": 1578,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.routing.add\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1566,
+      "line": 1581,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1570,
+      "line": 1585,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.routing.remove\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1573,
+      "line": 1588,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1577,
+      "line": 1592,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.routing.validate\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1580,
+      "line": 1595,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1584,
+      "line": 1599,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.routing.simulate\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1587,
+      "line": 1602,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1589,
+      "line": 1604,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1597,
+      "line": 1612,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1622,
+      "line": 1637,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.subagents.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1625,
+      "line": 1640,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1629,
+      "line": 1644,
       "text": "var body map[string]any"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1631,
+      "line": 1646,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1638,
+      "line": 1653,
       "text": "body = map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1648,
+      "line": 1663,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.subagents.kill\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1651,
+      "line": 1666,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1655,
+      "line": 1670,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.subagents.lineage\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1658,
+      "line": 1673,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1662,
+      "line": 1677,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.subagents.steer\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1665,
+      "line": 1680,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1667,
+      "line": 1682,
       "text": "writeJSON(w, http.StatusBadRequest, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1675,
+      "line": 1690,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1690,
+      "line": 1705,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"deck.threads.list\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1693,
+      "line": 1708,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1697,
+      "line": 1712,
       "text": "params := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1718,
+      "line": 1733,
       "text": "writeJSON(w, http.StatusBadGateway, map[string]any{\"ok\": false, \"method\": \"logs.tail\", \"error\": err.Error()})"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "write-json-any",
-      "line": 1721,
+      "line": 1736,
       "text": "writeJSON(w, http.StatusOK, payload)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1725,
+      "line": 1740,
       "text": "func normalizeCronStatusResponse(payload any) deckapi.DeckGoCronStatus {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1734,
+      "line": 1749,
       "text": "case map[string]any:"
-    },
-    {
-      "file": "deck-go/backend/internal/server/inventory.go",
-      "kind": "raw-any-result",
-      "line": 1746,
-      "text": "func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1783,
+      "line": 1762,
+      "text": "rawConfigBySkill        map[string]map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 1768,
+      "text": "func normalizeSkillsResponse(payload any, contexts ...skillNormalizationContext) deckapi.DeckGoSkillsResponse {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1819,
       "text": "case map[string]any:"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1784,
+      "line": 1820,
       "text": "rawSkills, _ := result[\"skills\"].([]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1797,
-      "text": "func deckSkillEntryFromMap(record map[string]any) deckapi.DeckGoSkillEntry {"
+      "line": 1833,
+      "text": "func deckSkillEntryFromMap(record map[string]any, normalization skillNormalizationContext) deckapi.DeckGoSkillEntry {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1937,
+      "text": "func sanitizeSkillConfig(config map[string]any) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1941,
+      "text": "sanitized := make(map[string]any, len(config))"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1946,
+      "text": "if child, ok := value.(map[string]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1968,
+      "text": "func skillAPIKeyConfigured(config map[string]any) bool {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1979,
+      "text": "case map[string]any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1986,
+      "text": "func skillConfigByKeyFromPayload(payload any) (map[string]map[string]any, map[string]bool) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 1990,
+      "text": "configByKey := map[string]map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1852,
+      "line": 2003,
+      "text": "func skillAgentUsageBySkillFromConfigPayload(payload any) map[string][]string {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2006,
+      "text": "rawList, _ := agents[\"list\"].([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 2021,
+      "text": "func configRootFromPayload(payload any) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2023,
+      "text": "for _, candidate := range []any{result.Config, result.Parsed, result.Resolved, result.SourceConfig} {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 2028,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 2036,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2039,
+      "text": "func stringSliceFromAny(value any) []string {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2043,
+      "text": "case []any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2056,
+      "text": "func skillIdentityByKeyFromPayload(payload any) map[string]string {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 2067,
+      "text": "case map[string]any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2068,
+      "text": "rawSkills, _ := result[\"skills\"].([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2081,
+      "text": "func skillOwningPluginsFromPayload(payload any, skillNames map[string]string) map[string]*deckapi.DeckGoSkillOwningPluginRef {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2097,
+      "text": "func pluginInventoryEntriesFromPayload(payload any) []deckapi.DeckGoPluginInventoryEntry {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "map-string-any",
+      "line": 2101,
+      "text": "case map[string]any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2102,
+      "text": "rawPlugins, _ := result[\"plugins\"].([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "kind": "raw-any-result",
+      "line": 2146,
       "text": "func skillMissingRequirementsFromAny(value any) []string {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1853,
+      "line": 2147,
       "text": "if entries, ok := value.([]any); ok {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1870,
+      "line": 2164,
       "text": "if entries, ok := record[group].([]any); ok {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1882,
+      "line": 2176,
       "text": "func deckSkillInstallOptionsFromAny(value any) []deckapi.DeckGoSkillInstallOption {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1883,
+      "line": 2177,
       "text": "entries, ok := value.([]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1894,
+      "line": 2188,
       "text": "if rawBins, ok := record[\"bins\"].([]any); ok {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1910,
+      "line": 2204,
       "text": "func buildNestedPatch(path string, value any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1912,
+      "line": 2206,
       "text": "root := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1915,
+      "line": 2209,
       "text": "next := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1925,
+      "line": 2219,
       "text": "if payload, err := adapter.ConfigGetWithParams(ctx, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1948,
+      "line": 2242,
       "text": "func configHashFromPayload(payload any) string {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1952,
+      "line": 2246,
       "text": "record, _ := payload.(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1960,
+      "line": 2254,
       "text": "func configRawFromPayload(payload any) string {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1964,
+      "line": 2258,
       "text": "record, _ := payload.(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1969,
+      "line": 2263,
       "text": "func channelProbeStatus(payload any, channelID string) (bool, string) {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1982,
+      "line": 2276,
       "text": "record, _ := payload.(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1983,
+      "line": 2277,
       "text": "channelAccounts, _ := record[\"channelAccounts\"].(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1984,
+      "line": 2278,
       "text": "channelEntries, _ := channelAccounts[channelID].([]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1987,
+      "line": 2281,
       "text": "account, _ := rawAccount.(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 1988,
+      "line": 2282,
       "text": "probe, _ := account[\"probe\"].(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 1999,
+      "line": 2293,
       "text": "func agentFromListPayload(payload any, agentID string) (any, bool) {"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 2016,
+      "line": 2310,
       "text": "payloadMap, ok := payload.(map[string]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "raw-any-result",
-      "line": 2020,
+      "line": 2314,
       "text": "agents, _ := payloadMap[\"agents\"].([]any)"
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "kind": "map-string-any",
-      "line": 2022,
+      "line": 2316,
       "text": "record, ok := candidate.(map[string]any)"
     },
     {
@@ -6571,121 +6731,121 @@
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 156,
+      "line": 186,
       "text": "func normalizePendingApprovals(payload any) deckapi.DeckGoPendingApprovalsResponse {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 182,
+      "line": 212,
       "text": "func normalizePluginApprovals(payload any) []deckapi.DeckGoPluginApprovalEntry {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 206,
+      "line": 236,
       "text": "func usageTotalsFromAny(value any) deckapi.DeckGoUsageTotals {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 218,
+      "line": 248,
       "text": "func contextWeightReportFromMap(record map[string]any) deckapi.DeckGoContextWeightReport {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 234,
+      "line": 264,
       "text": "func normalizeContextWeightSystemPrompt(value any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 243,
+      "line": 273,
       "text": "func normalizeContextWeightFiles(value any) []map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 245,
+      "line": 275,
       "text": "normalized := make([]map[string]any, 0, len(items))"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 259,
+      "line": 289,
       "text": "func normalizeContextWeightSkills(value any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 267,
+      "line": 297,
       "text": "func normalizeContextWeightTools(value any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 276,
+      "line": 306,
       "text": "func hasContextWeightSignal(record map[string]any) bool {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 307,
+      "line": 337,
       "text": "func cloneObject(record map[string]any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 308,
+      "line": 338,
       "text": "normalized := make(map[string]any, len(record))"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 315,
+      "line": 345,
       "text": "func objectFromAny(value any) map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 319,
+      "line": 349,
       "text": "if record, ok := value.(map[string]any); ok {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 326,
+      "line": 356,
       "text": "var record map[string]any"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 333,
+      "line": 363,
       "text": "func objectListFromAny(value any) []map[string]any {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 334,
+      "line": 364,
       "text": "items, ok := value.([]any)"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "map-string-any",
-      "line": 344,
+      "line": 374,
       "text": "result := make([]map[string]any, 0, len(items))"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 353,
+      "line": 383,
       "text": "func stringListFromAny(value any) []string {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/contract_adapters.go",
       "kind": "raw-any-result",
-      "line": 357,
+      "line": 387,
       "text": "case []any:"
     },
     {
@@ -6727,529 +6887,535 @@
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 111,
+      "line": 108,
+      "text": "payload, err := q.requester.RequestTyped(ctx, \"agents.delete\", map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+      "kind": "map-string-any",
+      "line": 126,
       "text": "func (q *GatewayQueries) AgentsUpdate(ctx context.Context, body map[string]any) (generated.AgentsUpdateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 135,
+      "line": 150,
       "text": "func (q *GatewayQueries) ToolsCatalog(ctx context.Context, body map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 143,
+      "line": 158,
       "text": "func (q *GatewayQueries) SkillsStatus(ctx context.Context, params map[string]any) (generated.SkillsStatusResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 151,
+      "line": 166,
       "text": "func (q *GatewayQueries) SkillsUpdate(ctx context.Context, body map[string]any) (generated.SkillsUpdateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 155,
+      "line": 170,
       "text": "func (q *GatewayQueries) SkillsInstall(ctx context.Context, body map[string]any) (generated.SkillsInstallResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 159,
+      "line": 174,
       "text": "func (q *GatewayQueries) SkillsSearch(ctx context.Context, body map[string]any) (generated.SkillsSearchResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 167,
+      "line": 182,
       "text": "func (q *GatewayQueries) SkillsDetail(ctx context.Context, body map[string]any) (generated.SkillsDetailResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 183,
+      "line": 198,
       "text": "func (q *GatewayQueries) DevicePairApprove(ctx context.Context, body map[string]any) (generated.DevicePairApproveResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 191,
+      "line": 206,
       "text": "func (q *GatewayQueries) DevicePairReject(ctx context.Context, body map[string]any) (generated.DevicePairRejectResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 199,
+      "line": 214,
       "text": "func (q *GatewayQueries) DevicePairRemove(ctx context.Context, body map[string]any) (generated.DevicePairRemoveResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 207,
+      "line": 222,
       "text": "func (q *GatewayQueries) DeviceTokenRotate(ctx context.Context, body map[string]any) (generated.DeviceTokenRotateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 215,
+      "line": 230,
       "text": "func (q *GatewayQueries) DeviceTokenRevoke(ctx context.Context, body map[string]any) (generated.DeviceTokenRevokeResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 223,
+      "line": 238,
       "text": "func (q *GatewayQueries) CronList(ctx context.Context, params map[string]any) (generated.CronListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 231,
+      "line": 246,
       "text": "func (q *GatewayQueries) CronAdd(ctx context.Context, body map[string]any) (generated.CronAddResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 239,
+      "line": 254,
       "text": "func (q *GatewayQueries) CronUpdate(ctx context.Context, jobID string, patch map[string]any) (generated.CronUpdateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 240,
+      "line": 255,
       "text": "return q.typed.CronUpdate(ctx, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 247,
+      "line": 262,
       "text": "return q.typed.CronRemove(ctx, map[string]any{\"id\": jobID})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 250,
+      "line": 265,
       "text": "func (q *GatewayQueries) CronRun(ctx context.Context, params map[string]any) (generated.CronRunResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 254,
+      "line": 269,
       "text": "func (q *GatewayQueries) CronRuns(ctx context.Context, params map[string]any) (generated.CronRunsResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 266,
+      "line": 281,
       "text": "func (q *GatewayQueries) UsageCost(ctx context.Context, params map[string]any) (generated.UsageCostResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 271,
+      "line": 286,
       "text": "return q.typed.UsageStatus(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 274,
+      "line": 289,
       "text": "func (q *GatewayQueries) SessionsUsage(ctx context.Context, params map[string]any) (generated.SessionsUsageResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 282,
+      "line": 297,
       "text": "func (q *GatewayQueries) SessionsUsageLogs(ctx context.Context, params map[string]any) (generated.SessionsUsageLogsResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 290,
+      "line": 305,
       "text": "func (q *GatewayQueries) SessionsUsageTimeseries(ctx context.Context, params map[string]any) (generated.SessionsUsageTimeseriesResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 299,
+      "line": 314,
       "text": "func typedParamsFromMap[T any](params map[string]any) (T, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 314,
+      "line": 329,
       "text": "func typedParamsToMap(params any) (map[string]any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 316,
+      "line": 331,
       "text": "return map[string]any{}, nil"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 318,
+      "line": 333,
       "text": "if paramsMap, ok := params.(map[string]any); ok {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 325,
+      "line": 340,
       "text": "result := map[string]any{}"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 332,
+      "line": 347,
       "text": "func (q *GatewayQueries) ChannelsStatus(ctx context.Context, params map[string]any) (generated.ChannelsStatusResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 344,
+      "line": 359,
       "text": "func (q *GatewayQueries) DeckPluginsList(ctx context.Context, params map[string]any) (generated.DeckPluginsListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 356,
+      "line": 371,
       "text": "func (q *GatewayQueries) DeckAgentsSkillsGet(ctx context.Context, body map[string]any) (generated.DeckAgentsSkillsGetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 364,
+      "line": 379,
       "text": "func (q *GatewayQueries) DeckAgentsSkillsSet(ctx context.Context, body map[string]any) (generated.DeckAgentsSkillsSetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 372,
+      "line": 387,
       "text": "func (q *GatewayQueries) DeckAgentsSubagentsGet(ctx context.Context, body map[string]any) (generated.DeckAgentsSubagentsGetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 380,
+      "line": 395,
       "text": "func (q *GatewayQueries) DeckAgentsSubagentsSet(ctx context.Context, body map[string]any) (generated.DeckAgentsSubagentsSetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 388,
+      "line": 403,
       "text": "func (q *GatewayQueries) DeckAgentsToolPolicyPreview(ctx context.Context, body map[string]any) (generated.DeckAgentsToolPolicyPreviewResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 396,
+      "line": 411,
       "text": "func (q *GatewayQueries) DeckAgentsSystemPromptPreview(ctx context.Context, body map[string]any) (generated.DeckAgentsSystemPromptPreviewResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 404,
+      "line": 419,
       "text": "func (q *GatewayQueries) DeckAgentsEventStreamsGet(ctx context.Context, body map[string]any) (generated.DeckAgentsEventStreamsGetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 412,
+      "line": 427,
       "text": "func (q *GatewayQueries) DeckAgentsEventStreamsSet(ctx context.Context, body map[string]any) (generated.DeckAgentsEventStreamsSetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 420,
+      "line": 435,
       "text": "func (q *GatewayQueries) DeckCommandsDiscover(ctx context.Context, body map[string]any) (generated.DeckCommandsDiscoverResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 428,
+      "line": 443,
       "text": "func (q *GatewayQueries) ToolsEffective(ctx context.Context, body map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "raw-any-result",
-      "line": 436,
+      "line": 451,
       "text": "func (q *GatewayQueries) ExecApprovalList(ctx context.Context) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 444,
+      "line": 459,
       "text": "func (q *GatewayQueries) ExecApprovalResolve(ctx context.Context, body map[string]any) (generated.ExecApprovalResolveResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 452,
+      "line": 467,
       "text": "func (q *GatewayQueries) ExecApprovalsSet(ctx context.Context, body map[string]any) (generated.ExecApprovalsSetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "raw-any-result",
-      "line": 460,
+      "line": 475,
       "text": "func (q *GatewayQueries) PluginApprovalList(ctx context.Context) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 464,
+      "line": 479,
       "text": "func (q *GatewayQueries) PluginApprovalResolve(ctx context.Context, body map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 476,
+      "line": 491,
       "text": "func (q *GatewayQueries) DeckIdentityLink(ctx context.Context, body map[string]any) (generated.DeckIdentityLinkResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 484,
+      "line": 499,
       "text": "func (q *GatewayQueries) DeckIdentityUnlink(ctx context.Context, body map[string]any) (generated.DeckIdentityUnlinkResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 492,
+      "line": 507,
       "text": "func (q *GatewayQueries) DeckRoutingList(ctx context.Context, params map[string]any) (generated.DeckRoutingListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 500,
+      "line": 515,
       "text": "func (q *GatewayQueries) DeckRoutingAdd(ctx context.Context, body map[string]any) (generated.DeckRoutingAddResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 508,
+      "line": 523,
       "text": "func (q *GatewayQueries) DeckRoutingRemove(ctx context.Context, body map[string]any) (generated.DeckRoutingRemoveResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 516,
+      "line": 531,
       "text": "func (q *GatewayQueries) DeckRoutingValidate(ctx context.Context, body map[string]any) (generated.DeckRoutingValidateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 524,
+      "line": 539,
       "text": "func (q *GatewayQueries) DeckRoutingSimulate(ctx context.Context, body map[string]any) (generated.DeckRoutingSimulateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 532,
+      "line": 547,
       "text": "func (q *GatewayQueries) DeckSubagentsList(ctx context.Context, params map[string]any) (generated.DeckSubagentsListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 540,
+      "line": 555,
       "text": "func (q *GatewayQueries) DeckSubagentsKill(ctx context.Context, body map[string]any) (generated.DeckSubagentsKillResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 548,
+      "line": 563,
       "text": "func (q *GatewayQueries) DeckSubagentsLineage(ctx context.Context, body map[string]any) (generated.DeckSubagentsLineageResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 556,
+      "line": 571,
       "text": "func (q *GatewayQueries) DeckSubagentsSteer(ctx context.Context, body map[string]any) (generated.DeckSubagentsSteerResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 564,
+      "line": 579,
       "text": "func (q *GatewayQueries) DeckThreadsList(ctx context.Context, params map[string]any) (generated.DeckThreadsListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 572,
+      "line": 587,
       "text": "func (q *GatewayQueries) LogsTail(ctx context.Context, params map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 584,
+      "line": 599,
       "text": "func (q *GatewayQueries) SessionsGet(ctx context.Context, params map[string]any) (generated.SessionsGetResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 592,
+      "line": 607,
       "text": "func (q *GatewayQueries) SessionsListRaw(ctx context.Context, params map[string]any) (generated.SessionsListResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 600,
+      "line": 615,
       "text": "func (q *GatewayQueries) ChatHistory(ctx context.Context, params map[string]any) (generated.ChatHistoryResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 609,
+      "line": 624,
       "text": "return q.typed.DoctorMemoryStatus(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 613,
+      "line": 628,
       "text": "return q.typed.DoctorMemoryDreamDiary(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 617,
+      "line": 632,
       "text": "return q.typed.DoctorMemoryBackfillDreamDiary(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 621,
+      "line": 636,
       "text": "return q.typed.DoctorMemoryResetDreamDiary(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 625,
+      "line": 640,
       "text": "return q.typed.DoctorMemoryResetGroundedShortTerm(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 629,
+      "line": 644,
       "text": "return q.typed.DoctorMemoryRepairDreamingArtifacts(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 633,
+      "line": 648,
       "text": "return q.typed.DoctorMemoryDedupeDreamDiary(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 648,
+      "line": 663,
       "text": "func (q *GatewayQueries) SessionsPatch(ctx context.Context, body map[string]any) (generated.SessionsPatchResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 656,
+      "line": 671,
       "text": "func (q *GatewayQueries) SessionsCreate(ctx context.Context, params map[string]any) (generated.SessionsCreateResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 664,
+      "line": 679,
       "text": "func (q *GatewayQueries) SessionsSend(ctx context.Context, params map[string]any) (generated.SessionsSendResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 672,
+      "line": 687,
       "text": "func (q *GatewayQueries) SessionsAbort(ctx context.Context, params map[string]any) (generated.SessionsAbortResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "raw-any-result",
-      "line": 709,
+      "line": 724,
       "text": "func (q *GatewayQueries) CommandsList(ctx context.Context) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 717,
+      "line": 732,
       "text": "func (q *GatewayQueries) NodeDescribe(ctx context.Context, body map[string]any) (generated.NodeDescribeResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 725,
+      "line": 740,
       "text": "func (q *GatewayQueries) NodeRename(ctx context.Context, body map[string]any) (generated.NodeRenameResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 733,
+      "line": 748,
       "text": "func (q *GatewayQueries) NodeInvoke(ctx context.Context, body map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 741,
+      "line": 756,
       "text": "func (q *GatewayQueries) NodePendingEnqueue(ctx context.Context, body map[string]any) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 753,
+      "line": 768,
       "text": "func (q *GatewayQueries) NodePairRequest(ctx context.Context, body map[string]any) (generated.NodePairRequestResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 761,
+      "line": 776,
       "text": "func (q *GatewayQueries) NodePairApprove(ctx context.Context, body map[string]any) (generated.NodePairApproveResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 769,
+      "line": 784,
       "text": "func (q *GatewayQueries) NodePairReject(ctx context.Context, body map[string]any) (generated.NodePairRejectResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 777,
+      "line": 792,
       "text": "func (q *GatewayQueries) NodePairVerify(ctx context.Context, body map[string]any) (generated.NodePairVerifyResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 794,
+      "line": 809,
       "text": "return q.typed.ModelsCatalogProviders(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 808,
+      "line": 823,
       "text": "func (q *GatewayQueries) TalkSpeak(ctx context.Context, params map[string]any) (generated.TalkSpeakResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 816,
+      "line": 831,
       "text": "func (q *GatewayQueries) WizardStart(ctx context.Context, params map[string]any) (generated.WizardStartResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 824,
+      "line": 839,
       "text": "func (q *GatewayQueries) WizardNext(ctx context.Context, params map[string]any) (generated.WizardNextResult, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 841,
+      "line": 856,
       "text": "return q.typed.DeckAuthOverview(ctx, map[string]any{})"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
       "kind": "map-string-any",
-      "line": 844,
+      "line": 859,
       "text": "func (q *GatewayQueries) DeckAuthProbe(ctx context.Context, body map[string]any) (generated.DeckAuthProbeResult, error) {"
     },
     {

@@ -27,7 +27,7 @@
 .settings-panel h4,
 .settings-panel strong {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -225,7 +225,7 @@
 
 .settings-nav__body > span {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .settings-nav__empty,
@@ -410,7 +410,7 @@
 .settings-kv dd {
   margin: 0;
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .settings-link-button {

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildAgentPatch,
+  buildAgentIdentityPatch,
+  buildAgentRuntimePatch,
   buildCreateAgentRequest,
   hasOverviewChanges,
+  hasRuntimeChanges,
   initialCreateDraft,
   isConflictError,
   readSectionFromHash,
@@ -23,13 +25,16 @@ describe("agents panel state helpers", () => {
     const draft = { name: "Main Ops", model: "", workspace: "/repo", emoji: "M", avatar: "" };
 
     expect(hasOverviewChanges(agent, draft)).toBe(true);
-    expect(buildAgentPatch(agent, draft)).toEqual({
+    expect(hasRuntimeChanges(agent, draft)).toBe(true);
+    expect(buildAgentIdentityPatch(agent, draft)).toEqual({
       name: "Main Ops",
+    });
+    expect(buildAgentRuntimePatch(agent, draft)).toEqual({
       model: undefined,
     });
   });
 
-  it("submits create requests limited to backend-supported fields", () => {
+  it("submits create requests with backend-supported model seed", () => {
     const draft = {
       ...initialCreateDraft(),
       name: "Research",
@@ -42,6 +47,7 @@ describe("agents panel state helpers", () => {
     expect(buildCreateAgentRequest(draft)).toEqual({
       name: "Research",
       workspace: "/workspace",
+      model: "not-submitted-yet",
       emoji: "R",
       avatar: "https://example.test/avatar.png",
     });

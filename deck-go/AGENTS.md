@@ -121,6 +121,10 @@ Important L2 real-stack facts:
 - Gateway: `18789`
 - backend: `19566`
 - Vite frontend: `4174`
+- Real-stack Gateway startup should use `RUNTIME_BUNDLED_COMMAND=node` with
+  `RUNTIME_BUNDLED_ARGS="dist/entry.js gateway run ..."`; avoid
+  `pnpm openclaw gateway run` for real E2E/debug because it can enter
+  dirty-tree rebuilds and `runtime-postbuild` dependency staging.
 - `RUNTIME_BUNDLED_ARGS` must include `--allow-unconfigured` for bundled real
   Gateway startup.
 - OpenClaw state intentionally uses `~/.openclaw` for real LLM key/channel

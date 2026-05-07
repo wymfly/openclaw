@@ -92,14 +92,14 @@
 .plugins-panel h2 {
   color: var(--ds-text-1);
   font-size: 1.38rem;
-  font-weight: 780;
+  font-weight: 700;
   line-height: 1.14;
 }
 
 .plugins-panel h3 {
   color: var(--ds-text-1);
   font-size: 0.98rem;
-  font-weight: 760;
+  font-weight: 700;
   line-height: 1.22;
 }
 
@@ -128,7 +128,7 @@
 .plugins-panel .section__head > span {
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -173,7 +173,7 @@
   overflow: hidden;
   color: var(--ds-text-1);
   font-size: 1.02rem;
-  font-weight: 780;
+  font-weight: 700;
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -251,7 +251,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.8rem;
-  font-weight: 740;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -309,7 +309,7 @@
   padding: 0 10px;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -350,7 +350,7 @@
   background: color-mix(in srgb, var(--ds-accent) 12%, var(--ds-bg-2));
   color: var(--ds-text-1);
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .plugins-panel .plugin-glyph--large {
@@ -373,7 +373,7 @@
   overflow: hidden;
   color: var(--ds-text-1);
   font-size: 0.9rem;
-  font-weight: 760;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -398,7 +398,7 @@
   background: var(--ds-bg-2);
   color: var(--ds-text-2);
   font-size: 0.74rem;
-  font-weight: 740;
+  font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -524,7 +524,7 @@
 .plugins-panel .cap-tile__num {
   color: var(--ds-text-1);
   font-size: 1.1rem;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .plugins-panel .chip-list {
@@ -552,14 +552,14 @@
 .plugins-panel .deck-action__label {
   color: var(--ds-text-1);
   font-size: 0.82rem;
-  font-weight: 760;
+  font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .plugins-panel .modal__label {
   color: var(--ds-text-3);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -617,13 +617,13 @@
   border: 1px solid currentColor;
   border-radius: 999px;
   font-size: 0.74rem;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .plugins-panel .chain__label {
   color: var(--ds-text-1);
   font-size: 0.82rem;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .plugins-panel .banner,

@@ -25,7 +25,7 @@
 .channels-panel h3,
 .channels-panel strong {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -377,7 +377,7 @@
 
 .row__num {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .channels-glyph {

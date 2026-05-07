@@ -79,7 +79,7 @@
 .budget-panel__card-title {
   margin: 0;
   color: var(--ds-text-1);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -100,7 +100,7 @@
   margin: 0;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -199,7 +199,7 @@
   padding: 4px 8px;
   color: var(--ds-text-2);
   font-size: 0.74rem;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -228,7 +228,7 @@
   padding: 6px 10px;
   cursor: pointer;
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -290,7 +290,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.74rem;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.2;
   padding: 5px 6px;
   text-align: center;
@@ -385,7 +385,7 @@
 .budget-panel__section-head h4 {
   color: var(--ds-text-1);
   font-size: 0.92rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .budget-panel__section-head p {
@@ -427,7 +427,7 @@
 .budget-panel__definition-row span {
   color: var(--ds-text-3);
   font-size: 0.7rem;
-  font-weight: 750;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -473,7 +473,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
   padding: 5px 8px;
 }
 
@@ -493,7 +493,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 700;
   padding: 6px 9px;
 }
 

@@ -90,6 +90,24 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
       expect(detail.ok(), `deck agents detail returned ${detail.status()}`).toBe(true);
       await expect(detail.json()).resolves.toMatchObject({ id: fixture.id });
 
+      const safeUpdate = await request.patch(
+        `${stack.backendBase}/api/agents/${encodeURIComponent(fixture.id)}`,
+        {
+          headers,
+          data: { emoji: "AE" },
+        },
+      );
+      expect(safeUpdate.ok(), `fixture agents.update returned ${safeUpdate.status()}`).toBe(true);
+
+      const protectedDelete = await request.delete(`${stack.backendBase}/api/agents?agentId=main`, {
+        headers,
+      });
+      expect(
+        protectedDelete.ok(),
+        `main delete should be rejected, returned ${protectedDelete.status()}`,
+      ).toBe(false);
+      expect(protectedDelete.status()).toBeGreaterThanOrEqual(400);
+
       for (const action of [
         "skills.get",
         "subagents.get",
@@ -131,7 +149,8 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
           runId: fixture.runId,
           status: "passed",
           fixture: { id: fixture.id, name: fixture.name, workspace: fixture.workspace },
-          methods: ["agents.list", "deck.agents.detail", "deck.agents.*"],
+          methods: ["agents.list", "agents.create", "agents.update", "agents.delete", "deck.agents.*"],
+          protectedMainDelete: { status: protectedDelete.status() },
         },
         testInfo,
       );
@@ -269,6 +288,10 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await page.getByLabel("Emoji").fill("DG");
   await expect(page.getByRole("button", { name: "Save changes" }).first()).toBeEnabled();
 
+  await clickDetailTab(page, "Runtime");
+  await expect(page.getByText("Guarded runtime fields")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review and save" })).toBeVisible();
+
   await clickDetailTab(page, "Skills");
   await expect(page.getByRole("tab", { name: "All" })).toBeVisible();
   await page.getByRole("button", { name: "Reload" }).click();
@@ -301,6 +324,12 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   ).toBeVisible();
   await page.getByRole("button", { name: "Reload" }).click();
   await expect(page.getByRole("heading", { name: "Event streams" })).toBeVisible();
+
+  await clickDetailTab(page, "Routing impact");
+  await expect(page.getByRole("button", { name: "Open Routing" })).toBeVisible();
+
+  await clickDetailTab(page, "Danger zone");
+  await expect(page.getByRole("button", { name: "Delete agent" })).toBeVisible();
 }
 
 async function clickDetailTab(page: Page, name: string) {

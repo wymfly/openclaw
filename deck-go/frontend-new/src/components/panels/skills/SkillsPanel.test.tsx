@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { fireEvent, waitFor } from "@testing-library/react";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -7,9 +9,7 @@ import { DeckIntlProvider } from "../../../i18n/provider";
 import { SkillsPanel } from "./SkillsPanel";
 
 const apiMocks = vi.hoisted(() => ({
-  fetchAgentSkills: vi.fn(),
-  fetchAgentsList: vi.fn(),
-  fetchSkillHubBins: vi.fn(),
+  fetchPluginApprovals: vi.fn(),
   fetchSkillHubDetail: vi.fn(),
   fetchSkills: vi.fn(),
   installSkill: vi.fn(),
@@ -22,12 +22,15 @@ const apiMocks = vi.hoisted(() => ({
 
 const deckUIMocks = vi.hoisted(() => ({
   navigateToAgent: vi.fn(),
+  navigateToPlugin: vi.fn(),
   ui: { setActivePanel: vi.fn() },
 }));
 
 vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/panel-navigation", () => ({
   navigateToAgent: deckUIMocks.navigateToAgent,
+  navigateToPanel: (_ui: unknown, panel: string) => deckUIMocks.ui.setActivePanel(panel),
+  navigateToPlugin: deckUIMocks.navigateToPlugin,
 }));
 vi.mock("../../../deck-ui/ui-store", () => ({
   useDeckUI: () => deckUIMocks.ui,
@@ -43,123 +46,123 @@ function renderSkillsPanel(locale: "en" | "zh" = "en") {
 
 function skillsPayload() {
   return {
-    managedSkillsDir: "/tmp/openclaw-skills",
     skills: [
       {
         key: "shell",
         name: "Shell",
         source: "bundled",
+        sourceRaw: "openclaw-bundled",
         status: "ready",
         description: "Run shell commands",
         enabled: true,
+        apiKeyConfigured: false,
+        agentUsage: { count: 1, agentIds: ["main"] },
+        availableActions: ["disable", "updateApiKey", "updateEnv"],
+        unsupportedReasons: {
+          uninstall: "gateway-rpc-missing",
+          rotate: "gateway-rpc-missing",
+          apiKeyHint: "gateway-safe-secret-summary-missing",
+        },
         primaryEnv: "PATH",
+        owningPlugin: null,
       },
       {
         key: "github",
         name: "GitHub",
-        source: "plugin",
+        source: "managed",
+        sourceRaw: "openclaw-managed",
         status: "needs-setup",
         description: "Manage pull requests",
         enabled: true,
+        apiKeyConfigured: true,
+        agentUsage: { count: 2, agentIds: ["main", "ops"] },
+        availableActions: [
+          "disable",
+          "updateApiKey",
+          "clearApiKey",
+          "updateEnv",
+          "runInstallRecipe",
+          "updateAllClawHub",
+        ],
+        unsupportedReasons: {
+          uninstall: "gateway-rpc-missing",
+          rotate: "gateway-rpc-missing",
+          perSkillUpgrade: "gateway-tracking-status-missing",
+          apiKeyHint: "gateway-safe-secret-summary-missing",
+        },
         missingRequirements: ["env: GITHUB_TOKEN", "bins: gh"],
         primaryEnv: "GITHUB_TOKEN",
-        config: { apiKey: "old-token", env: { GITHUB_TOKEN: "old-token" } },
+        config: { env: { GITHUB_TOKEN: "old-token" } },
         installOptions: [{ id: "brew-gh", label: "Install gh", bins: ["gh"] }],
+        owningPlugin: { id: "git-plugin", name: "Git Plugin" },
       },
       {
-        key: "design",
-        name: "Frontend Design",
-        source: "managed",
-        status: "ready",
-        description: "Create design prototypes",
-        enabled: true,
-      },
-      {
-        key: "legacy",
-        name: "Legacy",
-        source: "plugin",
+        key: "workspace",
+        name: "Workspace Skill",
+        source: "workspace",
+        sourceRaw: "openclaw-workspace",
         status: "disabled",
-        description: "Disabled legacy helper",
         enabled: false,
+        apiKeyConfigured: false,
+        agentUsage: { count: 0, agentIds: [] },
+        availableActions: ["enable", "updateApiKey", "updateEnv"],
+        unsupportedReasons: {
+          uninstall: "gateway-rpc-missing",
+          rotate: "gateway-rpc-missing",
+          apiKeyHint: "gateway-safe-secret-summary-missing",
+        },
+        owningPlugin: null,
       },
     ],
   };
 }
 
-describe("SkillsPanel", () => {
+async function renderReady(locale: "en" | "zh" = "en") {
+  await act(async () => {
+    renderSkillsPanel(locale);
+  });
+  await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
+}
+
+function clickText(text: string | RegExp) {
+  const button = screen.getByRole("button", { name: text });
+  act(() => {
+    fireEvent.click(button);
+  });
+  return button;
+}
+
+function changeField(label: string, value: string) {
+  act(() => {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+  });
+}
+
+describe("SkillsPanel product control plane", () => {
   beforeEach(() => {
     (
       globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement("div");
     document.body.appendChild(container);
-    apiMocks.fetchAgentsList.mockResolvedValue({
-      agents: [
-        { id: "main", name: "Main Agent" },
-        { id: "builder", name: "Builder Agent" },
-      ],
-    });
-    apiMocks.fetchAgentSkills.mockImplementation((agentId: string) =>
-      Promise.resolve(
-        agentId === "builder"
-          ? {
-              agentId: "builder",
-              mode: "whitelist",
-              skills: ["shell"],
-              available: [
-                { key: "shell", name: "Shell", eligible: true, assigned: true },
-                { key: "github", name: "GitHub", eligible: true, assigned: false },
-              ],
-              configHash: "skills-builder-1",
-            }
-          : {
-              agentId: "main",
-              mode: "all",
-              skills: ["shell", "github"],
-              available: [
-                { key: "shell", name: "Shell", eligible: true, assigned: true },
-                { key: "github", name: "GitHub", eligible: true, assigned: true },
-              ],
-              configHash: "skills-main-1",
-            },
-      ),
-    );
-    apiMocks.fetchSkillHubBins.mockResolvedValue({ bins: ["dev", "ops"] });
-    apiMocks.fetchSkillHubDetail.mockResolvedValue({
-      skill: {
-        slug: "git-helper",
-        displayName: "Git Helper",
-        summary: "Manage git workflows",
-        updatedAt: 1710000000000,
-      },
-      latestVersion: { version: "1.0.0", changelog: "Initial release" },
-      metadata: { os: ["darwin", "linux"], systems: ["git"] },
-      owner: { handle: "clawhub", displayName: "ClawHub" },
-    });
     apiMocks.fetchSkills.mockResolvedValue(skillsPayload());
-    apiMocks.installSkill.mockResolvedValue({ ok: true, installed: "github" });
-    apiMocks.installSkillHub.mockResolvedValue({ ok: true, installed: "git-helper" });
-    apiMocks.searchSkillHub.mockResolvedValue({
-      results: [
-        {
-          slug: "git-helper",
-          displayName: "Git Helper",
-          summary: "Manage git workflows",
-          version: "1.0.0",
-          score: 0.98,
-          updatedAt: 1710000000000,
-        },
+    apiMocks.fetchPluginApprovals.mockResolvedValue({
+      entries: [
+        { id: "plugin-ap-1", status: "pending" },
+        { id: "plugin-ap-2", status: "pending" },
       ],
     });
-    apiMocks.updateSkill.mockResolvedValue({ ok: true, config: { enabled: false } });
-    apiMocks.updateAgentSkills.mockResolvedValue({
-      ok: true,
-      agentId: "builder",
-      mode: "whitelist",
-      skills: ["github", "shell"],
-      configHash: "skills-builder-2",
+    apiMocks.searchSkillHub.mockResolvedValue({
+      results: [{ slug: "git-helper", displayName: "Git Helper", version: "1.0.0" }],
     });
-    apiMocks.updateSkillHub.mockResolvedValue({ ok: true, updated: true });
+    apiMocks.fetchSkillHubDetail.mockResolvedValue({
+      skill: { slug: "git-helper", displayName: "Git Helper", summary: "Git workflows" },
+      latestVersion: { version: "1.0.0" },
+    });
+    apiMocks.installSkill.mockResolvedValue({ ok: true, code: 0, stdout: "", stderr: "" });
+    apiMocks.installSkillHub.mockResolvedValue({ ok: true, slug: "git-helper" });
+    apiMocks.updateSkill.mockResolvedValue({ ok: true });
+    apiMocks.updateSkillHub.mockResolvedValue({ ok: true });
   });
 
   afterEach(() => {
@@ -173,232 +176,133 @@ describe("SkillsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders the prototype-shaped installed catalog by default", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
+  it("renders list workbench plus fixed detail sections instead of the old tab model", async () => {
+    await renderReady();
 
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("heading", { name: "Skills" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Install from ClawHub" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Approvals: 2 pending" })).toBeTruthy();
+    expect(screen.getByText("managed")).toBeTruthy();
 
-    expect(container.querySelector(".skills-panel__page-header")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__kpi-strip")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__toolbar")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__row-head")).toBeTruthy();
-    expect(container.querySelector(".skills-panel__row")).toBeTruthy();
-    expect(container.textContent).toContain("skill catalog");
-    expect(container.textContent).toContain("Installed");
-    expect(container.textContent).toContain("4");
-    expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).toContain("GITHUB_TOKEN");
-    expect(container.textContent).toContain("Frontend Design");
-  });
+    clickText("GitHub");
 
-  it("filters installed skills by search, status, and source", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
-
-    const search = container.querySelector<HTMLInputElement>('input[aria-label="Search skills"]');
-    expect(search).toBeTruthy();
-
-    await act(async () => {
-      fireEvent.change(search as HTMLInputElement, { target: { value: "pull requests" } });
-    });
-    expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).not.toContain("ShellRun shell commands");
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("Needs setup"));
-    });
-    expect(container.textContent).toContain("GitHub");
-    expect(container.textContent).not.toContain("Frontend Design");
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("Managed"));
-    });
-    expect(container.textContent).toContain("No installed skills match filters.");
-  });
-
-  it("opens detail tabs and runs configure, install, and disable through wrappers", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("GitHub"));
-    });
-    expect(container.textContent).toContain("Identity");
-
-    for (const tab of ["Setup", "Triggers", "Bins", "Files", "Audit", "Overview"]) {
-      await act(async () => {
-        fireEvent.click(tabButtonWithText(tab));
-      });
-      expect(tabButtonWithText(tab).getAttribute("aria-selected")).toBe("true");
+    for (const section of [
+      "Identity",
+      "Source & activation",
+      "API key",
+      "env",
+      "Eligibility health",
+      "Agent Usage",
+      "Owning Plugin",
+      "Danger zone",
+    ]) {
+      expect(screen.getByRole("heading", { name: section })).toBeTruthy();
     }
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("Configure"));
-    });
-    expect(container.textContent).toContain("Configure skill");
-    const apiKeyInput = container.querySelector<HTMLInputElement>('input[type="password"]');
-    const envTextarea = container.querySelector<HTMLTextAreaElement>(
-      'textarea[aria-label="skill env json"]',
-    );
-    expect(apiKeyInput?.value).toBe("old-token");
-    expect(envTextarea?.value).toContain("GITHUB_TOKEN");
-
-    await act(async () => {
-      fireEvent.change(apiKeyInput as HTMLInputElement, { target: { value: "new-token" } });
-      fireEvent.change(envTextarea as HTMLTextAreaElement, {
-        target: { value: JSON.stringify({ GITHUB_TOKEN: "new-token", EXTRA: 42 }, null, 2) },
-      });
-      fireEvent.click(buttonWithText("Save config"));
-    });
-    await waitFor(() =>
-      expect(apiMocks.updateSkill).toHaveBeenLastCalledWith("github", {
-        apiKey: "new-token",
-        env: { GITHUB_TOKEN: "new-token", EXTRA: "42" },
-      }),
-    );
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("Install"));
-    });
-    await act(async () => {
-      fireEvent.click(buttonWithText("Install gh"));
-    });
-    await waitFor(() => expect(apiMocks.installSkill).toHaveBeenCalledWith("GitHub", "brew-gh"));
-
-    await act(async () => {
-      fireEvent.click(buttonWithText("Disable"));
-    });
-    await act(async () => {
-      fireEvent.click(lastButtonWithText("Disable"));
-    });
-    await waitFor(() =>
-      expect(apiMocks.updateSkill).toHaveBeenLastCalledWith("github", { enabled: false }),
-    );
+    expect(screen.queryByRole("tab", { name: "Setup" })).toBeNull();
+    expect(screen.queryByText("Triggers")).toBeNull();
   });
 
-  it("searches hub, opens hub detail dialog, installs, and updates all through BFF wrappers", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
-    await waitFor(() => expect(apiMocks.fetchSkillHubBins).toHaveBeenCalledTimes(1));
+  it("keeps Agent Usage read-only and routes edits to Agents", async () => {
+    await renderReady();
+    clickText("GitHub");
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("Hub"));
-    });
-    const search = container.querySelector<HTMLInputElement>('input[aria-label="Search skills"]');
-    await act(async () => {
-      fireEvent.change(search as HTMLInputElement, { target: { value: "git" } });
-      fireEvent.click(buttonWithText("Search hub"));
-    });
-    await waitFor(() => expect(apiMocks.searchSkillHub).toHaveBeenCalledWith("git", 20));
-    expect(container.textContent).toContain("Git Helper");
+    expect(screen.getByText("main")).toBeTruthy();
+    expect(screen.getByText("ops")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Add GitHub|Remove GitHub|Save skills/i })).toBeNull();
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("Preview"));
-    });
-    await waitFor(() => expect(apiMocks.fetchSkillHubDetail).toHaveBeenCalledWith("git-helper"));
-    expect(container.textContent).toContain("Install skill from hub");
+    clickText("Open main in Agents");
+    expect(deckUIMocks.navigateToAgent).toHaveBeenCalledWith(deckUIMocks.ui, "main", "skills");
+    expect(apiMocks.updateAgentSkills).not.toHaveBeenCalled();
+  });
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("Install from ClawHub"));
-    });
-    await waitFor(() =>
-      expect(apiMocks.installSkillHub).toHaveBeenCalledWith("git-helper", "1.0.0"),
-    );
+  it("masks apiKey state and validates env keys before save", async () => {
+    await renderReady();
+    clickText("GitHub");
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("Hub"));
-      fireEvent.click(buttonWithText("Update all ClawHub"));
-    });
+    expect(screen.getByText("API key configured")).toBeTruthy();
+    expect(container.textContent).not.toContain("old-token");
+
+    clickText("Update API key");
+    const secretInput = screen.getByLabelText("New API key") as HTMLInputElement;
+    expect(secretInput.type).toBe("password");
+    changeField("New API key", "new-secret-token");
+    expect(container.textContent).not.toContain("new-secret-token");
+    clickText("Save API key");
+    await waitFor(() => expect(apiMocks.updateSkill).toHaveBeenCalledWith("github", { apiKey: "new-secret-token" }));
+
+    clickText("Edit env");
+    changeField("Env key 1", "bad-key");
+    expect(screen.getByText("Keys must match ^[A-Z][A-Z0-9_]*$")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Save env" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("runs global ClawHub update-all with no slug or version", async () => {
+    await renderReady();
+
+    clickText("Update all managed");
+    expect(screen.getByText("This updates all tracked ClawHub skills in this Gateway workspace.")).toBeTruthy();
+    clickText("Confirm update all");
+
     await waitFor(() => expect(apiMocks.updateSkillHub).toHaveBeenCalledWith());
   });
 
-  it("keeps the agent skill matrix reachable as a secondary detail surface", async () => {
-    await act(async () => {
-      renderSkillsPanel();
-    });
-    await waitFor(() => expect(apiMocks.fetchAgentsList).toHaveBeenCalledTimes(1));
+  it("installs through the wizard and treats post-install setup failure as recoverable", async () => {
+    apiMocks.updateSkill.mockRejectedValueOnce(new Error("post install update failed"));
+    await renderReady();
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("GitHub"));
-    });
-    await act(async () => {
-      const summary = container.querySelector("summary");
-      if (!summary) {
-        throw new Error("matrix summary not found");
-      }
-      fireEvent.click(summary);
-    });
-    expect(container.textContent).toContain("Main Agent");
-    expect(container.textContent).toContain("Builder Agent");
+    clickText("Install from ClawHub");
+    clickText("Next: slug");
+    changeField("Skill slug", "git-helper");
+    clickText("Preview slug");
+    await waitFor(() => expect(apiMocks.fetchSkillHubDetail).toHaveBeenCalledWith("git-helper"));
+    clickText("Next: API key");
+    changeField("Optional install API key", "__deck_test_apikey_run_1");
+    clickText("Next: env");
+    changeField("Wizard env key 1", "GIT_TOKEN");
+    changeField("Wizard env value 1", "1");
+    clickText("Review install");
 
-    await act(async () => {
-      fireEvent.click(buttonWithText("Builder Agent"));
-    });
-    expect(deckUIMocks.navigateToAgent).toHaveBeenCalledWith(deckUIMocks.ui, "builder", "skills");
+    expect(container.textContent).toContain("installSkillHub first, then updateSkill for setup");
+    expect(container.textContent).not.toContain("__deck_test_apikey_run_1");
+    clickText("Confirm install");
 
-    const addGitHubToBuilder = container.querySelector<HTMLButtonElement>(
-      'button[aria-label="Add github for builder"]',
-    );
-    expect(addGitHubToBuilder).toBeTruthy();
-    await act(async () => {
-      addGitHubToBuilder?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
+    await waitFor(() => expect(apiMocks.installSkillHub).toHaveBeenCalledWith("git-helper"));
     await waitFor(() =>
-      expect(apiMocks.updateAgentSkills).toHaveBeenCalledWith("builder", {
-        mode: "whitelist",
-        skills: ["github", "shell"],
-        baseHash: "skills-builder-1",
+      expect(apiMocks.updateSkill).toHaveBeenCalledWith("git-helper", {
+        apiKey: "__deck_test_apikey_run_1",
+        env: { GIT_TOKEN: "1" },
       }),
     );
+    expect(screen.getByText("Install succeeded. API key or env setup failed; retry from the detail sections.")).toBeTruthy();
   });
 
-  it("renders localized Chinese catalog chrome", async () => {
-    await act(async () => {
-      renderSkillsPanel("zh");
-    });
-    await waitFor(() => expect(apiMocks.fetchSkills).toHaveBeenCalledTimes(1));
+  it("preserves per-bin install recipe behavior in AddBinDialog", async () => {
+    await renderReady();
+    clickText("GitHub");
+    clickText("Run install recipe");
+    clickText("Install gh");
 
-    expect(container.textContent).toContain("技能管理");
-    expect(container.textContent).toContain("控制 / 技能目录");
-    expect(container.textContent).toContain("已安装");
-    expect(container.textContent).toContain("市场");
+    await waitFor(() => expect(apiMocks.installSkill).toHaveBeenCalledWith("GitHub", "brew-gh"));
+  });
+
+  it("does not import or call updateAgentSkills from Skills components", async () => {
+    await renderReady();
+    clickText("GitHub");
+
+    const skillsDir = join(process.cwd(), "src/components/panels/skills");
+    const source = readdirSync(skillsDir)
+      .filter((file) => file.endsWith(".tsx") && !file.endsWith(".test.tsx"))
+      .map((file) => readFileSync(join(skillsDir, file), "utf8"))
+      .join("\n");
+    expect(source).not.toContain("updateAgentSkills");
+    expect(apiMocks.updateAgentSkills).not.toHaveBeenCalled();
+  });
+
+  it("supports Chinese rendering without losing core section labels", async () => {
+    await renderReady("zh");
+    clickText("GitHub");
+
+    expect(screen.getByRole("heading", { name: "身份" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "危险区" })).toBeTruthy();
   });
 });
-
-function buttonWithText(text: string) {
-  const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
-    candidate.textContent?.includes(text),
-  );
-  if (!button) {
-    throw new Error(`button not found: ${text}\n${container.textContent}`);
-  }
-  return button;
-}
-
-function lastButtonWithText(text: string) {
-  const buttons = Array.from(container.querySelectorAll("button")).filter((candidate) =>
-    candidate.textContent?.includes(text),
-  );
-  const button = buttons.at(-1);
-  if (!button) {
-    throw new Error(`button not found: ${text}\n${container.textContent}`);
-  }
-  return button;
-}
-
-function tabButtonWithText(text: string) {
-  const button = Array.from(container.querySelectorAll('button[role="tab"]')).find((candidate) =>
-    candidate.textContent?.includes(text),
-  );
-  if (!button) {
-    throw new Error(`tab not found: ${text}\n${container.textContent}`);
-  }
-  return button;
-}

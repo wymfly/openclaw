@@ -149,7 +149,7 @@
   padding: 5px 8px;
   color: var(--ds-text-2);
   font-size: 0.78rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .cron-panel__segmented-button.is-active {
@@ -200,7 +200,7 @@
   margin: 0;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -221,7 +221,7 @@
 .cron-panel__detail-title {
   margin: 0;
   color: var(--ds-text-1);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -259,7 +259,7 @@
   min-height: 32px;
   padding: 6px 10px;
   font-size: 0.82rem;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -309,7 +309,7 @@
   border-radius: var(--ds-radius-sm);
   background: var(--ds-bg-2);
   color: var(--ds-text-2);
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -372,7 +372,7 @@
   padding: 0 10px;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
@@ -428,7 +428,7 @@
   padding: 5px 9px;
   color: var(--ds-text-2);
   font-size: 0.8rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .cron-panel__tab.is-active {
@@ -453,7 +453,7 @@
 .cron-panel__kv dt {
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 

@@ -7,9 +7,9 @@ This file is the current deployment source of truth for the Windows release host
 
 ## Last updated
 
-- Date: `2026-05-06`
+- Date: `2026-05-07`
 - Scope: Windows release host `60.204.148.217`
-- Updated during: WeCom-bound agent PDF/email/doc tool-chain configuration and email account activation
+- Updated during: WeCom plugin hot update for official smart table API alignment and Gateway restart verification
 
 ## Current live deployment
 
@@ -106,6 +106,34 @@ Additional `2026-05-06` live configuration validation notes:
   - `authenticated=true`
   - `transport=agent-callback`
 
+Additional `2026-05-07` WeCom plugin hot-update validation notes:
+
+- Live WeCom plugin source and built runtime were hot-replaced from the local build that aligns smart table record creation/deletion payloads with the official WeCom API.
+- Runtime metadata for `source\dist\extensions\wecom` was restored before the final restart:
+  - `openclaw.plugin.json`
+  - `package.json`
+  - `skills`
+- The WeCom dist dependency closure was copied into live `source\dist`; `fetch-guard-Clyd8fLh.js` is present at:
+  - `D:\openclaw\selftest-data-verify\openclaw-deploy-20260413-174911\source\dist\fetch-guard-Clyd8fLh.js`
+- `GET http://localhost:19040/healthz` returned:
+  - `200 {"ok":true,"status":"live"}`
+- `GET http://localhost:3340/api/gateway/health` returned `200` and reported WeCom configured with successful probe:
+  - `probe.ok=true`
+  - `agentId=1000048`
+  - `transport=agent-callback`
+- `GET http://localhost:3340/api/channels` returned `200` and reported WeCom:
+  - `running=true`
+  - `health=healthy`
+  - `connected=true`
+  - `authenticated=true`
+  - `transport=agent-callback`
+  - `webhookPath=/plugins/wecom/agent/default`
+- Gateway log for the final restart includes:
+  - `ready (7 plugins: acpx, browser, device-pair, email, phone-control, talk-voice, wecom; 50.9s)`
+  - `wecom-http ... gettoken status=200`
+  - `wecom agent agent-callback started`
+  - `runtime status health=healthy ... connected=true authenticated=true`
+
 ### Config and backup
 
 - Backup created before the latest live upgrade:
@@ -118,6 +146,11 @@ Additional `2026-05-06` live configuration validation notes:
   - `D:\openclaw\backups\agent-pdf-email-wecom-chain-cpa-correction-20260506-104905`
 - Backup created before activating the email account:
   - `D:\openclaw\backups\email-config-20260506-110746`
+- Backups created during the `2026-05-07` WeCom plugin hot update:
+  - `D:\openclaw\backups\wecom-plugin-api-align-20260507-174043`
+  - `D:\openclaw\backups\wecom-dist-runtime-manifest-fix-20260507-174855`
+  - `D:\openclaw\backups\wecom-dist-chunks-fix-20260507-175339`
+  - `D:\openclaw\backups\wecom-dist-chunks-copy-fix-20260507-175839`
 - `openclaw.json` SHA-256 before and after upgrade:
   - `ED86321AD4BB54152F965C0EB3B94CEA4D8D904A9E956C275F1EC994236728BD`
 

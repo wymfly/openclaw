@@ -24,7 +24,7 @@
 .sessions-panel h2,
 .sessions-panel h3 {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -43,7 +43,7 @@
 
 .sessions-panel strong {
   color: var(--ds-text-1);
-  font-weight: 650;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -325,7 +325,7 @@
 .sessions-export-preview summary {
   cursor: pointer;
   color: var(--ds-text-2);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .sessions-transcript-row.is-selected,

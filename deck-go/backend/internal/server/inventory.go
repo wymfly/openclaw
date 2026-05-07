@@ -73,11 +73,18 @@ func registerInventoryRoutes(mux interface {
 	})
 
 	mux.MethodFunc("DELETE", "/agents", func(w http.ResponseWriter, r *http.Request) {
-		agentID := r.URL.Query().Get("agentId")
+		agentID := strings.TrimSpace(r.URL.Query().Get("agentId"))
 		if agentID == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]any{
 				"ok":    false,
 				"error": "agentId is required",
+			})
+			return
+		}
+		if strings.EqualFold(agentID, "main") {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"error": "main is the protected system/fallback agent and cannot be deleted",
 			})
 			return
 		}
@@ -281,7 +288,15 @@ func registerInventoryRoutes(mux interface {
 			writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "skills.status", "error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, normalizeSkillsResponse(payload))
+		normalization := skillNormalizationContext{}
+		if configPayload, err := adapter.ConfigGet(ctx); err == nil {
+			normalization.rawConfigBySkill, normalization.apiKeyConfiguredBySkill = skillConfigByKeyFromPayload(configPayload)
+			normalization.agentIDsBySkill = skillAgentUsageBySkillFromConfigPayload(configPayload)
+		}
+		if pluginPayload, err := adapter.DeckPluginsList(ctx, map[string]any{"capability": "all"}); err == nil {
+			normalization.owningPluginBySkill = skillOwningPluginsFromPayload(pluginPayload, skillIdentityByKeyFromPayload(payload))
+		}
+		writeJSON(w, http.StatusOK, normalizeSkillsResponse(payload, normalization))
 	})
 
 	mux.MethodFunc("PATCH", "/skills/{skillKey}", func(w http.ResponseWriter, r *http.Request) {
@@ -1743,7 +1758,18 @@ func normalizeCronStatusResponse(payload any) deckapi.DeckGoCronStatus {
 	}
 }
 
-func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {
+type skillNormalizationContext struct {
+	rawConfigBySkill        map[string]map[string]any
+	apiKeyConfiguredBySkill map[string]bool
+	agentIDsBySkill         map[string][]string
+	owningPluginBySkill     map[string]*deckapi.DeckGoSkillOwningPluginRef
+}
+
+func normalizeSkillsResponse(payload any, contexts ...skillNormalizationContext) deckapi.DeckGoSkillsResponse {
+	normalization := skillNormalizationContext{}
+	if len(contexts) > 0 {
+		normalization = contexts[0]
+	}
 	switch result := payload.(type) {
 	case generated.SkillsStatusResult:
 		skills := make([]deckapi.DeckGoSkillEntry, 0, len(result.Skills))
@@ -1765,19 +1791,29 @@ func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {
 
 			key := coerce.FirstString(skill.SkillKey, skill.Name)
 			name := coerce.FirstString(skill.Name, skill.SkillKey)
-			skills = append(skills, deckapi.DeckGoSkillEntry{
+			sourceRaw := strings.TrimSpace(skill.Source)
+			productSource := normalizedDeckSkillSource(sourceRaw)
+			entry := deckapi.DeckGoSkillEntry{
 				Key:                 key,
 				Name:                name,
 				Status:              normalizedDeckSkillStatus(skill.Disabled, skill.Eligible, len(missing) > 0),
-				Source:              normalizedDeckSkillSource(skill.Source),
+				Source:              deckapi.DeckGoSkillProductSource(productSource),
+				SourceRaw:           sourceRaw,
 				Enabled:             !skill.Disabled,
+				ApiKeyConfigured:    normalization.apiKeyConfiguredBySkill[key],
+				AgentUsage:          deckSkillAgentUsage(normalization.agentIDsBySkill[key]),
+				AvailableActions:    deckSkillAvailableActions(!skill.Disabled, normalization.apiKeyConfiguredBySkill[key], productSource, len(installOptions) > 0),
+				UnsupportedReasons:  deckSkillUnsupportedReasons(productSource),
+				OwningPlugin:        normalization.owningPluginBySkill[key],
 				MissingRequirements: missing,
+				Config:              sanitizeSkillConfig(normalization.rawConfigBySkill[key]),
 				Description:         skill.Description,
 				Emoji:               skill.Emoji,
 				Homepage:            skill.Homepage,
 				InstallOptions:      installOptions,
 				PrimaryEnv:          skill.PrimaryEnv,
-			})
+			}
+			skills = append(skills, entry)
 		}
 		return deckapi.DeckGoSkillsResponse{Skills: skills}
 	case map[string]any:
@@ -1785,7 +1821,7 @@ func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {
 		skills := make([]deckapi.DeckGoSkillEntry, 0, len(rawSkills))
 		for _, rawSkill := range rawSkills {
 			if record := coerce.Map(rawSkill); record != nil {
-				skills = append(skills, deckSkillEntryFromMap(record))
+				skills = append(skills, deckSkillEntryFromMap(record, normalization))
 			}
 		}
 		return deckapi.DeckGoSkillsResponse{Skills: skills}
@@ -1794,7 +1830,7 @@ func normalizeSkillsResponse(payload any) deckapi.DeckGoSkillsResponse {
 	}
 }
 
-func deckSkillEntryFromMap(record map[string]any) deckapi.DeckGoSkillEntry {
+func deckSkillEntryFromMap(record map[string]any, normalization skillNormalizationContext) deckapi.DeckGoSkillEntry {
 	missing := skillMissingRequirementsFromAny(record["missing"])
 	disabled := coerce.Bool(record["disabled"])
 	eligible := true
@@ -1803,18 +1839,29 @@ func deckSkillEntryFromMap(record map[string]any) deckapi.DeckGoSkillEntry {
 	}
 	key := coerce.FirstString(record["key"], record["skillKey"], record["name"])
 	name := coerce.FirstString(record["name"], record["skillKey"], record["key"])
+	sourceRaw := strings.TrimSpace(coerce.String(record["source"], ""))
+	productSource := normalizedDeckSkillSource(sourceRaw)
+	config := sanitizeSkillConfig(coerce.Map(record["config"]))
+	apiKeyConfigured := normalization.apiKeyConfiguredBySkill[key] || skillAPIKeyConfigured(coerce.Map(record["config"]))
+	installOptions := deckSkillInstallOptionsFromAny(record["install"])
 	return deckapi.DeckGoSkillEntry{
 		Key:                 key,
 		Name:                name,
 		Status:              normalizedDeckSkillStatus(disabled, eligible, len(missing) > 0),
-		Source:              normalizedDeckSkillSource(coerce.String(record["source"], "")),
+		Source:              deckapi.DeckGoSkillProductSource(productSource),
+		SourceRaw:           sourceRaw,
 		Enabled:             !disabled,
+		ApiKeyConfigured:    apiKeyConfigured,
+		AgentUsage:          deckSkillAgentUsage(normalization.agentIDsBySkill[key]),
+		AvailableActions:    deckSkillAvailableActions(!disabled, apiKeyConfigured, productSource, len(installOptions) > 0),
+		UnsupportedReasons:  deckSkillUnsupportedReasons(productSource),
+		OwningPlugin:        normalization.owningPluginBySkill[key],
 		MissingRequirements: missing,
-		Config:              coerce.Map(record["config"]),
+		Config:              config,
 		Description:         coerce.String(record["description"], ""),
 		Emoji:               coerce.String(record["emoji"], ""),
 		Homepage:            coerce.String(record["homepage"], ""),
-		InstallOptions:      deckSkillInstallOptionsFromAny(record["install"]),
+		InstallOptions:      installOptions,
 		PrimaryEnv:          coerce.String(record["primaryEnv"], ""),
 	}
 }
@@ -1830,12 +1877,259 @@ func normalizedDeckSkillStatus(disabled bool, eligible bool, hasMissing bool) de
 }
 
 func normalizedDeckSkillSource(source string) string {
-	switch source {
-	case "managed", "plugin":
-		return source
-	default:
+	switch strings.TrimSpace(source) {
+	case "openclaw-bundled":
 		return "bundled"
+	case "openclaw-managed":
+		return "managed"
+	case "openclaw-workspace":
+		return "workspace"
+	case "openclaw-extra":
+		return "extra"
+	case "agents-skills-personal":
+		return "personal"
+	case "agents-skills-project":
+		return "project"
+	default:
+		return "unknown"
 	}
+}
+
+func deckSkillAgentUsage(agentIDs []string) deckapi.DeckGoSkillAgentUsage {
+	return deckapi.DeckGoSkillAgentUsage{
+		Count:    float64(len(agentIDs)),
+		AgentIds: append([]string(nil), agentIDs...),
+	}
+}
+
+func deckSkillAvailableActions(enabled bool, apiKeyConfigured bool, source string, hasInstallOptions bool) []deckapi.DeckGoSkillAvailableAction {
+	actions := []deckapi.DeckGoSkillAvailableAction{}
+	if enabled {
+		actions = append(actions, deckapi.DeckGoSkillAvailableAction("disable"))
+	} else {
+		actions = append(actions, deckapi.DeckGoSkillAvailableAction("enable"))
+	}
+	actions = append(actions, deckapi.DeckGoSkillAvailableAction("updateApiKey"), deckapi.DeckGoSkillAvailableAction("updateEnv"))
+	if apiKeyConfigured {
+		actions = append(actions, deckapi.DeckGoSkillAvailableAction("clearApiKey"))
+	}
+	if hasInstallOptions {
+		actions = append(actions, deckapi.DeckGoSkillAvailableAction("runInstallRecipe"))
+	}
+	if source == "managed" {
+		actions = append(actions, deckapi.DeckGoSkillAvailableAction("updateAllClawHub"))
+	}
+	return actions
+}
+
+func deckSkillUnsupportedReasons(source string) deckapi.DeckGoSkillUnsupportedReasons {
+	reasons := deckapi.DeckGoSkillUnsupportedReasons{
+		Uninstall:  "gateway-rpc-missing",
+		Rotate:     "gateway-rpc-missing",
+		ApiKeyHint: "gateway-safe-secret-summary-missing",
+	}
+	if source == "managed" {
+		reasons.PerSkillUpgrade = "gateway-tracking-status-missing"
+	}
+	return reasons
+}
+
+func sanitizeSkillConfig(config map[string]any) map[string]any {
+	if len(config) == 0 {
+		return nil
+	}
+	sanitized := make(map[string]any, len(config))
+	for key, value := range config {
+		if isSecretSkillConfigKey(key) {
+			continue
+		}
+		if child, ok := value.(map[string]any); ok {
+			if nested := sanitizeSkillConfig(child); len(nested) > 0 {
+				sanitized[key] = nested
+			}
+			continue
+		}
+		sanitized[key] = value
+	}
+	if len(sanitized) == 0 {
+		return nil
+	}
+	return sanitized
+}
+
+func isSecretSkillConfigKey(key string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(key))
+	return normalized == "apikey" ||
+		strings.Contains(normalized, "secret") ||
+		strings.HasSuffix(normalized, "_token") ||
+		strings.HasSuffix(normalized, "_key")
+}
+
+func skillAPIKeyConfigured(config map[string]any) bool {
+	if len(config) == 0 {
+		return false
+	}
+	value, ok := config["apiKey"]
+	if !ok {
+		return false
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed) != ""
+	case map[string]any:
+		return len(typed) > 0
+	default:
+		return value != nil
+	}
+}
+
+func skillConfigByKeyFromPayload(payload any) (map[string]map[string]any, map[string]bool) {
+	root := configRootFromPayload(payload)
+	skills := coerce.Map(root["skills"])
+	entries := coerce.Map(skills["entries"])
+	configByKey := map[string]map[string]any{}
+	apiKeyConfigured := map[string]bool{}
+	for skillKey, value := range entries {
+		record := coerce.Map(value)
+		if record == nil {
+			continue
+		}
+		configByKey[skillKey] = record
+		apiKeyConfigured[skillKey] = skillAPIKeyConfigured(record)
+	}
+	return configByKey, apiKeyConfigured
+}
+
+func skillAgentUsageBySkillFromConfigPayload(payload any) map[string][]string {
+	root := configRootFromPayload(payload)
+	agents := coerce.Map(root["agents"])
+	rawList, _ := agents["list"].([]any)
+	usage := map[string][]string{}
+	for _, rawAgent := range rawList {
+		agent := coerce.Map(rawAgent)
+		agentID := strings.TrimSpace(coerce.String(agent["id"], ""))
+		if agentID == "" {
+			continue
+		}
+		for _, skillKey := range stringSliceFromAny(agent["skills"]) {
+			usage[skillKey] = append(usage[skillKey], agentID)
+		}
+	}
+	return usage
+}
+
+func configRootFromPayload(payload any) map[string]any {
+	if result, ok := payload.(generated.ConfigGetResult); ok {
+		for _, candidate := range []any{result.Config, result.Parsed, result.Resolved, result.SourceConfig} {
+			if record := coerce.Map(candidate); record != nil {
+				return record
+			}
+		}
+		return map[string]any{}
+	}
+	record := coerce.Map(payload)
+	for _, key := range []string{"config", "parsed", "resolved", "sourceConfig"} {
+		if nested := coerce.Map(record[key]); nested != nil {
+			return nested
+		}
+	}
+	return map[string]any{}
+}
+
+func stringSliceFromAny(value any) []string {
+	switch typed := value.(type) {
+	case []string:
+		return append([]string(nil), typed...)
+	case []any:
+		values := make([]string, 0, len(typed))
+		for _, item := range typed {
+			if s := strings.TrimSpace(coerce.String(item, "")); s != "" {
+				values = append(values, s)
+			}
+		}
+		return values
+	default:
+		return nil
+	}
+}
+
+func skillIdentityByKeyFromPayload(payload any) map[string]string {
+	identity := map[string]string{}
+	switch result := payload.(type) {
+	case generated.SkillsStatusResult:
+		for _, skill := range result.Skills {
+			key := coerce.FirstString(skill.SkillKey, skill.Name)
+			name := coerce.FirstString(skill.Name, skill.SkillKey)
+			if key != "" {
+				identity[key] = name
+			}
+		}
+	case map[string]any:
+		rawSkills, _ := result["skills"].([]any)
+		for _, rawSkill := range rawSkills {
+			record := coerce.Map(rawSkill)
+			key := coerce.FirstString(record["key"], record["skillKey"], record["name"])
+			name := coerce.FirstString(record["name"], record["skillKey"], record["key"])
+			if key != "" {
+				identity[key] = name
+			}
+		}
+	}
+	return identity
+}
+
+func skillOwningPluginsFromPayload(payload any, skillNames map[string]string) map[string]*deckapi.DeckGoSkillOwningPluginRef {
+	plugins := pluginInventoryEntriesFromPayload(payload)
+	owners := map[string]*deckapi.DeckGoSkillOwningPluginRef{}
+	for skillKey, skillName := range skillNames {
+		needleKey := strings.ToLower(skillKey)
+		needleName := strings.ToLower(skillName)
+		for _, plugin := range plugins {
+			if pluginMatchesSkill(plugin, needleKey, needleName) {
+				owners[skillKey] = &deckapi.DeckGoSkillOwningPluginRef{Id: plugin.Id, Name: plugin.Name}
+				break
+			}
+		}
+	}
+	return owners
+}
+
+func pluginInventoryEntriesFromPayload(payload any) []deckapi.DeckGoPluginInventoryEntry {
+	switch result := payload.(type) {
+	case deckapi.DeckGoPluginsListResponse:
+		return result.Plugins
+	case map[string]any:
+		rawPlugins, _ := result["plugins"].([]any)
+		plugins := make([]deckapi.DeckGoPluginInventoryEntry, 0, len(rawPlugins))
+		for _, rawPlugin := range rawPlugins {
+			record := coerce.Map(rawPlugin)
+			plugins = append(plugins, deckapi.DeckGoPluginInventoryEntry{
+				Id:          coerce.String(record["id"], ""),
+				Name:        coerce.String(record["name"], ""),
+				ProviderIds: stringSliceFromAny(record["providerIds"]),
+				ToolNames:   stringSliceFromAny(record["toolNames"]),
+			})
+		}
+		return plugins
+	default:
+		return nil
+	}
+}
+
+func pluginMatchesSkill(plugin deckapi.DeckGoPluginInventoryEntry, skillKey string, skillName string) bool {
+	if skillKey == "" && skillName == "" {
+		return false
+	}
+	for _, value := range append(append([]string{}, plugin.ToolNames...), plugin.ProviderIds...) {
+		normalized := strings.ToLower(strings.TrimSpace(value))
+		if normalized == "" {
+			continue
+		}
+		if normalized == skillKey || (skillName != "" && normalized == skillName) {
+			return true
+		}
+	}
+	return false
 }
 
 func appendSkillMissingRequirements(values []string, group string, entries []string) []string {

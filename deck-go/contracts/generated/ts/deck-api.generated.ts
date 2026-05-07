@@ -769,18 +769,60 @@ export type DeckGoCompactionActionResponse = Record<string, unknown> & {
 
 export type DeckGoSkillStatus = "ready" | "needs-setup" | "disabled";
 
+export type DeckGoSkillProductSource =
+  | "bundled"
+  | "managed"
+  | "workspace"
+  | "extra"
+  | "personal"
+  | "project"
+  | "unknown";
+
+export type DeckGoSkillAvailableAction =
+  | "enable"
+  | "disable"
+  | "installClawHub"
+  | "runInstallRecipe"
+  | "updateApiKey"
+  | "clearApiKey"
+  | "updateEnv"
+  | "updateAllClawHub";
+
 export type DeckGoSkillInstallOption = {
   id: string;
   label: string;
   bins: string[];
 };
 
+export type DeckGoSkillAgentUsage = {
+  count: number;
+  agentIds: string[];
+};
+
+export type DeckGoSkillUnsupportedReasons = {
+  uninstall?: "gateway-rpc-missing";
+  rotate?: "gateway-rpc-missing";
+  perSkillUpgrade?: "gateway-tracking-status-missing";
+  apiKeyHint?: "gateway-safe-secret-summary-missing";
+};
+
+export type DeckGoSkillOwningPluginRef = {
+  id?: string;
+  name?: string;
+};
+
 export type DeckGoSkillEntry = {
   key: string;
   name: string;
   status: DeckGoSkillStatus;
-  source: "bundled" | "managed" | "plugin";
+  source: DeckGoSkillProductSource;
+  sourceRaw: string;
   enabled: boolean;
+  apiKeyConfigured: boolean;
+  agentUsage: DeckGoSkillAgentUsage;
+  availableActions?: DeckGoSkillAvailableAction[];
+  unsupportedReasons?: DeckGoSkillUnsupportedReasons;
+  owningPlugin?: DeckGoSkillOwningPluginRef | null;
   missingRequirements?: string[];
   config?: Record<string, unknown>;
   description?: string;
@@ -1127,6 +1169,46 @@ export type DeckGoConfigLookupResponse = {
 
 export type DeckGoAgentStatus = "idle" | "busy" | "error" | "offline";
 
+export type DeckGoAgentEffectiveSource =
+  | "agent"
+  | "default"
+  | "derived"
+  | "gateway"
+  | "unknown";
+
+export type DeckGoAgentEffectiveSources = {
+  workspace?: DeckGoAgentEffectiveSource;
+  model?: DeckGoAgentEffectiveSource;
+  skills?: DeckGoAgentEffectiveSource;
+  subagents?: DeckGoAgentEffectiveSource;
+  eventStreams?: DeckGoAgentEffectiveSource;
+};
+
+export type DeckGoAgentAvailableActions = {
+  canEditIdentity: boolean;
+  canEditRuntime: boolean;
+  canDelete: boolean;
+  canChangeDefault: boolean;
+  deleteDisabledReason?: string;
+  guardedEditReasons?: string[];
+  unsupportedReasons?: string[];
+};
+
+export type DeckGoAgentImpactSummary = {
+  bindingCount?: number;
+  sessionCount?: number;
+  activeSubagentCount?: number;
+  workspaceFileCount?: number;
+  deleteRemovesFiles: boolean;
+};
+
+export type DeckGoAgentGuardedEditMetadata = {
+  field: string;
+  risk: "medium" | "high";
+  reason: string;
+  requiresConfirmation: boolean;
+};
+
 export type DeckGoAgentSummary = {
   id: string;
   name: string;
@@ -1135,6 +1217,13 @@ export type DeckGoAgentSummary = {
   workspace?: string;
   model?: string;
   isDefault: boolean;
+  isConfiguredDefault: boolean;
+  isMainProtected: boolean;
+  mainKey?: string;
+  protectedReasons?: string[];
+  availableActions?: DeckGoAgentAvailableActions;
+  effectiveSources?: DeckGoAgentEffectiveSources;
+  impact?: DeckGoAgentImpactSummary;
   status: DeckGoAgentStatus;
   sessionCount?: number;
   bindingCount?: number;
@@ -1144,6 +1233,7 @@ export type DeckGoAgentSummary = {
 export type DeckGoAgentsListResponse = {
   agents: DeckGoAgentSummary[];
   defaultId?: string;
+  mainKey?: string;
 };
 
 export type DeckGoAgentDetailResponse = {
@@ -1154,6 +1244,14 @@ export type DeckGoAgentDetailResponse = {
   reasoningDefault?: "on" | "off" | "stream";
   fastModeDefault?: boolean;
   isDefault: boolean;
+  isConfiguredDefault: boolean;
+  isMainProtected: boolean;
+  mainKey?: string;
+  protectedReasons?: string[];
+  availableActions?: DeckGoAgentAvailableActions;
+  effectiveSources?: DeckGoAgentEffectiveSources;
+  impact?: DeckGoAgentImpactSummary;
+  guardedEdits?: DeckGoAgentGuardedEditMetadata[];
   bindingCount: number;
   sessionCount: number;
   activeSubagentCount: number;
@@ -2403,11 +2501,13 @@ export interface DeckGoCanvasBridgeEvalRequest {
 // -- Agents BFF write DTOs ----------------------------------------------------
 
 // 来自 deck-go/backend/internal/server/inventory.go:23 (POST /agents)
-// Backend reads exactly these 4 fields and discards the rest. `name` is
-// mandatory; `workspace` falls back to a server-resolved default when blank.
+// Backend reads these fields and discards the rest. `name` is mandatory;
+// `workspace` falls back to a server-resolved default when blank. `model` is
+// forwarded when present because upstream `agents.create` supports it.
 export interface DeckGoAgentCreateRequest {
   name: string;
   workspace?: string;
+  model?: string;
   emoji?: string;
   avatar?: string;
 }

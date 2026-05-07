@@ -104,8 +104,23 @@ func (q *GatewayQueries) AgentsCreate(ctx context.Context, params map[string]any
 	return q.typed.AgentsCreate(ctx, typedParams)
 }
 
-func (q *GatewayQueries) AgentsDelete(ctx context.Context, agentID string) (generated.AgentsDeleteResult, error) {
-	return q.typed.AgentsDelete(ctx, generated.AgentsDeleteParams{AgentId: agentID})
+func (q *GatewayQueries) AgentsDelete(ctx context.Context, agentID string, deleteFiles bool) (generated.AgentsDeleteResult, error) {
+	payload, err := q.requester.RequestTyped(ctx, "agents.delete", map[string]any{
+		"agentId":     agentID,
+		"deleteFiles": deleteFiles,
+	})
+	if err != nil {
+		return generated.AgentsDeleteResult{}, err
+	}
+	var result generated.AgentsDeleteResult
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return result, err
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		return result, err
+	}
+	return result, nil
 }
 
 func (q *GatewayQueries) AgentsUpdate(ctx context.Context, body map[string]any) (generated.AgentsUpdateResult, error) {

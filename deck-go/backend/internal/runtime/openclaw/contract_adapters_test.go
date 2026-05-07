@@ -31,6 +31,11 @@ func TestContractAdaptersConvertGeneratedGatewayDTOs(t *testing.T) {
 		agentResponse.Agents[0].Model != "gpt-5.4" ||
 		agentResponse.Agents[0].Avatar == "" ||
 		!agentResponse.Agents[0].IsDefault ||
+		!agentResponse.Agents[0].IsConfiguredDefault ||
+		!agentResponse.Agents[0].IsMainProtected ||
+		agentResponse.Agents[0].MainKey != "agent-main" ||
+		agentResponse.Agents[0].AvailableActions.CanDelete ||
+		agentResponse.Agents[0].Impact.DeleteRemovesFiles ||
 		agentResponse.Agents[0].Status != "idle" {
 		t.Fatalf("agent fields were not converted to Deck DTO: %#v", agentResponse.Agents[0])
 	}
@@ -159,10 +164,13 @@ func TestContractAdaptersPreserveSelectedPreMigrationJSONShape(t *testing.T) {
 	agentItems, _ := agentJSON["agents"].([]any)
 	firstAgent, _ := agentItems[0].(map[string]any)
 	if agentJSON["defaultId"] != "main" ||
+		agentJSON["mainKey"] != "agent-main" ||
 		firstAgent["id"] != "main" ||
 		firstAgent["workspace"] != "/work/main" ||
 		firstAgent["name"] != "Main" ||
 		firstAgent["isDefault"] != true ||
+		firstAgent["isConfiguredDefault"] != true ||
+		firstAgent["isMainProtected"] != true ||
 		firstAgent["status"] != "idle" {
 		t.Fatalf("agent JSON compatibility shape changed: %#v", agentJSON)
 	}

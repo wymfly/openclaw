@@ -46,7 +46,7 @@
 .subagents-panel h3 {
   margin: 0;
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -62,7 +62,7 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -126,7 +126,7 @@
   color: var(--ds-text-3);
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 
@@ -373,7 +373,7 @@ button.tree-node:focus-visible,
 .field-row__label {
   font-family: var(--ds-font-mono);
   font-size: var(--ds-fs-meta);
-  font-weight: 650;
+  font-weight: 600;
   text-transform: uppercase;
 }
 

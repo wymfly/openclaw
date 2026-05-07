@@ -550,6 +550,14 @@ export function GatewayPanel() {
     bootstrap?.gateway.connected ||
     (remoteRuntime?.lastConnectedAt != null && !remoteRuntime.lastError) ||
     healthResponse?.ok === true;
+  const gatewayHealthTone: MetricTone =
+    healthResponse?.ok === false ? "bad" : gatewayConnected ? "good" : "neutral";
+  const gatewayHealthLabel =
+    healthResponse?.ok === false
+      ? t("workbench.gatewayDown")
+      : gatewayConnected
+        ? t("workbench.gatewayOk")
+        : t("workbench.gatewayPending");
   const gatewayNotConfigured =
     isGatewayNotConfiguredValue(diagnosticsError) ||
     isGatewayNotConfiguredValue(describeError) ||
@@ -606,13 +614,11 @@ export function GatewayPanel() {
           </p>
         </div>
         <div className="gateway-header-actions">
-          <StatusPill tone={healthResponse?.ok === false ? "bad" : boolTone(healthResponse?.ok)}>
-            {healthResponse?.ok === false ? t("workbench.gatewayDown") : t("workbench.gatewayOk")}
-          </StatusPill>
+          <StatusPill tone={gatewayHealthTone}>{gatewayHealthLabel}</StatusPill>
           <StatusPill tone={runtimeTone(statusResponse?.state || runtimeStatus)}>
             {t("overview.state")} {statusResponse?.state || runtimeStatus}
           </StatusPill>
-          <StatusPill tone={bootstrapOk ? "neutral" : "bad"}>
+          <StatusPill tone={bootstrapOk ? "good" : "bad"}>
             {bootstrapOk ? t("workbench.bootstrapOk") : t("workbench.bootstrapPending")}
           </StatusPill>
           <button

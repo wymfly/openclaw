@@ -1350,15 +1350,48 @@ export interface DeckAgentsDetailParams {
 
 export type DeckAgentsDetailResult = {
   activeSubagentCount: number;
+  availableActions?: {
+    canChangeDefault: boolean;
+    canDelete: boolean;
+    canEditIdentity: boolean;
+    canEditRuntime: boolean;
+    deleteDisabledReason?: string;
+    guardedEditReasons?: string[];
+    unsupportedReasons?: string[];
+  };
   bindingCount: number;
   effectiveSkills: string[];
+  effectiveSources?: {
+    eventStreams?: "agent" | "default" | "derived" | "gateway" | "unknown";
+    model?: "agent" | "default" | "derived" | "gateway" | "unknown";
+    skills?: "agent" | "default" | "derived" | "gateway" | "unknown";
+    subagents?: "agent" | "default" | "derived" | "gateway" | "unknown";
+    workspace?: "agent" | "default" | "derived" | "gateway" | "unknown";
+  };
   fallbackModels?: string[];
   fastModeDefault?: boolean;
+  guardedEdits?: {
+    field: string;
+    reason: string;
+    requiresConfirmation: boolean;
+    risk: "high" | "medium";
+  }[];
   id: string;
   identityExists: boolean;
+  impact?: {
+    activeSubagentCount?: number;
+    bindingCount?: number;
+    deleteRemovesFiles: boolean;
+    sessionCount?: number;
+    workspaceFileCount?: number;
+  };
+  isConfiguredDefault: boolean;
   isDefault: boolean;
+  isMainProtected: boolean;
+  mainKey?: string;
   model?: string;
   name?: string;
+  protectedReasons?: string[];
   reasoningDefault?: "off" | "on" | "stream";
   sandbox?: unknown;
   sessionCount: number;

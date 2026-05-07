@@ -23,12 +23,18 @@
       "path": "/api/agents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -42,12 +48,18 @@
       "path": "/api/alerts/{ruleId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "alerts",
       "owner": "alerts",
-      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/alerts-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
         "deck-go/test/e2e/alerts-visual.spec.ts"
@@ -65,27 +77,39 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "DELETE /api/cron/{jobId}",
-      "line": 736,
+      "line": 751,
       "method": "DELETE",
       "path": "/api/cron/{jobId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -99,12 +123,18 @@
       "path": "/api/docs/{docId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "docs",
       "owner": "docs",
-      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/docs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
         "deck-go/test/e2e/docs-visual.spec.ts"
@@ -118,12 +148,18 @@
       "path": "/api/usage/budget/{ruleId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "budget",
       "owner": "budget",
-      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/budget-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
         "deck-go/test/e2e/budget-visual.spec.ts"
@@ -137,12 +173,18 @@
       "path": "/api/webhooks/{webhookId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -156,12 +198,18 @@
       "path": "/api/activity",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "activity",
       "owner": "activity-monitor",
-      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/activity-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.test.tsx",
         "deck-go/test/e2e/activity-visual.spec.ts"
@@ -170,17 +218,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}",
-      "line": 94,
+      "line": 101,
       "method": "GET",
       "path": "/api/agents/{agentId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -189,17 +243,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/files",
-      "line": 151,
+      "line": 158,
       "method": "GET",
       "path": "/api/agents/{agentId}/files",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -208,17 +268,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/files/*",
-      "line": 211,
+      "line": 218,
       "method": "GET",
       "path": "/api/agents/{agentId}/files/*",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -227,17 +293,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/identity",
-      "line": 231,
+      "line": 238,
       "method": "GET",
       "path": "/api/agents/{agentId}/identity",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -251,12 +323,18 @@
       "path": "/api/alerts",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "alerts",
       "owner": "alerts",
-      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/alerts-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
         "deck-go/test/e2e/alerts-visual.spec.ts"
@@ -265,17 +343,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals",
-      "line": 1351,
+      "line": 1366,
       "method": "GET",
       "path": "/api/approvals",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -284,17 +368,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/pending",
-      "line": 1381,
+      "line": 1396,
       "method": "GET",
       "path": "/api/approvals/pending",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -303,17 +393,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/plugins",
-      "line": 1441,
+      "line": 1456,
       "method": "GET",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -322,17 +418,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/policy",
-      "line": 1411,
+      "line": 1426,
       "method": "GET",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -346,15 +448,21 @@
       "path": "/api/audit/events",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "audit",
       "owner": "audit-history",
       "realEvidence": [
         "deferred: audit read-path real evidence will be covered by module mutation proposals"
       ],
-      "mockEvidence": ["deck-go/backend/internal/server/audit_test.go"]
+      "mockEvidence": [
+        "deck-go/backend/internal/server/audit_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/gateway.go",
@@ -364,13 +472,21 @@
       "path": "/api/bootstrap/status",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/assets.go",
@@ -380,30 +496,42 @@
       "path": "/api/canvas/*",
       "category": "stream-binary-upload",
       "contractAuthority": "binary-static",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep direct browser URL",
       "module": "chat",
       "owner": "canvas-assets",
       "realEvidence": [
         "deferred: canvas bridge real evidence belongs to the chat/session real E2E follow-up"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/channels",
-      "line": 968,
+      "line": 983,
       "method": "GET",
       "path": "/api/channels",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "channels",
       "owner": "channels",
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
         "deck-go/test/e2e/channels-visual.spec.ts"
@@ -412,17 +540,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/channels/{channelId}/throughput",
-      "line": 1048,
+      "line": 1063,
       "method": "GET",
       "path": "/api/channels/{channelId}/throughput",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "channels",
       "owner": "channels",
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
         "deck-go/test/e2e/channels-visual.spec.ts"
@@ -440,12 +574,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -459,12 +599,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat_snapshot.go",
@@ -478,17 +624,23 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/commands",
-      "line": 528,
+      "line": 543,
       "method": "GET",
       "path": "/api/commands",
       "category": "documented-exception",
@@ -497,12 +649,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "tools",
       "owner": "commands-tools",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/config.go",
@@ -512,12 +670,18 @@
       "path": "/api/config",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "config",
       "owner": "config",
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
         "deck-go/test/e2e/config-visual.spec.ts"
@@ -526,17 +690,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron",
-      "line": 655,
+      "line": 670,
       "method": "GET",
       "path": "/api/cron",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -545,17 +715,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron/{jobId}/runs",
-      "line": 779,
+      "line": 794,
       "method": "GET",
       "path": "/api/cron/{jobId}/runs",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -564,17 +740,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron/status",
-      "line": 816,
+      "line": 831,
       "method": "GET",
       "path": "/api/cron/status",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -583,17 +765,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/agents",
-      "line": 1167,
+      "line": 1182,
       "method": "GET",
       "path": "/api/deck/agents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -602,13 +790,17 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/identity",
-      "line": 1471,
+      "line": 1486,
       "method": "GET",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "identity-routing",
@@ -624,17 +816,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/plugins",
-      "line": 1152,
+      "line": 1167,
       "method": "GET",
       "path": "/api/deck/plugins",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "plugins",
       "owner": "plugins",
-      "realEvidence": ["deck-go/test/e2e/plugins-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/plugins-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/plugins/PluginsPanel.test.tsx",
         "deck-go/test/e2e/plugins-visual.spec.ts"
@@ -643,13 +841,17 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/routing",
-      "line": 1521,
+      "line": 1536,
       "method": "GET",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "identity-routing",
@@ -665,17 +867,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/subagents",
-      "line": 1596,
+      "line": 1611,
       "method": "GET",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "subagents",
       "owner": "subagents",
-      "realEvidence": ["deck-go/test/e2e/subagents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/subagents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.test.tsx",
         "deck-go/test/e2e/subagents-visual.spec.ts"
@@ -684,13 +892,17 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/threads",
-      "line": 1674,
+      "line": 1689,
       "method": "GET",
       "path": "/api/deck/threads",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "identity-routing",
@@ -706,34 +918,50 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/devices",
-      "line": 413,
+      "line": 428,
       "method": "GET",
       "path": "/api/devices",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/devices/self",
-      "line": 519,
+      "line": 534,
       "method": "GET",
       "path": "/api/devices/self",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/docs.go",
@@ -743,12 +971,18 @@
       "path": "/api/docs",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "docs",
       "owner": "docs",
-      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/docs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
         "deck-go/test/e2e/docs-visual.spec.ts"
@@ -762,12 +996,18 @@
       "path": "/api/docs/{docId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "docs",
       "owner": "docs",
-      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/docs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
         "deck-go/test/e2e/docs-visual.spec.ts"
@@ -785,11 +1025,15 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "gateway",
       "owner": "gateway-diagnostics",
-      "realEvidence": ["deck-go/test/e2e/gateway-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/gateway-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.test.tsx",
         "deck-go/test/e2e/gateway-visual.spec.ts"
@@ -807,11 +1051,15 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "gateway",
       "owner": "gateway-diagnostics",
-      "realEvidence": ["deck-go/test/e2e/gateway-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/gateway-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.test.tsx",
         "deck-go/test/e2e/gateway-visual.spec.ts"
@@ -829,11 +1077,15 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "gateway",
       "owner": "gateway-diagnostics",
-      "realEvidence": ["deck-go/test/e2e/gateway-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/gateway-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/gateway/GatewayPanel.test.tsx",
         "deck-go/test/e2e/gateway-visual.spec.ts"
@@ -842,7 +1094,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/logs",
-      "line": 1696,
+      "line": 1711,
       "method": "GET",
       "path": "/api/logs",
       "category": "deck-go-bff",
@@ -851,11 +1103,15 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "logs",
       "owner": "logs",
-      "realEvidence": ["deck-go/test/e2e/logs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/logs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/logs/LogsPanel.test.tsx",
         "deck-go/test/e2e/logs-visual.spec.ts"
@@ -873,11 +1129,15 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `deckStream`",
       "module": "logs",
       "owner": "logs",
-      "realEvidence": ["deck-go/test/e2e/logs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/logs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/logs/LogsPanel.test.tsx",
         "deck-go/test/e2e/logs-visual.spec.ts"
@@ -891,15 +1151,21 @@
       "path": "/api/media",
       "category": "stream-binary-upload",
       "contractAuthority": "binary-static",
-      "contractRefs": ["deck-go/contracts/source/deck-endpoints.contract.json"],
-      "frontendFacade": ["none: direct browser URL for binary media"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-endpoints.contract.json"
+      ],
+      "frontendFacade": [
+        "none: direct browser URL for binary media"
+      ],
       "migrationTarget": "Keep direct browser URL",
       "module": "media",
       "owner": "media-assets",
       "realEvidence": [
         "deferred: binary media real evidence is covered by module-specific media/canvas follow-up"
       ],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/memory.go",
@@ -909,12 +1175,18 @@
       "path": "/api/memory/browse",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "memory",
       "owner": "memory",
-      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/memory-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
         "deck-go/test/e2e/memory-visual.spec.ts"
@@ -928,12 +1200,18 @@
       "path": "/api/memory/health",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "memory",
       "owner": "memory",
-      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/memory-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
         "deck-go/test/e2e/memory-visual.spec.ts"
@@ -947,12 +1225,18 @@
       "path": "/api/memory/search",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "memory",
       "owner": "memory",
-      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/memory-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
         "deck-go/test/e2e/memory-visual.spec.ts"
@@ -961,17 +1245,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/models/config",
-      "line": 931,
+      "line": 946,
       "method": "GET",
       "path": "/api/models/config",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "models",
       "owner": "models",
-      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/models-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx",
         "deck-go/test/e2e/models-visual.spec.ts"
@@ -985,12 +1275,18 @@
       "path": "/api/monitor/runs",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "activity",
       "owner": "activity-monitor",
-      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/activity-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.test.tsx",
         "deck-go/test/e2e/activity-visual.spec.ts"
@@ -1004,12 +1300,18 @@
       "path": "/api/monitor/runs/{runId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "activity",
       "owner": "activity-monitor",
-      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/activity-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.test.tsx",
         "deck-go/test/e2e/activity-visual.spec.ts"
@@ -1023,12 +1325,18 @@
       "path": "/api/monitor/stats",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "activity",
       "owner": "activity-monitor",
-      "realEvidence": ["deck-go/test/e2e/activity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/activity-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/activity/ActivityPanel.test.tsx",
         "deck-go/test/e2e/activity-visual.spec.ts"
@@ -1037,17 +1345,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/nodes",
-      "line": 539,
+      "line": 554,
       "method": "GET",
       "path": "/api/nodes",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "nodes",
       "owner": "nodes",
-      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/nodes-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
         "deck-go/test/e2e/nodes-visual.spec.ts"
@@ -1056,17 +1370,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/nodes/pair",
-      "line": 597,
+      "line": 612,
       "method": "GET",
       "path": "/api/nodes/pair",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "nodes",
       "owner": "nodes",
-      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/nodes-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
         "deck-go/test/e2e/nodes-visual.spec.ts"
@@ -1080,13 +1400,21 @@
       "path": "/api/onboarding/status",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "settings",
       "owner": "onboarding",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/runtime.go",
@@ -1096,13 +1424,21 @@
       "path": "/api/runtime/capabilities",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/runtime.go",
@@ -1112,13 +1448,21 @@
       "path": "/api/runtime/endpoint",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/runtime.go",
@@ -1128,13 +1472,21 @@
       "path": "/api/runtime/gateway",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/runtime.go",
@@ -1144,18 +1496,26 @@
       "path": "/api/runtime/gateway",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/sessions",
-      "line": 1092,
+      "line": 1107,
       "method": "GET",
       "path": "/api/sessions",
       "category": "deck-go-bff",
@@ -1164,17 +1524,23 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/sessions/{sessionKey}",
-      "line": 1127,
+      "line": 1142,
       "method": "GET",
       "path": "/api/sessions/{sessionKey}",
       "category": "deck-go-bff",
@@ -1183,12 +1549,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/settings.go",
@@ -1198,13 +1570,21 @@
       "path": "/api/settings",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "settings",
       "owner": "settings",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/settings.go",
@@ -1214,28 +1594,42 @@
       "path": "/api/settings/version",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "settings",
       "owner": "settings",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/skills",
-      "line": 272,
+      "line": 279,
       "method": "GET",
       "path": "/api/skills",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "skills",
       "owner": "skills",
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
         "deck-go/test/e2e/skills-visual.spec.ts"
@@ -1249,15 +1643,21 @@
       "path": "/api/stream",
       "category": "stream-binary-upload",
       "contractAuthority": "deck-stream",
-      "contractRefs": ["deck-go/contracts/source/deck-streams.contract.json"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-streams.contract.json"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `deckStream`",
       "module": "runtime",
       "owner": "streams",
       "realEvidence": [
         "deferred: stream real evidence is module-specific and covered by real E2E follow-ups"
       ],
-      "mockEvidence": ["deck-go/backend/internal/server/stream_test.go"]
+      "mockEvidence": [
+        "deck-go/backend/internal/server/stream_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/budget.go",
@@ -1267,12 +1667,18 @@
       "path": "/api/usage/budget",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "budget",
       "owner": "budget",
-      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/budget-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
         "deck-go/test/e2e/budget-visual.spec.ts"
@@ -1286,12 +1692,18 @@
       "path": "/api/usage/budget/evaluate",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "budget",
       "owner": "budget",
-      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/budget-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
         "deck-go/test/e2e/budget-visual.spec.ts"
@@ -1300,17 +1712,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/sessions",
-      "line": 866,
+      "line": 881,
       "method": "GET",
       "path": "/api/usage/sessions",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "usage",
       "owner": "usage",
-      "realEvidence": ["deck-go/test/e2e/usage-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/usage-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/usage/UsagePanel.test.tsx",
         "deck-go/test/e2e/usage-visual.spec.ts"
@@ -1319,17 +1737,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/sessions/logs",
-      "line": 894,
+      "line": 909,
       "method": "GET",
       "path": "/api/usage/sessions/logs",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "usage",
       "owner": "usage",
-      "realEvidence": ["deck-go/test/e2e/usage-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/usage-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/usage/UsagePanel.test.tsx",
         "deck-go/test/e2e/usage-visual.spec.ts"
@@ -1338,17 +1762,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/timeseries",
-      "line": 914,
+      "line": 929,
       "method": "GET",
       "path": "/api/usage/timeseries",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "usage",
       "owner": "usage",
-      "realEvidence": ["deck-go/test/e2e/usage-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/usage-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/usage/UsagePanel.test.tsx",
         "deck-go/test/e2e/usage-visual.spec.ts"
@@ -1362,12 +1792,18 @@
       "path": "/api/webhooks",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -1381,12 +1817,18 @@
       "path": "/api/webhooks/{webhookId}/deliveries",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -1395,17 +1837,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/agents/{agentId}",
-      "line": 120,
+      "line": 127,
       "method": "PATCH",
       "path": "/api/agents/{agentId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -1419,12 +1867,18 @@
       "path": "/api/alerts/{ruleId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "alerts",
       "owner": "alerts",
-      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/alerts-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
         "deck-go/test/e2e/alerts-visual.spec.ts"
@@ -1433,17 +1887,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/channels/{channelId}",
-      "line": 1056,
+      "line": 1071,
       "method": "PATCH",
       "path": "/api/channels/{channelId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "channels",
       "owner": "channels",
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
         "deck-go/test/e2e/channels-visual.spec.ts"
@@ -1452,17 +1912,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/cron/{jobId}",
-      "line": 712,
+      "line": 727,
       "method": "PATCH",
       "path": "/api/cron/{jobId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -1471,17 +1937,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/models/config",
-      "line": 942,
+      "line": 957,
       "method": "PATCH",
       "path": "/api/models/config",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "models",
       "owner": "models",
-      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/models-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx",
         "deck-go/test/e2e/models-visual.spec.ts"
@@ -1490,17 +1962,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/skills/{skillKey}",
-      "line": 287,
+      "line": 302,
       "method": "PATCH",
       "path": "/api/skills/{skillKey}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "skills",
       "owner": "skills",
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
         "deck-go/test/e2e/skills-visual.spec.ts"
@@ -1514,12 +1992,18 @@
       "path": "/api/usage/budget/{ruleId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "budget",
       "owner": "budget",
-      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/budget-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
         "deck-go/test/e2e/budget-visual.spec.ts"
@@ -1533,12 +2017,18 @@
       "path": "/api/webhooks/{webhookId}",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -1552,12 +2042,18 @@
       "path": "/api/agents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -1566,17 +2062,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/agents/{agentId}/files",
-      "line": 170,
+      "line": 177,
       "method": "POST",
       "path": "/api/agents/{agentId}/files",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -1590,12 +2092,18 @@
       "path": "/api/alerts",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "alerts",
       "owner": "alerts",
-      "realEvidence": ["deck-go/test/e2e/alerts-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/alerts-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/alerts/AlertsPanel.test.tsx",
         "deck-go/test/e2e/alerts-visual.spec.ts"
@@ -1604,17 +2112,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals",
-      "line": 1362,
+      "line": 1377,
       "method": "POST",
       "path": "/api/approvals",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -1623,17 +2137,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals/plugins",
-      "line": 1452,
+      "line": 1467,
       "method": "POST",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -1642,17 +2162,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/channels/{channelId}/logout",
-      "line": 988,
+      "line": 1003,
       "method": "POST",
       "path": "/api/channels/{channelId}/logout",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "channels",
       "owner": "channels",
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
         "deck-go/test/e2e/channels-visual.spec.ts"
@@ -1661,17 +2187,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/channels/{channelId}/test",
-      "line": 1004,
+      "line": 1019,
       "method": "POST",
       "path": "/api/channels/{channelId}/test",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "channels",
       "owner": "channels",
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx",
         "deck-go/test/e2e/channels-visual.spec.ts"
@@ -1689,12 +2221,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1708,12 +2246,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1727,12 +2271,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1746,12 +2296,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1765,12 +2321,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/session_events.go",
@@ -1784,12 +2346,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1803,12 +2371,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1822,12 +2396,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1841,12 +2421,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1860,12 +2446,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1879,12 +2471,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/chat.go",
@@ -1898,12 +2496,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-streams.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "chat-sessions",
-      "realEvidence": ["deck-go/test/e2e/sessions-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/sessions-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/config.go",
@@ -1913,12 +2517,18 @@
       "path": "/api/config/apply",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "config",
       "owner": "config",
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
         "deck-go/test/e2e/config-visual.spec.ts"
@@ -1932,12 +2542,18 @@
       "path": "/api/config/patch",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "config",
       "owner": "config",
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
         "deck-go/test/e2e/config-visual.spec.ts"
@@ -1951,12 +2567,18 @@
       "path": "/api/config/schema-lookup",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "config",
       "owner": "config",
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx",
         "deck-go/test/e2e/config-visual.spec.ts"
@@ -1965,17 +2587,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/cron",
-      "line": 693,
+      "line": 708,
       "method": "POST",
       "path": "/api/cron",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -1984,17 +2612,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/cron/{jobId}/run",
-      "line": 752,
+      "line": 767,
       "method": "POST",
       "path": "/api/cron/{jobId}/run",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "cron",
       "owner": "cron",
-      "realEvidence": ["deck-go/test/e2e/cron-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/cron-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/cron/CronPanel.test.tsx",
         "deck-go/test/e2e/cron-visual.spec.ts"
@@ -2003,17 +2637,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/agents",
-      "line": 1186,
+      "line": 1201,
       "method": "POST",
       "path": "/api/deck/agents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "agents",
       "owner": "agents",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
         "deck-go/test/e2e/agents-visual.spec.ts"
@@ -2027,20 +2667,26 @@
       "path": "/api/deck/canvas",
       "category": "deck-go-bff",
       "contractAuthority": "binary-static",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "chat",
       "owner": "canvas-assets",
       "realEvidence": [
         "deferred: canvas bridge real evidence belongs to the chat/session real E2E follow-up"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/api.chat-helpers.test.ts"]
+      "mockEvidence": [
+        "deck-go/frontend-new/src/api.chat-helpers.test.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/commands/discover",
-      "line": 1307,
+      "line": 1322,
       "method": "POST",
       "path": "/api/deck/commands/discover",
       "category": "gateway-protocol-adapter",
@@ -2049,23 +2695,33 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` through `deck.commands.discover` generated Gateway binding",
       "module": "tools",
       "owner": "commands-tools",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/identity",
-      "line": 1482,
+      "line": 1497,
       "method": "POST",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "identity-routing",
@@ -2081,13 +2737,17 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/routing",
-      "line": 1543,
+      "line": 1558,
       "method": "POST",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "identity-routing",
@@ -2103,17 +2763,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/subagents",
-      "line": 1628,
+      "line": 1643,
       "method": "POST",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "subagents",
       "owner": "subagents",
-      "realEvidence": ["deck-go/test/e2e/subagents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/subagents-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/subagents/SubagentsPanel.test.tsx",
         "deck-go/test/e2e/subagents-visual.spec.ts"
@@ -2122,7 +2788,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/tools-effective",
-      "line": 1329,
+      "line": 1344,
       "method": "POST",
       "path": "/api/deck/tools-effective",
       "category": "documented-exception",
@@ -2131,92 +2797,138 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "tools",
       "owner": "commands-tools",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/approve",
-      "line": 424,
+      "line": 439,
       "method": "POST",
       "path": "/api/devices/approve",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/reject",
-      "line": 443,
+      "line": 458,
       "method": "POST",
       "path": "/api/devices/reject",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/remove",
-      "line": 462,
+      "line": 477,
       "method": "POST",
       "path": "/api/devices/remove",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/token/revoke",
-      "line": 500,
+      "line": 515,
       "method": "POST",
       "path": "/api/devices/token/revoke",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/token/rotate",
-      "line": 481,
+      "line": 496,
       "method": "POST",
       "path": "/api/devices/token/rotate",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "identity",
       "owner": "devices",
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/docs.go",
@@ -2226,12 +2938,18 @@
       "path": "/api/docs/extract",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "docs",
       "owner": "docs",
-      "realEvidence": ["deck-go/test/e2e/docs-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/docs-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/docs/DocsPanel.test.tsx",
         "deck-go/test/e2e/docs-visual.spec.ts"
@@ -2240,17 +2958,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/exec/approval",
-      "line": 1392,
+      "line": 1407,
       "method": "POST",
       "path": "/api/exec/approval",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -2264,12 +2988,18 @@
       "path": "/api/memory/dreams",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "memory",
       "owner": "memory",
-      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/memory-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
         "deck-go/test/e2e/memory-visual.spec.ts"
@@ -2283,12 +3013,18 @@
       "path": "/api/memory/search",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson` / `deckFetch`",
       "module": "memory",
       "owner": "memory",
-      "realEvidence": ["deck-go/test/e2e/memory-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/memory-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/memory/MemoryPanel.test.tsx",
         "deck-go/test/e2e/memory-visual.spec.ts"
@@ -2297,17 +3033,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/nodes",
-      "line": 550,
+      "line": 565,
       "method": "POST",
       "path": "/api/nodes",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "nodes",
       "owner": "nodes",
-      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/nodes-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
         "deck-go/test/e2e/nodes-visual.spec.ts"
@@ -2316,17 +3058,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/nodes/pair",
-      "line": 608,
+      "line": 623,
       "method": "POST",
       "path": "/api/nodes/pair",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "nodes",
       "owner": "nodes",
-      "realEvidence": ["deck-go/test/e2e/nodes-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/nodes-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/nodes/NodesPanel.test.tsx",
         "deck-go/test/e2e/nodes-visual.spec.ts"
@@ -2340,13 +3088,21 @@
       "path": "/api/onboarding/save-settings",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "settings",
       "owner": "onboarding",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/onboarding.go",
@@ -2356,13 +3112,21 @@
       "path": "/api/onboarding/test-connection",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJsonNoPrompt` / `fetchDeckJson`",
       "module": "settings",
       "owner": "onboarding",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/runtime.go",
@@ -2372,13 +3136,21 @@
       "path": "/api/runtime/endpoint:test",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/settings.go",
@@ -2388,28 +3160,42 @@
       "path": "/api/settings/test-connection",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "settings",
       "owner": "settings",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/hub",
-      "line": 351,
+      "line": 366,
       "method": "POST",
       "path": "/api/skills/hub",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "skills",
       "owner": "skills",
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
         "deck-go/test/e2e/skills-visual.spec.ts"
@@ -2418,17 +3204,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/install",
-      "line": 312,
+      "line": 327,
       "method": "POST",
       "path": "/api/skills/install",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "skills",
       "owner": "skills",
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
         "deck-go/test/e2e/skills-visual.spec.ts"
@@ -2437,17 +3229,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/update-clawhub",
-      "line": 331,
+      "line": 346,
       "method": "POST",
       "path": "/api/skills/update-clawhub",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "skills",
       "owner": "skills",
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx",
         "deck-go/test/e2e/skills-visual.spec.ts"
@@ -2456,7 +3254,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/tools/catalog",
-      "line": 250,
+      "line": 257,
       "method": "POST",
       "path": "/api/tools/catalog",
       "category": "documented-exception",
@@ -2465,12 +3263,18 @@
         "deck-go/contracts/source/deck-api.contract.ts",
         "deck-go/contracts/source/deck-exceptions.contract.json"
       ],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "tools",
       "owner": "commands-tools",
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"]
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/budget.go",
@@ -2480,12 +3284,18 @@
       "path": "/api/usage/budget",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "budget",
       "owner": "budget",
-      "realEvidence": ["deck-go/test/e2e/budget-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/budget-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/budget/BudgetPanel.test.tsx",
         "deck-go/test/e2e/budget-visual.spec.ts"
@@ -2499,12 +3309,18 @@
       "path": "/api/webhooks",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -2518,12 +3334,18 @@
       "path": "/api/webhooks/{webhookId}/test",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "webhooks",
       "owner": "webhooks",
-      "realEvidence": ["deck-go/test/e2e/webhooks-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/webhooks-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/webhooks/WebhooksPanel.test.tsx",
         "deck-go/test/e2e/webhooks-visual.spec.ts"
@@ -2532,17 +3354,23 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PUT /api/approvals/policy",
-      "line": 1422,
+      "line": 1437,
       "method": "PUT",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "approvals",
       "owner": "approvals",
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx",
         "deck-go/test/e2e/approvals-visual.spec.ts"
@@ -2556,13 +3384,21 @@
       "path": "/api/runtime/endpoint",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "runtime",
       "owner": "bootstrap-runtime",
-      "realEvidence": ["deck-go/test/e2e/real-e2e-foundation.spec.ts"],
-      "mockEvidence": ["deck-go/test/e2e/contract-chain-smoke.spec.ts"]
+      "realEvidence": [
+        "deck-go/test/e2e/real-e2e-foundation.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/test/e2e/contract-chain-smoke.spec.ts"
+      ]
     },
     {
       "file": "deck-go/backend/internal/server/settings.go",
@@ -2572,13 +3408,21 @@
       "path": "/api/settings",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "frontendFacade": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
       "migrationTarget": "Keep `fetchDeckJson`",
       "module": "settings",
       "owner": "settings",
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"]
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
+      ]
     }
   ]
 }

@@ -5,12 +5,15 @@ export type AgentsFilter = "all" | "busy" | "idle";
 export type AgentsSort = "name" | "recent" | "sessions";
 export type AgentSectionId =
   | "overview"
+  | "runtime"
   | "skills"
   | "subagents"
   | "tool-policy"
   | "system-prompt"
   | "files"
-  | "event-streams";
+  | "event-streams"
+  | "routing"
+  | "danger";
 
 export interface AgentSectionDefinition {
   id: AgentSectionId;
@@ -31,12 +34,15 @@ export interface CreateAgentDraft extends OverviewDraft {
 
 export const AGENT_SECTIONS: AgentSectionDefinition[] = [
   { id: "overview", labelKey: "sections.overview" },
+  { id: "runtime", labelKey: "sections.runtime" },
   { id: "skills", labelKey: "sections.skills" },
   { id: "subagents", labelKey: "sections.subagents" },
   { id: "tool-policy", labelKey: "sections.toolPolicy" },
   { id: "system-prompt", labelKey: "sections.systemPrompt" },
   { id: "files", labelKey: "sections.files" },
   { id: "event-streams", labelKey: "sections.eventStreams" },
+  { id: "routing", labelKey: "sections.routing" },
+  { id: "danger", labelKey: "sections.danger" },
 ];
 
 const SECTION_IDS = new Set<AgentSectionId>(AGENT_SECTIONS.map((section) => section.id));
@@ -69,34 +75,47 @@ export function overviewDraftFromAgent(agent: Agent): OverviewDraft {
 export function hasOverviewChanges(agent: Agent, draft: OverviewDraft): boolean {
   return (
     draft.name.trim() !== agent.name ||
-    draft.model.trim() !== (agent.model ?? "") ||
-    draft.workspace.trim() !== (agent.workspace ?? "") ||
     draft.emoji.trim() !== (agent.emoji ?? "") ||
     draft.avatar.trim() !== (agent.avatar ?? "")
   );
 }
 
-export function buildAgentPatch(agent: Agent, draft: OverviewDraft): DeckGoAgentPatchRequest {
+export function hasRuntimeChanges(agent: Agent, draft: OverviewDraft): boolean {
+  return (
+    draft.model.trim() !== (agent.model ?? "") ||
+    draft.workspace.trim() !== (agent.workspace ?? "")
+  );
+}
+
+export function buildAgentIdentityPatch(
+  agent: Agent,
+  draft: OverviewDraft,
+): DeckGoAgentPatchRequest {
   const patch: DeckGoAgentPatchRequest = {};
   const name = draft.name.trim();
-  const model = draft.model.trim();
-  const workspace = draft.workspace.trim();
   const emoji = draft.emoji.trim();
   const avatar = draft.avatar.trim();
   if (name && name !== agent.name) {
     patch.name = name;
-  }
-  if (model !== (agent.model ?? "")) {
-    patch.model = model || undefined;
-  }
-  if (workspace !== (agent.workspace ?? "")) {
-    patch.workspace = workspace || undefined;
   }
   if (emoji !== (agent.emoji ?? "")) {
     patch.emoji = emoji || undefined;
   }
   if (avatar !== (agent.avatar ?? "")) {
     patch.avatar = avatar || undefined;
+  }
+  return patch;
+}
+
+export function buildAgentRuntimePatch(agent: Agent, draft: OverviewDraft): DeckGoAgentPatchRequest {
+  const patch: DeckGoAgentPatchRequest = {};
+  const model = draft.model.trim();
+  const workspace = draft.workspace.trim();
+  if (model !== (agent.model ?? "")) {
+    patch.model = model || undefined;
+  }
+  if (workspace !== (agent.workspace ?? "")) {
+    patch.workspace = workspace || undefined;
   }
   return patch;
 }
@@ -126,6 +145,7 @@ export function buildCreateAgentRequest(draft: CreateAgentDraft): DeckGoAgentCre
   return {
     name: draft.name.trim(),
     ...(draft.workspace.trim() ? { workspace: draft.workspace.trim() } : {}),
+    ...(draft.model.trim() ? { model: draft.model.trim() } : {}),
     ...(draft.emoji.trim() ? { emoji: draft.emoji.trim() } : {}),
     ...(draft.avatar.trim() ? { avatar: draft.avatar.trim() } : {}),
   };

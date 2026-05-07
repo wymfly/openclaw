@@ -4,7 +4,15 @@ export type PanelState = "idle" | "loading" | "ready";
 export type SkillStatus = "ready" | "needs-setup" | "disabled";
 export type SkillStatusFilter = SkillStatus | "all";
 
-export const VALID_SOURCES = new Set<DeckGoSkillEntry["source"]>(["bundled", "managed", "plugin"]);
+export const VALID_SOURCES = new Set<DeckGoSkillEntry["source"]>([
+  "bundled",
+  "managed",
+  "workspace",
+  "extra",
+  "personal",
+  "project",
+  "unknown",
+]);
 
 export const SKILL_STATUS_FILTERS: SkillStatusFilter[] = [
   "all",
@@ -74,15 +82,39 @@ export function normalizeSkill(raw: unknown): DeckGoSkillEntry {
     }
   }
 
-  const source = typeof record.source === "string" ? record.source : "bundled";
+  const source = typeof record.source === "string" ? record.source : "unknown";
+  const sourceRaw =
+    typeof record.sourceRaw === "string"
+      ? record.sourceRaw
+      : typeof record.source === "string"
+        ? record.source
+        : "";
+  const normalizedSource = VALID_SOURCES.has(source as DeckGoSkillEntry["source"])
+    ? (source as DeckGoSkillEntry["source"])
+    : "unknown";
   return {
     key: typeof record.key === "string" ? record.key : skillKey,
     name: typeof record.name === "string" ? record.name : skillKey,
     status,
-    source: VALID_SOURCES.has(source as DeckGoSkillEntry["source"])
-      ? (source as DeckGoSkillEntry["source"])
-      : "bundled",
+    source: normalizedSource,
+    sourceRaw,
     enabled: !disabled,
+    apiKeyConfigured: record.apiKeyConfigured === true,
+    agentUsage:
+      typeof record.agentUsage === "object" && record.agentUsage !== null
+        ? (record.agentUsage as DeckGoSkillEntry["agentUsage"])
+        : { count: 0, agentIds: [] },
+    availableActions: Array.isArray(record.availableActions)
+      ? (record.availableActions as DeckGoSkillEntry["availableActions"])
+      : undefined,
+    unsupportedReasons:
+      typeof record.unsupportedReasons === "object" && record.unsupportedReasons !== null
+        ? (record.unsupportedReasons as DeckGoSkillEntry["unsupportedReasons"])
+        : undefined,
+    owningPlugin:
+      typeof record.owningPlugin === "object" && record.owningPlugin !== null
+        ? (record.owningPlugin as DeckGoSkillEntry["owningPlugin"])
+        : null,
     missingRequirements: missingRequirements.length ? missingRequirements : undefined,
     config:
       typeof record.config === "object" && record.config !== null

@@ -58,6 +58,55 @@ Workflow hygiene:
 - `scripts/AGENTS.md` — script-runner, local-check lock, test/lint wrappers
 - `deck-go/AGENTS.md` — deck-go runtime-mode, contracts, Go backend, frontend-new, and stack-specific checks
 
+## OpenSpec 前置头脑风暴规则
+
+中大型开发任务、跨模块改动、契约/API/配置写入改动、前端产品模块重构、真实 E2E 能力收敛、运行时/安全/部署路径调整，默认需要先经过头脑风暴再创建或修正 OpenSpec 提案。不要把 OpenSpec 当作临场规划工具；OpenSpec 应固化已经澄清的产品、契约、架构和验收决策。
+
+头脑风暴应遵守 Superpowers `brainstorming` 的基本流程：先探索项目上下文，逐个问题澄清目的/约束/成功标准，提出 2-3 个方案及取舍，分段呈现设计并获得用户确认，然后再写可审查的设计材料。对于可能进入 OpenSpec 的任务，还必须额外澄清并记录以下内容，作为 `proposal.md`、`design.md`、`spec.md` 和 `tasks.md` 的输入。
+
+### 通用必答问题
+
+- **目标和非目标**：本次要解决的用户问题是什么，明确不解决什么，哪些属于后续 handoff。
+- **事实来源**：代码真相、配置真相、Gateway/RPC/API 真相、生成契约、真实运行环境、现有测试和历史提案分别在哪里。
+- **范围边界**：涉及哪些模块，哪些模块只展示/跳转/预览，哪些模块拥有写入权，是否需要拆成多个子提案。
+- **数据和状态**：核心数据结构、状态机、读写路径、错误/空/loading/degraded 状态、并发或 base-hash 冲突行为。
+- **迁移和兼容**：是否需要兼容已有配置、已有用户数据、旧 mock、旧 DTO、旧视觉或旧接口。
+- **验收证据**：单元/组件/契约/后端/前端 build/mock E2E/real E2E/人工视觉验证分别证明什么，哪些可以熔断，熔断后必须记录什么。
+- **风险和护栏**：危险操作、不可逆操作、权限/安全边界、外部环境依赖、回滚方式。
+
+### 前端产品模块
+
+前端产品模块的头脑风暴不能只讨论“对接契约”。必须先形成目标产品蓝图：
+
+- 目标用户、核心任务、最高频路径和危险路径。
+- 页面信息架构：导航入口、主列表/详情/抽屉/dialog/空态/错误态的结构。
+- 字段到 UI 决策矩阵：每个关键字段或配置项是展示、普通编辑、guarded edit、预览、跳转到 owning module，还是不做。
+- 模块边界矩阵：本模块、相邻模块、全局设置、原始配置编辑之间的职责划分。
+- 关键交互流：create/edit/delete/import/export/default/enable/disable/preview/save/cancel/conflict 等具体行为。
+- 视觉和设计系统要求：使用哪些现有 tokens/components/patterns，是否需要高保真原型，哪些截图状态必须对齐。
+- Mock 与 real 验收矩阵：mock 证明视觉和交互收敛，real 证明契约链和真实数据路径可用，两者不得互相替代。
+
+### 契约链 / Gateway / deck-go 控制端
+
+涉及 OpenClaw Gateway、`openclaw.json`、deck-go Go BFF、contracts、`frontend-new` 的任务，头脑风暴必须先梳理契约链：
+
+- Gateway 源头能力：RPC 方法、schema、handler、配置读写语义、保护规则、错误行为。
+- `openclaw.json` 反推：本次 UI 或服务功能最终会创建、修改、删除或预览哪些配置域。
+- Deck-facing 产品契约：哪些字段应作为产品 DTO 暴露，哪些保持 raw/dynamic，哪些不得伪造。
+- 生成链路：contract source、generated TS/Go、BFF adapter、frontend api/store/component、mock fixture、E2E fixture 的同步点。
+- 真实验证：隔离测试配置和 workspace 如何构造，哪些 mutation 可以安全造数，哪些只能做负向或只读验证。
+
+### OpenSpec 写作门槛
+
+创建或修正 OpenSpec 提案前，必须确认头脑风暴已经产出足够清晰的上下文。提案至少应包含：
+
+- `proposal.md`：为什么做、做什么、不做什么、影响面。
+- `design.md`：目标架构或目标产品蓝图、关键决策、替代方案和拒绝理由、数据流/状态流、跨模块边界、迁移/回滚、风险。
+- `spec.md`：可验证的 requirements 和 scenarios，覆盖核心行为、边界、失败路径和验收状态。
+- `tasks.md`：按依赖顺序拆解，每个任务有明确文件/行为范围和完成证据；不要只写“实现 UI”“补测试”这类不可验收任务。
+
+如果头脑风暴尚未回答足以防止“实现者建错东西”的问题，不要进入实施。应先补头脑风暴或修正 OpenSpec，而不是在 implementation 阶段临场发明产品设计。
+
 ## Build, Test, and Development Commands
 
 - Runtime: Node **>=22.14.0** for the OpenClaw TypeScript workspace; `deck-go/backend` uses Go **1.24**.

@@ -1641,6 +1641,16 @@ function defaultMethods() {
   ];
   let configFixture = {
     agents: {
+      list: [
+        {
+          id: "main",
+          skills: ["github", "shell", "frontend-design"],
+        },
+        {
+          id: "ops",
+          skills: ["github", "domain-research", "obsidian-markdown"],
+        },
+      ],
       defaults: {
         model: {
           primary: "openai/gpt-5.4",
@@ -1740,6 +1750,37 @@ function defaultMethods() {
         },
       },
     },
+    skills: {
+      allowBundled: ["shell", "writing-plans", "self-improve"],
+      load: {
+        extraDirs: ["/tmp/openclaw-extra-skills"],
+      },
+      entries: {
+        github: {
+          enabled: true,
+          apiKey: "visual-token",
+          env: {
+            GITHUB_TOKEN: "visual-token",
+            GH_HOST: "github.com",
+          },
+        },
+        "frontend-design": {
+          enabled: true,
+          env: {
+            FIGMA_TOKEN: "redacted-by-bff",
+          },
+        },
+        "domain-research": {
+          enabled: true,
+          env: {
+            OBSIDIAN_VAULT_PATH: "/tmp/openclaw-vault",
+          },
+        },
+        "gpu-server-ops": {
+          enabled: false,
+        },
+      },
+    },
     hooks: {
       beforeSend: ["redact-secrets", "route-guard"],
       afterReceive: ["usage-metrics"],
@@ -1793,6 +1834,222 @@ function defaultMethods() {
     configHashVersion += 1;
     return configHash();
   };
+  const defaultAgentId = "ops";
+  const mainKey = "main";
+  const agentDefinitions = {
+    main: {
+      id: "main",
+      name: "Main",
+      emoji: "M",
+      workspace: memoryWorkspaces.main,
+      model: "gpt-5.4",
+      fallbackModels: ["sonnet-4.6"],
+      status: "idle",
+      sessionCount: 18,
+      bindingCount: 4,
+      activeSubagentCount: 2,
+      lastActiveAtMs: Date.now() - 60_000,
+    },
+    ops: {
+      id: "ops",
+      name: "Ops Runner",
+      emoji: "O",
+      workspace: memoryWorkspaces.ops,
+      model: "gpt-5.4-mini",
+      fallbackModels: ["gpt-5.4"],
+      status: "busy",
+      sessionCount: 7,
+      bindingCount: 2,
+      activeSubagentCount: 1,
+      lastActiveAtMs: Date.now() - 5_000,
+    },
+    research: {
+      id: "research",
+      name: "Research",
+      emoji: "R",
+      workspace: memoryWorkspaces.research,
+      model: "gpt-5.4",
+      fallbackModels: [],
+      status: "offline",
+      sessionCount: undefined,
+      bindingCount: 1,
+      activeSubagentCount: 0,
+    },
+    builder: {
+      id: "builder",
+      name: "Builder Agent",
+      emoji: "B",
+      workspace: memoryWorkspaces.builder,
+      model: "gpt-5.4",
+      fallbackModels: ["gpt-5.4-mini"],
+      status: "busy",
+      sessionCount: 5,
+      bindingCount: 1,
+      activeSubagentCount: 3,
+      lastActiveAtMs: Date.now() - 20_000,
+    },
+    reviewer: {
+      id: "reviewer",
+      name: "Reviewer Agent",
+      emoji: "R",
+      workspace: memoryWorkspaces.reviewer,
+      model: "gpt-5.4-mini",
+      fallbackModels: [],
+      status: "idle",
+      sessionCount: 3,
+      bindingCount: 1,
+      activeSubagentCount: 0,
+      lastActiveAtMs: Date.now() - 120_000,
+    },
+    qa: {
+      id: "qa",
+      name: "QA Agent",
+      emoji: "Q",
+      workspace: memoryWorkspaces.qa,
+      model: "gpt-5.4-mini",
+      fallbackModels: [],
+      status: "idle",
+      sessionCount: 2,
+      bindingCount: 0,
+      activeSubagentCount: 0,
+    },
+  };
+  const agentDefinitionList = () => Object.values(agentDefinitions);
+  const agentProtection = (agentId) => {
+    const isMainProtected = agentId === "main";
+    const isConfiguredDefault = agentId === defaultAgentId;
+    return {
+      isDefault: isConfiguredDefault,
+      isConfiguredDefault,
+      isMainProtected,
+      mainKey,
+      protectedReasons: isMainProtected
+        ? ["main is the protected system/fallback agent and cannot be deleted"]
+        : [],
+      availableActions: {
+        canEditIdentity: true,
+        canEditRuntime: true,
+        canDelete: !isMainProtected,
+        canChangeDefault: false,
+        deleteDisabledReason: isMainProtected
+          ? "main is the protected system/fallback agent"
+          : undefined,
+        guardedEditReasons: isMainProtected
+          ? ["Runtime edits affect the protected system/fallback agent"]
+          : ["Runtime edits can change live agent behavior"],
+        unsupportedReasons: ["Default-agent switching is read-only in this pass"],
+      },
+    };
+  };
+  const agentSummary = (definition) => ({
+    id: definition.id,
+    name: definition.name,
+    identity: { emoji: definition.emoji, name: definition.name },
+    emoji: definition.emoji,
+    workspace: definition.workspace,
+    model: { primary: definition.model, fallbacks: definition.fallbackModels },
+    status: definition.status,
+    sessionCount: definition.sessionCount,
+    bindingCount: definition.bindingCount,
+    lastActiveAtMs: definition.lastActiveAtMs,
+    effectiveSources: { workspace: "agent", model: "agent" },
+    impact: {
+      bindingCount: definition.bindingCount,
+      sessionCount: definition.sessionCount,
+      activeSubagentCount: definition.activeSubagentCount,
+      workspaceFileCount: 3,
+      deleteRemovesFiles: false,
+    },
+    ...agentProtection(definition.id),
+  });
+  const agentDetail = (agentId = "main") => {
+    const definition = agentDefinitions[agentId] ?? agentDefinitions.main;
+    return {
+      id: definition.id,
+      name: definition.name,
+      workspace: definition.workspace,
+      model: definition.model,
+      reasoningDefault: definition.id === "main" ? "stream" : "on",
+      fastModeDefault: definition.id === "ops",
+      bindingCount: definition.bindingCount ?? 0,
+      sessionCount: definition.sessionCount ?? 0,
+      activeSubagentCount: definition.activeSubagentCount ?? 0,
+      skillMode: definition.id === "main" ? "all" : "whitelist",
+      effectiveSkills:
+        definition.id === "main"
+          ? ["github", "shell", "frontend-design", "playwright"]
+          : ["github", "shell"],
+      totalAvailableSkills: 10,
+      subagents: {
+        allowAgents: definition.id === "ops" ? ["*"] : ["builder", "reviewer", "qa"],
+        model: definition.id === "reviewer" ? "openai/gpt-5.4-mini" : undefined,
+        effectiveMaxSpawnDepth: definition.id === "main" ? 2 : 1,
+        effectiveMaxChildrenPerAgent: definition.id === "main" ? 8 : 5,
+      },
+      identityExists: true,
+      fallbackModels: definition.fallbackModels,
+      effectiveSources: {
+        workspace: "agent",
+        model: "agent",
+        skills: definition.id === "main" ? "default" : "agent",
+        subagents: definition.id === "ops" ? "agent" : "default",
+        eventStreams: definition.id === "ops" ? "agent" : "default",
+      },
+      impact: {
+        bindingCount: definition.bindingCount ?? 0,
+        sessionCount: definition.sessionCount ?? 0,
+        activeSubagentCount: definition.activeSubagentCount ?? 0,
+        workspaceFileCount: 3,
+        deleteRemovesFiles: false,
+      },
+      guardedEdits: [
+        {
+          field: "workspace",
+          risk: definition.id === "main" ? "high" : "medium",
+          reason:
+            definition.id === "main"
+              ? "Changing main workspace affects the protected fallback agent."
+              : "Changing workspace affects future runs and workspace files.",
+          requiresConfirmation: true,
+        },
+        {
+          field: "model",
+          risk: "medium",
+          reason: "Changing model affects runtime behavior for future sessions.",
+          requiresConfirmation: true,
+        },
+        {
+          field: "eventStreams",
+          risk: "medium",
+          reason: "Changing streams affects channel delivery and activity visibility.",
+          requiresConfirmation: true,
+        },
+      ],
+      ...agentProtection(definition.id),
+    };
+  };
+  const visualSkillInventory = (agentId) => [
+    { key: "github", name: "GitHub", eligible: true, assigned: agentId !== "qa" },
+    { key: "shell", name: "Shell", eligible: true, assigned: true },
+    {
+      key: "frontend-design",
+      name: "Frontend Design",
+      eligible: true,
+      assigned: agentId === "builder" || agentId === "main",
+    },
+    { key: "playwright", name: "Playwright", eligible: true, assigned: agentId === "main" },
+    { key: "docs", name: "Docs Search", eligible: true, assigned: agentId === "research" },
+    { key: "memory", name: "Memory", eligible: true, assigned: agentId === "ops" },
+    { key: "security", name: "Security Review", eligible: true, assigned: agentId === "reviewer" },
+    { key: "notion", name: "Notion Capture", eligible: true, assigned: false },
+    { key: "gpu-server", name: "GPU Server Ops", eligible: true, assigned: false },
+    {
+      key: "legacy-browser",
+      name: "Legacy Browser Automation",
+      eligible: false,
+      assigned: false,
+    },
+  ];
   return {
     "gateway.describe": () => ({
       version: "mock-gateway",
@@ -2478,73 +2735,9 @@ function defaultMethods() {
       };
     },
     "agents.list": () => ({
-      agents: [
-        {
-          id: "main",
-          name: "Main",
-          identity: { emoji: "M", name: "Main" },
-          workspace: memoryWorkspaces.main,
-          model: { primary: "gpt-5.4", fallbacks: ["sonnet-4.6"] },
-          status: "idle",
-          sessionCount: 18,
-          bindingCount: 4,
-          lastActiveAtMs: Date.now() - 60_000,
-        },
-        {
-          id: "ops",
-          name: "Ops Runner",
-          identity: { emoji: "O", name: "Ops Runner" },
-          workspace: memoryWorkspaces.ops,
-          model: { primary: "gpt-5.4-mini" },
-          status: "busy",
-          sessionCount: 7,
-          bindingCount: 2,
-          lastActiveAtMs: Date.now() - 5_000,
-        },
-        {
-          id: "research",
-          name: "Research",
-          identity: { emoji: "R", name: "Research" },
-          workspace: memoryWorkspaces.research,
-          model: { primary: "gpt-5.4" },
-          status: "offline",
-          bindingCount: 1,
-        },
-        {
-          id: "builder",
-          name: "Builder Agent",
-          identity: { emoji: "B", name: "Builder Agent" },
-          workspace: memoryWorkspaces.builder,
-          model: { primary: "gpt-5.4" },
-          status: "busy",
-          sessionCount: 5,
-          bindingCount: 1,
-          lastActiveAtMs: Date.now() - 20_000,
-        },
-        {
-          id: "reviewer",
-          name: "Reviewer Agent",
-          identity: { emoji: "R", name: "Reviewer Agent" },
-          workspace: memoryWorkspaces.reviewer,
-          model: { primary: "gpt-5.4-mini" },
-          status: "idle",
-          sessionCount: 3,
-          bindingCount: 1,
-          lastActiveAtMs: Date.now() - 120_000,
-        },
-        {
-          id: "qa",
-          name: "QA Agent",
-          identity: { emoji: "Q", name: "QA Agent" },
-          workspace: memoryWorkspaces.qa,
-          model: { primary: "gpt-5.4-mini" },
-          status: "idle",
-          sessionCount: 2,
-          bindingCount: 0,
-        },
-      ],
-      defaultId: "main",
-      mainKey: "main",
+      agents: agentDefinitionList().map(agentSummary),
+      defaultId: defaultAgentId,
+      mainKey,
       scope: "local",
     }),
     "config.get": () => ({
@@ -2773,16 +2966,26 @@ function defaultMethods() {
     "deck.agents.subagents.get": (params) => ({
       agentId: params?.agentId ?? "main",
       allowAgents:
-        params?.agentId === "main"
-          ? ["builder", "reviewer", "qa"]
-          : params?.agentId === "builder"
-            ? ["reviewer", "qa"]
-            : [],
+        params?.agentId === "ops"
+          ? ["*"]
+          : params?.agentId === "main"
+            ? ["builder", "reviewer", "qa"]
+            : params?.agentId === "builder"
+              ? ["reviewer", "qa"]
+              : [],
       allowAny: params?.agentId === "ops",
+      allAgents: agentDefinitionList().map((agent) => ({ id: agent.id, name: agent.name })),
       configHash: `${params?.agentId ?? "main"}-subagents-hash`,
       effectiveMaxChildrenPerAgent: params?.agentId === "main" ? 8 : 5,
       effectiveMaxSpawnDepth: params?.agentId === "main" ? 2 : 1,
       model: params?.agentId === "reviewer" ? "openai/gpt-5.4-mini" : undefined,
+    }),
+    "deck.agents.subagents.set": (params) => ({
+      ok: true,
+      agentId: params?.agentId ?? "main",
+      allowAgents: params?.allowAgents ?? [],
+      configHash: `${params?.baseHash ?? "subagents-hash"}-saved`,
+      model: params?.model,
     }),
     "deck.subagents.list": (params) => {
       let runs = subagentRuns;
@@ -3110,22 +3313,7 @@ function defaultMethods() {
       ],
       version: "mock-commands-v1",
     }),
-    "deck.agents.detail": () => ({
-      id: "main",
-      name: "Main",
-      workspace: "/tmp/openclaw-main",
-      model: "gpt-5.4",
-      isDefault: true,
-      bindingCount: 1,
-      sessionCount: 1,
-      activeSubagentCount: 0,
-      skillMode: "enabled",
-      effectiveSkills: [],
-      totalAvailableSkills: 0,
-      subagents: {},
-      identityExists: true,
-      fallbackModels: ["sonnet-4.6"],
-    }),
+    "deck.agents.detail": (params) => agentDetail(params?.agentId ?? "main"),
     "skills.status": () => ({
       managedSkillsDir: "/tmp/openclaw-skills",
       workspaceDir: "/tmp/openclaw-main",
@@ -3133,7 +3321,7 @@ function defaultMethods() {
         {
           skillKey: "github",
           name: "GitHub",
-          source: "plugin",
+          source: "openclaw-managed",
           description: "Manage pull requests, issues, and repository automation through gh.",
           emoji: "$",
           primaryEnv: "GITHUB_TOKEN",
@@ -3165,7 +3353,7 @@ function defaultMethods() {
         {
           skillKey: "shell",
           name: "Shell",
-          source: "bundled",
+          source: "openclaw-bundled",
           description: "Run local shell commands with approval-aware execution.",
           primaryEnv: "PATH",
           disabled: false,
@@ -3182,7 +3370,7 @@ function defaultMethods() {
         {
           skillKey: "frontend-design",
           name: "Frontend Design",
-          source: "managed",
+          source: "openclaw-managed",
           description:
             "Generate high-fidelity frontend prototypes from contracts and design tokens.",
           disabled: false,
@@ -3199,7 +3387,7 @@ function defaultMethods() {
         {
           skillKey: "writing-plans",
           name: "Writing Plans",
-          source: "bundled",
+          source: "openclaw-workspace",
           description: "Plan multi-step work with explicit verification gates.",
           primaryEnv: "",
           disabled: false,
@@ -3210,7 +3398,7 @@ function defaultMethods() {
         {
           skillKey: "test-driven-development",
           name: "Test-Driven Development",
-          source: "bundled",
+          source: "openclaw-extra",
           description: "Red, green, refactor discipline for feature work.",
           primaryEnv: "",
           disabled: false,
@@ -3222,7 +3410,7 @@ function defaultMethods() {
         {
           skillKey: "systematic-debugging",
           name: "Systematic Debugging",
-          source: "bundled",
+          source: "agents-skills-personal",
           description: "Hypothesis-driven debugging with evidence checkpoints.",
           primaryEnv: "",
           disabled: false,
@@ -3233,7 +3421,7 @@ function defaultMethods() {
         {
           skillKey: "openspec-propose",
           name: "OpenSpec Propose",
-          source: "managed",
+          source: "agents-skills-project",
           description: "Create proposal, design, spec delta, and task artifacts.",
           primaryEnv: "",
           disabled: false,
@@ -3245,7 +3433,7 @@ function defaultMethods() {
         {
           skillKey: "ppp-generation",
           name: "PPP Generation",
-          source: "managed",
+          source: "openclaw-managed",
           description: "Generate industrial-grade 3D printing production plans.",
           primaryEnv: "PPP_KNOWLEDGE_BASE",
           disabled: false,
@@ -3263,7 +3451,7 @@ function defaultMethods() {
         {
           skillKey: "qa-testing-playwright",
           name: "QA Testing Playwright",
-          source: "managed",
+          source: "openclaw-managed",
           description: "Run selector-aware Playwright checks and visual tests.",
           primaryEnv: "PLAYWRIGHT_BROWSERS_PATH",
           disabled: false,
@@ -3276,7 +3464,7 @@ function defaultMethods() {
         {
           skillKey: "domain-research",
           name: "Domain Research",
-          source: "managed",
+          source: "openclaw-managed",
           description: "Deep research workflow that writes structured notes.",
           primaryEnv: "OBSIDIAN_VAULT_PATH",
           disabled: false,
@@ -3293,7 +3481,7 @@ function defaultMethods() {
         {
           skillKey: "obsidian-markdown",
           name: "Obsidian Markdown",
-          source: "plugin",
+          source: "third-party-plugin",
           description: "Author Obsidian markdown with wikilinks and callouts.",
           primaryEnv: "",
           disabled: false,
@@ -3304,7 +3492,7 @@ function defaultMethods() {
         {
           skillKey: "gpu-server-ops",
           name: "GPU Server Ops",
-          source: "managed",
+          source: "openclaw-managed",
           description: "Operate remote GPU model hosts and services.",
           primaryEnv: "GPU_SERVER_HOST",
           disabled: true,
@@ -3316,7 +3504,7 @@ function defaultMethods() {
         {
           skillKey: "self-improve",
           name: "Self Improve",
-          source: "bundled",
+          source: "openclaw-bundled",
           description: "Autonomous code improvement loop with tournament selection.",
           primaryEnv: "",
           disabled: false,
@@ -3328,7 +3516,7 @@ function defaultMethods() {
         {
           skillKey: "legacy-browser",
           name: "Legacy Browser",
-          source: "plugin",
+          source: "legacy-plugin",
           description:
             "Legacy browser automation surface kept disabled for visual fixture coverage.",
           disabled: true,
@@ -3454,16 +3642,7 @@ function defaultMethods() {
     }),
     "deck.agents.skills.get": (params) => {
       const agentId = params?.agentId ?? "main";
-      const available = [
-        { key: "github", name: "GitHub", eligible: true, assigned: agentId !== "qa" },
-        { key: "shell", name: "Shell", eligible: true, assigned: true },
-        {
-          key: "frontend-design",
-          name: "Frontend Design",
-          eligible: true,
-          assigned: agentId === "builder",
-        },
-      ];
+      const available = visualSkillInventory(agentId);
       if (agentId === "main") {
         return {
           agentId,
@@ -3488,6 +3667,55 @@ function defaultMethods() {
       mode: params?.mode ?? "whitelist",
       skills: params?.skills ?? ["github", "shell"],
       configHash: `${params?.baseHash ?? "skills-builder-1"}-saved`,
+    }),
+    "deck.agents.eventStreams.get": (params) => ({
+      agentId: params?.agentId ?? "main",
+      eventStreams:
+        params?.agentId === "ops"
+          ? ["agent.status.changed", "session.message", "enterprise.audit.custom"]
+          : ["agent.status.changed", "activity.event"],
+      isDefault: params?.agentId === defaultAgentId,
+      configHash: `event-streams-${params?.agentId ?? "main"}-1`,
+    }),
+    "deck.agents.eventStreams.set": (params) => ({
+      ok: true,
+      agentId: params?.agentId ?? "main",
+      eventStreams: params?.eventStreams ?? [],
+      configHash: `${params?.baseHash ?? "event-streams-hash"}-saved`,
+    }),
+    "deck.agents.toolPolicy.preview": (params) => ({
+      agentId: params?.agentId ?? "main",
+      layers: [
+        { label: "Global tools", ruleCount: 4, effect: "allow" },
+        {
+          label: "Agent override",
+          ruleCount: params?.agentId === "ops" ? 2 : 0,
+          effect: "mixed",
+        },
+      ],
+      tools: [
+        {
+          name: "shell.exec",
+          allowed: params?.agentId !== "research",
+          decisiveLayer: "Global tools",
+        },
+        { name: "browser.open", allowed: true, decisiveLayer: "Agent override" },
+        { name: "git.push", allowed: false, decisiveLayer: "Global tools" },
+      ],
+    }),
+    "deck.agents.systemPrompt.preview": (params) => ({
+      agentId: params?.agentId ?? "main",
+      totalChars: 3284,
+      layers: [
+        { label: "System", source: "openclaw", charCount: 860, fileCount: 0 },
+        { label: "Agent", source: "agents.systemPrompt", charCount: 1220, fileCount: 1 },
+        { label: "Workspace", source: "workspace files", charCount: 1204, fileCount: 2 },
+      ],
+      bootstrapFiles: [
+        { name: "AGENTS.md", exists: true, charCount: 820 },
+        { name: "MEMORY.md", exists: true, charCount: 384 },
+        { name: "TOOLS.md", exists: false, charCount: 0 },
+      ],
     }),
     "usage.cost": (params) => {
       const daily = [

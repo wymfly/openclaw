@@ -25,6 +25,13 @@ const sheetIdProperty = {
   description: "子表 ID (sheet_id)",
 };
 
+const cellValueKeyTypeProperty = {
+  type: "string",
+  enum: ["CELL_VALUE_KEY_TYPE_FIELD_TITLE", "CELL_VALUE_KEY_TYPE_FIELD_ID"],
+  description:
+    "values 的 key 类型：FIELD_TITLE 表示字段标题，FIELD_ID 表示字段 ID；默认 FIELD_TITLE",
+};
+
 const docIdProperty = {
   type: "string",
   minLength: 1,
@@ -1102,66 +1109,6 @@ export const wecomDocToolSchema = {
         },
       },
     },
-    // Note: batch_update is the underlying API, but users should use edit_sheet_data action instead
-    // The edit_sheet_data action handles conversion to batch_update format internally
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId", "records"],
-      properties: {
-        action: { const: "smartsheet_add_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: { type: "string", description: "子表 ID" },
-        records: { type: "array", items: nonEmptyObjectProperty, description: "记录列表" },
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId", "records"],
-      properties: {
-        action: { const: "smartsheet_update_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: { type: "string", description: "子表 ID" },
-        records: {
-          type: "array",
-          items: nonEmptyObjectProperty,
-          description: "更新记录列表，需包含 record_id",
-        },
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId", "record_ids"],
-      properties: {
-        action: { const: "smartsheet_del_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: { type: "string", description: "子表 ID" },
-        record_ids: { type: "array", items: { type: "string" }, description: "记录 ID 列表" },
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId"],
-      properties: {
-        action: { const: "smartsheet_get_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: { type: "string", description: "子表 ID" },
-        record_ids: {
-          type: "array",
-          items: { type: "string" },
-          description: "可选：指定记录 ID 列表",
-        },
-        offset: { type: "integer" },
-        limit: { type: "integer" },
-      },
-    },
     {
       type: "object",
       additionalProperties: false,
@@ -1409,7 +1356,13 @@ export const wecomDocToolSchema = {
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: { type: "string", description: "子表 ID" },
-        records: { type: "array", items: nonEmptyObjectProperty, description: "记录列表" },
+        key_type: cellValueKeyTypeProperty,
+        records: {
+          type: "array",
+          items: nonEmptyObjectProperty,
+          description:
+            "记录列表；每条记录需包含 values 对象，values 的 key 按 key_type 使用字段标题或字段 ID",
+        },
       },
     },
     {
@@ -1421,10 +1374,12 @@ export const wecomDocToolSchema = {
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: { type: "string", description: "子表 ID" },
+        key_type: cellValueKeyTypeProperty,
         records: {
           type: "array",
           items: nonEmptyObjectProperty,
-          description: "更新记录列表，需包含 record_id",
+          description:
+            "更新记录列表，每条需包含 record_id 和 values 对象；values 的 key 按 key_type 使用字段标题或字段 ID",
         },
       },
     },
@@ -1449,6 +1404,7 @@ export const wecomDocToolSchema = {
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: { type: "string", description: "子表 ID" },
+        key_type: cellValueKeyTypeProperty,
         record_ids: {
           type: "array",
           items: { type: "string" },

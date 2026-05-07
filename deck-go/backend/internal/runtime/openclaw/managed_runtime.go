@@ -571,11 +571,11 @@ func (m *ManagedRuntime) AgentsUpdate(ctx context.Context, body map[string]any) 
 }
 
 func (m *ManagedRuntime) DeleteAgent(ctx context.Context, runtimeID string, agentID string) (any, error) {
-	return m.GatewayQueries().AgentsDelete(ctx, agentID)
+	return m.GatewayQueries().AgentsDelete(ctx, agentID, false)
 }
 
 func (m *ManagedRuntime) AgentsDelete(ctx context.Context, agentID string) (any, error) {
-	return m.GatewayQueries().AgentsDelete(ctx, agentID)
+	return m.GatewayQueries().AgentsDelete(ctx, agentID, false)
 }
 
 func (m *ManagedRuntime) SetAgentFile(ctx context.Context, runtimeID string, agentID string, name string, content string) (any, error) {

@@ -83,7 +83,7 @@
   margin: 0;
   color: var(--ds-text-3, var(--text-faint));
   font-size: var(--ds-fs-meta, 0.72rem);
-  font-weight: 740;
+  font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.1;
   text-transform: uppercase;
@@ -98,13 +98,13 @@
 
 .threads-panel__title {
   font-size: 1.32rem;
-  font-weight: 680;
+  font-weight: 600;
   line-height: 1.18;
 }
 
 .threads-panel__card-title {
   font-size: 0.98rem;
-  font-weight: 670;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -146,7 +146,7 @@
   padding: var(--ds-sp-1, 4px) var(--ds-sp-3, 8px);
   color: var(--ds-text-2, var(--text-muted));
   font-size: var(--ds-fs-meta, 0.72rem);
-  font-weight: 720;
+  font-weight: 700;
   line-height: 1.1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -167,7 +167,7 @@
   padding: var(--ds-sp-2, 6px) var(--ds-sp-3, 8px);
   cursor: pointer;
   font-size: 0.82rem;
-  font-weight: 680;
+  font-weight: 600;
 }
 
 .threads-panel__button:hover,
@@ -221,7 +221,7 @@
 .threads-panel__search span {
   color: var(--ds-text-3, var(--text-faint));
   font-size: var(--ds-fs-meta, 0.72rem);
-  font-weight: 720;
+  font-weight: 700;
 }
 
 .threads-panel__metrics,
@@ -252,7 +252,7 @@
   overflow: hidden;
   color: var(--ds-text-1, var(--text-primary));
   font-size: 0.98rem;
-  font-weight: 680;
+  font-weight: 600;
   line-height: 1.25;
   overflow-wrap: anywhere;
 }
@@ -294,7 +294,7 @@
   padding: 0 var(--ds-sp-4, 12px);
   color: var(--ds-text-3, var(--text-faint));
   font-size: var(--ds-fs-meta, 0.72rem);
-  font-weight: 740;
+  font-weight: 700;
   letter-spacing: 0;
 }
 
@@ -325,7 +325,7 @@
 .threads-panel__empty strong {
   min-width: 0;
   color: var(--ds-text-1, var(--text-primary));
-  font-weight: 690;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
@@ -355,7 +355,7 @@
   color: var(--ds-text-1, var(--text-primary));
   padding: 2px var(--ds-sp-2, 6px);
   font-size: var(--ds-fs-meta, 0.72rem);
-  font-weight: 720;
+  font-weight: 700;
 }
 
 .threads-panel__row-meta {

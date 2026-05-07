@@ -21,6 +21,7 @@ const api = vi.hoisted(() => ({
   fetchAgentSystemPromptPreview: vi.fn(),
   fetchAgentToolPolicyPreview: vi.fn(),
   fetchAgentsList: vi.fn(),
+  fetchRuntimeConfiguredModels: vi.fn(),
   normalizeAgentSubagentPermissionOptions: vi.fn(),
   saveAgentFile: vi.fn(),
   streamEvents: vi.fn(),
@@ -45,6 +46,8 @@ const defaultAgents = [
     workspace: "/workspace",
     status: "idle" as const,
     isDefault: true,
+    isConfiguredDefault: true,
+    isMainProtected: true,
     sessionCount: 2,
     bindingCount: 1,
   },
@@ -52,8 +55,13 @@ const defaultAgents = [
     id: "ops",
     name: "Ops",
     model: "gpt-5.4-mini",
+    workspace: "/ops",
     status: "busy" as const,
     isDefault: false,
+    isConfiguredDefault: false,
+    isMainProtected: false,
+    sessionCount: 4,
+    bindingCount: 2,
   },
 ];
 
@@ -87,12 +95,29 @@ describe("AgentsPanel", () => {
     window.history.replaceState(null, "", "/?panel=agents");
     useAgentsStore.getState().reset();
     vi.clearAllMocks();
-    api.fetchAgentsList.mockResolvedValue({ agents: defaultAgents, defaultId: "main" });
-    api.fetchAgentDetail.mockResolvedValue({
-      id: "main",
-      name: "Main",
+    api.fetchAgentsList.mockResolvedValue({
+      agents: defaultAgents,
+      defaultId: "main",
+      mainKey: "main",
+    });
+    api.fetchRuntimeConfiguredModels.mockResolvedValue({
+      runtimeId: "rt_local",
+      payload: {
+        models: [
+          { id: "gpt-5.4", name: "gpt-5.4", provider: "cpa" },
+          { id: "gpt-5.4-mini", name: "gpt-5.4 Mini", provider: "cpa" },
+        ],
+      },
+    });
+    api.fetchAgentDetail.mockImplementation(async (agentId: string) => ({
+      id: agentId,
+      name: agentId === "main" ? "Main" : "Ops",
       workspace: "/workspace",
-      isDefault: true,
+      model: agentId === "main" ? "gpt-5.4" : "gpt-5.4-mini",
+      isDefault: agentId === "main",
+      isConfiguredDefault: agentId === "main",
+      isMainProtected: agentId === "main",
+      mainKey: "main",
       bindingCount: 1,
       sessionCount: 2,
       activeSubagentCount: 0,
@@ -105,7 +130,7 @@ describe("AgentsPanel", () => {
         effectiveMaxChildrenPerAgent: 1,
       },
       identityExists: true,
-    });
+    }));
     api.fetchAgentSkills.mockResolvedValue({
       agentId: "main",
       mode: "whitelist",
@@ -113,8 +138,28 @@ describe("AgentsPanel", () => {
       available: [
         { key: "read", name: "Read", eligible: true, assigned: true },
         { key: "write", name: "Write", eligible: true, assigned: false },
+        { key: "legacy-browser", name: "Legacy Browser", eligible: false, assigned: false },
       ],
       configHash: "skills-hash",
+    });
+    api.fetchAgentSubagentConfig.mockResolvedValue({
+      agentId: "ops",
+      allowAgents: ["*"],
+      allowAny: true,
+      allAgents: [
+        { id: "main", name: "Main" },
+        { id: "ops", name: "Ops" },
+        { id: "reviewer", name: "Reviewer" },
+      ],
+      configHash: "subagents-hash",
+      effectiveMaxChildrenPerAgent: 5,
+      effectiveMaxSpawnDepth: 1,
+    });
+    api.updateAgentSubagentConfig.mockResolvedValue({
+      ok: true,
+      agentId: "ops",
+      allowAgents: ["main", "ops", "reviewer"],
+      configHash: "subagents-hash-2",
     });
     api.fetchAgentEventStreams.mockResolvedValue({
       agentId: "main",
@@ -128,10 +173,17 @@ describe("AgentsPanel", () => {
       },
     );
     api.normalizeAgentSubagentPermissionOptions.mockImplementation(
-      (response: { allowAgents: string[]; allAgents?: Array<{ id: string; name?: string }> }) =>
+      (response: {
+        allowAgents: string[];
+        allowAny?: boolean;
+        allAgents?: Array<{ id: string; name?: string }>;
+      }) =>
         (response.allAgents ?? response.allowAgents.map((id) => ({ id }))).map((row) => ({
           ...row,
-          allowed: response.allowAgents.includes(row.id),
+          allowed:
+            response.allowAny === true ||
+            response.allowAgents.includes("*") ||
+            response.allowAgents.includes(row.id),
         })),
     );
   });
@@ -180,6 +232,20 @@ describe("AgentsPanel", () => {
     });
   });
 
+  it("does not submit protected main delete from the UI", async () => {
+    renderPanel();
+
+    const mainRow = (await screen.findByText("Main")).closest("button");
+    expect(mainRow).toBeTruthy();
+    fireEvent.click(mainRow!);
+
+    expect(await screen.findByText(/protected system\/fallback agent/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Delete agent" })).toBeNull();
+    fireEvent.click(await screen.findByRole("tab", { name: /Danger zone/ }));
+    expect(screen.queryByRole("button", { name: "Delete agent" })).toBeNull();
+    expect(api.deleteAgent).not.toHaveBeenCalled();
+  });
+
   it("surfaces section save conflicts without discarding local edits", async () => {
     api.updateAgentSkills.mockRejectedValue(new Error("409 conflict: stale hash"));
     renderPanel();
@@ -207,6 +273,89 @@ describe("AgentsPanel", () => {
     expect(
       screen.getByRole("switch", { name: "Toggle skill Write" }).getAttribute("aria-checked"),
     ).toBe("true");
+  });
+
+  it("saves guarded runtime edits separately from identity edits", async () => {
+    api.updateAgent.mockResolvedValue({ ok: true, id: "ops" });
+    renderPanel();
+
+    const opsRow = (await screen.findByText("Ops")).closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Runtime/ }));
+
+    fireEvent.change(await screen.findByLabelText("Model"), { target: { value: "gpt-5.4" } });
+    fireEvent.change(screen.getByLabelText("Workspace"), { target: { value: "/ops-v2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Review and save" }));
+
+    await waitFor(() => {
+      expect(api.updateAgent).toHaveBeenCalledWith("ops", {
+        workspace: "/ops-v2",
+      });
+    });
+  });
+
+  it("keeps ineligible skills disabled and out of whitelist saves", async () => {
+    api.updateAgentSkills.mockResolvedValue({
+      ok: true,
+      mode: "whitelist",
+      skills: ["read", "write"],
+      configHash: "skills-hash-2",
+    });
+    renderPanel();
+
+    const opsRow = (await screen.findByText("Ops")).closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Skills/ }));
+
+    const disabledSkill = await screen.findByRole("switch", { name: "Toggle skill Legacy Browser" });
+    expect(disabledSkill.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(disabledSkill);
+    fireEvent.click(screen.getByRole("switch", { name: "Toggle skill Write" }));
+    const saveButton = screen.getByRole("button", { name: "Save changes" });
+    await waitFor(() => {
+      expect(saveButton.hasAttribute("disabled")).toBe(false);
+    });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.updateAgentSkills).toHaveBeenCalledWith("ops", {
+        mode: "whitelist",
+        skills: ["read", "write"],
+        baseHash: "skills-hash",
+      });
+    });
+  });
+
+  it("represents wildcard subagent permissions as allow-any and guards narrowing", async () => {
+    renderPanel();
+
+    const opsRow = (await screen.findByText("Ops")).closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Subagents/ }));
+
+    expect(await screen.findByText(/Gateway wildcard is active/i)).toBeTruthy();
+    const mainToggle = screen.getByRole("switch", { name: "Permit subagent Main" });
+    expect(mainToggle.getAttribute("aria-checked")).toBe("true");
+    expect(mainToggle.hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Explicit list" }));
+    expect(await screen.findByText(/narrows the previous wildcard/i)).toBeTruthy();
+    const saveButton = screen.getByRole("button", { name: "Save changes" });
+    await waitFor(() => {
+      expect(saveButton.hasAttribute("disabled")).toBe(false);
+    });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.updateAgentSubagentConfig).toHaveBeenCalledWith("ops", {
+        allowAgents: ["main", "ops", "reviewer"],
+        baseHash: "subagents-hash",
+        model: undefined,
+      });
+    });
   });
 
   it("preserves real Gateway event stream names alongside declared UI options", async () => {
@@ -254,6 +403,19 @@ describe("AgentsPanel", () => {
     });
   });
 
+  it("keeps routing impact read-only with an owning-module navigation affordance", async () => {
+    renderPanel();
+
+    const opsRow = (await screen.findByText("Ops")).closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Routing impact/ }));
+
+    expect(await screen.findByText(/Read-only impact summary/i)).toBeTruthy();
+    expect(screen.getByText(/Routing owns rule editing/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open Routing" })).toBeTruthy();
+  });
+
   it("creates and deletes agents through backend-supported fields", async () => {
     api.createAgent.mockResolvedValue({ ok: true, id: "research" });
     api.deleteAgent.mockResolvedValue({ ok: true, id: "research" });
@@ -267,7 +429,7 @@ describe("AgentsPanel", () => {
     fireEvent.change(await screen.findByLabelText("Workspace"), {
       target: { value: "/workspace" },
     });
-    fireEvent.change(screen.getByLabelText("Model"), { target: { value: "not-submitted" } });
+    fireEvent.change(screen.getByLabelText("Model"), { target: { value: "gpt-5.4" } });
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(await screen.findByRole("button", { name: "Create agent" }));
 
@@ -275,19 +437,20 @@ describe("AgentsPanel", () => {
       expect(api.createAgent).toHaveBeenCalledWith({
         name: "Research",
         workspace: "/workspace",
+        model: "gpt-5.4",
         emoji: "R",
       });
     });
 
-    const mainRow = screen.getByText("Main").closest("button");
-    expect(mainRow).toBeTruthy();
-    fireEvent.click(mainRow!);
+    const opsRow = screen.getByText("Ops").closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
     fireEvent.click(await screen.findByRole("button", { name: "Delete agent" }));
     const deleteDialog = await screen.findByRole("dialog", { name: "Delete agent" });
     fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
-      expect(api.deleteAgent).toHaveBeenCalledWith("main");
+      expect(api.deleteAgent).toHaveBeenCalledWith("ops");
     });
   });
 });

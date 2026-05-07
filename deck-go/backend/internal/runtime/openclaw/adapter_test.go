@@ -396,7 +396,7 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 	if _, err := adapter.GatewayQueries().AgentsCreate(context.Background(), map[string]any{"name": "Ops"}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := adapter.GatewayQueries().AgentsDelete(context.Background(), "ops"); err != nil {
+	if _, err := adapter.GatewayQueries().AgentsDelete(context.Background(), "ops", false); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := adapter.GatewayQueries().AgentsUpdate(context.Background(), map[string]any{"agentId": "main", "name": "Renamed Main"}); err != nil {

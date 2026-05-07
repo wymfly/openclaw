@@ -915,12 +915,41 @@ type TypedGatewayAgentSummary = {
 function normalizeGatewayAgentSummary(
   agent: TypedGatewayAgentSummary,
   defaultId?: string,
+  mainKey?: string,
 ): DeckGoAgentSummary {
+  const isMainProtected = agent.id === "main";
+  const isConfiguredDefault = agent.id === defaultId;
   return {
     ...agent,
     avatar: agent.identity?.avatar ?? agent.identity?.avatarUrl,
     emoji: agent.identity?.emoji,
-    isDefault: agent.id === defaultId,
+    isDefault: isConfiguredDefault,
+    isConfiguredDefault,
+    isMainProtected,
+    mainKey,
+    protectedReasons: isMainProtected
+      ? ["main is the protected system/fallback agent and cannot be deleted"]
+      : undefined,
+    availableActions: {
+      canEditIdentity: true,
+      canEditRuntime: true,
+      canDelete: !isMainProtected,
+      canChangeDefault: false,
+      deleteDisabledReason: isMainProtected
+        ? "main is the protected system/fallback agent"
+        : undefined,
+      guardedEditReasons: isMainProtected
+        ? ["Runtime edits affect the protected system/fallback agent"]
+        : ["Runtime edits can change live agent behavior"],
+      unsupportedReasons: ["Default-agent switching is read-only in this pass"],
+    },
+    effectiveSources: {
+      workspace: "gateway",
+      model: "gateway",
+    },
+    impact: {
+      deleteRemovesFiles: false,
+    },
     model: agent.model?.primary,
     name: agent.name ?? agent.identity?.name ?? agent.id,
     status: agent.status ?? "idle",
@@ -933,6 +962,38 @@ function normalizeGatewayAgentSummary(
     ...(typeof agent.lastActiveAtMs === "number" && Number.isFinite(agent.lastActiveAtMs)
       ? { lastActiveAtMs: agent.lastActiveAtMs }
       : {}),
+  };
+}
+
+function normalizeAgentDetailResponse(detail: DeckGoAgentDetailResponse): DeckGoAgentDetailResponse {
+  const isMainProtected = detail.isMainProtected ?? detail.id === "main";
+  const isConfiguredDefault = detail.isConfiguredDefault ?? detail.isDefault;
+  return {
+    ...detail,
+    isConfiguredDefault,
+    isMainProtected,
+    protectedReasons:
+      detail.protectedReasons ??
+      (isMainProtected
+        ? ["main is the protected system/fallback agent and cannot be deleted"]
+        : undefined),
+    availableActions:
+      detail.availableActions ??
+      {
+        canEditIdentity: true,
+        canEditRuntime: true,
+        canDelete: !isMainProtected,
+        canChangeDefault: false,
+        deleteDisabledReason: isMainProtected
+          ? "main is the protected system/fallback agent"
+          : undefined,
+      },
+    impact: detail.impact ?? {
+      bindingCount: detail.bindingCount,
+      sessionCount: detail.sessionCount,
+      activeSubagentCount: detail.activeSubagentCount,
+      deleteRemovesFiles: false,
+    },
   };
 }
 
@@ -2273,17 +2334,21 @@ export async function lookupConfigPath(path: string) {
 export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
   const payload = await createDeckGatewayClient({ runtimeId: "rt_local" }).agents.list({});
   return {
-    agents: payload.agents.map((agent) => normalizeGatewayAgentSummary(agent, payload.defaultId)),
+    agents: payload.agents.map((agent) =>
+      normalizeGatewayAgentSummary(agent, payload.defaultId, payload.mainKey),
+    ),
     defaultId: payload.defaultId,
+    mainKey: payload.mainKey,
   };
 }
 
 export async function fetchAgentDetail(agentId: string) {
-  return fetchDeckJson<DeckGoAgentDetailResponse>(
+  const detail = await fetchDeckJson<DeckGoAgentDetailResponse>(
     `/deck/agents?agentId=${encodeURIComponent(agentId)}`,
     undefined,
     "agent detail fetch failed",
   );
+  return normalizeAgentDetailResponse(detail);
 }
 
 export async function fetchAgentHealthSnapshot() {
@@ -2379,6 +2444,7 @@ export function normalizeAgentSubagentPermissionOptions(
   response: DeckGoAgentSubagentConfigResponse,
 ): DeckGoAgentSubagentPermissionOption[] {
   const allowed = new Set(response.allowAgents);
+  const allowAny = response.allowAny === true || allowed.has("*");
   const sourceRows: Array<{ id: string; name?: string }> =
     response.allAgents && response.allAgents.length > 0
       ? response.allAgents
@@ -2389,7 +2455,7 @@ export function normalizeAgentSubagentPermissionOptions(
   return sourceRows.map((row) => ({
     id: row.id,
     name: row.name,
-    allowed: allowed.has(row.id),
+    allowed: allowAny || allowed.has(row.id),
   }));
 }
 
@@ -2530,7 +2596,7 @@ export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPa
 
 export async function deleteAgent(agentId: string) {
   const response = await fetchDeckJson<DeckGoAgentMutationResponse>(
-    `/agents?agentId=${encodeURIComponent(agentId)}`,
+    `/agents?agentId=${encodeURIComponent(agentId)}&deleteFiles=false`,
     { method: "DELETE" },
     "agent delete failed",
   );

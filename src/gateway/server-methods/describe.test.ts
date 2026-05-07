@@ -54,6 +54,22 @@ describe("gateway.describe handler", () => {
     expect(desc.methods["deck.auth.probe"]).toBeDefined();
   });
 
+  it("exposes runtime auxiliary approval methods in gateway.describe", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "typed", includeSchemas: true });
+
+    for (const method of [
+      "exec.approval.list",
+      "exec.approval.resolve",
+      "plugin.approval.list",
+      "plugin.approval.resolve",
+    ]) {
+      expect(desc.methods[method], method).toBeDefined();
+      expect(desc.methods[method]?.params, `${method} params`).toBeDefined();
+      expect(desc.methods[method]?.result, `${method} result`).toBeDefined();
+    }
+  });
+
   it("registers Skills methods from metadata-only control-plane definitions", async () => {
     const { gatewayMethodRegistry } = await import("../server-methods.js");
     const desc = gatewayMethodRegistry.describe({ filter: "typed", includeSchemas: true });

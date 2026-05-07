@@ -72,6 +72,8 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
         "skills.update",
         "deck.agents.skills.get",
         "deck.agents.skills.set",
+        "deck.plugins.list",
+        "plugin.approval.list",
       ]) {
         expect(
           Object.prototype.hasOwnProperty.call(describeMethods, method),
@@ -104,6 +106,14 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
         bffSkills.some((entry) => isRunScopedSkill(entry, fixture)),
         "/skills should include the run-scoped workspace skill",
       ).toBe(true);
+      const scopedBffSkill = bffSkills.find((entry) => isRunScopedSkill(entry, fixture));
+      const scopedBffRecord = readRecord(scopedBffSkill);
+      expect(scopedBffRecord.sourceRaw, "BFF skill should preserve raw source").toBeTruthy();
+      expect(scopedBffRecord.source, "BFF skill should expose product source").toBeTruthy();
+      expect(readRecord(scopedBffRecord.unsupportedReasons).uninstall).toBe(
+        "gateway-rpc-missing",
+      );
+      expect(JSON.stringify(scopedBffRecord)).not.toContain("DECK_GO_E2E_SKILL_TOKEN_VALUE");
 
       const agentSkills = await expectOkJson(
         await request.post(`${stack.backendBase}/api/deck/agents`, {
@@ -123,6 +133,24 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
       );
       expect(Array.isArray(hubBins.bins)).toBe(true);
 
+      const pluginApprovals = await expectOkJson(
+        await request.get(`${stack.backendBase}/api/approvals/plugins`, { headers }),
+        "/approvals/plugins",
+      );
+      expect(Array.isArray(pluginApprovals) || Array.isArray(pluginApprovals.entries)).toBe(true);
+
+      const uninstall = await request.post(
+        `${stack.backendBase}/api/v1/runtimes/rt_local/gateway/rpc`,
+        {
+          headers,
+          data: { method: "skills.uninstall", params: { skillKey: fixture.skillKey } },
+        },
+      );
+      expect(uninstall.status(), "typed BFF rejects missing skills.uninstall").toBe(400);
+      await expect(uninstall.json()).resolves.toMatchObject({
+        error: { code: "INVALID_GATEWAY_METHOD" },
+      });
+
       await writeRealE2EScenarioEvidence(
         stack,
         "skills-api-fixture",
@@ -135,10 +163,17 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
             skillName: fixture.skillName,
             skillDir: fixture.skillDir,
           },
-          methods: ["skills.status", "skills.bins", "deck.agents.skills.get"],
+          methods: [
+            "skills.status",
+            "skills.bins",
+            "deck.agents.skills.get",
+            "deck.plugins.list",
+            "plugin.approval.list",
+          ],
           writes: {
             installedSkillUpdate: "skipped-safe: avoids mutating operator skill config",
             hubInstall: "skipped-safe: avoids package-manager or hub-managed bin writes",
+            uninstall: "negative-passed: typed BFF rejects INVALID_GATEWAY_METHOD",
           },
         },
         testInfo,
@@ -154,37 +189,41 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
     const fixture = await createSkillsFixture(stack, "skills-ui");
     const variants = [
       {
-        configure: "Configure",
         expectedTitle: "Skills",
-        files: "Files",
+        install: "Install from ClawHub",
         locale: "en" as const,
         navLabel: "Skills",
         searchLabel: "Search skills",
-        tabs: [
-          ["Overview", "Identity"],
-          ["Setup", "Pre-flight requirements"],
-          ["Triggers", "Trigger keywords"],
-          ["Bins", "Install options and bins"],
-          ["Files", "File inventory is not a stable Deck-facing Skills DTO yet."],
-          ["Audit", "No audit projection is available for this skill yet."],
+        sections: [
+          "Identity",
+          "Source & activation",
+          "API key",
+          "env",
+          "Eligibility health",
+          "Agent Usage",
+          "Owning Plugin",
+          "Danger zone",
         ] as const,
+        secretDialog: "Update API key",
         theme: "dark" as const,
       },
       {
-        configure: "配置",
         expectedTitle: "技能管理",
-        files: "文件",
+        install: "从 ClawHub 安装",
         locale: "zh" as const,
         navLabel: "技能",
         searchLabel: "搜索技能",
-        tabs: [
-          ["概览", "身份信息"],
-          ["配置", "预检要求"],
-          ["触发", "触发关键词"],
-          ["命令", "安装选项与命令"],
-          ["文件", "文件清单尚不是稳定的 Deck 技能 DTO。"],
-          ["审计", "此技能暂无审计投影。"],
+        sections: [
+          "身份",
+          "来源与激活",
+          "API key",
+          "env",
+          "可用性健康",
+          "智能体使用",
+          "归属插件",
+          "危险区",
         ] as const,
+        secretDialog: "更新 API key",
         theme: "light" as const,
       },
     ];
@@ -218,42 +257,24 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
           await panel.getByText(fixture.skillName).first().click();
           await expect(panel.getByRole("heading", { name: fixture.skillName })).toBeVisible();
 
-          for (const [tab, expectedText] of variant.tabs) {
-            const tabButton = panel.getByRole("tab", { name: tab });
-            await tabButton.click();
-            await expect(tabButton).toHaveAttribute("aria-selected", "true");
-            await expect(panel.getByText(expectedText)).toBeVisible();
+          for (const section of variant.sections) {
+            await expect(panel.getByRole("heading", { name: section })).toBeVisible();
           }
+          await expect(panel.getByText("gateway-rpc-missing", { exact: true })).toBeVisible();
+          await expect(panel.getByRole("button", { name: /Add .*|Remove .*|Save skills/ })).toHaveCount(0);
 
-          await panel.getByRole("button", { name: variant.configure }).click();
-          await expect(page.getByRole("dialog", { name: variant.configure })).toBeVisible();
+          await panel.getByRole("button", { name: variant.secretDialog }).click();
+          await expect(page.getByRole("dialog", { name: variant.secretDialog })).toBeVisible();
           await page
             .getByRole("button", { name: variant.locale === "en" ? "Close" : "关闭" })
             .click();
-          await expect(page.getByRole("dialog", { name: variant.configure })).toBeHidden();
+          await expect(page.getByRole("dialog", { name: variant.secretDialog })).toBeHidden();
 
-          await panel.getByRole("button", { name: variant.files }).click();
-          await expect(
-            page.getByRole("dialog", {
-              name: variant.locale === "en" ? "Skill files" : "技能文件",
-            }),
-          ).toBeVisible();
+          await panel.getByRole("button", { name: variant.install }).click();
+          await expect(page.getByRole("dialog", { name: variant.install })).toBeVisible();
           await page
             .getByRole("button", { name: variant.locale === "en" ? "Close" : "关闭" })
             .click();
-
-          await panel
-            .locator("summary")
-            .filter({ hasText: variant.locale === "en" ? "Agent skill matrix" : "智能体技能矩阵" })
-            .click();
-          await expect(panel.locator(".skills-panel__matrix-details")).toContainText(
-            variant.locale === "en" ? "Agent skill matrix" : "智能体技能矩阵",
-          );
-
-          await panel.getByRole("button", { name: variant.expectedTitle }).click();
-          await panel.getByRole("tab", { name: variant.locale === "en" ? "Hub" : "市场" }).click();
-          await expect(panel.getByLabel(variant.searchLabel)).toBeVisible();
-          await panel.getByLabel(variant.searchLabel).fill("git");
 
           await expect.poll(() => unexpected.slice()).toEqual([]);
           expect(directGateway.requests).toEqual([]);
@@ -278,10 +299,11 @@ test.describe("skills real OpenClaw Gateway contract chain", () => {
             locale: variant.locale,
             theme: variant.theme,
             nav: "chat -> skills",
-            tabs: variant.tabs.map(([tab]) => tab),
+            sections: Array.from(variant.sections),
           })),
           hubSearch:
-            "skipped-safe: network-sensitive ClawHub search is not required for fixture-backed UI pass",
+            "skipped-safe: network-sensitive ClawHub search is covered by mock visual wizard and API describe/read paths",
+          agentMatrixWrite: "removed: Skills UI does not render assignment toggles",
           directBrowserGatewayCalls: "none",
         },
         testInfo,

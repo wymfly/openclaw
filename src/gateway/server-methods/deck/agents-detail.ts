@@ -8,6 +8,7 @@ import {
 } from "../../protocol/schema/deck.js";
 import { agentsService } from "../../services/agents.service.js";
 import { configService } from "../../services/config.service.js";
+import { normalizeMainKey } from "../../../routing/session-key.js";
 import type { GatewayRequestHandlers } from "../types.js";
 import { assertValidParams } from "../validation.js";
 import { resolveDeckAgentReadConfig } from "./agent-read-config.js";
@@ -36,6 +37,11 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
 
     const defaultAgentId = resolveDefaultAgentId(cfg);
     const isDefault = agentId === defaultAgentId;
+    const mainKey = normalizeMainKey(cfg.session?.mainKey);
+    const isMainProtected = agentId === "main";
+    const protectedReasons = isMainProtected
+      ? ["main is the protected system/fallback agent and cannot be deleted"]
+      : undefined;
 
     const bindings = cfg.bindings ?? [];
     const bindingCount = bindings.filter((binding) => binding.agentId === agentId).length;
@@ -63,6 +69,21 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
 
     const effectiveModel =
       resolveModelString(agentConfig.model) ?? resolveModelString(cfg.agents?.defaults?.model);
+    const effectiveSources = {
+      workspace: agentConfig.workspace?.trim()
+        ? "agent"
+        : cfg.agents?.defaults?.workspace
+          ? "default"
+          : "derived",
+      model: agentConfig.model ? "agent" : cfg.agents?.defaults?.model ? "default" : "unknown",
+      skills: agentConfig.skills ? "agent" : cfg.agents?.defaults?.skills ? "default" : "derived",
+      subagents: agentConfig.subagents
+        ? "agent"
+        : cfg.agents?.defaults?.subagents
+          ? "default"
+          : "derived",
+      eventStreams: agentConfig.channels?.eventStreams ? "agent" : "default",
+    } as const;
     const reasoningDefault = agentConfig.reasoningDefault ?? cfg.agents?.defaults?.reasoningDefault;
     const fastModeDefault = agentConfig.fastModeDefault ?? cfg.agents?.defaults?.fastModeDefault;
 
@@ -89,6 +110,62 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
       reasoningDefault,
       fastModeDefault,
       isDefault,
+      isConfiguredDefault: isDefault,
+      isMainProtected,
+      mainKey,
+      protectedReasons,
+      availableActions: {
+        canEditIdentity: true,
+        canEditRuntime: true,
+        canDelete: !isMainProtected,
+        canChangeDefault: false,
+        deleteDisabledReason: isMainProtected
+          ? "main is the protected system/fallback agent"
+          : undefined,
+        guardedEditReasons: isMainProtected
+          ? ["Runtime edits affect the protected system/fallback agent"]
+          : ["Runtime edits can change live agent behavior"],
+        unsupportedReasons: ["Default-agent switching is read-only in this pass"],
+      },
+      effectiveSources,
+      impact: {
+        bindingCount,
+        sessionCount,
+        activeSubagentCount,
+        deleteRemovesFiles: false,
+      },
+      guardedEdits: [
+        {
+          field: "workspace",
+          risk: "high",
+          reason: "Workspace changes alter file and bootstrap context for future runs",
+          requiresConfirmation: true,
+        },
+        {
+          field: "model",
+          risk: "medium",
+          reason: "Model changes alter runtime behavior and cost posture",
+          requiresConfirmation: true,
+        },
+        {
+          field: "skills",
+          risk: "medium",
+          reason: "Skills changes alter tool and context injection",
+          requiresConfirmation: true,
+        },
+        {
+          field: "subagents",
+          risk: "medium",
+          reason: "Subagent permission changes alter spawn behavior",
+          requiresConfirmation: true,
+        },
+        {
+          field: "eventStreams",
+          risk: "medium",
+          reason: "Event stream changes alter channel delivery behavior",
+          requiresConfirmation: true,
+        },
+      ],
       bindingCount,
       sessionCount,
       activeSubagentCount,

@@ -613,7 +613,7 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 				"payload": map[string]any{"id": "ops"},
 			})
 		case "agents.delete":
-			if params["agentId"] != "ops" {
+			if params["agentId"] != "ops" || params["deleteFiles"] != false {
 				t.Fatalf("unexpected agents.delete params: %#v", params)
 			}
 			_ = conn.WriteJSON(map[string]any{
@@ -757,9 +757,41 @@ func TestGatewayFacade_AgentsAndToolsCatalog(t *testing.T) {
 	}
 }
 
+func TestGatewayFacade_RejectsProtectedMainAgentDelete(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(_ *websocket.Conn, method string, _ map[string]any) {
+		t.Fatalf("protected main delete should not reach Gateway, got %s", method)
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/agents?agentId=main", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	message, _ := payload["error"].(string)
+	if payload["ok"] != false || !strings.Contains(message, "protected") {
+		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
 func TestGatewayFacade_SkillsRoutes(t *testing.T) {
 	expectedCalls := []string{
 		"skills.status",
+		"config.get",
+		"deck.plugins.list",
 		"skills.update",
 		"skills.install",
 		"skills.update",
@@ -780,28 +812,36 @@ func TestGatewayFacade_SkillsRoutes(t *testing.T) {
 			if params["agentId"] != "main" {
 				t.Fatalf("unexpected skills.status params: %#v", params)
 			}
+		case "config.get":
+			if len(params) != 1 { // request id only
+				t.Fatalf("unexpected config.get params: %#v", params)
+			}
+		case "deck.plugins.list":
+			if params["capability"] != "all" {
+				t.Fatalf("unexpected deck.plugins.list params: %#v", params)
+			}
 		case "skills.update":
 			switch callIndex {
-			case 1:
+			case 3:
 				if params["skillKey"] != "demo" || params["enabled"] != false {
 					t.Fatalf("unexpected skills.update patch params: %#v", params)
 				}
-			case 3:
+			case 5:
 				if params["source"] != "clawhub" || params["slug"] != "test-skill" {
 					t.Fatalf("unexpected update-clawhub params: %#v", params)
 				}
-			case 7:
+			case 9:
 				if params["source"] != "clawhub" || params["all"] != true {
 					t.Fatalf("unexpected hub update params: %#v", params)
 				}
 			}
 		case "skills.install":
 			switch callIndex {
-			case 2:
+			case 4:
 				if params["name"] != "foo" || params["installId"] != "bar" {
 					t.Fatalf("unexpected skills.install params: %#v", params)
 				}
-			case 6:
+			case 8:
 				if params["source"] != "clawhub" || params["slug"] != "test-skill" || params["version"] != "1.0.0" {
 					t.Fatalf("unexpected hub install params: %#v", params)
 				}

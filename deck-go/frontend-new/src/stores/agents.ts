@@ -10,7 +10,12 @@ import { createLocalStore } from "./create-local-store";
 
 export type AgentsLoadStatus = "idle" | "loading" | "ready" | "error";
 export type AgentsListFetcher = () => Promise<DeckGoAgentsListResponse>;
-export type Agent = Omit<DeckGoAgentSummary, "isDefault"> & { isDefault?: boolean };
+export type Agent = Omit<Partial<DeckGoAgentSummary>, "id" | "name" | "status" | "isDefault"> & {
+  id: string;
+  name: string;
+  status: DeckGoAgentStatus;
+  isDefault?: boolean;
+};
 
 export interface AgentsState {
   agents: Agent[];
@@ -56,11 +61,32 @@ function preserveSelection(agents: Agent[], current: string | null): string | nu
 
 export function normalizeAgentSummary(agent: Agent): Agent {
   const id = agent.id.trim();
+  const isDefault = Boolean(agent.isDefault);
+  const isMainProtected = agent.isMainProtected ?? id === "main";
   return {
     ...agent,
     id,
     name: agent.name?.trim() || id,
-    isDefault: Boolean(agent.isDefault),
+    isDefault,
+    isConfiguredDefault: agent.isConfiguredDefault ?? isDefault,
+    isMainProtected,
+    protectedReasons:
+      agent.protectedReasons ??
+      (isMainProtected
+        ? ["main is the protected system/fallback agent and cannot be deleted"]
+        : undefined),
+    availableActions:
+      agent.availableActions ??
+      {
+        canEditIdentity: true,
+        canEditRuntime: true,
+        canDelete: !isMainProtected,
+        canChangeDefault: false,
+        deleteDisabledReason: isMainProtected
+          ? "main is the protected system/fallback agent"
+          : undefined,
+      },
+    impact: agent.impact ?? { deleteRemovesFiles: false },
     status: normalizeAgentStatus(agent.status),
     ...(typeof agent.sessionCount === "number" && Number.isFinite(agent.sessionCount)
       ? { sessionCount: agent.sessionCount }

@@ -15,6 +15,7 @@ import {
   fetchAgentEventStreams,
   fetchAgentFile,
   fetchAgentFiles,
+  fetchRuntimeConfiguredModels,
   fetchAgentSkills,
   fetchAgentSubagentConfig,
   fetchAgentSystemPromptPreview,
@@ -34,7 +35,7 @@ import {
   type DeckGoAgentSystemPromptPreviewResponse,
   type DeckGoAgentToolPolicyPreviewResponse,
 } from "@/api";
-import type { DeckGoServerEvent } from "@/api-types";
+import type { DeckGoRuntimeConfiguredModel, DeckGoServerEvent } from "@/api-types";
 import {
   Badge,
   Banner,
@@ -44,6 +45,7 @@ import {
   Input,
   Modal,
   SegmentedControl,
+  Select,
   Spinner,
   Textarea,
   Toggle,
@@ -52,11 +54,13 @@ import { useLiveProjectionSubscription } from "@/hooks/useLiveProjectionSubscrip
 import { useAgentsStore, type Agent } from "@/stores/agents";
 import {
   AGENT_SECTIONS,
-  buildAgentPatch,
+  buildAgentIdentityPatch,
+  buildAgentRuntimePatch,
   buildCreateAgentRequest,
   formatAgentError,
   formatMaybeCount,
   hasOverviewChanges,
+  hasRuntimeChanges,
   initialCreateDraft,
   isConflictError,
   nextSectionId,
@@ -78,6 +82,16 @@ const STREAM_OPTIONS = [
   "session.tool",
   "sessions.changed",
 ];
+
+function configuredModelRef(model: DeckGoRuntimeConfiguredModel): string {
+  return model.id || model.model || model.modelIdentifier || model.name || "";
+}
+
+function configuredModelLabel(model: DeckGoRuntimeConfiguredModel): string {
+  const ref = configuredModelRef(model);
+  const provider = model.provider ? `${model.provider} · ` : "";
+  return `${provider}${model.name || ref}`.trim() || ref;
+}
 
 function readAgentParam(): string | null {
   if (typeof window === "undefined") {
@@ -196,7 +210,7 @@ export function AgentsPanel() {
   const selectedAgent = list.find((agent) => agent.id === selectedAgentId) ?? null;
   const metrics = useMemo(() => {
     const busy = list.filter((agent) => agent.status === "busy").length;
-    const defaultAgent = list.find((agent) => agent.isDefault);
+    const defaultAgent = list.find((agent) => agent.isConfiguredDefault ?? agent.isDefault);
     const sessions = list.reduce(
       (total, agent) =>
         total + (Number.isFinite(agent.sessionCount) ? (agent.sessionCount ?? 0) : 0),
@@ -387,7 +401,9 @@ export function AgentsPanel() {
                   >
                     <span
                       className={
-                        agent.isDefault ? "agent-avatar agent-avatar--accent" : "agent-avatar"
+                        (agent.isConfiguredDefault ?? agent.isDefault)
+                          ? "agent-avatar agent-avatar--accent"
+                          : "agent-avatar"
                       }
                       aria-hidden="true"
                     >
@@ -396,7 +412,12 @@ export function AgentsPanel() {
                     <span className="agents-list__main">
                       <span className="agents-list__name">
                         <strong>{agent.name}</strong>
-                        {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+                        {(agent.isConfiguredDefault ?? agent.isDefault) ? (
+                          <Badge variant="ok">{t("defaultBadge")}</Badge>
+                        ) : null}
+                        {agent.isMainProtected ? (
+                          <Badge variant="warn">{t("protectedBadge")}</Badge>
+                        ) : null}
                       </span>
                       <span className="agents-list__meta">
                         <span>{agent.id}</span>
@@ -501,6 +522,8 @@ function AgentDetailView({
   );
   const [overviewSaving, setOverviewSaving] = useState(false);
   const [overviewError, setOverviewError] = useState<string | null>(null);
+  const [runtimeSaving, setRuntimeSaving] = useState(false);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   const [skills, setSkills] = useState<DeckGoAgentSkillsResponse | null>(null);
   const [skillsDraft, setSkillsDraft] = useState<{ mode: string; skills: string[] } | null>(null);
@@ -510,6 +533,7 @@ function AgentDetailView({
 
   const [subagents, setSubagents] = useState<DeckGoAgentSubagentConfigResponse | null>(null);
   const [subagentRows, setSubagentRows] = useState<DeckGoAgentSubagentPermissionOption[]>([]);
+  const [subagentAllowAny, setSubagentAllowAny] = useState(false);
   const [subagentModel, setSubagentModel] = useState("");
   const [subagentSaving, setSubagentSaving] = useState(false);
   const [subagentError, setSubagentError] = useState<string | null>(null);
@@ -536,23 +560,28 @@ function AgentDetailView({
   const [fileError, setFileError] = useState<string | null>(null);
 
   const overviewDirty = hasOverviewChanges(agent, overviewDraft);
+  const runtimeDirty = hasRuntimeChanges(agent, overviewDraft);
   const skillsDirty =
     Boolean(skillsDraft && skills) &&
     (skillsDraft?.mode !== skills?.mode ||
       skillsDraft?.skills.join("\n") !== skills?.skills.join("\n"));
   const subagentsDirty =
     Boolean(subagents) &&
-    (subagentRows
+    ((subagentAllowAny ? "*" : subagentRows
       .filter((row) => row.allowed)
       .map((row) => row.id)
       .toSorted()
-      .join("\n") !== [...(subagents?.allowAgents ?? [])].toSorted().join("\n") ||
+      .join("\n")) !==
+      ((subagents?.allowAny || subagents?.allowAgents.includes("*"))
+        ? "*"
+        : [...(subagents?.allowAgents ?? [])].toSorted().join("\n")) ||
       subagentModel !== (subagents?.model ?? ""));
   const streamsDirty = streams
     ? [...streamDraft].toSorted().join("\n") !== [...streams.eventStreams].toSorted().join("\n")
     : false;
   const dirtySections = [
     overviewDirty ? t("sections.overview") : "",
+    runtimeDirty ? t("sections.runtime") : "",
     skillsDirty ? t("sections.skills") : "",
     subagentsDirty ? t("sections.subagents") : "",
     streamsDirty ? t("sections.eventStreams") : "",
@@ -583,6 +612,7 @@ function AgentDetailView({
     setSkillsDraft(null);
     setSubagents(null);
     setSubagentRows([]);
+    setSubagentAllowAny(false);
     setStreams(null);
     setToolPolicy(null);
     setSystemPrompt(null);
@@ -618,6 +648,7 @@ function AgentDetailView({
       const response = await fetchAgentSubagentConfig(agent.id);
       setSubagents(response);
       setSubagentRows(normalizeAgentSubagentPermissionOptions(response));
+      setSubagentAllowAny(response.allowAny === true || response.allowAgents.includes("*"));
       setSubagentModel(response.model ?? "");
     } catch (error) {
       setSubagentError(formatAgentError(error));
@@ -707,7 +738,7 @@ function AgentDetailView({
     setOverviewSaving(true);
     setOverviewError(null);
     try {
-      await updateAgent(agent.id, buildAgentPatch(agent, overviewDraft));
+      await updateAgent(agent.id, buildAgentIdentityPatch(agent, overviewDraft));
       await useAgentsStore.getState().refreshAgents();
       await loadDetail();
     } catch (error) {
@@ -716,6 +747,23 @@ function AgentDetailView({
       setOverviewSaving(false);
     }
   }, [agent, loadDetail, overviewDirty, overviewDraft]);
+
+  const saveRuntime = useCallback(async () => {
+    if (!runtimeDirty) {
+      return;
+    }
+    setRuntimeSaving(true);
+    setRuntimeError(null);
+    try {
+      await updateAgent(agent.id, buildAgentRuntimePatch(agent, overviewDraft));
+      await useAgentsStore.getState().refreshAgents();
+      await loadDetail();
+    } catch (error) {
+      setRuntimeError(formatAgentError(error));
+    } finally {
+      setRuntimeSaving(false);
+    }
+  }, [agent, loadDetail, runtimeDirty, overviewDraft]);
 
   const saveSkills = useCallback(async () => {
     if (!skills || !skillsDraft) {
@@ -752,7 +800,9 @@ function AgentDetailView({
     setSubagentError(null);
     setSubagentConflict(false);
     try {
-      const allowAgents = subagentRows.filter((row) => row.allowed).map((row) => row.id);
+      const allowAgents = subagentAllowAny
+        ? ["*"]
+        : subagentRows.filter((row) => row.allowed).map((row) => row.id);
       const response = await updateAgentSubagentConfig(agent.id, {
         allowAgents,
         model: subagentModel.trim() || undefined,
@@ -761,11 +811,13 @@ function AgentDetailView({
       setSubagents({
         ...subagents,
         allowAgents: response.allowAgents ?? allowAgents,
+        allowAny: allowAgents.includes("*"),
         model: response.model ?? subagentModel,
         configHash: response.configHash ?? subagents.configHash,
       });
+      setSubagentAllowAny(allowAgents.includes("*"));
       setSubagentRows((rows) =>
-        rows.map((row) => ({ ...row, allowed: allowAgents.includes(row.id) })),
+        rows.map((row) => ({ ...row, allowed: allowAgents.includes("*") || allowAgents.includes(row.id) })),
       );
     } catch (error) {
       setSubagentConflict(isConflictError(error));
@@ -773,7 +825,7 @@ function AgentDetailView({
     } finally {
       setSubagentSaving(false);
     }
-  }, [agent.id, subagentModel, subagentRows, subagents]);
+  }, [agent.id, subagentAllowAny, subagentModel, subagentRows, subagents]);
 
   const saveStreams = useCallback(async () => {
     if (!streams) {
@@ -839,6 +891,8 @@ function AgentDetailView({
         event.preventDefault();
         if (section === "overview") {
           void saveOverview();
+        } else if (section === "runtime") {
+          void saveRuntime();
         } else if (section === "skills") {
           void saveSkills();
         } else if (section === "subagents") {
@@ -850,7 +904,7 @@ function AgentDetailView({
         }
         return;
       }
-      if (!isTextInput && /^[1-7]$/.test(event.key)) {
+      if (!isTextInput && /^[1-9]$/.test(event.key)) {
         event.preventDefault();
         const next = AGENT_SECTIONS[Number(event.key) - 1]?.id;
         if (next) {
@@ -868,10 +922,22 @@ function AgentDetailView({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [changeSection, saveFile, saveOverview, saveSkills, saveStreams, saveSubagents, section]);
+  }, [
+    changeSection,
+    saveFile,
+    saveOverview,
+    saveRuntime,
+    saveSkills,
+    saveStreams,
+    saveSubagents,
+    section,
+  ]);
 
   const detailModel = detail?.model ?? agent.model ?? t("missingModel");
   const detailWorkspace = detail?.workspace ?? agent.workspace ?? "/";
+  const isMainProtected = detail?.isMainProtected ?? agent.isMainProtected;
+  const isConfiguredDefault = detail?.isConfiguredDefault ?? agent.isConfiguredDefault ?? agent.isDefault;
+  const mainKey = detail?.mainKey ?? agent.mainKey;
   const skillCount =
     detail && Array.isArray(detail.effectiveSkills)
       ? `${detail.effectiveSkills.length}/${detail.totalAvailableSkills}`
@@ -887,7 +953,7 @@ function AgentDetailView({
         <div className="agents-detail__identity">
           <span
             className={
-              agent.isDefault
+              isConfiguredDefault
                 ? "agent-avatar agent-avatar--large agent-avatar--accent"
                 : "agent-avatar agent-avatar--large"
             }
@@ -898,7 +964,8 @@ function AgentDetailView({
           <div className="agents-detail__identity-main">
             <h2>
               {agent.name}
-              {agent.isDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+              {isConfiguredDefault ? <Badge variant="ok">{t("defaultBadge")}</Badge> : null}
+              {isMainProtected ? <Badge variant="warn">{t("protectedBadge")}</Badge> : null}
               <StatusBadge agent={agent} />
             </h2>
             <p>
@@ -908,6 +975,7 @@ function AgentDetailView({
             <div className="agent-meta-strip">
               <Chip>{t("meta.sessions", { count: formatMaybeCount(agent.sessionCount) })}</Chip>
               <Chip>{t("meta.bindings", { count: formatMaybeCount(agent.bindingCount) })}</Chip>
+              {mainKey ? <Chip>{t("meta.mainKey", { value: mainKey })}</Chip> : null}
               {detail ? (
                 <Chip>{t("meta.activeSubagents", { count: detail.activeSubagentCount })}</Chip>
               ) : null}
@@ -916,9 +984,13 @@ function AgentDetailView({
           </div>
         </div>
         <div className="agents-detail__actions">
-          <Button variant="danger" onClick={onDelete}>
-            {t("delete.open")}
-          </Button>
+          {isMainProtected ? (
+            <Banner variant="warn">{t("delete.protectedMain")}</Banner>
+          ) : (
+            <Button variant="danger" onClick={onDelete}>
+              {t("delete.open")}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -974,6 +1046,18 @@ function AgentDetailView({
             onSave={saveOverview}
           />
         ) : null}
+        {section === "runtime" ? (
+          <RuntimeSection
+            agent={agent}
+            detail={detail}
+            draft={overviewDraft}
+            dirty={runtimeDirty}
+            saving={runtimeSaving}
+            error={runtimeError}
+            onDraftChange={setOverviewDraft}
+            onSave={saveRuntime}
+          />
+        ) : null}
         {section === "skills" ? (
           <SkillsSection
             data={skills}
@@ -990,6 +1074,7 @@ function AgentDetailView({
         {section === "subagents" ? (
           <SubagentsSection
             rows={subagentRows}
+            allowAny={subagentAllowAny}
             model={subagentModel}
             loaded={Boolean(subagents)}
             dirty={subagentsDirty}
@@ -997,6 +1082,7 @@ function AgentDetailView({
             error={subagentError}
             conflict={subagentConflict}
             onReload={reloadSubagents}
+            onAllowAnyChange={setSubagentAllowAny}
             onRowsChange={setSubagentRows}
             onModelChange={setSubagentModel}
             onSave={saveSubagents}
@@ -1046,6 +1132,10 @@ function AgentDetailView({
             onDraftChange={setStreamDraft}
             onSave={saveStreams}
           />
+        ) : null}
+        {section === "routing" ? <RoutingImpactSection agent={agent} detail={detail} /> : null}
+        {section === "danger" ? (
+          <DangerZoneSection agent={agent} detail={detail} onDelete={onDelete} />
         ) : null}
       </main>
     </section>
@@ -1104,17 +1194,6 @@ function OverviewSection({
           <Input value={draft.name} onChange={(event) => update({ name: event.target.value })} />
         </label>
         <label>
-          <span>{t("fields.model")}</span>
-          <Input value={draft.model} onChange={(event) => update({ model: event.target.value })} />
-        </label>
-        <label>
-          <span>{t("fields.workspace")}</span>
-          <Input
-            value={draft.workspace}
-            onChange={(event) => update({ workspace: event.target.value })}
-          />
-        </label>
-        <label>
           <span>{t("fields.emoji")}</span>
           <Input value={draft.emoji} onChange={(event) => update({ emoji: event.target.value })} />
         </label>
@@ -1126,10 +1205,17 @@ function OverviewSection({
           />
         </label>
       </div>
+      {agent.isMainProtected || detail?.isMainProtected ? (
+        <Banner variant="warn">{t("overview.protectedIdentity")}</Banner>
+      ) : null}
       <div className="agent-meta-strip">
         <Chip>{t("meta.sessions", { count: formatMaybeCount(agent.sessionCount) })}</Chip>
         <Chip>{t("meta.bindings", { count: formatMaybeCount(agent.bindingCount) })}</Chip>
-        <Chip>{t("meta.default", { value: agent.isDefault ? t("yes") : t("no") })}</Chip>
+        <Chip>
+          {t("meta.default", {
+            value: (detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no"),
+          })}
+        </Chip>
         {detail ? (
           <Chip>{t("meta.activeSubagents", { count: detail.activeSubagentCount })}</Chip>
         ) : null}
@@ -1137,6 +1223,123 @@ function OverviewSection({
       <footer className="agent-section__actions">
         <Button variant="primary" disabled={!dirty || saving} onClick={() => void onSave()}>
           {saving ? t("saving") : t("saveChanges")}
+        </Button>
+      </footer>
+    </SectionCard>
+  );
+}
+
+function RuntimeSection({
+  agent,
+  detail,
+  draft,
+  dirty,
+  saving,
+  error,
+  onDraftChange,
+  onSave,
+}: {
+  agent: Agent;
+  detail: DeckGoAgentDetailResponse | null;
+  draft: OverviewDraft;
+  dirty: boolean;
+  saving: boolean;
+  error: string | null;
+  onDraftChange: (draft: OverviewDraft) => void;
+  onSave: () => Promise<void>;
+}) {
+  const t = useTranslations("agentsPanel");
+  const [models, setModels] = useState<DeckGoRuntimeConfiguredModel[]>([]);
+  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
+  const update = (patch: Partial<OverviewDraft>) => onDraftChange({ ...draft, ...patch });
+  const isProtected = detail?.isMainProtected ?? agent.isMainProtected;
+  const modelOptions = models
+    .map((model) => ({ value: configuredModelRef(model), label: configuredModelLabel(model) }))
+    .filter((model) => model.value);
+
+  useEffect(() => {
+    let active = true;
+    setModelLoadError(null);
+    void fetchRuntimeConfiguredModels()
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+        const payloadModels = response.payload?.models ?? response.payload?.items ?? [];
+        setModels(payloadModels);
+      })
+      .catch((loadError) => {
+        if (active) {
+          setModelLoadError(formatAgentError(loadError));
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <SectionCard title={t("sections.runtime")} description={t("runtime.description")}>
+      {error ? <Banner variant="error">{error}</Banner> : null}
+      {isProtected ? <Banner variant="warn">{t("runtime.protectedMain")}</Banner> : null}
+      <div className="agent-impact-grid">
+        <div>
+          <span>{t("runtime.modelSource")}</span>
+          <strong>{detail?.effectiveSources?.model ?? t("unknown")}</strong>
+        </div>
+        <div>
+          <span>{t("runtime.workspaceSource")}</span>
+          <strong>{detail?.effectiveSources?.workspace ?? t("unknown")}</strong>
+        </div>
+        <div>
+          <span>{t("runtime.reasoning")}</span>
+          <strong>{detail?.reasoningDefault ?? t("unknown")}</strong>
+        </div>
+        <div>
+          <span>{t("runtime.fastMode")}</span>
+          <strong>{detail?.fastModeDefault === true ? t("yes") : t("no")}</strong>
+        </div>
+      </div>
+      <div className="agent-form-grid">
+        <label>
+          <span>{t("fields.model")}</span>
+          {modelOptions.length > 0 ? (
+            <Select
+              value={draft.model}
+              onChange={(event) => update({ model: event.currentTarget.value })}
+            >
+              <option value="">{t("runtime.inheritModel")}</option>
+              {modelOptions.map((model) => (
+                <option key={model.value} value={model.value}>
+                  {model.label}
+                </option>
+              ))}
+            </Select>
+          ) : (
+            <Input value={draft.model} onChange={(event) => update({ model: event.target.value })} />
+          )}
+        </label>
+        <label>
+          <span>{t("fields.workspace")}</span>
+          <Input
+            value={draft.workspace}
+            onChange={(event) => update({ workspace: event.target.value })}
+          />
+        </label>
+      </div>
+      {modelLoadError ? <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner> : null}
+      <div className="agent-guarded-list" aria-label={t("runtime.guardsLabel")}>
+        {(detail?.guardedEdits ?? []).map((guard) => (
+          <div key={guard.field} className="agent-preview-row">
+            <strong>{guard.field}</strong>
+            <Badge variant={guard.risk === "high" ? "warn" : "neutral"}>{guard.risk}</Badge>
+            <small>{guard.reason}</small>
+          </div>
+        ))}
+      </div>
+      <footer className="agent-section__actions">
+        <Button variant="primary" disabled={!dirty || saving} onClick={() => void onSave()}>
+          {saving ? t("saving") : t("runtime.saveGuarded")}
         </Button>
       </footer>
     </SectionCard>
@@ -1165,6 +1368,36 @@ function SkillsSection({
   onSave: () => Promise<void>;
 }) {
   const t = useTranslations("agentsPanel");
+  const [query, setQuery] = useState("");
+  const [view, setView] = useState<"all" | "assigned" | "unassigned" | "ineligible">("all");
+  const visibleSkills = useMemo(() => {
+    if (!data || !draft) {
+      return [];
+    }
+    const normalized = query.trim().toLowerCase();
+    return data.available
+      .filter((skill) => {
+        const assigned = draft.skills.includes(skill.key);
+        if (view === "assigned" && !assigned) {
+          return false;
+        }
+        if (view === "unassigned" && assigned) {
+          return false;
+        }
+        if (view === "ineligible" && skill.eligible) {
+          return false;
+        }
+        if (!normalized) {
+          return true;
+        }
+        return `${skill.name} ${skill.key}`.toLowerCase().includes(normalized);
+      })
+      .toSorted((left, right) => {
+        const leftAssigned = draft.skills.includes(left.key) ? 0 : 1;
+        const rightAssigned = draft.skills.includes(right.key) ? 0 : 1;
+        return leftAssigned - rightAssigned || left.name.localeCompare(right.name);
+      });
+  }, [data, draft, query, view]);
   return (
     <SectionCard title={t("sections.skills")} description={t("skills.description")}>
       {error ? (
@@ -1189,15 +1422,37 @@ function SkillsSection({
               { value: "whitelist", label: t("skills.whitelist") },
             ]}
           />
+          <div className="agent-section-toolbar">
+            <Input
+              value={query}
+              aria-label={t("skills.searchLabel")}
+              placeholder={t("skills.searchPlaceholder")}
+              onChange={(event) => setQuery(event.currentTarget.value)}
+            />
+            <SegmentedControl
+              aria-label={t("skills.filterLabel")}
+              value={view}
+              onChange={setView}
+              items={[
+                { value: "all", label: t("filters.all") },
+                { value: "assigned", label: t("skills.assigned") },
+                { value: "unassigned", label: t("skills.unassigned") },
+                { value: "ineligible", label: t("skills.ineligible") },
+              ]}
+            />
+          </div>
           <div className="agent-option-list">
             {data.available.length === 0 ? <p>{t("skills.empty")}</p> : null}
-            {data.available.map((skill) => {
+            {data.available.length > 0 && visibleSkills.length === 0 ? (
+              <p>{t("skills.noMatches")}</p>
+            ) : null}
+            {visibleSkills.map((skill) => {
               const enabled = draft.skills.includes(skill.key);
               return (
                 <div key={skill.key} className="agent-option-row">
                   <div>
                     <strong>{skill.name}</strong>
-                    <small>{skill.key}</small>
+                    <small>{skill.eligible ? skill.key : t("skills.ineligibleReason", { key: skill.key })}</small>
                   </div>
                   <Toggle
                     aria-label={t("skills.toggle", { name: skill.name })}
@@ -1230,6 +1485,7 @@ function SkillsSection({
 
 function SubagentsSection({
   rows,
+  allowAny,
   model,
   loaded,
   dirty,
@@ -1237,11 +1493,13 @@ function SubagentsSection({
   error,
   conflict,
   onReload,
+  onAllowAnyChange,
   onRowsChange,
   onModelChange,
   onSave,
 }: {
   rows: DeckGoAgentSubagentPermissionOption[];
+  allowAny: boolean;
   model: string;
   loaded: boolean;
   dirty: boolean;
@@ -1249,6 +1507,7 @@ function SubagentsSection({
   error: string | null;
   conflict: boolean;
   onReload: () => Promise<void>;
+  onAllowAnyChange: (allowAny: boolean) => void;
   onRowsChange: (rows: DeckGoAgentSubagentPermissionOption[]) => void;
   onModelChange: (model: string) => void;
   onSave: () => Promise<void>;
@@ -1269,6 +1528,20 @@ function SubagentsSection({
         <LoadingRows label={t("loading")} />
       ) : (
         <>
+          <SegmentedControl
+            aria-label={t("subagents.modeLabel")}
+            value={allowAny ? "any" : "explicit"}
+            onChange={(value) => onAllowAnyChange(value === "any")}
+            items={[
+              { value: "any", label: t("subagents.allowAny") },
+              { value: "explicit", label: t("subagents.explicit") },
+            ]}
+          />
+          {!allowAny ? (
+            <Banner variant="warn">{t("subagents.narrowingWarning")}</Banner>
+          ) : (
+            <Banner>{t("subagents.allowAnyDescription")}</Banner>
+          )}
           <label className="agent-field">
             <span>{t("fields.model")}</span>
             <Input value={model} onChange={(event) => onModelChange(event.target.value)} />
@@ -1284,6 +1557,7 @@ function SubagentsSection({
                 <Toggle
                   aria-label={t("subagents.toggle", { name: row.name || row.id })}
                   checked={row.allowed}
+                  disabled={allowAny}
                   onCheckedChange={(allowed) =>
                     onRowsChange(
                       rows.map((entry) => (entry.id === row.id ? { ...entry, allowed } : entry)),
@@ -1531,6 +1805,97 @@ function FilesSection({
   );
 }
 
+function RoutingImpactSection({
+  agent,
+  detail,
+}: {
+  agent: Agent;
+  detail: DeckGoAgentDetailResponse | null;
+}) {
+  const t = useTranslations("agentsPanel");
+  const bindingCount = detail?.impact?.bindingCount ?? detail?.bindingCount ?? agent.bindingCount;
+  const sessionCount = detail?.impact?.sessionCount ?? detail?.sessionCount ?? agent.sessionCount;
+  return (
+    <SectionCard title={t("sections.routing")} description={t("routing.description")}>
+      <div className="agent-impact-grid">
+        <div>
+          <span>{t("columns.bindings")}</span>
+          <strong>{formatMaybeCount(bindingCount)}</strong>
+        </div>
+        <div>
+          <span>{t("columns.sessions")}</span>
+          <strong>{formatMaybeCount(sessionCount)}</strong>
+        </div>
+        <div>
+          <span>{t("routing.defaultState")}</span>
+          <strong>{(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}</strong>
+        </div>
+        <div>
+          <span>{t("meta.mainKey", { value: detail?.mainKey ?? agent.mainKey ?? "-" })}</span>
+          <strong>{detail?.mainKey ?? agent.mainKey ?? "-"}</strong>
+        </div>
+      </div>
+      <Banner>{t("routing.ownerCopy")}</Banner>
+      <footer className="agent-section__actions">
+        <Button
+          onClick={() => {
+            window.location.href = `/?panel=routing&agentId=${encodeURIComponent(agent.id)}`;
+          }}
+        >
+          {t("routing.openRouting")}
+        </Button>
+      </footer>
+    </SectionCard>
+  );
+}
+
+function DangerZoneSection({
+  agent,
+  detail,
+  onDelete,
+}: {
+  agent: Agent;
+  detail: DeckGoAgentDetailResponse | null;
+  onDelete: () => void;
+}) {
+  const t = useTranslations("agentsPanel");
+  const isProtected = detail?.isMainProtected ?? agent.isMainProtected;
+  return (
+    <SectionCard title={t("sections.danger")} description={t("danger.description")}>
+      {isProtected ? (
+        <Banner variant="warn">{t("delete.protectedMain")}</Banner>
+      ) : (
+        <>
+          <div className="agent-impact-grid">
+            <div>
+              <span>{t("columns.bindings")}</span>
+              <strong>{formatMaybeCount(detail?.bindingCount ?? agent.bindingCount)}</strong>
+            </div>
+            <div>
+              <span>{t("columns.sessions")}</span>
+              <strong>{formatMaybeCount(detail?.sessionCount ?? agent.sessionCount)}</strong>
+            </div>
+            <div>
+              <span>{t("danger.deleteFiles")}</span>
+              <strong>{t("no")}</strong>
+            </div>
+            <div>
+              <span>{t("danger.configuredDefault")}</span>
+              <strong>{(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}</strong>
+            </div>
+          </div>
+          <Banner variant="warn">{t("danger.deleteImpact")}</Banner>
+          <footer className="agent-section__actions">
+            <Button variant="danger" onClick={onDelete}>
+              {t("delete.open")}
+            </Button>
+          </footer>
+        </>
+      )}
+    </SectionCard>
+  );
+}
+
 function CreateAgentWizard({
   open,
   onClose,
@@ -1544,17 +1909,45 @@ function CreateAgentWizard({
   const [draft, setDraft] = useState<CreateAgentDraft>(initialCreateDraft);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [models, setModels] = useState<DeckGoRuntimeConfiguredModel[]>([]);
+  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setDraft(initialCreateDraft());
       setError(null);
       setSubmitting(false);
+      setModelLoadError(null);
     }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    let active = true;
+    void fetchRuntimeConfiguredModels()
+      .then((response) => {
+        if (!active) {
+          return;
+        }
+        setModels(response.payload?.models ?? response.payload?.items ?? []);
+      })
+      .catch((loadError) => {
+        if (active) {
+          setModelLoadError(formatAgentError(loadError));
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [open]);
 
   const validationKey = validateCreateStep(draft);
   const update = (patch: Partial<CreateAgentDraft>) => setDraft({ ...draft, ...patch });
+  const modelOptions = models
+    .map((model) => ({ value: configuredModelRef(model), label: configuredModelLabel(model) }))
+    .filter((model) => model.value);
   const advance = () => {
     if (validationKey) {
       setError(t(validationKey));
@@ -1639,12 +2032,29 @@ function CreateAgentWizard({
             </label>
             <label>
               <span>{t("fields.model")}</span>
-              <Input
-                value={draft.model}
-                onChange={(event) => update({ model: event.target.value })}
-              />
+              {modelOptions.length > 0 ? (
+                <Select
+                  value={draft.model}
+                  onChange={(event) => update({ model: event.currentTarget.value })}
+                >
+                  <option value="">{t("runtime.inheritModel")}</option>
+                  {modelOptions.map((model) => (
+                    <option key={model.value} value={model.value}>
+                      {model.label}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input
+                  value={draft.model}
+                  onChange={(event) => update({ model: event.target.value })}
+                />
+              )}
             </label>
             <Banner>{t("create.followUp")}</Banner>
+            {modelLoadError ? (
+              <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner>
+            ) : null}
           </div>
         ) : null}
         {draft.step === 2 ? (
@@ -1659,7 +2069,7 @@ function CreateAgentWizard({
             </div>
             <div>
               <span>{t("fields.model")}</span>
-              <strong>{draft.model || t("create.afterCreate")}</strong>
+              <strong>{draft.model || t("runtime.inheritModel")}</strong>
             </div>
           </div>
         ) : null}
@@ -1709,6 +2119,10 @@ function ConfirmDelete({
     if (!agent) {
       return;
     }
+    if (agent.isMainProtected || agent.id === "main") {
+      setError(t("delete.protectedMain"));
+      return;
+    }
     setDeleting(true);
     setError(null);
     try {
@@ -1738,9 +2152,18 @@ function ConfirmDelete({
           <p id="agent-delete-body">{agent ? t("delete.body", { name: agent.name }) : ""}</p>
         </header>
         {error ? <Banner variant="error">{error}</Banner> : null}
+        {agent?.isMainProtected || agent?.id === "main" ? (
+          <Banner variant="warn">{t("delete.protectedMain")}</Banner>
+        ) : (
+          <Banner variant="warn">{t("danger.deleteImpact")}</Banner>
+        )}
         <footer className="agent-modal__actions">
           <Button onClick={onCancel}>{t("cancel")}</Button>
-          <Button variant="danger" disabled={deleting} onClick={() => void confirm()}>
+          <Button
+            variant="danger"
+            disabled={deleting || agent?.isMainProtected || agent?.id === "main"}
+            onClick={() => void confirm()}
+          >
             {deleting ? t("saving") : t("delete.confirm")}
           </Button>
         </footer>

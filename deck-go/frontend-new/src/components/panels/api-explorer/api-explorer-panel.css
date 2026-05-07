@@ -72,7 +72,7 @@
   margin: 0;
   color: var(--ds-text-1);
   font-size: 0.92rem;
-  font-weight: 820;
+  font-weight: 700;
   white-space: nowrap;
 }
 
@@ -81,7 +81,7 @@
 .api-explorer-panel__topbar-actions span {
   color: var(--ds-text-3);
   font-size: 0.75rem;
-  font-weight: 740;
+  font-weight: 700;
 }
 
 .api-explorer-panel__transport {
@@ -128,7 +128,7 @@
   justify-content: center;
   padding: 6px 10px;
   font-size: 0.8rem;
-  font-weight: 760;
+  font-weight: 700;
   line-height: 1.2;
 }
 
@@ -231,7 +231,7 @@
   margin: 0;
   color: var(--ds-text-3);
   font-size: 0.68rem;
-  font-weight: 820;
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -254,7 +254,7 @@
   padding: 5px 9px;
   color: var(--ds-text-2);
   font-size: 0.76rem;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .api-explorer-panel__tabs button.is-active {
@@ -362,7 +362,7 @@
   background: var(--ds-bg-1);
   color: var(--ds-text-2);
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .api-explorer-panel__badge.is-query,
@@ -504,7 +504,7 @@
   padding: 9px 10px;
   color: var(--ds-text-2);
   font-size: 0.82rem;
-  font-weight: 780;
+  font-weight: 700;
 }
 
 .api-explorer-panel__response-head.is-ok {
@@ -533,7 +533,7 @@
   min-height: 28px;
   padding: 5px 9px;
   font-size: 0.75rem;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .api-explorer-panel__json,
@@ -625,7 +625,7 @@
   min-height: 30px;
   padding: 6px 9px;
   font-size: 0.76rem;
-  font-weight: 760;
+  font-weight: 700;
 }
 
 .api-explorer-panel__history li button span,
