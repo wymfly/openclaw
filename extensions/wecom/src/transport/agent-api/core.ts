@@ -96,6 +96,9 @@ function isMarkdownCompatErrcode(params: { errcode?: number; errmsg?: string }):
   if (text.includes("markdown_v2")) {
     return true;
   }
+  if (params.errcode === 40008 && text.includes("invalid message type")) {
+    return true;
+  }
   const mentionsMarkdown = text.includes("markdown");
   const mentionsCompat =
     text.includes("unsupported") ||

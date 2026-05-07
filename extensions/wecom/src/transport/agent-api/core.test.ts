@@ -88,4 +88,56 @@ describe("agent api sendText", () => {
       markdown: { content: "hello" },
     });
   });
+
+  it("falls back to legacy markdown when WeCom returns generic invalid message type", async () => {
+    state.wecomFetch
+      .mockResolvedValueOnce(
+        jsonResponse({
+          access_token: "token-2",
+          expires_in: 7200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          errcode: 40008,
+          errmsg:
+            "invalid message type, hint: [1778149113022873125205048], from ip: 60.204.148.217",
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          errcode: 0,
+          errmsg: "ok",
+        }),
+      );
+
+    await sendText({
+      agent: {
+        accountId: "acct-2",
+        corpId: "corp-2",
+        corpSecret: "secret-2",
+        agentId: 10002,
+      } as any,
+      toUser: "bob",
+      text: "hello",
+    });
+
+    expect(state.wecomFetch).toHaveBeenCalledTimes(3);
+    expect(JSON.parse(state.wecomFetch.mock.calls[1]?.[1]?.body as string)).toEqual({
+      touser: "bob",
+      toparty: undefined,
+      totag: undefined,
+      msgtype: "markdown_v2",
+      agentid: 10002,
+      markdown_v2: { content: "hello" },
+    });
+    expect(JSON.parse(state.wecomFetch.mock.calls[2]?.[1]?.body as string)).toEqual({
+      touser: "bob",
+      toparty: undefined,
+      totag: undefined,
+      msgtype: "markdown",
+      agentid: 10002,
+      markdown: { content: "hello" },
+    });
+  });
 });
