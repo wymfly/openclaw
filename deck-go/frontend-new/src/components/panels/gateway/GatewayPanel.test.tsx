@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { GatewayPanel } from "./GatewayPanel";
 
@@ -50,6 +51,7 @@ const runtimeSummary = vi.hoisted(() => ({
   tlsVerified: true,
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 
 vi.mock("../../../deck-ui/ui-store", () => ({
@@ -69,7 +71,13 @@ let root: Root | null = null;
 async function renderPanel(locale: "en" | "zh" = "en") {
   await act(async () => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, createElement(GatewayPanel)));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(GatewayPanel)),
+      ),
+    );
   });
   await waitFor(() => expect(apiMocks.fetchGatewayDescribe).toHaveBeenCalled());
 }

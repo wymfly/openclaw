@@ -16,18 +16,23 @@ SessionsPanel
 │  │  ├─ SessionInventoryList
 │  │  ├─ PaginationStrip
 │  │  └─ PreviewOverlayDisclosure
-│  ├─ DetailColumn
+│  ├─ SelectedWorkbench
 │  │  ├─ SelectedSessionHero
 │  │  ├─ RuntimeMetadataGrid
+│  │  ├─ TranscriptSearchExport
+│  │  └─ TranscriptDetail
+│  └─ InspectorColumn
+│     ├─ InspectorTabs
+│     │  ├─ OverviewTab
+│     │  ├─ UsageTab
+│     │  ├─ CompactionTab
+│     │  ├─ LineageTab
+│     │  └─ ActionsTab
 │  │  ├─ SessionUsageContext
 │  │  ├─ CompactionCheckpointList
 │  │  ├─ SubagentLineagePanel
-│  │  ├─ TranscriptSearchExport
-│  │  └─ TranscriptDetail
-│  └─ ActionColumn
 │     ├─ SessionPatchControls
-│     ├─ SessionMutationActions
-│     ├─ SelectedSessionMetadata
+│     ├─ GuardedSessionActions
 │     └─ ActionResult
 ```
 
@@ -40,8 +45,10 @@ three helper files during this pass if the code remains readable:
 - `SessionCompactionHistory.tsx`
 - `SessionSubagentDetails.tsx`
 
-Use a local `sessions-panel.css` for the visual shell. Remove or narrow the old
-`deck-ui-sessions` global styling only after tests pass.
+Use a local `sessions-panel.css` for the visual shell. The Inspector tab
+composition can be a local molecule backed by `SegmentedControl` or equivalent
+token-compatible button groups; do not promote a cross-module pattern until at
+least two modules need it.
 
 ## Local molecules
 
@@ -71,6 +78,17 @@ Rules:
 - Missing optional fields render as `n/a`.
 - Does not invent status values.
 
+### SessionInspectorTabs
+
+Renders `Overview`, `Usage`, `Compaction`, `Lineage`, and `Actions` tabs.
+
+Rules:
+
+- Default-open on desktop.
+- Tabs control hierarchy and visibility only; they do not own data fetching.
+- Switching tabs must not change selected session key or transcript cache.
+- Tab labels stay short and use localized strings in production.
+
 ### TranscriptSearchExport
 
 Renders transcript search, match navigation, export actions, selected match,
@@ -88,6 +106,7 @@ usage-log timeline.
 
 Rules:
 
+- Lives in the Inspector `Usage` tab.
 - High-token turns remain visible but not alarmist.
 - Missing context weight gets a compact empty row.
 
@@ -99,7 +118,10 @@ actions, and action result.
 Rules:
 
 - Actions use existing wrappers.
-- Restore refreshes checkpoint state.
+- Branch remains a mutating checkpoint action.
+- Restore is destructive and must require confirmation before calling its
+  wrapper.
+- Restore refreshes checkpoint state after execution.
 
 ### LineageRelationRow
 
@@ -109,6 +131,20 @@ Rules:
 
 - Open Subagents action uses panel navigation.
 - Parent/child buttons select sessions locally.
+- Full subagent orchestration stays in the Subagents module.
+
+### GuardedSessionActions
+
+Renders scoped patch controls plus reset, clear, compact, delete, and
+compaction restore confirmation gates.
+
+Rules:
+
+- Reset, clear, compact, delete, and restore need a second confirming operator
+  action before calling wrappers.
+- Patch stays scoped to model, label, thinking, fast mode, and other
+  product-backed fields.
+- Do not expose Chat compose/send/abort/steer controls here.
 
 ### ActionResultSeam
 
@@ -137,7 +173,8 @@ Production CSS should preserve these semantic regions:
 - `.sessions-workbench`
 - `.sessions-inventory-card`
 - `.sessions-detail-card`
-- `.sessions-actions-card`
+- `.sessions-inspector-card`
+- `.sessions-inspector-tabs`
 - `.sessions-surface`
 - `.sessions-inventory-row`
 - `.sessions-session-hero`

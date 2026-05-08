@@ -8,6 +8,7 @@ import {
   getCachedTranscript,
   setCachedTranscript,
 } from "@/lib/transcript-cache";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { SessionsPanel } from "./SessionsPanel";
 
@@ -34,6 +35,7 @@ const deckUIMocks = vi.hoisted(() => ({
   ui: { setActivePanel: vi.fn() },
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/panel-navigation", () => ({
   navigateToPanel: deckUIMocks.navigateToPanel,
@@ -292,7 +294,21 @@ function compactionCheckpointsPayload() {
 
 function renderSessionsPanel() {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(SessionsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale: "en" }, createElement(SessionsPanel)),
+    ),
+  );
+}
+
+function buttonByExactText(text: string) {
+  const button = Array.from(container.querySelectorAll("button")).find(
+    (candidate) => candidate.textContent === text,
+  );
+  expect(button).toBeTruthy();
+  return button as HTMLButtonElement;
 }
 
 describe("SessionsPanel", () => {
@@ -415,6 +431,28 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("history sess-build");
   });
 
+  it("preserves cached session inventory when manual refresh fails", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+
+    apiMocks.fetchSessions.mockRejectedValueOnce(new Error("sessions inventory down"));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Refresh sessions")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("sessions inventory down"));
+    expect(container.textContent).toContain("Main Session");
+    expect(container.textContent).toContain("Builder Session");
+  });
+
   it("selects the session requested by cross-panel navigation params", async () => {
     window.history.replaceState({}, "", "/?surface=deck-ui&panel=sessions&sessionKey=sess-build");
 
@@ -498,9 +536,7 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("compressed older turns");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Branch cp-1")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Branch cp-1").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -509,15 +545,42 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Last compaction action: branch sess-main-branch");
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Restore cp-1")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Restore cp-1").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.restoreCompactionCheckpoint).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm restore");
+
+    await act(async () => {
+      buttonByExactText("Confirm restore").dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
       expect(apiMocks.restoreCompactionCheckpoint).toHaveBeenCalledWith("sess-main", "cp-1"),
     );
     expect(container.textContent).toContain("Last compaction action: restore cp-1");
+  });
+
+  it("switches Inspector tabs without changing the selected session", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    expect(document.getElementById("sessions-inspector-overview")?.hidden).toBe(false);
+    expect(document.getElementById("sessions-inspector-usage")?.hidden).toBe(true);
+
+    await act(async () => {
+      buttonByExactText("Usage").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(document.getElementById("sessions-inspector-overview")?.hidden).toBe(true);
+    expect(document.getElementById("sessions-inspector-usage")?.hidden).toBe(false);
+    expect(container.textContent).toContain("sess-main");
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" });
   });
 
   it("loads subagent lineage and preserves parent/child session navigation", async () => {
@@ -714,9 +777,7 @@ describe("SessionsPanel", () => {
       fireEvent.change(modelInput as HTMLInputElement, { target: { value: " cpa/gpt-5.5 " } });
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Patch model")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Patch model").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -733,9 +794,9 @@ describe("SessionsPanel", () => {
       fireEvent.click(fastModeToggle as HTMLButtonElement);
     });
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Patch directives")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Patch directives").dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() =>
@@ -748,9 +809,13 @@ describe("SessionsPanel", () => {
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Reset session")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Reset session").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.resetSession).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm reset");
+
+    await act(async () => {
+      buttonByExactText("Confirm reset").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -761,9 +826,13 @@ describe("SessionsPanel", () => {
     );
 
     await act(async () => {
-      Array.from(container.querySelectorAll("button"))
-        .find((button) => button.textContent === "Clear session")
-        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Clear session").dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(apiMocks.clearSession).not.toHaveBeenCalled();
+    expect(container.textContent).toContain("Confirm clear");
+
+    await act(async () => {
+      buttonByExactText("Confirm clear").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>
@@ -780,10 +849,7 @@ describe("SessionsPanel", () => {
       expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
     );
 
-    const compactButton = () =>
-      Array.from(container.querySelectorAll("button")).find((button) =>
-        button.textContent?.toLowerCase().includes("compact"),
-      ) as HTMLButtonElement;
+    const compactButton = () => buttonByExactText("Compact session");
 
     await act(async () => {
       compactButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -793,7 +859,9 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Confirm compact");
 
     await act(async () => {
-      compactButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Confirm compact").dispatchEvent(
+        new MouseEvent("click", { bubbles: true }),
+      );
     });
 
     await waitFor(() => expect(apiMocks.compactChatSession).toHaveBeenCalledWith("sess-main"));
@@ -816,10 +884,7 @@ describe("SessionsPanel", () => {
       expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
     );
 
-    const deleteButton = () =>
-      Array.from(container.querySelectorAll("button")).find((button) =>
-        button.textContent?.toLowerCase().includes("delete"),
-      ) as HTMLButtonElement;
+    const deleteButton = () => buttonByExactText("Delete session");
 
     await act(async () => {
       deleteButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -829,7 +894,7 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Confirm delete");
 
     await act(async () => {
-      deleteButton().dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      buttonByExactText("Confirm delete").dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     await waitFor(() =>

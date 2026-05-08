@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import type { DeckGoActivityEvent, DeckGoServerEvent } from "../../../api";
-import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
+import { useActivityFeedProjectionSubscription } from "../../../data/modules/activity";
 
 type ActivityStreamEvent = {
   event?: string;
@@ -80,8 +80,7 @@ export function useActivitySSE(onActivityEvent: (event: DeckGoActivityEvent) => 
     [onActivityEvent],
   );
 
-  useLiveProjectionSubscription({
-    projectionId: "activity-feed",
+  useActivityFeedProjectionSubscription({
     retryDelayMs: 1_000,
     onEvent: handleEvent,
   });

@@ -1,4 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { DeckGoSubagentsLineageResponse } from "@/api-types";
 import {
   buildSessionExportJson,
   buildSessionExportMarkdown,
@@ -18,22 +20,31 @@ import type {
   DeckGoSessionsListResponse,
   DeckGoSessionsPreviewResponse,
 } from "../../../../../contracts/generated/ts/deck-api.generated";
-import type { DeckGoSubagentsLineageResponse } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  clearSession,
-  compactChatSession,
-  deleteSession,
-  fetchChatHistory,
-  fetchSessionDetail,
-  fetchSessionPreviews,
-  fetchSessions,
-  fetchSubagentLineage,
-  patchSession,
-  resetSession,
-} from "../../../api";
+  sessionDetailQueryOptions,
+  sessionHistoryQueryOptions,
+  sessionLineageQueryOptions,
+  sessionPreviewsQueryOptions,
+  sessionsListQueryOptions,
+  useClearSessionMutation,
+  useCompactSessionMutation,
+  useDeleteSessionMutation,
+  usePatchSessionMutation,
+  useResetSessionMutation,
+} from "../../../data/modules/sessions";
 import { navigateToPanel } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
-import { Badge, Button, Card, Code, Input, Select, Toggle } from "../../../design-system/atoms";
+import {
+  Badge,
+  Button,
+  Card,
+  Code,
+  Input,
+  SegmentedControl,
+  Select,
+  Toggle,
+} from "../../../design-system/atoms";
 import type { BadgeVariant } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 import { SessionCompactionHistory } from "./SessionCompactionHistory";
@@ -51,12 +62,20 @@ type RefreshSessionsOptions = {
 
 type NormalizedHistoryMessages = ReturnType<typeof normalizeTranscriptMessages>;
 type SessionKindFilter = "" | "direct" | "group" | "global" | "subagent";
+type SessionInspectorTab = "overview" | "usage" | "compaction" | "lineage" | "actions";
 type SessionPreview = NonNullable<DeckGoSessionsPreviewResponse["previews"]>[number];
 
 const PREVIEW_LIMIT = 12;
 const SESSION_FETCH_LIMIT = 200;
 const SESSION_PAGE_SIZE = 20;
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
+const INSPECTOR_TABS: readonly SessionInspectorTab[] = [
+  "overview",
+  "usage",
+  "compaction",
+  "lineage",
+  "actions",
+];
 
 function readSessionNavigationTarget() {
   if (typeof window === "undefined") {
@@ -231,6 +250,13 @@ function StatTile(props: { label: string; value: string | number }) {
 export function SessionsPanel() {
   const t = useTranslations("sessions");
   const ui = useDeckUI();
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const patchSessionMutation = usePatchSessionMutation();
+  const resetSessionMutation = useResetSessionMutation();
+  const clearSessionMutation = useClearSessionMutation();
+  const compactSessionMutation = useCompactSessionMutation();
+  const deleteSessionMutation = useDeleteSessionMutation();
   const [navigationTarget] = useState(readSessionNavigationTarget);
   const [sessions, setSessions] = useState<DeckGoSessionsListResponse | null>(null);
   const [previews, setPreviews] = useState<DeckGoSessionsPreviewResponse | null>(null);
@@ -251,6 +277,9 @@ export function SessionsPanel() {
   const [labelOverride, setLabelOverride] = useState("");
   const [thinkingOverride, setThinkingOverride] = useState("off");
   const [fastModeOverride, setFastModeOverride] = useState(false);
+  const [activeInspectorTab, setActiveInspectorTab] = useState<SessionInspectorTab>("overview");
+  const [resetConfirming, setResetConfirming] = useState(false);
+  const [clearConfirming, setClearConfirming] = useState(false);
   const [compactConfirming, setCompactConfirming] = useState(false);
   const [deleteConfirming, setDeleteConfirming] = useState(false);
   const [error, setError] = useState("");
@@ -264,16 +293,25 @@ export function SessionsPanel() {
     async (options?: RefreshSessionsOptions) => {
       setInventoryState("loading");
       try {
-        const sessionsResult = await fetchSessions({
+        const filters = {
           ...(activeMinutesFilter ? { activeMinutes: Number(activeMinutesFilter) } : {}),
           limit: SESSION_FETCH_LIMIT,
           ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
+        };
+        const sessionsResult = await queryClient.fetchQuery({
+          ...sessionsListQueryOptions(bff, filters),
+          staleTime: 0,
         });
         const previewKeys = (sessionsResult.sessions ?? [])
           .slice(0, PREVIEW_LIMIT)
           .map((session) => session.key);
         const previewResult =
-          previewKeys.length > 0 ? await fetchSessionPreviews(previewKeys) : { previews: [] };
+          previewKeys.length > 0
+            ? await queryClient.fetchQuery({
+                ...sessionPreviewsQueryOptions(bff, previewKeys),
+                staleTime: 0,
+              })
+            : { previews: [] };
         setSessions(sessionsResult);
         setPreviews(previewResult);
         setInventoryState("ready");
@@ -300,7 +338,7 @@ export function SessionsPanel() {
         setError(loadError instanceof Error ? loadError.message : t("failedLoadSessions"));
       }
     },
-    [activeMinutesFilter, searchQuery, t],
+    [activeMinutesFilter, bff, queryClient, searchQuery, t],
   );
 
   const refreshSelectedSession = useCallback(
@@ -317,16 +355,18 @@ export function SessionsPanel() {
         const cachedHistory = getCachedTranscript(trimmed);
         const historyPromise = cachedHistory
           ? Promise.resolve(historyResponseFromMessages(cachedHistory))
-          : fetchChatHistory({ sessionKey: trimmed, limit: 80 }).then((historyResult) => {
-              const normalizedMessages = normalizeTranscriptMessages(
-                trimmed,
-                historyResult.messages as unknown as Array<Record<string, unknown>>,
-              );
-              setCachedTranscript(trimmed, normalizedMessages);
-              return historyResponseFromMessages(normalizedMessages);
-            });
+          : queryClient
+              .fetchQuery(sessionHistoryQueryOptions(bff, trimmed, 80))
+              .then((historyResult) => {
+                const normalizedMessages = normalizeTranscriptMessages(
+                  trimmed,
+                  historyResult.messages as unknown as Array<Record<string, unknown>>,
+                );
+                setCachedTranscript(trimmed, normalizedMessages);
+                return historyResponseFromMessages(normalizedMessages);
+              });
         const [detailResult, historyResult] = await Promise.all([
-          fetchSessionDetail({ sessionKey: trimmed }),
+          queryClient.fetchQuery(sessionDetailQueryOptions(bff, { sessionKey: trimmed })),
           historyPromise,
         ]);
         setDetail(detailResult);
@@ -337,7 +377,9 @@ export function SessionsPanel() {
         if (isSubagentSession(detailResult.session ?? null, trimmed)) {
           setLineageState("loading");
           try {
-            const lineageResult = await fetchSubagentLineage({ sessionKey: trimmed });
+            const lineageResult = await queryClient.fetchQuery(
+              sessionLineageQueryOptions(bff, trimmed),
+            );
             setLineage(lineageResult);
             setLineageState("ready");
           } catch (lineageError) {
@@ -354,7 +396,7 @@ export function SessionsPanel() {
         setError(detailError instanceof Error ? detailError.message : t("failedLoadSessionDetail"));
       }
     },
-    [t],
+    [bff, queryClient, t],
   );
 
   useEffect(() => {
@@ -437,6 +479,8 @@ export function SessionsPanel() {
   }, [transcriptSearchQuery, selectedSessionKey]);
 
   useEffect(() => {
+    setResetConfirming(false);
+    setClearConfirming(false);
     setCompactConfirming(false);
     setDeleteConfirming(false);
   }, [selectedSessionKey]);
@@ -505,6 +549,27 @@ export function SessionsPanel() {
       setError(actionError instanceof Error ? actionError.message : t("sessionActionFailed"));
     }
   };
+
+  const clearActionConfirmations = (except?: "reset" | "clear" | "compact" | "delete") => {
+    if (except !== "reset") {
+      setResetConfirming(false);
+    }
+    if (except !== "clear") {
+      setClearConfirming(false);
+    }
+    if (except !== "compact") {
+      setCompactConfirming(false);
+    }
+    if (except !== "delete") {
+      setDeleteConfirming(false);
+    }
+  };
+
+  const inspectorItems = INSPECTOR_TABS.map((tab) => ({
+    value: tab,
+    label: t(`inspector.${tab}`),
+    controls: `sessions-inspector-${tab}`,
+  }));
 
   const onSelectSession = (session: DeckGoSessionMeta) => {
     setSelectedSessionKey(session.key);
@@ -804,29 +869,6 @@ export function SessionsPanel() {
                 </section>
               ) : null}
 
-              {selectedSessionKey ? (
-                <SessionUsageDetails
-                  compactionCount={selectedSession?.compactionCount}
-                  sessionKey={selectedSessionKey}
-                />
-              ) : null}
-              {selectedSessionKey ? (
-                <SessionCompactionHistory
-                  compactionCount={selectedSession?.compactionCount}
-                  sessionKey={selectedSessionKey}
-                />
-              ) : null}
-              <SessionSubagentDetails
-                childSessionKeys={childSessionKeys}
-                isSubagent={selectedIsSubagent}
-                lineage={lineage}
-                lineageState={lineageState}
-                onOpenSubagents={() => navigateToPanel(ui, "subagents")}
-                onSelectSessionKey={setSelectedSessionKey}
-                parentSessionKey={parentSessionKey}
-                relationships={selectedSessionRelationships}
-              />
-
               <section className="sessions-surface">
                 <div className="sessions-section-heading">
                   <h3>{t("transcriptSearchExport")}</h3>
@@ -929,202 +971,307 @@ export function SessionsPanel() {
           </Card>
         </section>
 
-        <aside className="sessions-column sessions-column--actions">
-          <Card className="sessions-card" padded={false}>
+        <aside className="sessions-column sessions-column--inspector">
+          <Card className="sessions-card sessions-inspector-card" padded={false}>
             <div className="sessions-card__header">
               <div>
-                <h3>{t("actionsTitle")}</h3>
-                <p>{t("actionsDescription")}</p>
+                <h3>{t("inspectorTitle")}</h3>
+                <p>{t("inspectorDescription")}</p>
               </div>
+              <Badge>{t("defaultOpen")}</Badge>
             </div>
             <div className="sessions-card__body">
-              <label className="sessions-field">
-                <span>{t("modelOverride")}</span>
-                <Input
-                  className="sessions-input"
-                  inputSize="sm"
-                  value={modelOverride}
-                  onChange={(event) => setModelOverride(event.target.value)}
-                  placeholder={t("modelPlaceholder")}
-                />
-              </label>
-              <label className="sessions-field">
-                <span>{t("sessionLabel")}</span>
-                <Input
-                  className="sessions-input"
-                  inputSize="sm"
-                  value={labelOverride}
-                  onChange={(event) => setLabelOverride(event.target.value)}
-                  placeholder={t("labelPlaceholder")}
-                />
-              </label>
-              <div className="sessions-controls">
-                <label className="sessions-field">
-                  <span>{t("thinkingLevel")}</span>
-                  <Select
-                    aria-label={t("sessionThinkingLevel")}
-                    className="sessions-select"
-                    selectSize="sm"
-                    value={thinkingOverride}
-                    onChange={(event) => setThinkingOverride(event.target.value)}
-                  >
-                    {THINKING_LEVELS.map((level) => (
-                      <option key={level} value={level}>
-                        {level}
-                      </option>
-                    ))}
-                  </Select>
-                </label>
-                <label className="sessions-field">
-                  <span>{t("fastMode")}</span>
-                  <span className="sessions-toggle-field">
-                    <Toggle
-                      aria-label={t("sessionFastMode")}
-                      checked={fastModeOverride}
-                      onCheckedChange={setFastModeOverride}
-                    />
-                    <strong>{fastModeOverride ? t("on") : t("off")}</strong>
-                  </span>
-                </label>
-              </div>
-              <div className="sessions-actions">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    void runAction(() =>
-                      resetSession({ sessionKey: selectedSessionKey, reason: "reset" }),
-                    )
-                  }
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {t("resetSession")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    void runAction(() => clearSession({ sessionKey: selectedSessionKey }))
-                  }
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {t("clearSession")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() =>
-                    void runAction(() =>
-                      patchSession({
-                        sessionKey: selectedSessionKey,
-                        model: modelOverride.trim(),
-                      }),
-                    )
-                  }
-                  disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
-                >
-                  {t("patchModel")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    void runAction(() =>
-                      patchSession({
-                        sessionKey: selectedSessionKey,
-                        label: labelOverride.trim() || null,
-                        thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
-                        fastMode: fastModeOverride,
-                      }),
-                    )
-                  }
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {t("patchDirectives")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    if (!compactConfirming) {
-                      setCompactConfirming(true);
-                      setDeleteConfirming(false);
-                      return;
-                    }
-                    setCompactConfirming(false);
-                    void runAction(async () => {
-                      const response = await compactChatSession(selectedSessionKey);
-                      return {
-                        ok: response.ok,
-                        status: response.status,
-                        key: selectedSessionKey,
-                        action: "compact",
-                      };
-                    });
-                  }}
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {compactConfirming ? t("confirmCompact") : t("compactSession")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => {
-                    if (!deleteConfirming) {
-                      setDeleteConfirming(true);
-                      setCompactConfirming(false);
-                      return;
-                    }
-                    setDeleteConfirming(false);
-                    void runAction(
-                      () =>
-                        deleteSession({
-                          sessionKey: selectedSessionKey,
-                          agentId: selectedSession?.agentId ?? null,
-                        }),
-                      { preserveSelectedSession: false },
-                    );
-                  }}
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
-                </Button>
-              </div>
-              {selectedSession ? (
-                <section className="sessions-surface">
-                  <div className="sessions-section-heading">
-                    <h3>{t("metadata")}</h3>
+              <SegmentedControl<SessionInspectorTab>
+                aria-label={t("inspectorTabs")}
+                className="sessions-inspector-tabs"
+                controlSize="xs"
+                items={inspectorItems}
+                value={activeInspectorTab}
+                onChange={setActiveInspectorTab}
+              />
+              {error ? <p className="sessions-error">{error}</p> : null}
+
+              <section
+                className="sessions-surface"
+                hidden={activeInspectorTab !== "overview"}
+                id="sessions-inspector-overview"
+                role="tabpanel"
+              >
+                <div className="sessions-section-heading">
+                  <h3>{t("metadata")}</h3>
+                  {selectedSession ? (
                     <Badge variant={statusVariant(selectedSession.status)}>
                       {selectedSession.status || t("unknown")}
                     </Badge>
+                  ) : null}
+                </div>
+                {selectedSession ? (
+                  <>
+                    <strong>{selectedSession.key}</strong>
+                    <p className="sessions-note">
+                      {t("providerModelLine", {
+                        model: selectedSession.model || t("na"),
+                        provider: selectedSession.modelProvider || t("na"),
+                      })}
+                    </p>
+                    <p className="sessions-note">
+                      {t("thinkingFastMode", {
+                        fastMode: selectedSession.fastMode ? t("on") : t("off"),
+                        thinking: selectedSession.thinkingLevel || t("off"),
+                      })}
+                    </p>
+                  </>
+                ) : (
+                  <p className="sessions-empty">{t("noActiveSession")}</p>
+                )}
+              </section>
+
+              <section
+                hidden={activeInspectorTab !== "usage"}
+                id="sessions-inspector-usage"
+                role="tabpanel"
+              >
+                {selectedSessionKey ? (
+                  <SessionUsageDetails
+                    compactionCount={selectedSession?.compactionCount}
+                    sessionKey={selectedSessionKey}
+                  />
+                ) : (
+                  <p className="sessions-empty">{t("noActiveSession")}</p>
+                )}
+              </section>
+
+              <section
+                hidden={activeInspectorTab !== "compaction"}
+                id="sessions-inspector-compaction"
+                role="tabpanel"
+              >
+                {selectedSessionKey ? (
+                  <SessionCompactionHistory
+                    compactionCount={selectedSession?.compactionCount}
+                    sessionKey={selectedSessionKey}
+                  />
+                ) : (
+                  <p className="sessions-empty">{t("noActiveSession")}</p>
+                )}
+              </section>
+
+              <section
+                hidden={activeInspectorTab !== "lineage"}
+                id="sessions-inspector-lineage"
+                role="tabpanel"
+              >
+                <SessionSubagentDetails
+                  childSessionKeys={childSessionKeys}
+                  isSubagent={selectedIsSubagent}
+                  lineage={lineage}
+                  lineageState={lineageState}
+                  onOpenSubagents={() => navigateToPanel(ui, "subagents")}
+                  onSelectSessionKey={setSelectedSessionKey}
+                  parentSessionKey={parentSessionKey}
+                  relationships={selectedSessionRelationships}
+                />
+              </section>
+
+              <section
+                className="sessions-actions-panel"
+                hidden={activeInspectorTab !== "actions"}
+                id="sessions-inspector-actions"
+                role="tabpanel"
+              >
+                <div className="sessions-section-heading">
+                  <div>
+                    <h3>{t("actionsTitle")}</h3>
+                    <p>{t("actionsDescription")}</p>
                   </div>
-                  <strong>{selectedSession.key}</strong>
-                  <p className="sessions-note">
-                    {t("providerModelLine", {
-                      model: selectedSession.model || t("na"),
-                      provider: selectedSession.modelProvider || t("na"),
-                    })}
-                  </p>
-                </section>
-              ) : null}
-              {error ? <p className="sessions-error">{error}</p> : null}
+                </div>
+                <label className="sessions-field">
+                  <span>{t("modelOverride")}</span>
+                  <Input
+                    className="sessions-input"
+                    inputSize="sm"
+                    value={modelOverride}
+                    onChange={(event) => setModelOverride(event.target.value)}
+                    placeholder={t("modelPlaceholder")}
+                  />
+                </label>
+                <label className="sessions-field">
+                  <span>{t("sessionLabel")}</span>
+                  <Input
+                    className="sessions-input"
+                    inputSize="sm"
+                    value={labelOverride}
+                    onChange={(event) => setLabelOverride(event.target.value)}
+                    placeholder={t("labelPlaceholder")}
+                  />
+                </label>
+                <div className="sessions-controls">
+                  <label className="sessions-field">
+                    <span>{t("thinkingLevel")}</span>
+                    <Select
+                      aria-label={t("sessionThinkingLevel")}
+                      className="sessions-select"
+                      selectSize="sm"
+                      value={thinkingOverride}
+                      onChange={(event) => setThinkingOverride(event.target.value)}
+                    >
+                      {THINKING_LEVELS.map((level) => (
+                        <option key={level} value={level}>
+                          {level}
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                  <label className="sessions-field">
+                    <span>{t("fastMode")}</span>
+                    <span className="sessions-toggle-field">
+                      <Toggle
+                        aria-label={t("sessionFastMode")}
+                        checked={fastModeOverride}
+                        onCheckedChange={setFastModeOverride}
+                      />
+                      <strong>{fastModeOverride ? t("on") : t("off")}</strong>
+                    </span>
+                  </label>
+                </div>
+                <div className="sessions-actions">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      clearActionConfirmations();
+                      void runAction(() =>
+                        patchSessionMutation.mutateAsync({
+                          sessionKey: selectedSessionKey,
+                          model: modelOverride.trim(),
+                        }),
+                      );
+                    }}
+                    variant="primary"
+                    disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
+                  >
+                    {t("patchModel")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      clearActionConfirmations();
+                      void runAction(() =>
+                        patchSessionMutation.mutateAsync({
+                          sessionKey: selectedSessionKey,
+                          label: labelOverride.trim() || null,
+                          thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
+                          fastMode: fastModeOverride,
+                        }),
+                      );
+                    }}
+                    disabled={!selectedSessionKey.trim()}
+                  >
+                    {t("patchDirectives")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!resetConfirming) {
+                        clearActionConfirmations("reset");
+                        setResetConfirming(true);
+                        return;
+                      }
+                      setResetConfirming(false);
+                      void runAction(() =>
+                        resetSessionMutation.mutateAsync({
+                          sessionKey: selectedSessionKey,
+                          reason: "reset",
+                        }),
+                      );
+                    }}
+                    disabled={!selectedSessionKey.trim()}
+                  >
+                    {resetConfirming ? t("confirmReset") : t("resetSession")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!clearConfirming) {
+                        clearActionConfirmations("clear");
+                        setClearConfirming(true);
+                        return;
+                      }
+                      setClearConfirming(false);
+                      void runAction(() =>
+                        clearSessionMutation.mutateAsync({ sessionKey: selectedSessionKey }),
+                      );
+                    }}
+                    disabled={!selectedSessionKey.trim()}
+                  >
+                    {clearConfirming ? t("confirmClear") : t("clearSession")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (!compactConfirming) {
+                        clearActionConfirmations("compact");
+                        setCompactConfirming(true);
+                        return;
+                      }
+                      setCompactConfirming(false);
+                      void runAction(async () => {
+                        const response =
+                          await compactSessionMutation.mutateAsync(selectedSessionKey);
+                        return {
+                          ok: response.ok,
+                          status: response.status,
+                          key: selectedSessionKey,
+                          action: "compact",
+                        };
+                      });
+                    }}
+                    disabled={!selectedSessionKey.trim()}
+                  >
+                    {compactConfirming ? t("confirmCompact") : t("compactSession")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={() => {
+                      if (!deleteConfirming) {
+                        clearActionConfirmations("delete");
+                        setDeleteConfirming(true);
+                        return;
+                      }
+                      setDeleteConfirming(false);
+                      void runAction(
+                        () =>
+                          deleteSessionMutation.mutateAsync({
+                            sessionKey: selectedSessionKey,
+                            agentId: selectedSession?.agentId ?? null,
+                          }),
+                        { preserveSelectedSession: false },
+                      );
+                    }}
+                    disabled={!selectedSessionKey.trim()}
+                  >
+                    {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
+                  </Button>
+                </div>
+                {actionResult ? (
+                  <section className="sessions-surface sessions-action-result">
+                    <div className="sessions-section-heading">
+                      <div>
+                        <h3>{t("latestAction")}</h3>
+                        <p>{t("actionResultTitle")}</p>
+                      </div>
+                    </div>
+                    <Code
+                      aria-label={t("actionResultTitle")}
+                      className="sessions-code"
+                      content={formatJson(actionResult)}
+                      language="json"
+                    />
+                  </section>
+                ) : null}
+              </section>
             </div>
           </Card>
-
-          {actionResult ? (
-            <Card className="sessions-card sessions-action-result" padded={false}>
-              <div className="sessions-card__header">
-                <div>
-                  <h3>{t("latestAction")}</h3>
-                  <p>{t("actionResultTitle")}</p>
-                </div>
-              </div>
-              <div className="sessions-card__body">
-                <Code
-                  aria-label={t("actionResultTitle")}
-                  className="sessions-code"
-                  content={formatJson(actionResult)}
-                  language="json"
-                />
-              </div>
-            </Card>
-          ) : null}
         </aside>
       </section>
     </section>

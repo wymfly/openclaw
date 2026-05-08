@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { patchChannelConfig } from "../../../api";
+import { usePatchChannelConfigMutation } from "../../../data/modules/channels";
 import { useTranslations } from "../../../i18n/provider";
 
 type DmPolicy = "pairing" | "allowlist" | "open" | "disabled";
@@ -35,6 +35,7 @@ export function AccountDmPolicyEditor(props: {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const patchChannelConfigMutation = usePatchChannelConfigMutation();
 
   useEffect(() => {
     const nextPolicy = readAccountPolicy(props.accountPayload);
@@ -49,10 +50,13 @@ export function AccountDmPolicyEditor(props: {
     }
     setSaving(true);
     try {
-      const result = await patchChannelConfig(props.channelId, {
-        accounts: {
-          [props.accountId]: {
-            dm: { policy },
+      const result = await patchChannelConfigMutation.mutateAsync({
+        channelId: props.channelId,
+        patch: {
+          accounts: {
+            [props.accountId]: {
+              dm: { policy },
+            },
           },
         },
       });

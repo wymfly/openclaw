@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   DeckGoChannelsStatusResponse,
@@ -7,14 +8,15 @@ import type {
   DeckGoRoutingBinding,
   DeckGoRoutingListResponse,
 } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  fetchChannelThroughput,
-  fetchChannels,
-  fetchRoutingBindings,
-  logoutChannel,
-  patchChannelConfig,
-  testChannel,
-} from "../../../api";
+  channelThroughputQueryOptions,
+  channelsListQueryOptions,
+  useLogoutChannelMutation,
+  usePatchChannelConfigMutation,
+  useTestChannelMutation,
+} from "../../../data/modules/channels";
+import { routingBindingsQueryOptions } from "../../../data/modules/routing";
 import { navigateToPlugin, navigateToRouting } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import {
@@ -405,6 +407,8 @@ function ChannelThroughputChart(props: {
 function ChannelRoutingPanel(props: { accountId: string; channelId: string }) {
   const t = useTranslations("channels");
   const ui = useDeckUI();
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
   const [loadState, setLoadState] = useState<PanelState>("idle");
   const [routing, setRouting] = useState<DeckGoRoutingListResponse | null>(null);
   const [error, setError] = useState("");
@@ -412,7 +416,10 @@ function ChannelRoutingPanel(props: { accountId: string; channelId: string }) {
   useEffect(() => {
     let mounted = true;
     setLoadState("loading");
-    void fetchRoutingBindings({ channel: props.channelId, accountId: props.accountId })
+    void queryClient
+      .fetchQuery(
+        routingBindingsQueryOptions(bff, { channel: props.channelId, accountId: props.accountId }),
+      )
       .then((next) => {
         if (!mounted) {
           return;
@@ -432,7 +439,7 @@ function ChannelRoutingPanel(props: { accountId: string; channelId: string }) {
     return () => {
       mounted = false;
     };
-  }, [props.accountId, props.channelId, t]);
+  }, [bff, props.accountId, props.channelId, queryClient, t]);
 
   const bindings = routing?.bindings ?? [];
 
@@ -491,6 +498,11 @@ function ChannelRoutingPanel(props: { accountId: string; channelId: string }) {
 export function ChannelsPanel() {
   const t = useTranslations("channels");
   const ui = useDeckUI();
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const testChannelMutation = useTestChannelMutation();
+  const logoutChannelMutation = useLogoutChannelMutation();
+  const patchChannelConfigMutation = usePatchChannelConfigMutation();
   const searchRef = useRef<HTMLInputElement>(null);
   const [navigationTarget] = useState(readChannelNavigationTarget);
   const [payload, setPayload] = useState<DeckGoChannelsStatusResponse | null>(null);
@@ -527,7 +539,10 @@ export function ChannelsPanel() {
   const refresh = async (preferredChannelId?: string) => {
     setLoadState("loading");
     try {
-      const next = await fetchChannels();
+      const next = await queryClient.fetchQuery({
+        ...channelsListQueryOptions(bff),
+        staleTime: 0,
+      });
       setPayload(next);
       setLoadState("ready");
       setError("");
@@ -580,7 +595,8 @@ export function ChannelsPanel() {
     }
     let mounted = true;
     setThroughputState("loading");
-    void fetchChannelThroughput(selectedChannelId, throughputWindow)
+    void queryClient
+      .fetchQuery(channelThroughputQueryOptions(bff, selectedChannelId, throughputWindow))
       .then((next) => {
         if (!mounted) {
           return;
@@ -599,7 +615,7 @@ export function ChannelsPanel() {
     return () => {
       mounted = false;
     };
-  }, [selectedChannelId, throughputWindow, t]);
+  }, [bff, queryClient, selectedChannelId, throughputWindow, t]);
 
   const channelItems = useMemo<ChannelInventoryItem[]>(() => {
     const rawChannels = asRecord(payload?.channels);
@@ -703,7 +719,7 @@ export function ChannelsPanel() {
     setLogoutDialogOpen(false);
     setActionState("logging-out");
     try {
-      const result = await logoutChannel(selectedItem.id);
+      const result = await logoutChannelMutation.mutateAsync(selectedItem.id);
       setActionResult(result);
       setError("");
       await refresh(selectedItem.id);
@@ -720,7 +736,7 @@ export function ChannelsPanel() {
     }
     setActionState("testing");
     try {
-      const result = await testChannel(selectedItem.id);
+      const result = await testChannelMutation.mutateAsync(selectedItem.id);
       setChannelTestResult({ ...result, channelId: result.channelId || selectedItem.id });
       setTestResultDialogOpen(true);
       setActiveTab("probe");
@@ -749,7 +765,10 @@ export function ChannelsPanel() {
     }
     setActionState("toggling");
     try {
-      const result = await patchChannelConfig(selectedItem.id, { enabled: nextEnabled });
+      const result = await patchChannelConfigMutation.mutateAsync({
+        channelId: selectedItem.id,
+        patch: { enabled: nextEnabled },
+      });
       setConfigPatchResult(result);
       setError("");
       await refresh(selectedItem.id);

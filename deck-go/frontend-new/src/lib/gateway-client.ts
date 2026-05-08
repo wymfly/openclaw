@@ -8,6 +8,7 @@ import type {
   GatewayMethodName,
 } from "../../../contracts/generated/ts/gateway/protocol";
 import { deckFetch } from "./deck-client";
+import { DEFAULT_RUNTIME_ID } from "./runtime-id";
 
 export type GatewayErrorPayload = {
   code?: string;
@@ -155,13 +156,13 @@ function createBatchSlotError(
 }
 
 function createDeckGatewayBatchTransport(options: DeckGatewayTransportOptions = {}) {
-  const runtimeId = options.runtimeId ?? "rt_local";
-  const requestId = readRequestId(options);
+  const runtimeId = options.runtimeId ?? DEFAULT_RUNTIME_ID;
 
   return async <const R extends readonly BatchCallSpec[]>(
     calls: R,
     batchOptions?: { failFast?: boolean; timeoutMs?: number },
   ): Promise<BatchResultTuple<R>> => {
+    const requestId = readRequestId(options);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Request-Id": requestId,
@@ -205,14 +206,14 @@ function createDeckGatewayBatchTransport(options: DeckGatewayTransportOptions = 
 export function createDeckGatewayTransport(
   options: DeckGatewayTransportOptions = {},
 ): GatewayRequestFn {
-  const runtimeId = options.runtimeId ?? "rt_local";
-  const requestId = readRequestId(options);
+  const runtimeId = options.runtimeId ?? DEFAULT_RUNTIME_ID;
 
   return async <M extends GatewayMethodName>(
     method: M,
     params: GatewayMethodMap[M]["params"],
     requestOptions?: { timeoutMs?: number },
   ): Promise<GatewayMethodMap[M]["result"]> => {
+    const requestId = readRequestId(options);
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "X-Request-Id": requestId,

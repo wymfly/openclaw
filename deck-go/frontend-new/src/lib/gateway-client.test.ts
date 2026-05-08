@@ -16,6 +16,7 @@ import {
 
 afterEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("deck-go gateway typed transport", () => {
@@ -52,6 +53,45 @@ describe("deck-go gateway typed transport", () => {
         }),
       },
       { token: "deck-token" },
+    );
+  });
+
+  it("generates fresh default request ids for repeated typed RPC calls", async () => {
+    const randomUUID = vi.fn().mockReturnValueOnce("req-a").mockReturnValueOnce("req-b");
+    vi.stubGlobal("crypto", { randomUUID });
+    deckFetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ requestId: "req-a", result: { models: [] } }), {
+          status: 200,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ requestId: "req-b", result: { models: [] } }), {
+          status: 200,
+        }),
+      );
+
+    const request = createDeckGatewayTransport({ runtimeId: "rt_local" });
+
+    await request("models.configured", {});
+    await request("models.configured", {});
+
+    expect(randomUUID).toHaveBeenCalledTimes(2);
+    expect(deckFetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Request-Id": "req-a" }),
+      }),
+      undefined,
+    );
+    expect(deckFetchMock).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      expect.objectContaining({
+        headers: expect.objectContaining({ "X-Request-Id": "req-b" }),
+      }),
+      undefined,
     );
   });
 

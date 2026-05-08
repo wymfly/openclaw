@@ -547,7 +547,7 @@ func (r *Realtime) readLoop(conn *websocket.Conn) {
 	for {
 		_, raw, err := conn.ReadMessage()
 		if err != nil {
-			r.closeConnection(conn, ErrConnectionLost)
+			r.closeConnection(conn, fmt.Errorf("%w: read failed: %v", ErrConnectionLost, err))
 			return
 		}
 		var fr frame
@@ -676,6 +676,7 @@ func (r *Realtime) closeConnection(conn *websocket.Conn, err error) {
 		r.conn = nil
 		shouldReconnect = !r.closed
 	}
+	pendingCount := len(r.pending)
 	for id, ch := range r.pending {
 		ch <- responseResult{err: err}
 		delete(r.pending, id)
@@ -684,6 +685,12 @@ func (r *Realtime) closeConnection(conn *websocket.Conn, err error) {
 	r.mu.Unlock()
 	_ = conn.Close()
 	if shouldReconnect {
+		slog.Warn(
+			"gateway realtime connection closed",
+			"err", err,
+			"pending", pendingCount,
+			"reconnect", true,
+		)
 		r.startReconnectLoop()
 	}
 }
@@ -751,8 +758,10 @@ func (r *Realtime) startReconnectLoop() {
 			err := r.ensureConnected(ctx)
 			cancel()
 			if err == nil {
+				slog.Info("gateway realtime reconnected", "attempt", attempt+1)
 				return
 			}
+			slog.Warn("gateway realtime reconnect failed", "attempt", attempt+1, "err", err)
 
 			select {
 			case <-r.closeCh:

@@ -1,10 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   DeckGoConfigLookupChild,
   DeckGoConfigLookupResponse,
   DeckGoConfigSnapshotResponse,
 } from "../../../api";
-import { applyDeckConfig, fetchDeckConfig, lookupConfigPath } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
+import {
+  configLookupQueryOptions,
+  useApplyDeckConfigMutation,
+  useConfigSnapshotQuery,
+} from "../../../data/modules/config";
 import { useTranslations } from "../../../i18n/provider";
 import { computeConfigDiff, type DiffEntry } from "../../../lib/config-diff";
 import { JsonDetails } from "../../shared/ShellComponents";
@@ -321,6 +327,10 @@ function isConfigConflictMessage(message: string) {
 
 export function ConfigPanel() {
   const t = useTranslations("config");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const configSnapshotQuery = useConfigSnapshotQuery();
+  const applyConfigMutation = useApplyDeckConfigMutation();
   const [rawConfig, setRawConfig] = useState("");
   const [lastLoadedRawConfig, setLastLoadedRawConfig] = useState("");
   const [rawConfigWritable, setRawConfigWritable] = useState(false);
@@ -342,41 +352,54 @@ export function ConfigPanel() {
   const [structuredJsonDrafts, setStructuredJsonDrafts] = useState<Record<string, string>>({});
   const [visibleSensitiveFields, setVisibleSensitiveFields] = useState<Record<string, boolean>>({});
 
-  const refresh = async () => {
+  const syncSnapshot = useCallback((next: DeckGoConfigSnapshotResponse) => {
+    const nextRaw = snapshotRawConfig(next);
+    const nextRawWritable = typeof next.raw === "string";
+    setRawConfig(nextRaw);
+    setLastLoadedRawConfig(nextRaw);
+    setRawConfigWritable(nextRawWritable);
+    setBaseHash(next.baseHash ?? next.hash ?? "");
+    setPendingDiffEntries(null);
+    setConflictPreview(null);
+    setStructuredJsonDrafts({});
+    setVisibleSensitiveFields({});
+  }, []);
+
+  const refresh = useCallback(async () => {
     setLoadState("loading");
     try {
-      const next = await fetchDeckConfig();
-      const nextRaw = snapshotRawConfig(next);
-      const nextRawWritable = typeof next.raw === "string";
-      setRawConfig(nextRaw);
-      setLastLoadedRawConfig(nextRaw);
-      setRawConfigWritable(nextRawWritable);
-      setBaseHash(next.baseHash ?? next.hash ?? "");
-      setPendingDiffEntries(null);
-      setConflictPreview(null);
-      setStructuredJsonDrafts({});
-      setVisibleSensitiveFields({});
+      const result = await configSnapshotQuery.refetch();
+      if (!result.data) {
+        throw result.error ?? new Error(t("loadConfigFailed"));
+      }
+      syncSnapshot(result.data);
       setLoadState("ready");
       setError("");
     } catch (loadError) {
       setLoadState("idle");
       setError(loadError instanceof Error ? loadError.message : t("loadConfigFailed"));
     }
-  };
-
-  const loadRootSchema = async () => {
-    try {
-      const result = await lookupConfigPath("");
-      setRootLookup(result);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("schemaLookupFailed"));
-    }
-  };
+  }, [configSnapshotQuery, syncSnapshot, t]);
 
   useEffect(() => {
-    void refresh();
-    void loadRootSchema();
-  }, []);
+    if (!configSnapshotQuery.data || lastLoadedRawConfig) {
+      return;
+    }
+    syncSnapshot(configSnapshotQuery.data);
+    setLoadState("ready");
+    setError("");
+  }, [configSnapshotQuery.data, lastLoadedRawConfig, syncSnapshot]);
+
+  useEffect(() => {
+    void queryClient
+      .fetchQuery(configLookupQueryOptions(bff, ""))
+      .then((result) => {
+        setRootLookup(result);
+      })
+      .catch((actionError: unknown) => {
+        setError(actionError instanceof Error ? actionError.message : t("schemaLookupFailed"));
+      });
+  }, [bff, queryClient, t]);
 
   const topLevelKeys = useMemo(() => summarizeTopLevelKeys(rawConfig), [rawConfig]);
   const parsedConfig = useMemo(() => parseRawConfig(rawConfig), [rawConfig]);
@@ -478,7 +501,7 @@ export function ConfigPanel() {
     }
     setActionState("lookup");
     try {
-      const result = await lookupConfigPath(nextPath.trim());
+      const result = await queryClient.fetchQuery(configLookupQueryOptions(bff, nextPath.trim()));
       setLookupResult(result);
       setSchemaPath(nextPath.trim());
       setError("");
@@ -521,7 +544,11 @@ export function ConfigPanel() {
 
   const handleApplyConflict = async (message: string) => {
     try {
-      const remote = await fetchDeckConfig();
+      const result = await configSnapshotQuery.refetch();
+      if (!result.data) {
+        throw result.error ?? new Error(t("loadConfigFailed"));
+      }
+      const remote = result.data;
       const remoteRaw = snapshotRawConfig(remote);
       const remoteHash = remote.hash ?? remote.baseHash ?? "";
       const remoteConfig = parseRawConfigRecord(remoteRaw);
@@ -564,7 +591,10 @@ export function ConfigPanel() {
     setConflictPreview(null);
     setActionState("saving");
     try {
-      const result = await applyDeckConfig(rawConfig, baseHashOverride);
+      const result = await applyConfigMutation.mutateAsync({
+        baseHash: baseHashOverride,
+        raw: rawConfig,
+      });
       setActionResult(result);
       setBaseHash(result.baseHash ?? result.hash ?? baseHashOverride);
       setError("");

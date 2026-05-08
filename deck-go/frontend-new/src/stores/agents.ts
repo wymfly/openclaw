@@ -1,15 +1,7 @@
-import { fetchAgentsList } from "@/api";
-import type {
-  DeckGoAgentStatus,
-  DeckGoAgentSummary,
-  DeckGoAgentsListResponse,
-  DeckGoServerEvent,
-} from "@/api-types";
+import type { DeckGoAgentStatus, DeckGoAgentSummary, DeckGoServerEvent } from "@/api-types";
 import { normalizeAgentStatus, reduceAgentMetricsEvent } from "./agents-metrics";
 import { createLocalStore } from "./create-local-store";
 
-export type AgentsLoadStatus = "idle" | "loading" | "ready" | "error";
-export type AgentsListFetcher = () => Promise<DeckGoAgentsListResponse>;
 export type Agent = Omit<Partial<DeckGoAgentSummary>, "id" | "name" | "status" | "isDefault"> & {
   id: string;
   name: string;
@@ -20,12 +12,6 @@ export type Agent = Omit<Partial<DeckGoAgentSummary>, "id" | "name" | "status" |
 export interface AgentsState {
   agents: Agent[];
   selectedAgentId: string | null;
-  status: AgentsLoadStatus;
-  error: string | null;
-  loadedAtMs: number | null;
-  loadAgents: (fetcher?: AgentsListFetcher) => Promise<void>;
-  fetchAgents: (fetcher?: AgentsListFetcher) => Promise<void>;
-  refreshAgents: (fetcher?: AgentsListFetcher) => Promise<void>;
   selectAgent: (agentId: string | null) => void;
   setAgents: (agents: Agent[]) => void;
   upsertAgent: (agent: Agent) => void;
@@ -33,19 +19,6 @@ export interface AgentsState {
   updateAgentStatus: (agentId: string, status: DeckGoAgentStatus, lastActiveAtMs?: number) => void;
   applyServerEvent: (event: DeckGoServerEvent) => void;
   reset: () => void;
-}
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === "string") {
-    return error || "agents load failed";
-  }
-  if (typeof error === "number" || typeof error === "boolean" || typeof error === "bigint") {
-    return String(error);
-  }
-  return "agents load failed";
 }
 
 function nextSelection(agents: Agent[], current: string | null): string | null {
@@ -75,17 +48,15 @@ export function normalizeAgentSummary(agent: Agent): Agent {
       (isMainProtected
         ? ["main is the protected system/fallback agent and cannot be deleted"]
         : undefined),
-    availableActions:
-      agent.availableActions ??
-      {
-        canEditIdentity: true,
-        canEditRuntime: true,
-        canDelete: !isMainProtected,
-        canChangeDefault: false,
-        deleteDisabledReason: isMainProtected
-          ? "main is the protected system/fallback agent"
-          : undefined,
-      },
+    availableActions: agent.availableActions ?? {
+      canEditIdentity: true,
+      canEditRuntime: true,
+      canDelete: !isMainProtected,
+      canChangeDefault: false,
+      deleteDisabledReason: isMainProtected
+        ? "main is the protected system/fallback agent"
+        : undefined,
+    },
     impact: agent.impact ?? { deleteRemovesFiles: false },
     status: normalizeAgentStatus(agent.status),
     ...(typeof agent.sessionCount === "number" && Number.isFinite(agent.sessionCount)
@@ -100,43 +71,15 @@ export function normalizeAgentSummary(agent: Agent): Agent {
   };
 }
 
-function initialState(): Pick<
-  AgentsState,
-  "agents" | "selectedAgentId" | "status" | "error" | "loadedAtMs"
-> {
+function initialState(): Pick<AgentsState, "agents" | "selectedAgentId"> {
   return {
     agents: [],
     selectedAgentId: null,
-    status: "idle",
-    error: null,
-    loadedAtMs: null,
   };
 }
 
 export const useAgentsStore = createLocalStore<AgentsState>((set, get) => ({
   ...initialState(),
-  async loadAgents(fetcher = fetchAgentsList) {
-    set({ status: "loading", error: null });
-    try {
-      const response = await fetcher();
-      const agents = response.agents.map(normalizeAgentSummary);
-      set({
-        agents,
-        selectedAgentId: preserveSelection(agents, get().selectedAgentId),
-        status: "ready",
-        error: null,
-        loadedAtMs: Date.now(),
-      });
-    } catch (error) {
-      set({ status: "error", error: errorMessage(error) });
-    }
-  },
-  async fetchAgents(fetcher = fetchAgentsList) {
-    await get().loadAgents(fetcher);
-  },
-  async refreshAgents(fetcher = fetchAgentsList) {
-    await get().loadAgents(fetcher);
-  },
   selectAgent(agentId) {
     if (agentId && !get().agents.some((agent) => agent.id === agentId)) {
       set({ selectedAgentId: agentId });
@@ -149,9 +92,6 @@ export const useAgentsStore = createLocalStore<AgentsState>((set, get) => ({
     set({
       agents: normalized,
       selectedAgentId: preserveSelection(normalized, get().selectedAgentId),
-      status: "ready",
-      error: null,
-      loadedAtMs: Date.now(),
     });
   },
   upsertAgent(agent) {

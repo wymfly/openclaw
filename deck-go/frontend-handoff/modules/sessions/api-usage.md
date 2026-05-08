@@ -80,7 +80,9 @@ Wrappers:
 
 Usage rules:
 
-- Compact and delete need confirmation.
+- Reset, clear, compact, delete, and compaction restore need confirmation.
+- Patch stays scoped to product-backed model, label, thinking, fast mode, and
+  similar safe fields; this module is not an exhaustive Gateway patch editor.
 - Successful mutations invalidate selected transcript cache.
 - Delete does not preserve selected detail/history.
 
@@ -95,7 +97,35 @@ Wrappers:
 Usage rules:
 
 - Fetch only when `compactionCount` is positive.
-- Restore refreshes checkpoint state.
+- Branch is mutating.
+- Restore is destructive and must arm confirmation before executing.
+- Restore refreshes checkpoint state after execution.
+
+## Adjacent workflows
+
+These Gateway session methods exist in the Deck contract chain but remain
+Chat/runtime adjacent-owned in this module pass:
+
+- `sessions.create` -> `createChatSession()` / `POST /chat/sessions/create`
+- `sessions.send` -> `sendChatMessage()` / `POST /chat/send`
+- `sessions.abort` -> `abortChatRun()` / `POST /chat/abort`
+- `sessions.steer` -> `steerChatSession()` / `POST /chat/steer`
+
+Sessions may show selected-session context or navigation only. It must not add
+a second composer, live send, abort, or steer control.
+
+## Gateway-only or product-deferred knobs
+
+Do not expose these as guaranteed Sessions controls in this change:
+
+- `sessions.list`: `includeGlobal`, `includeUnknown`, `label`, `spawnedBy`,
+  derived title, and last-message options.
+- `sessions.preview`: `limit`, `maxChars`.
+- `sessions.create`: caller-supplied `key`, `task`.
+- `sessions.compact`: `maxLines`.
+- `sessions.delete`: `deleteTranscript`, `emitLifecycleHooks`.
+- `sessions.patch`: execution, elevated, trace, spawn, subagent control,
+  send-policy, and group-activation fields not already product-backed.
 
 ## Backend chain
 
@@ -109,7 +139,9 @@ SessionsPanel / session helpers
 
 ## Current exploration notes
 
-- No deterministic production forwarding drift was found before the proposal.
+- No deterministic BFF forwarding drift was found before the proposal.
+- Deterministic product/UI safety drift was found in the current production UI:
+  reset, clear, and compaction restore need confirmation gates.
 - `GET /sessions` and `GET /chat/sessions` share list parameter behavior.
 - `GET /sessions/{sessionKey}` uses BFF detail shaping, not direct raw Gateway
   rendering.

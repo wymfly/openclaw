@@ -826,7 +826,7 @@
     },
     {
       "module": "sessions",
-      "date": "2026-05-06",
+      "date": "2026-05-07",
       "reviewer": "Codex",
       "finalSignoffStatus": "accepted-with-exceptions",
       "prototypeReference": "frontend-handoff/modules/sessions/prototype.html",
@@ -837,8 +837,8 @@
         {
           "level": "mock-functional",
           "status": "tracked",
-          "command": "pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts",
-          "artifactPath": ".local/sessions-remediation-mock-visual/",
+          "command": "pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts --output .local/sessions-module-convergence-mock-visual --reporter=line",
+          "artifactPath": ".local/sessions-module-convergence-mock-visual/",
           "verdict": "recorded-by-visual-spec",
           "runId": null,
           "acceptedExceptions": []
@@ -846,21 +846,21 @@
         {
           "level": "mock-prototype-parity",
           "status": "ready-for-review",
-          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir <module-mock-visual-dir> --out-dir .local/<module>-prototype-remediation-parity-report --sheet-size 1",
-          "artifactPath": ".local/sessions-prototype-remediation-parity-report/verdict.json",
+          "command": "node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/sessions-module-convergence-prototype --mock-dir .local/sessions-module-convergence-mock-visual --out-dir .local/sessions-module-convergence-parity-report --sheet-size 1",
+          "artifactPath": ".local/sessions-module-convergence-parity-report/verdict.json",
           "verdict": "pass-with-exceptions",
           "runId": null,
           "acceptedExceptions": [
             "Deck shell chrome is present in mock-current and absent from the standalone prototype.",
-            "Mock-current uses the canonical deck-go atom/tokens chrome and live panel header density; the module workbench structure, metric order, inventory/detail/actions layout, and evidence sections align with the prototype.",
-            "The current screenshot is captured at the active Deck shell viewport, so the right action column is slightly tighter than the standalone 1440px prototype."
+            "Mock-current uses live mock fixture labels and timestamps while the prototype uses static design-time copy.",
+            "The current screenshot is captured at the active Deck shell viewport, so the columns are tighter than the standalone 1440px prototype."
           ],
           "materialGaps": []
         },
         {
           "level": "real-gateway",
           "status": "recorded-in-implementation-notes",
-          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/sessions-real-gateway.spec.ts --config playwright.config.ts",
+          "command": "DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/sessions-real-gateway.spec.ts --config playwright.config.ts --output .local/sessions-module-convergence-real-gateway --reporter=line",
           "artifactPath": "frontend-handoff/modules/sessions/implementation-notes.md",
           "verdict": "recorded",
           "runId": "scoped",

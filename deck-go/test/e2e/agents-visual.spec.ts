@@ -1,5 +1,6 @@
+import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from "./helpers";
 
 test.describe("agents mock visual handoff alignment", () => {
   let stack: E2EStack;
@@ -117,6 +118,35 @@ test.describe("agents mock visual handoff alignment", () => {
 
     expect(unexpected).toEqual([]);
   });
+
+  test("returns to agents from fresh Data Fabric cache without refetching the list", async ({
+    page,
+  }) => {
+    const unexpected = collectUnexpectedErrors(page);
+
+    await openDeck(page, stack.frontendBase, "chat", stack.accessToken, {
+      locale: "en",
+      nav: "expanded",
+      theme: "dark",
+    });
+
+    await page.getByRole("button", { exact: true, name: "Agents" }).click();
+    await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "agents");
+    await expect(page.locator('[data-agents-workbench="true"]')).toBeVisible();
+    await waitForGatewayMethod(stack.requestLog, "agents.list");
+    const firstListCount = await countGatewayMethod(stack.requestLog, "agents.list");
+
+    await page.getByRole("button", { exact: true, name: "Chat" }).click();
+    await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "chat");
+    await page.getByRole("button", { exact: true, name: "Agents" }).click();
+    await expect(page.locator(".deck-ui-shell")).toHaveAttribute("data-active-panel", "agents");
+    await expect(page.locator('[data-agents-workbench="true"]')).toBeVisible();
+    await expect(page.getByText("Ops Runner").first()).toBeVisible();
+
+    const secondListCount = await countGatewayMethod(stack.requestLog, "agents.list");
+    expect(secondListCount).toBe(firstListCount);
+    expect(unexpected).toEqual([]);
+  });
 });
 
 async function clickDetailTab(page: Page, name: string) {
@@ -209,4 +239,18 @@ function collectUnexpectedErrors(page: Page) {
     unexpected.push(`pageerror: ${error.message}`);
   });
   return unexpected;
+}
+
+async function countGatewayMethod(requestLog: string, method: string) {
+  const raw = await readFile(requestLog, "utf8");
+  return raw
+    .split("\n")
+    .filter(Boolean)
+    .filter((line) => {
+      try {
+        return (JSON.parse(line) as { method?: string }).method === method;
+      } catch {
+        return false;
+      }
+    }).length;
 }

@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { NodesPanel } from "./NodesPanel";
 
@@ -27,7 +28,13 @@ let root: Root | null = null;
 function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, createElement(NodesPanel)));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(NodesPanel)),
+      ),
+    );
   });
 }
 
@@ -204,7 +211,7 @@ describe("NodesPanel", () => {
     expect(container.textContent).toContain("Invoke node command");
     expect(container.textContent).toContain("Pending work");
     expect(container.textContent).toContain("Permissions");
-    expect(container.textContent).toContain("shell: allowed");
+    await waitFor(() => expect(container.textContent).toContain("shell: allowed"));
     expect(container.textContent).toContain("camera: denied");
     expect(container.querySelector(".nodes-panel")).toBeTruthy();
     expect(container.querySelectorAll(".nodes-panel__card")).toHaveLength(2);

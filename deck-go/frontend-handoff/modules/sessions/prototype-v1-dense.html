@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-density="compact">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>deck-go sessions prototype</title>
+    <style>
+      :root {
+        --ds-font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --ds-font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+        --ds-sp-1: 4px;
+        --ds-sp-2: 6px;
+        --ds-sp-3: 8px;
+        --ds-sp-4: 12px;
+        --ds-sp-5: 16px;
+        --ds-sp-6: 20px;
+        --ds-radius-md: 6px;
+        --ds-bg-0: #0a0b0d;
+        --ds-bg-1: #0f1115;
+        --ds-bg-2: #14171c;
+        --ds-bg-elev: #1c2028;
+        --ds-bg-hover: #20252e;
+        --ds-text-1: #e6e8ec;
+        --ds-text-2: #a8aeba;
+        --ds-text-3: #8992a3;
+        --ds-border-subtle: #1f2530;
+        --ds-border: #262d3a;
+        --ds-border-strong: #313947;
+        --ds-accent: #7aa2ff;
+        --ds-accent-bg: #1a2342;
+        --ds-success: #6ec48a;
+        --ds-success-bg: #142a1d;
+        --ds-warn: #d4a86a;
+        --ds-warn-bg: #2a1f10;
+        --ds-error: #e26b6b;
+        --ds-error-bg: #2c1518;
+        --ds-code-bg: #0c0e12;
+        --ds-code-border: #1d2330;
+        --ds-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--ds-bg-0);
+        color: var(--ds-text-1);
+        font: 13px/1.45 var(--ds-font-sans);
+        letter-spacing: 0;
+      }
+
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: 0;
+      }
+
+      .sessions-page {
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: var(--ds-sp-4);
+        min-height: 100vh;
+        padding: var(--ds-sp-5);
+      }
+
+      .sessions-header,
+      .sessions-header__actions,
+      .sessions-actions,
+      .sessions-row__top,
+      .sessions-section-heading {
+        display: flex;
+        align-items: center;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+      }
+
+      .sessions-header {
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+
+      .sessions-eyebrow {
+        margin-bottom: var(--ds-sp-1);
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .sessions-note,
+      .sessions-meta {
+        color: var(--ds-text-3);
+      }
+
+      .sessions-status {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 3px 8px;
+        border: 1px solid var(--ds-border);
+        border-radius: 999px;
+        background: var(--ds-bg-2);
+        color: var(--ds-text-2);
+        font: 600 11px/1 var(--ds-font-mono);
+        white-space: nowrap;
+      }
+
+      .sessions-status--ok {
+        border-color: color-mix(in srgb, var(--ds-success) 48%, var(--ds-border));
+        background: var(--ds-success-bg);
+        color: var(--ds-success);
+      }
+
+      .sessions-status--warn {
+        border-color: color-mix(in srgb, var(--ds-warn) 50%, var(--ds-border));
+        background: var(--ds-warn-bg);
+        color: var(--ds-warn);
+      }
+
+      .sessions-button,
+      .sessions-input,
+      .sessions-select {
+        min-height: 30px;
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-2);
+        color: var(--ds-text-1);
+      }
+
+      .sessions-button {
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .sessions-button--primary {
+        border-color: color-mix(in srgb, var(--ds-accent) 55%, var(--ds-border));
+        background: var(--ds-accent-bg);
+      }
+
+      .sessions-button--danger {
+        border-color: color-mix(in srgb, var(--ds-error) 55%, var(--ds-border));
+        background: var(--ds-error-bg);
+      }
+
+      .sessions-input,
+      .sessions-select {
+        width: 100%;
+        padding: 5px 8px;
+      }
+
+      .sessions-metrics {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .sessions-metric,
+      .sessions-card,
+      .sessions-surface,
+      .sessions-inventory-row,
+      .sessions-timeline-row {
+        border: 1px solid var(--ds-border);
+        border-radius: var(--ds-radius-md);
+        background: var(--ds-bg-1);
+      }
+
+      .sessions-metric {
+        display: grid;
+        gap: var(--ds-sp-1);
+        min-height: 58px;
+        padding: var(--ds-sp-3);
+        background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+      }
+
+      .sessions-metric span,
+      .sessions-metric strong,
+      .sessions-metric small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sessions-metric span {
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .sessions-workbench {
+        display: grid;
+        grid-template-columns: minmax(300px, 0.7fr) minmax(560px, 1.25fr) minmax(300px, 0.7fr);
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .sessions-column {
+        display: grid;
+        align-content: start;
+        gap: var(--ds-sp-4);
+        min-width: 0;
+      }
+
+      .sessions-card {
+        min-width: 0;
+        overflow: hidden;
+        box-shadow: var(--ds-shadow-md);
+      }
+
+      .sessions-card__header,
+      .sessions-card__body {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-4);
+      }
+
+      .sessions-card__header {
+        border-bottom: 1px solid var(--ds-border-subtle);
+      }
+
+      .sessions-surface,
+      .sessions-inventory-row,
+      .sessions-timeline-row {
+        display: grid;
+        gap: var(--ds-sp-3);
+        min-width: 0;
+        padding: var(--ds-sp-3);
+        background: var(--ds-bg-2);
+      }
+
+      .sessions-inventory-row {
+        text-align: left;
+      }
+
+      .sessions-inventory-row.is-selected {
+        border-color: color-mix(in srgb, var(--ds-accent) 46%, var(--ds-border));
+        background: var(--ds-accent-bg);
+        box-shadow: inset 2px 0 0 var(--ds-accent);
+      }
+
+      .sessions-list {
+        display: grid;
+        gap: var(--ds-sp-3);
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .sessions-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .sessions-field {
+        display: grid;
+        gap: var(--ds-sp-2);
+        color: var(--ds-text-3);
+        font: 700 11px/1.2 var(--ds-font-mono);
+        text-transform: uppercase;
+      }
+
+      .sessions-hero {
+        background: linear-gradient(180deg, var(--ds-bg-elev), var(--ds-bg-2));
+      }
+
+      .sessions-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: var(--ds-sp-3);
+      }
+
+      .sessions-code {
+        max-height: 180px;
+        overflow: auto;
+        border: 1px solid var(--ds-code-border);
+        border-radius: var(--ds-radius-md);
+        padding: var(--ds-sp-3);
+        background: var(--ds-code-bg);
+        color: var(--ds-text-2);
+        font: 12px/1.45 var(--ds-font-mono);
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 1280px) {
+        .sessions-workbench {
+          grid-template-columns: minmax(300px, 0.9fr) minmax(520px, 1.1fr);
+        }
+
+        .sessions-column--actions {
+          grid-column: 1 / -1;
+        }
+      }
+
+      @media (max-width: 860px) {
+        .sessions-metrics,
+        .sessions-workbench,
+        .sessions-controls,
+        .sessions-stat-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .sessions-header {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sessions-page">
+      <header class="sessions-header">
+        <div>
+          <p class="sessions-eyebrow">operations / sessions</p>
+          <h1>Sessions</h1>
+          <p class="sessions-note">Browse, inspect, export, compact, and patch Deck sessions through the BFF contract chain.</p>
+        </div>
+        <div class="sessions-header__actions">
+          <span class="sessions-status sessions-status--ok">Inventory ready</span>
+          <span class="sessions-status sessions-status--ok">Detail ready</span>
+          <span class="sessions-status">2 visible</span>
+          <button class="sessions-button" type="button">Refresh sessions</button>
+        </div>
+      </header>
+
+      <section class="sessions-metrics">
+        <article class="sessions-metric">
+          <span>Selected</span>
+          <strong>Main Session</strong>
+          <small>sess-main</small>
+        </article>
+        <article class="sessions-metric">
+          <span>Context</span>
+          <strong>20%</strong>
+          <small>200 / 1K tokens</small>
+        </article>
+        <article class="sessions-metric">
+          <span>Usage</span>
+          <strong>$1.2500</strong>
+          <small>150 tokens</small>
+        </article>
+        <article class="sessions-metric">
+          <span>Compactions</span>
+          <strong>2</strong>
+          <small>checkpoint available</small>
+        </article>
+        <article class="sessions-metric">
+          <span>Lineage</span>
+          <strong>subagent</strong>
+          <small>parent + child links</small>
+        </article>
+      </section>
+
+      <section class="sessions-workbench">
+        <aside class="sessions-column">
+          <article class="sessions-card">
+            <div class="sessions-card__header">
+              <h2>Session inventory</h2>
+              <p class="sessions-note">Search title, key, and latest preview. Current implementation fetches a broad limit and pages locally.</p>
+            </div>
+            <div class="sessions-card__body">
+              <label class="sessions-field">
+                Search
+                <input class="sessions-input" value="build" />
+              </label>
+              <div class="sessions-controls">
+                <label class="sessions-field">
+                  Type
+                  <select class="sessions-select">
+                    <option>All types</option>
+                    <option>direct</option>
+                    <option>subagent</option>
+                  </select>
+                </label>
+                <label class="sessions-field">
+                  Window
+                  <select class="sessions-select">
+                    <option>All time</option>
+                    <option>Last hour</option>
+                  </select>
+                </label>
+              </div>
+              <ul class="sessions-list">
+                <li>
+                  <button class="sessions-inventory-row is-selected" type="button">
+                    <div class="sessions-row__top">
+                      <strong>Main Session</strong>
+                      <span class="sessions-status sessions-status--ok">idle</span>
+                    </div>
+                    <p class="sessions-meta">main · openai/gpt-5.4 · direct</p>
+                    <p class="sessions-note">hello from main</p>
+                  </button>
+                </li>
+                <li>
+                  <button class="sessions-inventory-row" type="button">
+                    <div class="sessions-row__top">
+                      <strong>Builder Session</strong>
+                      <span class="sessions-status sessions-status--warn">running</span>
+                    </div>
+                    <p class="sessions-meta">builder · sonnet-4.6 · subagent</p>
+                    <p class="sessions-note">build preview</p>
+                  </button>
+                </li>
+              </ul>
+              <div class="sessions-actions">
+                <button class="sessions-button" type="button">Previous</button>
+                <span class="sessions-note">Page 1 of 1</span>
+                <button class="sessions-button" type="button">Next</button>
+              </div>
+            </div>
+          </article>
+        </aside>
+
+        <section class="sessions-column">
+          <article class="sessions-card">
+            <div class="sessions-card__header">
+              <h2>Selected session</h2>
+              <p class="sessions-note">Runtime metadata, transcript evidence, usage, compaction, and lineage for the selected key.</p>
+            </div>
+            <div class="sessions-card__body">
+              <section class="sessions-surface sessions-hero">
+                <div class="sessions-section-heading">
+                  <div>
+                    <p class="sessions-eyebrow">selected session</p>
+                    <h2>Main Session</h2>
+                    <p class="sessions-note">agent main · status idle · history 1 message</p>
+                  </div>
+                  <span class="sessions-status sessions-status--ok">context 20%</span>
+                </div>
+                <div class="sessions-stat-grid">
+                  <div><p class="sessions-meta">Input</p><strong>120</strong></div>
+                  <div><p class="sessions-meta">Output</p><strong>80</strong></div>
+                  <div><p class="sessions-meta">Runtime</p><strong>123 ms</strong></div>
+                </div>
+              </section>
+
+              <section class="sessions-surface">
+                <div class="sessions-section-heading">
+                  <h3>Usage and context</h3>
+                  <span class="sessions-status sessions-status--ok">usage ready</span>
+                </div>
+                <div class="sessions-stat-grid">
+                  <div><p class="sessions-meta">tokens</p><strong>150</strong></div>
+                  <div><p class="sessions-meta">cost</p><strong>$1.2500</strong></div>
+                  <div><p class="sessions-meta">context total</p><strong>5.5K</strong></div>
+                </div>
+                <ul class="sessions-list">
+                  <li class="sessions-timeline-row">
+                    <div class="sessions-row__top">
+                      <strong>assistant</strong>
+                      <span class="sessions-status sessions-status--warn">high token turn</span>
+                    </div>
+                    <p class="sessions-note">large turn · 80 tokens · $0.0300</p>
+                  </li>
+                </ul>
+              </section>
+
+              <section class="sessions-surface">
+                <div class="sessions-section-heading">
+                  <h3>Compaction checkpoints</h3>
+                  <span class="sessions-status sessions-status--ok">1 loaded</span>
+                </div>
+                <article class="sessions-timeline-row">
+                  <strong>manual</strong>
+                  <p class="sessions-meta">cp-1 · saved 3.0K tokens</p>
+                  <p class="sessions-note">compressed older turns</p>
+                  <div class="sessions-actions">
+                    <button class="sessions-button" type="button">Branch cp-1</button>
+                    <button class="sessions-button" type="button">Restore cp-1</button>
+                  </div>
+                </article>
+              </section>
+
+              <section class="sessions-surface">
+                <div class="sessions-section-heading">
+                  <h3>Transcript search and export</h3>
+                  <span class="sessions-status">match 1 of 1</span>
+                </div>
+                <input class="sessions-input" value="history" />
+                <div class="sessions-actions">
+                  <button class="sessions-button" type="button">Previous match</button>
+                  <button class="sessions-button" type="button">Next match</button>
+                  <button class="sessions-button sessions-button--primary" type="button">Export Markdown</button>
+                </div>
+                <pre class="sessions-code">user: history sess-main</pre>
+              </section>
+            </div>
+          </article>
+        </section>
+
+        <aside class="sessions-column sessions-column--actions">
+          <article class="sessions-card">
+            <div class="sessions-card__header">
+              <h2>Session actions</h2>
+              <p class="sessions-note">Patch model/directives or run guarded destructive actions on the selected session.</p>
+            </div>
+            <div class="sessions-card__body">
+              <label class="sessions-field">
+                Model override
+                <input class="sessions-input" value="cpa/gpt-5.4" />
+              </label>
+              <label class="sessions-field">
+                Session label
+                <input class="sessions-input" value="Main Label" />
+              </label>
+              <div class="sessions-controls">
+                <label class="sessions-field">
+                  Thinking
+                  <select class="sessions-select"><option>low</option><option>high</option></select>
+                </label>
+                <label class="sessions-field">
+                  Fast mode
+                  <select class="sessions-select"><option>on</option><option>off</option></select>
+                </label>
+              </div>
+              <div class="sessions-actions">
+                <button class="sessions-button" type="button">Reset session</button>
+                <button class="sessions-button" type="button">Clear session</button>
+                <button class="sessions-button sessions-button--primary" type="button">Patch model</button>
+                <button class="sessions-button" type="button">Patch directives</button>
+                <button class="sessions-button" type="button">Confirm compact</button>
+                <button class="sessions-button sessions-button--danger" type="button">Delete session</button>
+              </div>
+              <section class="sessions-surface">
+                <h3>Subagent lineage</h3>
+                <p class="sessions-note">root: sess-build · run: run-child · status running</p>
+                <div class="sessions-actions">
+                  <button class="sessions-button" type="button">Open subagents panel</button>
+                  <button class="sessions-button" type="button">Parent sess-main</button>
+                  <button class="sessions-button" type="button">Child sess-child</button>
+                </div>
+              </section>
+              <section class="sessions-surface">
+                <h3>Latest action</h3>
+                <pre class="sessions-code">{
+  "ok": true,
+  "key": "sess-main",
+  "action": "compact"
+}</pre>
+              </section>
+            </div>
+          </article>
+        </aside>
+      </section>
+    </main>
+  </body>
+</html>

@@ -9,6 +9,7 @@ import "@fontsource/jetbrains-mono/500.css";
 import "@fontsource/jetbrains-mono/600.css";
 import "./design-system/tokens/index.css";
 import "./theme.css";
+import { DataFabricProvider } from "./data/client/scoped-query-provider";
 import { DeckGoApp } from "./deck-ui/App";
 import { DeckRoot } from "./i18n/provider";
 
@@ -34,7 +35,9 @@ if (dsGallery) {
   root.render(
     <React.StrictMode>
       <DeckRoot>
-        <DeckGoApp />
+        <DataFabricProvider>
+          <DeckGoApp />
+        </DataFabricProvider>
       </DeckRoot>
     </React.StrictMode>,
   );

@@ -13,13 +13,10 @@ import type {
   DeckGoPluginActionCapabilities,
   DeckGoPluginDiagnostic,
   DeckGoPluginInventoryEntry,
-  DeckGoPluginsListResponse,
 } from "../../../../../contracts/generated/ts/deck-api.generated";
-import {
-  fetchChannels,
-  fetchPluginsWithCapability,
-  type DeckGoPluginCapability,
-} from "../../../api";
+import { type DeckGoPluginCapability } from "../../../api";
+import { useChannelsListQuery } from "../../../data/modules/channels";
+import { usePluginsListQuery } from "../../../data/modules/plugins";
 import {
   navigateToChannel,
   navigateToChannelAccess,
@@ -224,12 +221,8 @@ export function PluginsPanel() {
   const ui = useDeckUI();
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [navigationTarget] = useState(readPluginNavigationTarget);
-  const [payload, setPayload] = useState<DeckGoPluginsListResponse | null>(null);
-  const [channelsPayload, setChannelsPayload] = useState<DeckGoChannelsStatusResponse | null>(null);
   const [capability, setCapability] = useState<DeckGoPluginCapability>("channel");
   const [selectedPluginId, setSelectedPluginId] = useState("");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [error, setError] = useState("");
   const [handoffMessage, setHandoffMessage] = useState("");
   const [query, setQuery] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
@@ -237,41 +230,35 @@ export function PluginsPanel() {
   const [detailTab, setDetailTab] = useState<DetailTab>("overview");
   const [view, setView] = useState<PanelView>("list");
   const [dialog, setDialog] = useState<PluginDialog>({ kind: "none" });
+  const pluginsQuery = usePluginsListQuery(capability);
+  const channelsQuery = useChannelsListQuery();
 
-  const loadPlugins = useCallback(
-    async (preferredPluginId?: string) => {
-      setLoadState("loading");
-      try {
-        const [next, nextChannels] = await Promise.all([
-          fetchPluginsWithCapability(capability),
-          fetchChannels().catch(() => null),
-        ]);
-        const nextPlugins = next.plugins ?? [];
-        setPayload(next);
-        setChannelsPayload(nextChannels);
-        setLoadState("ready");
-        setError("");
-        const targetId = navigationTarget.pluginId;
-        const targetExists = Boolean(
-          targetId && nextPlugins.some((plugin) => plugin.id === targetId),
-        );
-        setSelectedPluginId((current) => {
-          const preferred = preferredPluginId || (targetExists ? targetId : current);
-          return preferred && nextPlugins.some((plugin) => plugin.id === preferred)
-            ? preferred
-            : (nextPlugins[0]?.id ?? "");
-        });
-      } catch (loadError) {
-        setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
-      }
-    },
-    [capability, navigationTarget.pluginId, t],
-  );
+  const payload = pluginsQuery.data ?? null;
+  const channelsPayload = channelsQuery.data ?? null;
+  const plugins = payload?.plugins ?? [];
+  const loadState: PanelState = pluginsQuery.isLoading ? "loading" : payload ? "ready" : "idle";
+  const error =
+    pluginsQuery.error instanceof Error
+      ? pluginsQuery.error.message
+      : pluginsQuery.error
+        ? t("loadFailed")
+        : "";
 
   useEffect(() => {
-    void loadPlugins();
-  }, [loadPlugins]);
+    const targetId = navigationTarget.pluginId;
+    const targetExists = Boolean(targetId && plugins.some((plugin) => plugin.id === targetId));
+    setSelectedPluginId((current) => {
+      const preferred = targetExists ? targetId : current;
+      return preferred && plugins.some((plugin) => plugin.id === preferred)
+        ? preferred
+        : (plugins[0]?.id ?? "");
+    });
+  }, [navigationTarget.pluginId, plugins]);
+
+  const refresh = useCallback(() => {
+    void pluginsQuery.refetch();
+    void channelsQuery.refetch();
+  }, [channelsQuery, pluginsQuery]);
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -282,7 +269,7 @@ export function PluginsPanel() {
       }
       if (meta && event.key.toLowerCase() === "r") {
         event.preventDefault();
-        void loadPlugins(selectedPluginId);
+        refresh();
       }
       if (event.key === "Escape" && view === "detail" && dialog.kind === "none") {
         event.preventDefault();
@@ -291,9 +278,8 @@ export function PluginsPanel() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dialog.kind, loadPlugins, selectedPluginId, view]);
+  }, [dialog.kind, refresh, view]);
 
-  const plugins = payload?.plugins ?? [];
   const origins = useMemo(() => allOrigins(plugins, t("unknown")), [plugins, t]);
   const availableChannels = useMemo(() => channelIdSet(channelsPayload), [channelsPayload]);
   const accessChannels = useMemo(() => accessChannelIdSet(channelsPayload), [channelsPayload]);
@@ -321,7 +307,10 @@ export function PluginsPanel() {
   const scopeLabel =
     payload?.scope === "channel" ? t("scopeChannel") : (payload?.scope ?? t("unknown"));
   const noRows =
-    loadState !== "loading" && (plugins.length === 0 || filteredPlugins.length === 0 || error);
+    loadState !== "loading" &&
+    (plugins.length === 0 ||
+      filteredPlugins.length === 0 ||
+      (Boolean(error) && plugins.length === 0));
 
   const handleScope = (nextCapability: DeckGoPluginCapability) => {
     if (nextCapability !== capability) {
@@ -376,7 +365,7 @@ export function PluginsPanel() {
           filteredPlugins={filteredPlugins}
           kindFilter={kindFilter}
           loadState={loadState}
-          noRows={Boolean(noRows)}
+          noRows={noRows}
           originFilter={originFilter}
           origins={origins}
           plugins={plugins}
@@ -390,7 +379,7 @@ export function PluginsPanel() {
           onOpenDetail={openDetail}
           onOriginFilter={setOriginFilter}
           onQuery={setQuery}
-          onRefresh={() => void loadPlugins(selectedPlugin?.id)}
+          onRefresh={refresh}
           onScope={handleScope}
         />
       )}

@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
-import { fetchSubagentLineage, type DeckGoSubagentLineageNode } from "@/api";
+import type { DeckGoSubagentLineageNode } from "@/api-types";
+import { useSessionLineageQuery } from "@/data/modules/sessions";
 import { useChatStore } from "@/stores/chat";
 import "./chat-widgets.css";
 import { SubagentCard } from "./SubagentCard";
@@ -75,39 +75,9 @@ function SubagentTreeNode({ entry }: { entry: LineageTreeNode }) {
 export function SubagentTree() {
   const t = useTranslations("chat");
   const activeSessionKey = useChatStore((state) => state.activeSessionKey);
-  const [nodes, setNodes] = useState<DeckGoSubagentLineageNode[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!activeSessionKey) {
-      setNodes([]);
-      return undefined;
-    }
-
-    let cancelled = false;
-    const loadLineage = async () => {
-      setLoading(true);
-      try {
-        const lineage = await fetchSubagentLineage({ sessionKey: activeSessionKey });
-        if (!cancelled) {
-          setNodes(Array.isArray(lineage.nodes) ? lineage.nodes : []);
-        }
-      } catch {
-        if (!cancelled) {
-          setNodes([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadLineage();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeSessionKey]);
+  const lineageQuery = useSessionLineageQuery(activeSessionKey);
+  const nodes = Array.isArray(lineageQuery.data?.nodes) ? lineageQuery.data.nodes : [];
+  const loading = lineageQuery.isFetching;
 
   if (nodes.length === 0 && !loading) {
     return null;

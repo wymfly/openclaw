@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DeckGoThreadEntry } from "../../../api";
-import { fetchThreads } from "../../../api";
+import { useEffect, useMemo, useState } from "react";
+import { useThreadsListQuery } from "../../../data/modules/threads";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
@@ -35,49 +34,24 @@ function ThreadMetric(props: { label: string; value: string | number; tone?: "go
 export function ThreadsPanel() {
   const t = useTranslations("threads");
   const ui = useDeckUI();
-  const [threads, setThreads] = useState<DeckGoThreadEntry[]>([]);
   const [selectedThreadId, setSelectedThreadId] = useState("");
   const [draftFilters, setDraftFilters] = useState(DEFAULT_THREAD_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(DEFAULT_THREAD_FILTERS);
   const [localFilters, setLocalFilters] = useState(DEFAULT_THREAD_LOCAL_FILTERS);
   const [activeTab, setActiveTab] = useState<ThreadDetailTab>("overview");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [error, setError] = useState("");
   const [handoffMessage, setHandoffMessage] = useState("");
-  const loadSequenceRef = useRef(0);
-
-  const refresh = useCallback(
-    async (preferredThreadId?: string, filters = appliedFilters) => {
-      const sequence = loadSequenceRef.current + 1;
-      loadSequenceRef.current = sequence;
-      setLoadState("loading");
-      try {
-        const next = await fetchThreads(normalizeThreadFilters(filters));
-        if (sequence !== loadSequenceRef.current) {
-          return;
-        }
-        const nextThreads = sortThreadsByActivity(next.threads ?? []);
-        setThreads(nextThreads);
-        setLoadState("ready");
-        setError("");
-        const fallbackId = preferredThreadId?.trim() || nextThreads[0]?.threadId || "";
-        setSelectedThreadId((current) =>
-          nextThreads.some((thread) => thread.threadId === current)
-            ? current
-            : nextThreads.some((thread) => thread.threadId === fallbackId)
-              ? fallbackId
-              : nextThreads[0]?.threadId || "",
-        );
-      } catch (loadError) {
-        if (sequence !== loadSequenceRef.current) {
-          return;
-        }
-        setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : t("failedLoadThreads"));
-      }
-    },
-    [appliedFilters, t],
-  );
+  const serverFilters = useMemo(() => normalizeThreadFilters(appliedFilters), [appliedFilters]);
+  const threadsQuery = useThreadsListQuery(serverFilters);
+  const loadState: PanelState = threadsQuery.isLoading
+    ? "loading"
+    : threadsQuery.data
+      ? "ready"
+      : "idle";
+  const error = threadsQuery.error
+    ? threadsQuery.error instanceof Error
+      ? threadsQuery.error.message
+      : t("failedLoadThreads")
+    : "";
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -89,11 +63,10 @@ export function ThreadsPanel() {
     return () => clearTimeout(timer);
   }, [draftFilters]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const sortedThreads = useMemo(() => sortThreadsByActivity(threads), [threads]);
+  const sortedThreads = useMemo(
+    () => sortThreadsByActivity(threadsQuery.data?.threads ?? []),
+    [threadsQuery.data?.threads],
+  );
   const visibleThreads = useMemo(
     () => filterThreadsByLocalState(sortedThreads, localFilters),
     [localFilters, sortedThreads],
@@ -110,19 +83,24 @@ export function ThreadsPanel() {
     null;
 
   useEffect(() => {
+    if (visibleThreads.length === 0 && threadsQuery.isFetching) {
+      return;
+    }
     setSelectedThreadId((current) =>
       visibleThreads.some((thread) => thread.threadId === current)
         ? current
         : visibleThreads[0]?.threadId || "",
     );
-  }, [visibleThreads]);
+  }, [threadsQuery.isFetching, visibleThreads]);
 
   const refreshFromDraftFilters = () => {
     const nextFilters = normalizeThreadFilters(draftFilters);
     setAppliedFilters((current) =>
       areThreadFiltersEqual(current, nextFilters) ? current : nextFilters,
     );
-    void refresh(selectedThreadId, nextFilters);
+    if (areThreadFiltersEqual(appliedFilters, nextFilters)) {
+      void threadsQuery.refetch();
+    }
   };
 
   const updateLocalFilter = <Key extends keyof typeof localFilters>(

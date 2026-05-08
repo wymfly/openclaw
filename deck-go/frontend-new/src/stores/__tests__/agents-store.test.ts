@@ -29,33 +29,28 @@ describe("agents store", () => {
     });
   });
 
-  it("loads agents without auto-opening a detail row", async () => {
-    await useAgentsStore.getState().loadAgents(async () => ({
-      defaultId: "ops",
-      agents: [
-        {
-          id: "main",
-          name: "Main",
-          status: "idle",
-          isDefault: false,
-          isConfiguredDefault: false,
-          isMainProtected: true,
-        },
-        {
-          id: "ops",
-          name: "Ops",
-          status: "busy",
-          isDefault: true,
-          isConfiguredDefault: true,
-          isMainProtected: false,
-        },
-      ],
-    }));
+  it("accepts a local agent overlay without auto-opening a detail row", () => {
+    useAgentsStore.getState().setAgents([
+      {
+        id: "main",
+        name: "Main",
+        status: "idle",
+        isDefault: false,
+        isConfiguredDefault: false,
+        isMainProtected: true,
+      },
+      {
+        id: "ops",
+        name: "Ops",
+        status: "busy",
+        isDefault: true,
+        isConfiguredDefault: true,
+        isMainProtected: false,
+      },
+    ]);
 
     expect(useAgentsStore.getState()).toMatchObject({
-      status: "ready",
       selectedAgentId: null,
-      error: null,
     });
   });
 

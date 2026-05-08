@@ -1,9 +1,5 @@
-import { useEffect, useState } from "react";
-import type {
-  DeckGoRuntimeCapabilities,
-  DeckGoRuntimeEndpointResponse,
-} from "../../../../contracts/generated/ts/deck-api.generated";
-import { fetchEndpoint } from "../../api";
+import type { DeckGoRuntimeCapabilities } from "../../../../contracts/generated/ts/deck-api.generated";
+import { useRuntimeEndpointQuery } from "../../data/modules/settings";
 import { useTranslations } from "../../i18n/provider";
 
 type ModeBadgeProps = {
@@ -12,28 +8,8 @@ type ModeBadgeProps = {
 
 export function ModeBadge({ capabilities }: ModeBadgeProps) {
   const t = useTranslations("runtimeMode");
-  const [endpoint, setEndpoint] = useState<DeckGoRuntimeEndpointResponse | null>(null);
-
-  useEffect(() => {
-    if (!capabilities) {
-      return () => {};
-    }
-    let cancelled = false;
-    void fetchEndpoint()
-      .then((result) => {
-        if (!cancelled) {
-          setEndpoint(result);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setEndpoint(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [capabilities?.configured, capabilities?.endpointMutable, capabilities?.mode]);
+  const endpointQuery = useRuntimeEndpointQuery({ enabled: Boolean(capabilities) });
+  const endpoint = endpointQuery.data ?? null;
 
   if (!capabilities) {
     return null;

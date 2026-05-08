@@ -1,0 +1,107 @@
+changeName: deck-go-data-fabric-agents-reference
+archiveReady: true
+gapCount: 0
+generatedAt: "2026-05-08T03:31:39+08:00"
+scenarios:
+  - scenarioId: agents.contract-truth.baseline
+    ownerTask: "1.1"
+    status: verified
+    verificationCommand: "contract/source review plus generated Gateway/client type review"
+    evidence:
+      - "Agents list uses the Gateway-backed agents.list source through the deck-go backend RPC facade."
+      - "Agents detail, health, skills, subagents, event streams, tool policy, system prompt, files, file content, and identity reads remain BFF-backed through existing src/api.ts facades."
+      - "Mutation safety follows deck-mutations and deck-config-write-safety metadata: create/delete are fixture-safe, config writes require baseHash, and protected main/default deletes are blocked before mutation."
+      - "Live projection integration uses only the current agent-status contract fields: agent.status.changed, activity.event, projection.gap, and gapPolicy refresh."
+  - scenarioId: agents.data-module.keys-and-freshness
+    ownerTask: "1.2-1.3"
+    status: verified
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/data/modules/agents src/components/panels/agents src/stores/__tests__/agents-store.test.ts"
+    evidence:
+      - "Focused Agents tests passed: 7 files, 29 tests."
+      - "agentsKeys tests verify stable key prefixes for list/detail/config/section/file/identity sources."
+      - "query tests verify freshness tiers for inventory, config-authority, live-workbench, and lazy-detail reads."
+  - scenarioId: agents.read-path.data-fabric
+    ownerTask: "2.1-2.4"
+    status: verified
+    verificationCommand: "focused frontend tests and rg audit"
+    evidence:
+      - "AgentsPanel consumes Agents Data Fabric hooks for list, configured models, detail, health, skills, subagents, event streams, tool policy, system prompt, files, file content, and identity."
+      - "useAgentsStore now keeps UI/local state only and no longer exposes loadAgents, fetchAgents, or refreshAgents server lifecycle methods."
+      - "Chat AgentTabs was migrated to the Agents list query with local store fallback only when query data is absent."
+      - "Component tests use DataFabricTestProvider and cover first-load, empty, error, cached-data, shared request, and cached-data-preserved-on-refresh-error states."
+  - scenarioId: agents.mutation-safety
+    ownerTask: "3.1-3.4"
+    status: verified
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/data/modules/agents src/components/panels/agents src/stores/__tests__/agents-store.test.ts"
+    evidence:
+      - "Mutation wrappers set retry=false/networkMode=online and invalidate declared list/detail/section keys."
+      - "Skills, subagents, and event-stream saves throw AgentBaseHashRequiredError before backend calls when baseHash is absent."
+      - "Protected main/default/not-deletable deletes throw AgentProtectedDeleteError before invoking delete."
+      - "Mutation tests verify invalidation, missing-hash blocking, protected delete blocking, and draft preservation after conflict-like failures."
+  - scenarioId: agents.live-projection.invalidation
+    ownerTask: "4.1-4.3"
+    status: verified
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/data/modules/agents"
+    evidence:
+      - "Projection tests verify agent.status.changed invalidates list/detail/health keys for the affected agent."
+      - "activity.event marks Agents list stale for broad activity updates."
+      - "projection.gap follows the current contract gapPolicy=refresh by invalidating authoritative Agents read-model keys without relying on patchStrategy or patchKeys."
+  - scenarioId: verification.openspec-strict
+    ownerTask: "5.1"
+    status: verified
+    verificationCommand: "openspec validate deck-go-data-fabric-agents-reference --strict"
+    evidence:
+      - "OpenSpec strict validation passed before implementation and after verification artifact updates."
+  - scenarioId: verification.frontend-focused
+    ownerTask: "5.2"
+    status: verified
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/data/modules/agents src/components/panels/agents src/stores/__tests__/agents-store.test.ts"
+    evidence:
+      - "Focused Agents tests passed: 7 files, 29 tests."
+      - "The only emitted warning was jsdom canvas not implemented from the test environment."
+  - scenarioId: verification.frontend-full-suite
+    ownerTask: "5.3"
+    status: verified-with-unrelated-suite-failures
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui"
+    evidence:
+      - "Full frontend suite ran after fixing DataFabricTestProvider coverage for chat tests affected by AgentTabs."
+      - "Remaining failures are the known unrelated assertions from the foundation baseline: api.chat-helpers expected DELETE /api/agents?agentId=ops but current API appends deleteFiles=false; chat-store-sse-status expects disconnected but current default is idle; chat-hardening has two tool-rendering/order assertions."
+      - "No Agents Data Fabric provider or Agents module failures remained."
+  - scenarioId: verification.frontend-build
+    ownerTask: "5.4"
+    status: verified
+    verificationCommand: "cd deck-go && make frontend-build"
+    evidence:
+      - "make frontend-build passed after fixing TypeScript issues introduced by the Agents migration and test harness updates."
+      - "The passed build includes check-active-host-paths, tsc -b, and vite build."
+  - scenarioId: verification.contract-gate
+    ownerTask: "5.5"
+    status: verified
+    verificationCommand: "cd deck-go && make contract-gate"
+    evidence:
+      - "make contract-gate passed, including Deck API codegen/checks, UI metadata checks, live projection checks, list query and mutation evidence checks, Gateway protocol generation/checks, and contract-chain audit."
+      - "Contract inventory regenerated to include new Agents Data Fabric module references."
+  - scenarioId: verification.l4-mock-functional-agents
+    ownerTask: "5.6"
+    status: verified
+    verificationCommand: "cd deck-go && make e2e-mock-module MODULE=agents"
+    evidence:
+      - "Agents mock Playwright passed: 2 tests."
+      - "Existing scenario covers list/detail navigation, child sections, protected delete confirmation, create wizard, empty/error states, and light/zh variant."
+      - "Added Data Fabric cache scenario confirms Chat -> Agents -> Chat -> Agents returns from fresh cache without a second agents.list request."
+  - scenarioId: verification.l5-real-gateway-agents
+    ownerTask: "5.7"
+    status: verified
+    verificationCommand: "cd deck-go && make e2e-real-module MODULE=agents"
+    evidence:
+      - "Agents real Gateway Playwright passed: 3 tests."
+      - "Real API workflow verifies runtime, gateway.describe typed methods, agents.list/create/update/delete, deck.agents detail/config preview actions, files, identity, and protected main delete rejection."
+      - "Real UI workflow verifies shell navigation in dark/en and light/zh variants, detail sections, file save, and stable back navigation."
+      - "Two intermediate failures were test locator drift against current UI text/duplicate accessible names; both were fixed and rerun to green."
+  - scenarioId: verification.archive-readiness
+    ownerTask: "5.8"
+    status: verified
+    verificationCommand: "task checklist review plus validation/build/contract/E2E evidence"
+    evidence:
+      - "All implementation tasks have concrete code and fresh verification evidence."
+      - "No real-gateway circuit breaker was needed because final L5 real Gateway Agents evidence passed."

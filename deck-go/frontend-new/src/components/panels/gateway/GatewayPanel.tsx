@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -8,15 +7,8 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  fetchActivityEvents,
-  fetchGatewayDescribe,
-  fetchGatewayHealth,
-  fetchGatewayStatus,
-  fetchMonitorRuns,
-  fetchMonitorStats,
   isBundledRuntimeStatus,
   isRemoteRuntimeStatus,
-  submitGatewayBatch,
   type DeckGoActivityEvent,
   type DeckGoBundledRuntimeGatewayStatus,
   type DeckGoGatewayBatchCall,
@@ -32,9 +24,21 @@ import {
   type DeckGoMonitorStatsResponse,
   type DeckGoRemoteRuntimeGatewayStatus,
 } from "../../../api";
+import {
+  useActivityEventsQuery,
+  useMonitorRunsQuery,
+  useMonitorStatsQuery,
+} from "../../../data/modules/activity";
+import {
+  useGatewayDescribeQuery,
+  useGatewayHealthQuery,
+  useGatewayStatusQuery,
+  useSubmitGatewayBatchMutation,
+} from "../../../data/modules/gateway";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useCapabilities } from "../../../hooks/useCapabilities";
 import { useTranslations } from "../../../i18n/provider";
+import { DEFAULT_RUNTIME_ID } from "../../../lib/runtime-id";
 import {
   GatewayNotConfiguredEmptyState,
   gatewayNotConfiguredValue,
@@ -99,7 +103,6 @@ const GATEWAY_TABS: Array<{ key: GatewayTab; labelKey: string }> = [
 ];
 
 const SCOPE_FILTERS: ScopeFilter[] = ["all", "operator.read", "operator.write", "system"];
-const DEFAULT_RUNTIME_ID = "rt_local";
 
 function sessionCountFromStatus(value: DeckGoGatewayStatusResponse["sessions"]) {
   if (typeof value === "number") {
@@ -449,80 +452,44 @@ export function GatewayPanel() {
   const [activeTab, setActiveTab] = useState<GatewayTab>("describe");
   const { bootstrap, runtime, refreshingSummary, refreshRuntimeSummary } = useDeckUI();
   const { capabilities } = useCapabilities();
-  const [describeResponse, setDescribeResponse] = useState<DeckGoGatewayDescribeResponse | null>(
-    null,
-  );
-  const [healthResponse, setHealthResponse] = useState<DeckGoGatewayHealthResponse | null>(null);
-  const [statusResponse, setStatusResponse] = useState<DeckGoGatewayStatusResponse | null>(null);
-  const [activityEvents, setActivityEvents] = useState<DeckGoActivityEvent[]>([]);
-  const [monitorRuns, setMonitorRuns] = useState<DeckGoMonitorRun[]>([]);
-  const [monitorStats, setMonitorStats] = useState<DeckGoMonitorStatsResponse | null>(null);
   const [recentBatches, setRecentBatches] = useState<RecentBatch[]>([]);
-  const [diagnosticsError, setDiagnosticsError] = useState("");
-  const [describeError, setDescribeError] = useState("");
-  const [projectionError, setProjectionError] = useState("");
+  const healthQuery = useGatewayHealthQuery();
+  const statusQuery = useGatewayStatusQuery();
+  const describeQuery = useGatewayDescribeQuery();
+  const activityQuery = useActivityEventsQuery(20);
+  const monitorRunsQuery = useMonitorRunsQuery({ limit: 20 });
+  const monitorStatsQuery = useMonitorStatsQuery();
 
-  const refreshDiagnostics = useCallback(async () => {
-    const [healthResult, statusResult, describeResult] = await Promise.allSettled([
-      fetchGatewayHealth(),
-      fetchGatewayStatus(),
-      fetchGatewayDescribe(),
-    ]);
-
-    if (healthResult.status === "fulfilled") {
-      setHealthResponse(healthResult.value);
-    }
-    if (statusResult.status === "fulfilled") {
-      setStatusResponse(statusResult.value);
-    }
-    if (describeResult.status === "fulfilled") {
-      setDescribeResponse(describeResult.value);
-      setDescribeError("");
-    } else {
-      setDescribeError(gatewayNotConfiguredValue(describeResult.reason, t("errors.loadDescribe")));
-    }
-
-    const diagnosticsFailure =
-      healthResult.status === "rejected"
-        ? healthResult.reason
-        : statusResult.status === "rejected"
-          ? statusResult.reason
-          : null;
-    setDiagnosticsError(
-      diagnosticsFailure
-        ? gatewayNotConfiguredValue(diagnosticsFailure, t("errors.loadDiagnostics"))
-        : "",
-    );
-  }, [t]);
-
-  const refreshProjections = useCallback(async () => {
-    try {
-      const [activity, runs, stats] = await Promise.all([
-        fetchActivityEvents(20),
-        fetchMonitorRuns({ limit: 20 }),
-        fetchMonitorStats(),
-      ]);
-      setActivityEvents(activity.events ?? []);
-      setMonitorRuns(runs.runs ?? []);
-      setMonitorStats(stats);
-      setProjectionError("");
-    } catch (loadError) {
-      setProjectionError(gatewayNotConfiguredValue(loadError, t("errors.loadMonitorProjections")));
-    }
-  }, [t]);
-
-  useEffect(() => {
-    void refreshDiagnostics();
-  }, [refreshDiagnostics]);
-
-  useEffect(() => {
-    void refreshProjections();
-  }, [refreshProjections]);
+  const describeResponse = describeQuery.data ?? null;
+  const healthResponse = healthQuery.data ?? null;
+  const statusResponse = statusQuery.data ?? null;
+  const activityEvents = activityQuery.data?.events ?? [];
+  const monitorRuns = monitorRunsQuery.data?.runs ?? [];
+  const monitorStats = monitorStatsQuery.data ?? null;
+  const describeError = describeQuery.error
+    ? gatewayNotConfiguredValue(describeQuery.error, t("errors.loadDescribe"))
+    : "";
+  const diagnosticsError = healthQuery.error
+    ? gatewayNotConfiguredValue(healthQuery.error, t("errors.loadDiagnostics"))
+    : statusQuery.error
+      ? gatewayNotConfiguredValue(statusQuery.error, t("errors.loadDiagnostics"))
+      : "";
+  const projectionError = activityQuery.error
+    ? gatewayNotConfiguredValue(activityQuery.error, t("errors.loadMonitorProjections"))
+    : monitorRunsQuery.error
+      ? gatewayNotConfiguredValue(monitorRunsQuery.error, t("errors.loadMonitorProjections"))
+      : monitorStatsQuery.error
+        ? gatewayNotConfiguredValue(monitorStatsQuery.error, t("errors.loadMonitorProjections"))
+        : "";
 
   const refreshWorkbench = () => {
     void refreshRuntimeSummary();
-    void refreshDiagnostics();
-    void refreshProjections();
+    void healthQuery.refetch();
+    void statusQuery.refetch();
+    void describeQuery.refetch();
+    void activityQuery.refetch();
+    void monitorRunsQuery.refetch();
+    void monitorStatsQuery.refetch();
   };
 
   const runtimePayload = runtime?.runtime;
@@ -1204,6 +1171,7 @@ function BatchConsole({
   const [draftCalls, setDraftCalls] = useState<BatchDraftCall[]>(() => [
     makeDraftCall(0, defaultMethod),
   ]);
+  const submitGatewayBatchMutation = useSubmitGatewayBatchMutation();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [expandedBatch, setExpandedBatch] = useState("");
@@ -1254,10 +1222,10 @@ function BatchConsole({
     const startedAt = Date.now();
     setSubmitting(true);
     try {
-      const result = await submitGatewayBatch(
-        { calls, options: { failFast: false, timeoutMs: 5000 } },
-        { runtimeId: DEFAULT_RUNTIME_ID },
-      );
+      const result = await submitGatewayBatchMutation.mutateAsync({
+        request: { calls, options: { failFast: false, timeoutMs: 5000 } },
+        runtimeId: DEFAULT_RUNTIME_ID,
+      });
       const next = {
         ...result,
         calls,

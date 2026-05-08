@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { patchChannelConfig } from "../../../api";
+import { usePatchChannelConfigMutation } from "../../../data/modules/channels";
 import { useTranslations } from "../../../i18n/provider";
 
 type ChannelDmPolicy = "pairing" | "allowlist" | "open" | "disabled";
@@ -78,6 +78,7 @@ export function ChannelSettingsEditor(props: {
   const [jsonPatchDraft, setJsonPatchDraft] = useState("{}");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const patchChannelConfigMutation = usePatchChannelConfigMutation();
 
   useEffect(() => {
     const nextDmPolicy = readChannelDmPolicy(props.channel);
@@ -105,7 +106,10 @@ export function ChannelSettingsEditor(props: {
     }
     setSaving(true);
     try {
-      const result = await patchChannelConfig(props.channelId, patch);
+      const result = await patchChannelConfigMutation.mutateAsync({
+        channelId: props.channelId,
+        patch,
+      });
       setError("");
       setInitialDmPolicy(dmPolicy);
       setInitialRetry(retry);
@@ -125,7 +129,10 @@ export function ChannelSettingsEditor(props: {
         setError(t("channelJsonPatchEmpty"));
         return;
       }
-      const result = await patchChannelConfig(props.channelId, patch);
+      const result = await patchChannelConfigMutation.mutateAsync({
+        channelId: props.channelId,
+        patch,
+      });
       setError("");
       setJsonPatchDraft("{}");
       await props.onSaved(result);

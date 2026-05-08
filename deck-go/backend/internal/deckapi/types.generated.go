@@ -3,6 +3,8 @@
 
 package deckapi
 
+const DeckGoDefaultRuntimeId = "rt_local"
+
 type DeckGoSettings struct {
 	AccessTokenConfigured bool `json:"accessTokenConfigured,omitempty"`
 	AccessTokenSource string `json:"accessTokenSource,omitempty"`

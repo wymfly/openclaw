@@ -32,7 +32,7 @@ function seedAgents(status: "idle" | "busy") {
       { id: "main", name: "Main Agent", model: "gpt-5.4", status },
       { id: "ops", name: "Ops Bot", model: "sonnet-4.6", status: "idle" },
     ],
-    fetchAgents: agentsState.fetchAgents,
+    selectedAgentId: agentsState.selectedAgentId,
   }));
 }
 

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { fireEvent } from "@testing-library/react";
-import { act, createElement } from "react";
+import { fireEvent, waitFor } from "@testing-library/react";
+import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../data/testing/DataFabricTestProvider";
 import { DeckUIProvider, useDeckUI } from "./ui-store";
 
 const apiMocks = vi.hoisted(() => ({
@@ -38,6 +39,40 @@ function RuntimePreferenceProbe() {
   );
 }
 
+function RuntimeSummaryProbe() {
+  const ui = useDeckUI();
+  return createElement(
+    "div",
+    null,
+    createElement(
+      "span",
+      { "data-testid": "summary" },
+      [
+        `ready:${String(ui.summaryReady)}`,
+        `auth:${String(ui.authRequired)}`,
+        `error:${ui.summaryError ?? "none"}`,
+        `runtime:${ui.runtime?.runtime.status ?? "none"}`,
+      ].join("|"),
+    ),
+    createElement(
+      "button",
+      { onClick: () => void ui.refreshRuntimeSummary(), type: "button" },
+      "Refresh runtime",
+    ),
+  );
+}
+
+function renderWithDeckUI(node: ReactNode) {
+  root = createRoot(container);
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckUIProvider, { onThemeModeChange: vi.fn(), themeMode: "light" }, node),
+    ),
+  );
+}
+
 describe("DeckUIProvider runtime preferences", () => {
   beforeEach(() => {
     (
@@ -47,8 +82,14 @@ describe("DeckUIProvider runtime preferences", () => {
     window.localStorage.clear();
     container = document.createElement("div");
     document.body.appendChild(container);
-    apiMocks.fetchBootstrapStatus.mockResolvedValue({ ok: true });
-    apiMocks.fetchRuntimeGatewayStatus.mockResolvedValue({ ok: true });
+    apiMocks.fetchBootstrapStatus.mockResolvedValue({
+      ok: true,
+      runtime: { status: "running" },
+    });
+    apiMocks.fetchRuntimeGatewayStatus.mockResolvedValue({
+      ok: true,
+      runtime: { status: "running" },
+    });
   });
 
   afterEach(() => {
@@ -68,14 +109,7 @@ describe("DeckUIProvider runtime preferences", () => {
     window.localStorage.setItem("deckGoRestorationSidebarCollapsed", "true");
 
     await act(async () => {
-      root = createRoot(container);
-      root.render(
-        createElement(
-          DeckUIProvider,
-          { onThemeModeChange: vi.fn(), themeMode: "light" },
-          createElement(RuntimePreferenceProbe),
-        ),
-      );
+      renderWithDeckUI(createElement(RuntimePreferenceProbe));
     });
 
     expect(container.textContent).toContain("panel:channels|collapsed:true");
@@ -100,5 +134,61 @@ describe("DeckUIProvider runtime preferences", () => {
     expect(container.textContent).toContain("panel:agents|collapsed:false");
     expect(window.localStorage.getItem("deckGoActivePanel")).toBe("agents");
     expect(window.localStorage.getItem("deckGoSidebarCollapsed")).toBe("false");
+  });
+
+  it("loads runtime summary through Data Fabric and keeps the public state shape", async () => {
+    await act(async () => {
+      renderWithDeckUI(createElement(RuntimeSummaryProbe));
+    });
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("ready:true|auth:false|error:none|runtime:running");
+    });
+    expect(apiMocks.fetchBootstrapStatus).toHaveBeenCalledTimes(1);
+    expect(apiMocks.fetchRuntimeGatewayStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps cached summary data visible when a manual background refresh fails", async () => {
+    apiMocks.fetchBootstrapStatus
+      .mockResolvedValueOnce({ ok: true, runtime: { status: "running" } })
+      .mockRejectedValueOnce(new Error("server unavailable"));
+    apiMocks.fetchRuntimeGatewayStatus
+      .mockResolvedValueOnce({ ok: true, runtime: { status: "running" } })
+      .mockRejectedValueOnce(new Error("server unavailable"));
+
+    await act(async () => {
+      renderWithDeckUI(createElement(RuntimeSummaryProbe));
+    });
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("runtime:running");
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        Array.from(container.querySelectorAll("button")).find(
+          (button) => button.textContent === "Refresh runtime",
+        ) as HTMLButtonElement,
+      );
+    });
+
+    await waitFor(() => {
+      expect(container.textContent).toContain(
+        "ready:true|auth:false|error:server unavailable|runtime:running",
+      );
+    });
+  });
+
+  it("preserves auth-required behavior for runtime summary failures", async () => {
+    apiMocks.fetchBootstrapStatus.mockRejectedValue(new Error("unauthorized"));
+    apiMocks.fetchRuntimeGatewayStatus.mockRejectedValue(new Error("unauthorized"));
+
+    await act(async () => {
+      renderWithDeckUI(createElement(RuntimeSummaryProbe));
+    });
+
+    await waitFor(() => {
+      expect(container.textContent).toContain("ready:true|auth:true|error:none|runtime:none");
+    });
   });
 });

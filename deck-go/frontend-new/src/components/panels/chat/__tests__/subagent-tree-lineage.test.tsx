@@ -3,6 +3,7 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "@/data/testing/DataFabricTestProvider";
 import { useChatStore } from "@/stores/chat";
 
 const fetchSubagentLineage = vi.fn();
@@ -71,7 +72,7 @@ describe("chat SubagentTree lineage fetch", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SubagentTree));
+      root.render(createElement(DataFabricTestProvider, null, createElement(SubagentTree)));
     });
 
     await waitFor(() => {
@@ -114,7 +115,7 @@ describe("chat SubagentTree lineage fetch", () => {
 
     act(() => {
       root = createRoot(container);
-      root.render(createElement(SubagentTree));
+      root.render(createElement(DataFabricTestProvider, null, createElement(SubagentTree)));
     });
 
     expect(await screen.findByText("Builder")).toBeTruthy();

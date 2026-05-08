@@ -3,14 +3,15 @@
 **Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
+**Previous visual target backup:** [`./prototype-v1-dense.html`](./prototype-v1-dense.html)
 **OpenSpec changes:** `frontend-sessions-hifi-contract-redesign`,
 `frontend-sessions-real-contract-verification`
 
 This package defines the visual and interaction target for the `sessions/`
 module rewrite in `frontend-new`. The current panel is behavior-rich and
-already goes through the Deck BFF contract chain, but this package is the visual
-truth for the high-fidelity pass. Code and contracts remain the final authority
-when a handoff note drifts.
+already goes through the Deck BFF contract chain, but this package is the active
+visual target for the module-convergence pass. Code and contracts remain the
+final authority when a handoff note drifts.
 
 Implementation and real-stack verification notes live in
 [`implementation-notes.md`](./implementation-notes.md). Treat code, source
@@ -22,13 +23,21 @@ drifts again.
 `sessions/` is the session operations workbench. Operators use it to browse and
 filter recent sessions, inspect selected-session runtime and transcript
 evidence, review usage/context weight, manage compaction checkpoints, inspect
-subagent lineage/relations, export transcript evidence, and run session actions
-such as reset, clear, patch, compact, and delete.
+subagent lineage/relations, export transcript evidence, and run guarded
+maintenance actions such as reset, clear, patch, compact, restore, and delete.
 
-The design is dense but compartmentalized: inventory on the left, selected
-session evidence in the center, action controls on the right. It repeats the
-chat/agents/routing/subagents/logs/settings typography and token posture while
-keeping session-specific list/detail/timeline molecules local.
+The converged design is organized by product responsibility:
+
+- **Browse / locate**: inventory, search, filters, preview, and selection.
+- **Inspect / understand**: selected identity, transcript search/export,
+  transcript evidence, usage/context, compaction, and lineage.
+- **Guarded maintenance**: scoped patch controls and destructive/admin actions
+  behind confirmation gates.
+
+The active prototype lowers first-viewport density: inventory stays on the
+left, primary selected-session reading stays in the center, and secondary
+evidence plus guarded actions move into a default-open Inspector with
+`Overview`, `Usage`, `Compaction`, `Lineage`, and `Actions` tabs.
 
 ## Contract truth
 
@@ -73,9 +82,19 @@ Endpoint truth:
   projections, not direct Gateway wire frames.
 - Transcript cache behavior must survive the visual rewrite:
   `getCachedTranscript`, `setCachedTranscript`, `invalidateTranscript`.
-- Compact and delete actions must keep a confirmation gate.
-- Patch model/directive actions must keep the existing payload semantics.
+- Reset, clear, compact, delete, and compaction restore must use a confirmation
+  gate before invoking mutation wrappers.
+- Patch model/directive actions must stay scoped to product-backed fields; do
+  not turn Sessions into an exhaustive Gateway patch schema editor.
 - Export preview is client-side only and must not mutate server state.
+- `sessions.create`, `sessions.send`, `sessions.abort`, and `sessions.steer`
+  remain Chat/runtime-adjacent workflows. Sessions may show selected-session
+  context or navigation only; it must not add a second composer or live run
+  controller.
+- Gateway-supported but currently product-unsurfaced knobs remain classified in
+  `implementation-notes.md`: extra list filters, preview `limit/maxChars`,
+  create `key/task`, compact `maxLines`, delete transcript/hook flags, and
+  advanced patch execution/spawn/subagent fields.
 
 ## Depends on canonical atoms
 
@@ -97,8 +116,8 @@ No canonical atom or token is required by this handoff. Local molecules:
 
 ## How to implement
 
-1. Open `prototype.html` and inspect ready, filtered, selected-subagent,
-   compaction, export, action, empty, loading, and error states.
+1. Open `prototype.html` and inspect the list/workbench/default-open Inspector
+   visual target. Use `prototype-v1-dense.html` only as historical backup.
 2. Read `api-usage.md` before touching mocks, API wrappers, or backend behavior.
 3. Translate the prototype into `frontend-new/src/components/panels/sessions/`,
    preserving wrappers, transcript cache, confirmation gates, and selection
@@ -121,6 +140,8 @@ No canonical atom or token is required by this handoff. Local molecules:
   strongly into the subagents module.
 - Whether the transcript export seam should become a shared pattern after usage
   or docs repeats it.
+- Whether Sessions should add navigation-only "open in Chat" once shell
+  session deep-link behavior is settled.
 
 ## Reverse sign-off
 

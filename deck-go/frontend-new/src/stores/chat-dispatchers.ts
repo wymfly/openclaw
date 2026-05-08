@@ -12,6 +12,7 @@
  * interface, which matches the Zustand store's public API 1-to-1.
  */
 
+import { fetchChatHistory } from "@/api";
 import type {
   AgentEventPayload as GatewayAgentEventPayload,
   ChatEventPayload as GatewayChatEventPayload,
@@ -19,7 +20,6 @@ import type {
   SessionToolEventPayload,
   TranscriptMessage,
 } from "@/generated/gateway-protocol.generated";
-import { deckFetch } from "@/lib/deck-client";
 import {
   normalizeSessionMessagePayload,
   normalizeTranscriptMessages,
@@ -889,14 +889,7 @@ export async function reloadFullContent(
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
     try {
-      const res = await deckFetch(
-        `/api/chat/history?sessionKey=${encodeURIComponent(sessionKey)}&limit=5`,
-      );
-      if (!res.ok) {
-        continue;
-      }
-
-      const data = (await res.json()) as {
+      const data = (await fetchChatHistory({ limit: 5, sessionKey })) as {
         messages?: TranscriptMessage[];
       };
 

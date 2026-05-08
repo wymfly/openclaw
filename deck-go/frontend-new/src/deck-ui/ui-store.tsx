@@ -8,7 +8,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { fetchBootstrapStatus, fetchRuntimeGatewayStatus } from "../api";
+import { useClearRuntimeSummaryQueries, useRuntimeSummaryLoader } from "../data/queries/runtime";
 import {
   readDefaultDeckAccessToken,
   readStoredDeckAccessToken,
@@ -22,7 +22,6 @@ const ACTIVE_PANEL_KEY = "deckGoActivePanel";
 const LEGACY_ACTIVE_PANEL_KEY = "deckGoRestorationActivePanel";
 const SIDEBAR_COLLAPSED_KEY = "deckGoSidebarCollapsed";
 const LEGACY_SIDEBAR_COLLAPSED_KEY = "deckGoRestorationSidebarCollapsed";
-const SUMMARY_REFRESH_MS = 30_000;
 const DEFAULT_AUTH_MESSAGE = "Enter the deck-go access token to unlock the control plane.";
 
 function isAuthError(message: string) {
@@ -85,14 +84,14 @@ export function DeckUIProvider(
   const [runtime, setRuntime] = useState<DeckUIState["runtime"]>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [refreshingSummary, setRefreshingSummary] = useState(false);
+  const loadRuntimeSummaryWithDataFabric = useRuntimeSummaryLoader();
+  const clearRuntimeSummaryQueries = useClearRuntimeSummaryQueries();
 
-  const loadRuntimeSummary = useEffectEvent(async () => {
-    const [bootstrapResult, runtimeResult] = await Promise.all([
-      fetchBootstrapStatus(),
-      fetchRuntimeGatewayStatus(),
-    ]);
-    return { bootstrapResult, runtimeResult };
-  });
+  const loadRuntimeSummary = useEffectEvent((options?: { force?: boolean }) =>
+    loadRuntimeSummaryWithDataFabric(options),
+  );
+
+  const clearCachedRuntimeSummary = useEffectEvent(() => clearRuntimeSummaryQueries());
 
   const applyRuntimeSummary = useEffectEvent(
     (
@@ -110,18 +109,20 @@ export function DeckUIProvider(
     },
   );
 
-  const refreshRuntimeSummary = useEffectEvent(async () => {
+  const runRuntimeSummaryRefresh = useEffectEvent(async (options?: { force?: boolean }) => {
     setRefreshingSummary(true);
     try {
-      const { bootstrapResult, runtimeResult } = await loadRuntimeSummary();
+      const { bootstrapResult, runtimeResult } = await loadRuntimeSummary({
+        force: options?.force ?? false,
+      });
       applyRuntimeSummary(bootstrapResult, runtimeResult);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "failed to refresh deck runtime summary";
       startTransition(() => {
-        setBootstrap(null);
-        setRuntime(null);
         if (isAuthError(message)) {
+          setBootstrap(null);
+          setRuntime(null);
           setAuthRequired(true);
           setAuthMessage(message);
           setSummaryError(null);
@@ -136,6 +137,10 @@ export function DeckUIProvider(
         setRefreshingSummary(false);
       });
     }
+  });
+
+  const refreshRuntimeSummary = useEffectEvent(async () => {
+    await runRuntimeSummaryRefresh({ force: true });
   });
 
   const unlockControlPlane = useEffectEvent(async (nextToken?: string) => {
@@ -154,10 +159,12 @@ export function DeckUIProvider(
     });
     setRefreshingSummary(true);
     try {
-      const { bootstrapResult, runtimeResult } = await loadRuntimeSummary();
+      clearCachedRuntimeSummary();
+      const { bootstrapResult, runtimeResult } = await loadRuntimeSummary({ force: true });
       applyRuntimeSummary(bootstrapResult, runtimeResult);
     } catch (error) {
       writeStoredDeckAccessToken(null);
+      clearCachedRuntimeSummary();
       const message = error instanceof Error ? error.message : "failed to unlock the control plane";
       startTransition(() => {
         setBootstrap(null);
@@ -180,15 +187,11 @@ export function DeckUIProvider(
       if (fallback) {
         void unlockControlPlane(fallback);
       } else {
-        void refreshRuntimeSummary();
+        void runRuntimeSummaryRefresh({ force: false });
       }
     } else {
-      void refreshRuntimeSummary();
+      void runRuntimeSummaryRefresh({ force: false });
     }
-    const interval = window.setInterval(() => {
-      void refreshRuntimeSummary();
-    }, SUMMARY_REFRESH_MS);
-    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {

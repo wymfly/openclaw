@@ -4,7 +4,7 @@ GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 REPO_ROOT := $(abspath ..)
 
-.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check live-projection-contract-sync live-projection-contract-check live-projection-contract-test list-query-contract-sync list-query-contract-check list-query-contract-test mutation-evidence-contract-sync mutation-evidence-contract-check mutation-evidence-contract-test deck-api-dynamic-surfaces-sync deck-api-dynamic-surfaces-check route-governance-sync route-governance-check config-write-safety-sync config-write-safety-check gateway-describe-completeness-sync gateway-describe-completeness-check contract-inventory contract-chain-audit-sync contract-chain-audit-check contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify real-e2e-seed smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
+.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check live-projection-contract-sync live-projection-contract-check live-projection-contract-test list-query-contract-sync list-query-contract-check list-query-contract-test mutation-evidence-contract-sync mutation-evidence-contract-check mutation-evidence-contract-test deck-api-dynamic-surfaces-sync deck-api-dynamic-surfaces-check route-governance-sync route-governance-check config-write-safety-sync config-write-safety-check gateway-describe-completeness-sync gateway-describe-completeness-check contract-inventory contract-chain-audit-sync contract-chain-audit-check contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify e2e-mock-runtime e2e-mock-visual e2e-mock-module e2e-real-smoke e2e-real-module e2e-real-all real-e2e-seed smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident mock-stack-start mock-stack-stop mock-stack-restart mock-stack-status mock-stack-logs mock-stack-backend-fg mock-stack-frontend-fg real-stack-start real-stack-stop real-stack-restart real-stack-status real-stack-logs stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
 
 contracts-sync:
 	node contracts/scripts/sync-deck-api-generated.mjs
@@ -164,6 +164,26 @@ frontend-build:
 
 verify: contracts-check host-check backend-test frontend-build
 
+e2e-mock-runtime:
+	pnpm exec playwright test --config playwright.config.ts test/e2e/bundled.spec.ts test/e2e/remote.spec.ts
+
+e2e-mock-visual:
+	pnpm exec playwright test --config playwright.config.ts test/e2e/*-visual.spec.ts
+
+e2e-mock-module:
+	@test -n "$(MODULE)" || (echo "usage: make e2e-mock-module MODULE=agents" >&2; exit 2)
+	pnpm exec playwright test --config playwright.config.ts test/e2e/$(MODULE)-visual.spec.ts
+
+e2e-real-smoke:
+	DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config playwright.config.ts test/e2e/real-gateway.spec.ts
+
+e2e-real-module:
+	@test -n "$(MODULE)" || (echo "usage: make e2e-real-module MODULE=agents" >&2; exit 2)
+	DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config playwright.config.ts test/e2e/$(MODULE)-real-gateway.spec.ts
+
+e2e-real-all:
+	DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config playwright.config.ts test/e2e/real-gateway.spec.ts test/e2e/*-real-gateway.spec.ts
+
 real-e2e-seed:
 	DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test --config playwright.config.ts test/e2e/real-gateway.spec.ts --grep "exercises the real Gateway control plane"
 
@@ -187,32 +207,77 @@ enforce-stage3-stabilization:
 record-stage3-stabilization-incident:
 	node scripts/record-stage3-stabilization-incident.mjs --date "$(DATE)" --severity "$(SEVERITY)" --summary "$(SUMMARY)" $(if $(ATTRIBUTION),--attribution "$(ATTRIBUTION)",) $(if $(STATUS),--status "$(STATUS)",)
 
+mock-stack-start:
+	./scripts/dev/run-stack-mock.sh start
+
+mock-stack-stop:
+	./scripts/dev/run-stack-mock.sh stop
+
+mock-stack-restart:
+	./scripts/dev/run-stack-mock.sh restart
+
+mock-stack-status:
+	./scripts/dev/run-stack-mock.sh status
+
+mock-stack-logs:
+	./scripts/dev/run-stack-mock.sh logs
+
+mock-stack-backend-fg:
+	./scripts/dev/run-stack-mock.sh backend-fg
+
+mock-stack-frontend-fg:
+	./scripts/dev/run-stack-mock.sh frontend-fg
+
+real-stack-start:
+	./scripts/dev/run-stack-real.sh start
+
+real-stack-stop:
+	./scripts/dev/run-stack-real.sh stop
+
+real-stack-restart:
+	./scripts/dev/run-stack-real.sh restart
+
+real-stack-status:
+	./scripts/dev/run-stack-real.sh status
+
+real-stack-logs:
+	./scripts/dev/run-stack-real.sh logs
+
 stack-start:
-	./scripts/manage-local-stack.sh start
+	@echo "stack-start is an alias for mock-stack-start; use real-stack-start for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-start
 
 stack-stop:
-	./scripts/manage-local-stack.sh stop
+	@echo "stack-stop is an alias for mock-stack-stop; use real-stack-stop for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-stop
 
 stack-restart:
-	./scripts/manage-local-stack.sh restart
+	@echo "stack-restart is an alias for mock-stack-restart; use real-stack-restart for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-restart
 
 stack-status:
-	./scripts/manage-local-stack.sh status
+	@echo "stack-status is an alias for mock-stack-status; use real-stack-status for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-status
 
 stack-logs:
-	./scripts/manage-local-stack.sh logs
+	@echo "stack-logs is an alias for mock-stack-logs; use real-stack-logs for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-logs
 
 stack-backend-fg:
-	./scripts/manage-local-stack.sh backend-fg
+	@echo "stack-backend-fg is an alias for mock-stack-backend-fg; use real-stack-* for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-backend-fg
 
 stack-frontend-fg:
-	./scripts/manage-local-stack.sh frontend-fg
+	@echo "stack-frontend-fg is an alias for mock-stack-frontend-fg; use real-stack-* for the real OpenClaw Gateway." >&2
+	$(MAKE) mock-stack-frontend-fg
 
 stack-runtime-start:
-	./scripts/manage-local-stack.sh runtime-start
+	@echo "stack-runtime-start is deprecated; use mock-stack-start or real-stack-start." >&2
+	@exit 2
 
 stack-runtime-stop:
-	./scripts/manage-local-stack.sh runtime-stop
+	@echo "stack-runtime-stop is deprecated; use mock-stack-stop or real-stack-stop." >&2
+	@exit 2
 
 stack-chat-smoke:
 	@echo "stack-chat-smoke is deprecated for Codex/Ralph validation; use the Codex Playwright plugin against a managed foreground stack." >&2

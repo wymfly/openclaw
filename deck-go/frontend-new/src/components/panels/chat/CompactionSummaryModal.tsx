@@ -1,12 +1,11 @@
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useCompactionCheckpointsQuery } from "@/data/modules/sessions";
 import { XIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
 import { Markdown } from "@/design-system/atoms/Markdown";
 import { Modal } from "@/design-system/atoms/Modal";
 import { formatTokenCount } from "@/lib/format-utils";
-import { fetchCompactionList, type CompactionCheckpoint } from "./chat-api";
 import "./chat-widgets.css";
 
 export function CompactionSummaryModal({
@@ -19,33 +18,14 @@ export function CompactionSummaryModal({
   sessionKey: string;
 }) {
   const t = useTranslations("chat");
-  const [checkpoints, setCheckpoints] = useState<CompactionCheckpoint[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (open) {
-      setLoading(true);
-      setError(null);
-      fetchCompactionList(sessionKey)
-        .then((entries) => {
-          if (!cancelled) {
-            setCheckpoints(entries);
-            setLoading(false);
-          }
-        })
-        .catch((err) => {
-          if (!cancelled) {
-            setError(err instanceof Error ? err.message : String(err));
-            setLoading(false);
-          }
-        });
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [open, sessionKey]);
+  const checkpointsQuery = useCompactionCheckpointsQuery(sessionKey, { enabled: open });
+  const checkpoints = checkpointsQuery.data?.checkpoints ?? null;
+  const error = checkpointsQuery.error
+    ? checkpointsQuery.error instanceof Error
+      ? checkpointsQuery.error.message
+      : String(checkpointsQuery.error)
+    : null;
+  const loading = checkpointsQuery.isFetching;
 
   return (
     <Modal open={open} onClose={onClose} size="lg" aria-labelledby="ds-compaction-summary-title">

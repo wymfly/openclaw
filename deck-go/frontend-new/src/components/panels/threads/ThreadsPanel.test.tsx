@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { THREAD_FILTER_DEBOUNCE_MS } from "./thread-utils";
 import { ThreadsPanel } from "./ThreadsPanel";
@@ -19,6 +20,7 @@ const deckUIMocks = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/panel-navigation", () => ({
   navigateToAgent: deckUIMocks.navigateToAgent,
@@ -36,7 +38,21 @@ const baseTime = Date.UTC(2026, 3, 24, 8, 0, 0);
 
 function renderThreadsPanel() {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ThreadsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale: "en" }, createElement(ThreadsPanel)),
+    ),
+  );
+}
+
+async function flushThreadsQuery() {
+  await act(async () => {
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    await Promise.resolve();
+  });
 }
 
 function threadEntries() {
@@ -103,6 +119,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     expect(apiMocks.fetchThreads).toHaveBeenCalledWith({
       agentId: "",
@@ -133,6 +150,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     const builderButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.textContent?.includes("Builder escalation"),
@@ -176,6 +194,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       fireEvent.change(statusSelect as HTMLSelectElement, { target: { value: "all" } });
     });
+    await flushThreadsQuery();
 
     expect(apiMocks.fetchThreads).toHaveBeenLastCalledWith({
       agentId: "builder",
@@ -189,6 +208,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     expect(container.textContent).toContain("Selected relationship");
     expect(container.textContent).toContain(
@@ -237,6 +257,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     const searchInput = container.querySelector<HTMLInputElement>(
       'input[placeholder="Search thread / channel / agent / session / label / account"]',
@@ -289,6 +310,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     const copyButton = Array.from(container.querySelectorAll("button")).find(
       (button) => button.textContent === "Copy session key",
@@ -306,6 +328,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(0);
     expect(container.textContent).toContain("No thread bindings found");
@@ -319,6 +342,7 @@ describe("ThreadsPanel", () => {
     await act(async () => {
       renderThreadsPanel();
     });
+    await flushThreadsQuery();
 
     expect(container.textContent).toContain("gateway unavailable");
     expect(container.querySelectorAll(".threads-panel__thread-row")).toHaveLength(0);

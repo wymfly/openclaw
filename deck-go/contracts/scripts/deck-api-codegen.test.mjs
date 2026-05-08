@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { parseContractSource, renderDeckApiArtifacts } from "./deck-api-codegen.mjs";
 
-const source = `export type DeckGoStatus = "ok" | "warn" | "over";
+const source = `export const DeckGoDefaultRuntimeId = "rt_local";
+export type DeckGoStatus = "ok" | "warn" | "over";
 export interface DeckGoChild {
   name: string;
 }
@@ -33,6 +34,7 @@ const parsed = parseContractSource(source);
 assert.deepEqual(
   parsed.declarations.map((declaration) => `${declaration.kind}:${declaration.name}`),
   [
+    "const:DeckGoDefaultRuntimeId",
     "type:DeckGoStatus",
     "interface:DeckGoChild",
     "interface:DeckGoThing",
@@ -52,6 +54,7 @@ assert.equal(
 ${source}`,
 );
 
+assert.match(artifacts.go, /const DeckGoDefaultRuntimeId = "rt_local"/);
 assert.match(artifacts.go, /type DeckGoStatus string/);
 assert.match(artifacts.go, /type DeckGoChild struct {\n\tName string `json:"name"`\n}/);
 assert.match(artifacts.go, /\tEnabled bool `json:"enabled,omitempty"`/);

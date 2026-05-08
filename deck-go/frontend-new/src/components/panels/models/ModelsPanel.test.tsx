@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import type { Locale } from "../../../i18n/config";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { ModelsPanel } from "./ModelsPanel";
@@ -26,7 +27,13 @@ let root: Root | null = null;
 
 function renderModelsPanel(locale: Locale = "en") {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale }, createElement(ModelsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale }, createElement(ModelsPanel)),
+    ),
+  );
 }
 
 function rawModelsConfig() {
@@ -261,7 +268,7 @@ describe("ModelsPanel prototype parity shell", () => {
     expect(apiMocks.fetchRuntimeModelCatalogProviders).toHaveBeenCalledTimes(1);
     expect(apiMocks.fetchModelUsageCost).toHaveBeenCalledWith(14);
     expect(apiMocks.fetchModelUsageProviders).toHaveBeenCalledTimes(1);
-    expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("models.providers");
+    await waitFor(() => expect(apiMocks.lookupConfigPath).toHaveBeenCalledWith("models.providers"));
     expect(container.querySelector("[style]")).toBeNull();
     expect(container.textContent).toContain("Models");
     expect(container.textContent).toContain("Inspect runtime-configured models");

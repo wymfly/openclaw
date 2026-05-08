@@ -30,38 +30,178 @@ facades through the generated mutation metadata.
   against operator state. Real E2E validates missing-key rejection for those
   routes instead.
 
-## Contract Chain Matrix
+## Module convergence baseline - 2026-05-07
 
-| Workflow                         | Frontend surface                                  | BFF route                                    | Gateway/BFF source                                | Classification                                                       |
-| -------------------------------- | ------------------------------------------------- | -------------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------------- |
-| Inventory                        | `fetchSessions()`                                 | `GET /api/sessions`                          | `sessions.list` via Go BFF                        | supported                                                            |
-| Chat sessions alias              | `fetchSessions()` compatible alias                | `GET /api/chat/sessions`                     | `sessions.list` via Go BFF                        | supported                                                            |
-| Preview rows                     | `fetchSessionPreviews()`                          | `POST /api/chat/sessions/preview`            | `sessions.preview`                                | supported when keys exist; empty-valid when inventory is empty       |
-| Selected detail                  | `fetchSessionDetail()`                            | `GET /api/sessions/{sessionKey}`             | `sessions.get` plus list projection               | supported; L2 accepts degraded route status for real data variation  |
-| Transcript history               | `fetchChatHistory()` + transcript cache           | `GET /api/chat/history`                      | Gateway session history through BFF normalization | supported; L2 accepts degraded route status for real data variation  |
-| Transcript cache                 | `getCachedTranscript()` / `setCachedTranscript()` | local memory only                            | frontend cache                                    | supported                                                            |
-| Transcript export                | JSON/Markdown export preview                      | local only                                   | loaded transcript messages                        | supported; no server export endpoint                                 |
-| Usage/context                    | `fetchUsageSessions()`                            | `GET /api/usage/sessions`                    | `sessions.usage` aggregate                        | supported; empty-valid when no usage rows exist                      |
-| Usage logs                       | `fetchUsageSessionLogs()`                         | `GET /api/usage/sessions/logs`               | `sessions.usage.logs`                             | supported; empty-valid when no log rows exist                        |
-| Compaction list                  | `fetchCompactionCheckpoints()`                    | `POST /api/chat/compaction` action `list`    | `sessions.compaction.list`                        | supported; degraded when Gateway has no checkpoints/method support   |
-| Compaction branch                | `branchCompactionCheckpoint()`                    | `POST /api/chat/compaction` action `branch`  | `sessions.compaction.branch`                      | supported by code and mock tests; skipped-safe in L2                 |
-| Compaction restore               | `restoreCompactionCheckpoint()`                   | `POST /api/chat/compaction` action `restore` | `sessions.compaction.restore`                     | supported by code and mock tests; skipped-safe in L2                 |
-| Subagent lineage                 | `fetchSubagentLineage()`                          | `POST /api/deck/subagents` action `lineage`  | `deck.subagents.lineage`                          | supported for subagent-like sessions; degraded/empty-valid otherwise |
-| Parent/child navigation          | local selection + Subagents panel navigation      | local UI state                               | selected session relationships                    | supported                                                            |
-| Reset                            | `resetSession()`                                  | `POST /api/chat/sessions/reset`              | `sessions.reset`                                  | supported by code and backend tests; skipped-safe in L2              |
-| Clear                            | `clearSession()`                                  | `POST /api/chat/sessions/clear`              | `sessions.clear`                                  | supported by code and backend tests; skipped-safe in L2              |
-| Patch                            | `patchSession()`                                  | `POST /api/chat/sessions/patch`              | `sessions.patch`                                  | supported by code and backend tests; skipped-safe in L2              |
-| Compact                          | `compactChatSession()`                            | `POST /api/chat/compact`                     | `sessions.compact`                                | supported by code and backend tests; skipped-safe in L2              |
-| Delete                           | `deleteSession()`                                 | `DELETE /api/chat/sessions`                  | `sessions.delete`                                 | supported by code and backend tests; skipped-safe in L2              |
-| Chat session create              | `createChatSession()`                             | `POST /api/chat/sessions/create`             | `sessions.create`                                 | fixture-safe under isolated cpa+main real seed                       |
-| Chat send                        | `sendChatMessage()`                               | `POST /api/chat/send`                        | `sessions.send`                                   | fixture-safe under isolated cpa+main real seed                       |
-| Chat abort                       | `abortChatRun()`                                  | `POST /api/chat/abort`                       | `sessions.abort`                                  | supported by code; real active-run execution deferred                |
-| Chat steer                       | `steerChatSession()`                              | `POST /api/chat/steer`                       | `sessions.steer`                                  | supported by code; real active-session execution deferred            |
-| Chat projection persist          | `persistChatProjection()`                         | `POST /api/chat/projection`                  | deck-go local validation/no-op                    | fixture-safe product-local behavior; not Gateway-backed persistence  |
-| BFF-only browser access          | `openDeck(..., "sessions")`                       | browser -> deck-go backend only              | runtime owns Gateway calls                        | supported; L2 verified no direct Gateway HTTP/WebSocket              |
-| Server-side cursor pagination    | not exposed                                       | none                                         | none                                              | unsupported/projected                                                |
-| Real-time Sessions panel refresh | manual refresh plus cache invalidation            | stream exists elsewhere                      | no panel-owned live refresh contract              | unsupported/projected                                                |
-| Exhaustive patch editor          | scoped model/label/thinking/fast controls         | `POST /api/chat/sessions/patch`              | open patch payload                                | degraded by design; no full schema editor                            |
+OpenSpec change: `deck-go-sessions-module-convergence`.
+
+Fresh context read:
+
+- OpenSpec artifacts:
+  `openspec/changes/deck-go-sessions-module-convergence/{proposal.md,design.md,tasks.md,specs/**/spec.md}`.
+- Gateway authority:
+  `src/gateway/server-methods/sessions-method-defs.ts`,
+  `src/gateway/protocol/schema/sessions.ts`.
+- Deck BFF/runtime:
+  `deck-go/backend/internal/server/chat.go`,
+  `deck-go/backend/internal/runtime/openclaw/session_commands.go`,
+  `deck-go/backend/internal/runtime/openclaw/gateway_queries.go`,
+  `deck-go/backend/internal/runtime/projection/sessions.go`.
+- Deck contracts:
+  `deck-go/contracts/source/deck-api.contract.ts`,
+  `deck-go/contracts/source/deck-ui.contract.json`,
+  `deck-go/contracts/source/deck-list-queries.contract.json`,
+  `deck-go/contracts/source/deck-mutations.contract.json`.
+- Frontend implementation and tests:
+  `deck-go/frontend-new/src/api.ts`,
+  `deck-go/frontend-new/src/components/panels/sessions/`,
+  `deck-go/test/e2e/sessions-visual.spec.ts`,
+  `deck-go/test/e2e/sessions-real-gateway.spec.ts`.
+
+Worktree baseline:
+
+- Before implementation, local work was committed and pushed to
+  `origin/enhanced` at `30b155e224`.
+- `git status -sb` before this Sessions implementation showed
+  `## enhanced...origin/enhanced`.
+
+Accepted findings:
+
+- Sessions is a selected-session operations workbench, not a second Chat
+  composer. Its product responsibilities are browse/locate, inspect/understand,
+  and guarded maintenance.
+- `sessions.create`, `sessions.send`, `sessions.abort`, and `sessions.steer`
+  are Gateway session methods but Deck product ownership is Chat/runtime
+  execution. Sessions may show context or navigation only.
+- Reset, clear, compact, delete, and compaction restore are
+  confirmation-required in `deck-ui.contract.json`.
+- Production currently confirms compact/delete only. Reset/clear in
+  `SessionsPanel.tsx` and restore in `SessionCompactionHistory.tsx` execute on
+  first click. This is deterministic safety drift for this convergence pass.
+- Usage, compaction, and lineage should remain selected-session requests; the
+  Inspector tabs only change hierarchy and visibility.
+
+Corrected / narrowed findings:
+
+- Gateway supports more parameters than Deck currently exposes. This is not
+  automatically a bug: extra list filters, preview limits, compact `maxLines`,
+  delete transcript/hook flags, create `key/task`, and advanced patch fields are
+  Gateway-only or BFF/product-unsurfaced unless a product decision promotes
+  them.
+- The existing BFF route set is sufficient for the current Sessions product
+  surface. No DTO or Go route expansion is required before the UI convergence
+  unless implementation finds a deterministic forwarding bug.
+
+Rejected for this change:
+
+- Adding a Chat message composer, live send, abort, or steer control to
+  Sessions.
+- Adding server-side cursor pagination or live panel stream refresh.
+- Building an exhaustive schema editor for every `sessions.patch` field.
+- Adding new canonical design tokens or dependencies for tabs.
+
+Deferred / residual decisions:
+
+- Whether Deck should expose Gateway-only list filters such as
+  `includeGlobal`, `includeUnknown`, `label`, or `spawnedBy`.
+- Whether compact should expose `maxLines`.
+- Whether delete should expose `deleteTranscript` and `emitLifecycleHooks`.
+- Whether advanced patch fields need a separate guarded admin editor.
+- Whether Sessions should add an "open in Chat" navigation affordance after
+  shell route semantics for session deep links are settled.
+
+## Contract Chain Matrix - refreshed 2026-05-07
+
+| Workflow                         | Owner / product role                  | Frontend surface                                  | BFF route                                    | Gateway/BFF source                                    | Classification                                                                 |
+| -------------------------------- | ------------------------------------- | ------------------------------------------------- | -------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Inventory                        | Sessions-owned browse                 | `fetchSessions()`                                 | `GET /api/sessions`                          | `sessions.list` via Go BFF                            | supported                                                                      |
+| Chat sessions alias              | Sessions-owned compatibility          | `fetchSessions()` compatible alias                | `GET /api/chat/sessions`                     | `sessions.list` via Go BFF                            | supported                                                                      |
+| Preview rows                     | Sessions-owned browse                 | `fetchSessionPreviews()`                          | `POST /api/chat/sessions/preview`            | `sessions.preview`                                    | supported; empty-valid when inventory is empty                                 |
+| Selected detail                  | Sessions-owned inspect                | `fetchSessionDetail()`                            | `GET /api/sessions/{sessionKey}`             | `sessions.get` plus list projection                   | supported; real data variation may be degraded                                 |
+| Transcript history               | Sessions-owned inspect                | `fetchChatHistory()` + transcript cache           | `GET /api/chat/history`                      | Gateway session history through BFF normalization     | supported; real data variation may be degraded                                 |
+| Transcript cache                 | Product-local inspect                 | `getCachedTranscript()` / `setCachedTranscript()` | local memory only                            | frontend cache                                        | supported                                                                      |
+| Transcript export                | Product-local inspect                 | JSON/Markdown export preview                      | local only                                   | loaded transcript messages                            | supported; no server export endpoint                                           |
+| Usage/context                    | Sessions-owned inspect                | `fetchUsageSessions()`                            | `GET /api/usage/sessions`                    | `sessions.usage` aggregate                            | supported; empty-valid when no usage rows exist                                |
+| Usage logs                       | Sessions-owned inspect                | `fetchUsageSessionLogs()`                         | `GET /api/usage/sessions/logs`               | `sessions.usage.logs`                                 | supported; empty-valid when no log rows exist                                  |
+| Compaction list                  | Sessions-owned inspect                | `fetchCompactionCheckpoints()`                    | `POST /api/chat/compaction` action `list`    | `sessions.compaction.list`                            | supported; degraded when Gateway has no checkpoints/method support             |
+| Compaction branch                | Sessions-owned maintenance            | `branchCompactionCheckpoint()`                    | `POST /api/chat/compaction` action `branch`  | `sessions.compaction.branch`                          | supported by code/mock; skipped-safe in L2 unless run-scoped checkpoint exists |
+| Compaction restore               | Sessions-owned guarded maintenance    | `restoreCompactionCheckpoint()`                   | `POST /api/chat/compaction` action `restore` | `sessions.compaction.restore`                         | supported, destructive; requires confirmation gate in this change              |
+| Subagent lineage                 | Sessions inspect / Subagents adjacent | `fetchSubagentLineage()`                          | `POST /api/deck/subagents` action `lineage`  | `deck.subagents.lineage`                              | supported for subagent-like sessions; degraded/empty-valid otherwise           |
+| Parent/child navigation          | Sessions-owned relation navigation    | local selection + Subagents panel navigation      | local UI state                               | selected session relationships                        | supported                                                                      |
+| Reset                            | Sessions-owned guarded maintenance    | `resetSession()`                                  | `POST /api/chat/sessions/reset`              | `sessions.reset`                                      | supported, destructive; current first-click behavior is safety drift           |
+| Clear                            | Sessions-owned guarded maintenance    | `clearSession()`                                  | `POST /api/chat/sessions/clear`              | `sessions.clear`                                      | supported, destructive; current first-click behavior is safety drift           |
+| Patch                            | Sessions-owned scoped maintenance     | `patchSession()`                                  | `POST /api/chat/sessions/patch`              | `sessions.patch`                                      | supported for safe scoped fields; exhaustive editor deferred                   |
+| Compact                          | Sessions-owned guarded maintenance    | `compactChatSession()`                            | `POST /api/chat/compact`                     | `sessions.compact`                                    | supported, destructive; skipped-safe in L2                                     |
+| Delete                           | Sessions-owned guarded maintenance    | `deleteSession()`                                 | `DELETE /api/chat/sessions`                  | `sessions.delete`                                     | supported, destructive; skipped-safe in L2                                     |
+| Chat session create              | Chat/runtime adjacent-owned           | `createChatSession()`                             | `POST /api/chat/sessions/create`             | `sessions.create`                                     | fixture-safe under isolated cpa+main real seed; not Sessions UI control        |
+| Chat send                        | Chat/runtime adjacent-owned           | `sendChatMessage()`                               | `POST /api/chat/send`                        | `sessions.send`                                       | fixture-safe under isolated cpa+main real seed; not Sessions UI control        |
+| Chat abort                       | Chat/runtime adjacent-owned           | `abortChatRun()`                                  | `POST /api/chat/abort`                       | `sessions.abort`                                      | supported by code; active-run execution deferred; not Sessions UI control      |
+| Chat steer                       | Chat/runtime adjacent-owned           | `steerChatSession()`                              | `POST /api/chat/steer`                       | `sessions.steer`                                      | supported by code; active-session execution deferred; not Sessions UI control  |
+| Chat projection persist          | Product-local Chat adjacent           | `persistChatProjection()`                         | `POST /api/chat/projection`                  | deck-go local validation/no-op                        | fixture-safe product-local behavior; not Gateway-backed persistence            |
+| BFF-only browser access          | Cross-cutting safety                  | `openDeck(..., "sessions")`                       | browser -> deck-go backend only              | runtime owns Gateway calls                            | supported; L2 verifies no direct Gateway HTTP/WebSocket                        |
+| Extra list filters               | Gateway-only / product-deferred       | not exposed                                       | no Deck query metadata                       | `sessions.list` params                                | projected; classify before UI expansion                                        |
+| Preview limits                   | Gateway-only / product-deferred       | not exposed                                       | BFF reads keys only                          | `sessions.preview.limit/maxChars`                     | projected; no current product need                                             |
+| Create `key` / `task`            | Gateway-only / Chat fixture           | not exposed in Deck BFF create                    | BFF accepts agent/model/label/message/parent | `sessions.create.key/task`                            | projected; runtime test fixture uses Gateway RPC directly                      |
+| Compact `maxLines`               | Gateway-only / product-deferred       | not exposed                                       | BFF sends key only                           | `sessions.compact.maxLines`                           | projected                                                                      |
+| Delete transcript / hook flags   | Gateway-only / safety-deferred        | not exposed                                       | BFF sends key only                           | `sessions.delete.deleteTranscript/emitLifecycleHooks` | projected; real cleanup uses Gateway RPC only                                  |
+| Advanced patch fields            | Gateway-only / product-deferred       | not exposed                                       | BFF forwards if caller supplies fields       | `sessions.patch` execution/spawn/subagent fields      | projected; not an exhaustive UI editor                                         |
+| Server-side cursor pagination    | Unsupported/projected                 | not exposed                                       | none                                         | none                                                  | unsupported/projected                                                          |
+| Real-time Sessions panel refresh | Unsupported/projected                 | manual refresh plus cache invalidation            | stream exists elsewhere                      | no panel-owned live refresh contract                  | unsupported/projected                                                          |
+
+## Module convergence closeout - 2026-05-07
+
+OpenSpec change: `deck-go-sessions-module-convergence`.
+
+Active prototype:
+
+- `frontend-handoff/modules/sessions/prototype.html` is now the active
+  list/workbench/default-open Inspector target.
+- `frontend-handoff/modules/sessions/prototype-v1-dense.html` preserves the
+  previous dense target as a backup.
+
+Deterministic fixes:
+
+- Production `SessionsPanel` now uses inventory + selected workbench +
+  default-open Inspector tabs (`Overview`, `Usage`, `Compaction`, `Lineage`,
+  `Actions`) while preserving the existing selected-session data loads and
+  transcript cache behavior.
+- Inspector tab panels stay mounted so usage/context, compaction, and lineage
+  contract paths remain exercised; inactive tabs are hidden with explicit CSS
+  so visual density is actually reduced.
+- Reset, clear, compact, delete, and compaction restore now follow
+  confirmation-required UI metadata. Focused tests prove first click arms the
+  action without invoking the mutation wrapper.
+- `SessionUsageDetails` now narrows workspace file reductions with a typed
+  accumulator so the production frontend build remains strict-type clean.
+- Sessions real E2E now verifies shell navigation into Sessions, dark/en and
+  light/zh variants, BFF-only browser transport, Inspector tab switching, and
+  compact confirmation arming against run-scoped real fixture data.
+
+Fresh evidence:
+
+- Focused frontend:
+  `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/sessions/SessionsPanel.test.tsx`
+  -> 13 passed.
+- Mock visual:
+  `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts --output .local/sessions-module-convergence-mock-visual --reporter=line`
+  -> 1 passed.
+- Prototype-current comparison:
+  prototype screenshot
+  `.local/sessions-module-convergence-prototype/sessions--prototype.png`,
+  mock-current screenshot
+  `.local/sessions-module-convergence-mock-visual/sessions-visual-sessions-m-ae8b9-h-contract-shaped-mock-data/sessions-workbench-ready.png`,
+  side-by-side sheet
+  `.local/sessions-module-convergence-parity-report/sheet-20.png`, and
+  structured verdict
+  `.omx/state/sessions-module-convergence/ralph-progress.json`.
+- Visual verdict: `pass`, score `91`, accepted exceptions are production shell
+  chrome, live fixture copy/timestamps, and tighter shell viewport columns.
+- Real Gateway:
+  `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/sessions-real-gateway.spec.ts --config playwright.config.ts --output .local/sessions-module-convergence-real-gateway --reporter=line`
+  -> 2 passed.
+- Build:
+  `cd deck-go && make frontend-build` -> passed.
+- OpenSpec:
+  `openspec validate deck-go-sessions-module-convergence --strict` -> passed.
 
 ## Verification Evidence
 

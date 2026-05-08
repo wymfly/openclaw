@@ -1,6 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DeckGoAlertAction, DeckGoAlertRule } from "../../../api";
-import { createAlertRule, deleteAlertRule, fetchAlertRules, updateAlertRule } from "../../../api";
+import type { DeckGoAlertAction, DeckGoAlertRule } from "@/api-types";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
+import {
+  alertRulesQueryOptions,
+  useCreateAlertRuleMutation,
+  useDeleteAlertRuleMutation,
+  useUpdateAlertRuleMutation,
+} from "../../../data/modules/alerts";
 import {
   IconAlert,
   IconBolt,
@@ -99,6 +106,11 @@ function includesQuery(rule: DeckGoAlertRule, query: string) {
 export function AlertsPanel() {
   const t = useTranslations("alerts");
   const tc = useTranslations("common");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const createRuleMutation = useCreateAlertRuleMutation();
+  const updateRuleMutation = useUpdateAlertRuleMutation();
+  const deleteRuleMutation = useDeleteAlertRuleMutation();
   const searchRef = useRef<HTMLInputElement | null>(null);
   const [rules, setRules] = useState<DeckGoAlertRule[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
@@ -161,7 +173,10 @@ export function AlertsPanel() {
     async (preferredRuleId?: string) => {
       setLoadState("loading");
       try {
-        const response = await fetchAlertRules();
+        const response = await queryClient.fetchQuery({
+          ...alertRulesQueryOptions(bff),
+          staleTime: 0,
+        });
         const nextRules = response.rules ?? [];
         setRules(nextRules);
         setLoadState("ready");
@@ -180,7 +195,7 @@ export function AlertsPanel() {
         setError(loadError instanceof Error ? loadError.message : t("loadRulesFailed"));
       }
     },
-    [t],
+    [bff, queryClient, t],
   );
 
   useEffect(() => {
@@ -219,8 +234,8 @@ export function AlertsPanel() {
     try {
       const result =
         dialog?.type === "edit"
-          ? await updateAlertRule(dialog.rule.id, input)
-          : await createAlertRule(input);
+          ? await updateRuleMutation.mutateAsync({ id: dialog.rule.id, patch: input })
+          : await createRuleMutation.mutateAsync(input);
       await refresh(result.rule.id);
       setLastAction(dialog?.type === "edit" ? "updated" : "created");
       setDialog(null);
@@ -235,7 +250,7 @@ export function AlertsPanel() {
   const handleDelete = async (rule: DeckGoAlertRule) => {
     setSaving(true);
     try {
-      await deleteAlertRule(rule.id);
+      await deleteRuleMutation.mutateAsync(rule.id);
       await refresh();
       setLastAction("deleted");
       setDialog(null);
@@ -250,7 +265,10 @@ export function AlertsPanel() {
   const handleToggle = async (rule: DeckGoAlertRule) => {
     setSaving(true);
     try {
-      const result = await updateAlertRule(rule.id, { enabled: !rule.enabled });
+      const result = await updateRuleMutation.mutateAsync({
+        id: rule.id,
+        patch: { enabled: !rule.enabled },
+      });
       await refresh(result.rule.id);
       setLastAction("toggled");
       setError("");

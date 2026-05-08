@@ -17,6 +17,8 @@
 // See "Appendix A — chat-agents-contract-typing" at the file end.
 // =============================================================================
 
+export const DeckGoDefaultRuntimeId = "rt_local";
+
 export interface DeckGoSettings {
   accessTokenConfigured?: boolean;
   accessTokenSource?: string;
@@ -1169,12 +1171,7 @@ export type DeckGoConfigLookupResponse = {
 
 export type DeckGoAgentStatus = "idle" | "busy" | "error" | "offline";
 
-export type DeckGoAgentEffectiveSource =
-  | "agent"
-  | "default"
-  | "derived"
-  | "gateway"
-  | "unknown";
+export type DeckGoAgentEffectiveSource = "agent" | "default" | "derived" | "gateway" | "unknown";
 
 export type DeckGoAgentEffectiveSources = {
   workspace?: DeckGoAgentEffectiveSource;

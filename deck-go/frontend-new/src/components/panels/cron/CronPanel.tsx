@@ -1,19 +1,21 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import type {
   DeckGoCronJob,
   DeckGoCronRunEntry,
   DeckGoCronRunsResponse,
   DeckGoCronStatus,
-} from "../../../api";
+} from "@/api-types";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  createCronJob,
-  deleteCronJob,
-  fetchCronJobs,
-  fetchCronRuns,
-  fetchCronStatus,
-  runCronJob,
-  updateCronJob,
-} from "../../../api";
+  cronJobsQueryOptions,
+  cronRunsQueryOptions,
+  cronStatusQueryOptions,
+  useCreateCronJobMutation,
+  useDeleteCronJobMutation,
+  useRunCronJobMutation,
+  useUpdateCronJobMutation,
+} from "../../../data/modules/cron";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 import {
@@ -104,6 +106,12 @@ function CountPill(props: { value: string | number }) {
 
 export function CronPanel() {
   const t = useTranslations("cron");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const createCronJobMutation = useCreateCronJobMutation();
+  const updateCronJobMutation = useUpdateCronJobMutation();
+  const deleteCronJobMutation = useDeleteCronJobMutation();
+  const runCronJobMutation = useRunCronJobMutation();
   const [jobs, setJobs] = useState<DeckGoCronJob[]>([]);
   const [status, setStatus] = useState<DeckGoCronStatus | null>(null);
   const [runsResponse, setRunsResponse] = useState<DeckGoCronRunsResponse | null>(null);
@@ -123,8 +131,14 @@ export function CronPanel() {
     setLoadState("loading");
     try {
       const [jobsResponse, nextStatus] = await Promise.all([
-        fetchCronJobs(CRON_JOBS_QUERY),
-        fetchCronStatus(),
+        queryClient.fetchQuery({
+          ...cronJobsQueryOptions(bff, CRON_JOBS_QUERY),
+          staleTime: 0,
+        }),
+        queryClient.fetchQuery({
+          ...cronStatusQueryOptions(bff),
+          staleTime: 0,
+        }),
       ]);
       const nextJobs = jobsResponse.jobs ?? [];
       setJobs(nextJobs);
@@ -138,7 +152,10 @@ export function CronPanel() {
           : nextJobs[0]?.id || "";
       setSelectedJobId(nextSelected);
       if (nextSelected) {
-        const nextRuns = await fetchCronRuns(nextSelected, CRON_RUNS_QUERY);
+        const nextRuns = await queryClient.fetchQuery({
+          ...cronRunsQueryOptions(bff, nextSelected, CRON_RUNS_QUERY),
+          staleTime: 0,
+        });
         setRunsResponse(nextRuns);
       } else {
         setRunsResponse(null);
@@ -158,14 +175,18 @@ export function CronPanel() {
       setRunsResponse(null);
       return;
     }
-    void fetchCronRuns(selectedJobId, CRON_RUNS_QUERY)
+    void queryClient
+      .fetchQuery({
+        ...cronRunsQueryOptions(bff, selectedJobId, CRON_RUNS_QUERY),
+        staleTime: 0,
+      })
       .then((next) => {
         setRunsResponse(next);
       })
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : t("runsLoadFailed"));
       });
-  }, [selectedJobId, t]);
+  }, [bff, queryClient, selectedJobId, t]);
 
   const runs = runsResponse?.entries ?? [];
   const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0] ?? null;
@@ -202,8 +223,8 @@ export function CronPanel() {
       const input = cronInputFromDraft(builder.draft);
       const result =
         builder.mode === "create"
-          ? await createCronJob(input)
-          : await updateCronJob(builder.job.id, input);
+          ? await createCronJobMutation.mutateAsync(input)
+          : await updateCronJobMutation.mutateAsync({ input, jobId: builder.job.id });
       setActionResult(result);
       setBuilder(null);
       setError("");
@@ -227,7 +248,10 @@ export function CronPanel() {
     }
     setActionState("running");
     try {
-      const result = await runCronJob(selectedJob.id, { mode: "force" });
+      const result = await runCronJobMutation.mutateAsync({
+        jobId: selectedJob.id,
+        params: { mode: "force" },
+      });
       setActionResult(result);
       setError("");
       await refresh(selectedJob.id);
@@ -244,7 +268,10 @@ export function CronPanel() {
     }
     setActionState("updating");
     try {
-      const result = await updateCronJob(selectedJob.id, { enabled: !selectedJob.enabled });
+      const result = await updateCronJobMutation.mutateAsync({
+        input: { enabled: !selectedJob.enabled },
+        jobId: selectedJob.id,
+      });
       setActionResult(result);
       setError("");
       await refresh(selectedJob.id);
@@ -261,7 +288,7 @@ export function CronPanel() {
     }
     setActionState("deleting");
     try {
-      const result = await deleteCronJob(deleteCandidate.id);
+      const result = await deleteCronJobMutation.mutateAsync(deleteCandidate.id);
       setActionResult(result);
       setDeleteCandidate(null);
       setError("");

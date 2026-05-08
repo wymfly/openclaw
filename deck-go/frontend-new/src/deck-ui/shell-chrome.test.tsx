@@ -2,6 +2,7 @@
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../i18n/provider";
 import { DeckHeaderBar } from "./HeaderBar";
 import { KeyboardShortcutsDialog } from "./KeyboardShortcutsDialog";
@@ -35,6 +36,10 @@ const uiState = vi.hoisted(() => ({
   themeMode: "dark",
   toggleSidebar: vi.fn(),
 }));
+const apiMocks = vi.hoisted(() => ({
+  fetchCapabilities: vi.fn(),
+  fetchEndpoint: vi.fn(),
+}));
 
 let container: HTMLDivElement;
 let root: Root | null = null;
@@ -42,6 +47,8 @@ let root: Root | null = null;
 vi.mock("./ui-store", () => ({
   useDeckUI: () => uiState,
 }));
+
+vi.mock("@/api", () => apiMocks);
 
 vi.mock("../components/runtime/FirstRunBanner", () => ({
   FirstRunBanner: () => null,
@@ -68,7 +75,13 @@ function installMatchMedia() {
 function renderWithLocale(node: ReactNode, locale: "en" | "zh" = "en") {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, node));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, node),
+      ),
+    );
   });
 }
 
@@ -100,6 +113,18 @@ describe("Deck shell chrome parity", () => {
     uiState.sidebarCollapsed = false;
     uiState.summaryError = null;
     uiState.themeMode = "dark";
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      configured: true,
+      endpointMutable: false,
+      mode: "bundled",
+      supervisorState: true,
+    });
+    apiMocks.fetchEndpoint.mockResolvedValue({
+      source: "env",
+      tlsVerify: false,
+      tokenConfigured: true,
+      url: "ws://127.0.0.1:18789",
+    });
     container = document.createElement("div");
     document.body.appendChild(container);
     vi.clearAllMocks();

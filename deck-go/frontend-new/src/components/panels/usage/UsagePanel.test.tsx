@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { UsagePanel } from "./UsagePanel";
 
@@ -20,6 +21,7 @@ const deckUIMocks = vi.hoisted(() => ({
   ui: { setActivePanel: vi.fn() },
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/panel-navigation", () => ({
   navigateToAgent: deckUIMocks.navigateToAgent,
@@ -213,7 +215,13 @@ function usageTimeseriesPayload() {
 
 function renderUsagePanel() {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(UsagePanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale: "en" }, createElement(UsagePanel)),
+    ),
+  );
 }
 
 describe("UsagePanel", () => {

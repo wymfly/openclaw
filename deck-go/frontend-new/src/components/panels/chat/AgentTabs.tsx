@@ -1,20 +1,22 @@
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
+import { useAgentsListQuery } from "@/data/modules/agents";
 import { Tab } from "@/design-system/atoms/Tab";
-import { useAgentsStore } from "@/stores/agents";
+import { normalizeAgentSummary, useAgentsStore } from "@/stores/agents";
 import { useChatStore } from "@/stores/chat";
 
 export function AgentTabs() {
   const t = useTranslations("chat");
-  const agents = useAgentsStore((state) => state.agents);
-  const fetchAgents = useAgentsStore((state) => state.fetchAgents);
+  const agentsQuery = useAgentsListQuery();
+  const localAgentOverlay = useAgentsStore((state) => state.agents);
   const activeAgentId = useChatStore((state) => state.activeAgentId);
   const setActiveAgent = useChatStore((state) => state.setActiveAgent);
   const sessionMetas = useChatStore((state) => state.sessionMetas);
-
-  useEffect(() => {
-    void fetchAgents();
-  }, [fetchAgents]);
+  const agents = useMemo(
+    () =>
+      agentsQuery.data ? agentsQuery.data.agents.map(normalizeAgentSummary) : localAgentOverlay,
+    [agentsQuery.data, localAgentOverlay],
+  );
 
   const agentCounts = useMemo(() => {
     const counts = new Map<string, number>();

@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  fetchDeckConfig,
-  patchDeckConfig,
-  type DeckGoConfigApplyResponse,
-  type DeckGoConfigSnapshotResponse,
-} from "../../../api";
+import type { DeckGoConfigApplyResponse, DeckGoConfigSnapshotResponse } from "../../../api";
+import { useConfigSnapshotQuery, usePatchDeckConfigMutation } from "../../../data/modules/config";
 import { useTranslations } from "../../../i18n/provider";
 import { WecomRoutingSummary } from "./WecomRoutingSummary";
 
@@ -338,6 +334,8 @@ export function WecomAccessControls(props: {
   onSaved?: () => Promise<void> | void;
 }) {
   const t = useTranslations("channels");
+  const configQuery = useConfigSnapshotQuery();
+  const patchDeckConfigMutation = usePatchDeckConfigMutation();
   const [snapshot, setSnapshot] = useState<DeckGoConfigSnapshotResponse | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "ready">("idle");
   const [error, setError] = useState("");
@@ -372,8 +370,11 @@ export function WecomAccessControls(props: {
   const reloadConfig = useCallback(async () => {
     setLoadState("loading");
     try {
-      const next = await fetchDeckConfig();
-      setSnapshot(next);
+      const result = await configQuery.refetch();
+      if (!result.data) {
+        throw result.error ?? new Error(t("configFetchFailed"));
+      }
+      setSnapshot(result.data);
       setLoadState("ready");
       setError("");
     } catch (loadError) {
@@ -381,11 +382,22 @@ export function WecomAccessControls(props: {
       setSnapshot(null);
       setError(loadError instanceof Error ? loadError.message : t("configFetchFailed"));
     }
-  }, [t]);
+  }, [configQuery, t]);
 
   useEffect(() => {
-    void reloadConfig();
-  }, [reloadConfig]);
+    if (configQuery.data) {
+      setSnapshot(configQuery.data);
+      setLoadState("ready");
+      setError("");
+    }
+    if (configQuery.error) {
+      setLoadState("idle");
+      setSnapshot(null);
+      setError(
+        configQuery.error instanceof Error ? configQuery.error.message : t("configFetchFailed"),
+      );
+    }
+  }, [configQuery.data, configQuery.error, t]);
 
   useEffect(() => {
     if (!model.accountIds.includes(selectedAccountId)) {
@@ -425,7 +437,10 @@ export function WecomAccessControls(props: {
     async (section: string, patch: Record<string, unknown>) => {
       setSavingSection(section);
       try {
-        const result = await patchDeckConfig({ channels: { [props.channelId]: patch } }, baseHash);
+        const result = await patchDeckConfigMutation.mutateAsync({
+          baseHash,
+          patch: { channels: { [props.channelId]: patch } },
+        });
         setSaveResult(result);
         await reloadConfig();
         await props.onSaved?.();
@@ -436,7 +451,7 @@ export function WecomAccessControls(props: {
         setSavingSection("");
       }
     },
-    [baseHash, props.channelId, props.onSaved, reloadConfig, t],
+    [baseHash, patchDeckConfigMutation, props.channelId, props.onSaved, reloadConfig, t],
   );
 
   const saveDmScope = (scope: "bot" | "agent", dm: WecomDmState) => {

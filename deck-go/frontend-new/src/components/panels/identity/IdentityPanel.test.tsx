@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { IdentityPanel } from "./IdentityPanel";
 
@@ -13,6 +14,7 @@ const apiMocks = vi.hoisted(() => ({
   unlinkIdentityPeer: vi.fn(),
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
@@ -78,7 +80,13 @@ function identityPayloadWithoutHash() {
 function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, createElement(IdentityPanel)));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(IdentityPanel)),
+      ),
+    );
   });
 }
 
@@ -92,6 +100,10 @@ function rowByText(text: string) {
   return Array.from(container.querySelectorAll<HTMLElement>('[role="tab"]')).find((row) =>
     row.textContent?.includes(text),
   );
+}
+
+async function waitForIdentityLoaded(label = "main") {
+  await waitFor(() => expect(rowByText(label)).toBeTruthy());
 }
 
 function inputByLabel(label: string) {
@@ -148,6 +160,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
 
     expect(container.textContent).toContain("BFF only");
     expect(container.textContent).toContain("5 canonicals");
@@ -175,9 +188,11 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded("empty");
     await act(async () => {
       rowByText("empty")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    await waitFor(() => expect(container.textContent).toContain("No peers linked"));
 
     expect(container.textContent).toContain("empty");
     expect(container.textContent).toContain("No peers linked");
@@ -189,6 +204,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     await act(async () => {
       fireEvent.change(inputByLabel("Search canonicals") as HTMLInputElement, {
         target: { value: "oncall" },
@@ -209,6 +225,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload(true));
 
     await openLinkDialog();
@@ -237,6 +254,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     await openLinkDialog();
 
     expect(buttonByText("Save")).toBeTruthy();
@@ -248,6 +266,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     apiMocks.linkIdentityPeer.mockRejectedValueOnce(new Error("base hash mismatch"));
     apiMocks.fetchIdentityLinks.mockResolvedValue(identityPayload(true));
 
@@ -270,6 +289,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     await openLinkDialog();
     await fillLinkDialog({
       canonical: " reviewer ",
@@ -295,6 +315,7 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded("team-builder");
     await act(async () => {
       rowByText("team-builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
@@ -321,12 +342,15 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
     await act(async () => {
       buttonByText("Rename")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
-    expect(container.textContent).toContain(
-      "Create, rename, delete, activity, and audit workflows are not in the current Identity contract.",
+    await waitFor(() =>
+      expect(container.textContent).toContain(
+        "Create, rename, delete, activity, and audit workflows are not in the current Identity contract.",
+      ),
     );
     expect(apiMocks.linkIdentityPeer).not.toHaveBeenCalled();
     expect(apiMocks.unlinkIdentityPeer).not.toHaveBeenCalled();
@@ -337,11 +361,15 @@ describe("IdentityPanel", () => {
     renderPanel();
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded("team-builder");
     await act(async () => {
       rowByText("team-builder")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    await waitFor(() => expect(container.textContent).toContain("slack-builder"));
     await act(async () => {
-      buttonByText("Unlink peer")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      container
+        .querySelector<HTMLElement>('[aria-label="Unlink slack:slack-builder"]')
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
 
     expect(window.confirm).toHaveBeenCalledWith("Unlink slack:slack-builder from team-builder?");
@@ -352,6 +380,7 @@ describe("IdentityPanel", () => {
     renderPanel("zh");
 
     await waitFor(() => expect(apiMocks.fetchIdentityLinks).toHaveBeenCalledTimes(1));
+    await waitForIdentityLoaded();
 
     expect(container.textContent).toContain("仅 BFF");
     expect(container.textContent).toContain("5 个统一身份");

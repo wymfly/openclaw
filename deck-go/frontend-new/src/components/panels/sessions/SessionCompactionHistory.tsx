@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import type { DeckGoCompactionCheckpoint } from "../../../api";
+import { useEffect, useState } from "react";
+import type { DeckGoCompactionCheckpoint } from "@/api-types";
 import {
-  branchCompactionCheckpoint,
-  fetchCompactionCheckpoints,
-  restoreCompactionCheckpoint,
-} from "../../../api";
+  useBranchCompactionCheckpointMutation,
+  useCompactionCheckpointsQuery,
+  useRestoreCompactionCheckpointMutation,
+} from "../../../data/modules/sessions";
 import { Badge, Button } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 
@@ -36,36 +36,31 @@ function savedTokens(checkpoint: DeckGoCompactionCheckpoint) {
 
 export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
   const t = useTranslations("sessions");
-  const [checkpoints, setCheckpoints] = useState<DeckGoCompactionCheckpoint[]>([]);
-  const [loading, setLoading] = useState(false);
+  const checkpointsQuery = useCompactionCheckpointsQuery(props.sessionKey, {
+    enabled: Boolean(props.sessionKey.trim() && props.compactionCount),
+  });
+  const branchMutation = useBranchCompactionCheckpointMutation();
+  const restoreMutation = useRestoreCompactionCheckpointMutation();
   const [actingCheckpointId, setActingCheckpointId] = useState("");
+  const [restoreConfirmingCheckpointId, setRestoreConfirmingCheckpointId] = useState("");
   const [actionResult, setActionResult] = useState("");
-  const [error, setError] = useState("");
-
-  const refresh = useCallback(async () => {
-    const sessionKey = props.sessionKey.trim();
-    if (!sessionKey || !props.compactionCount) {
-      setCheckpoints([]);
-      setError("");
-      return;
-    }
-    setLoading(true);
-    try {
-      const result = await fetchCompactionCheckpoints(sessionKey);
-      setCheckpoints(result.checkpoints ?? []);
-      setError("");
-    } catch (loadError) {
-      setCheckpoints([]);
-      setError(loadError instanceof Error ? loadError.message : t("failedLoadCompaction"));
-    } finally {
-      setLoading(false);
-    }
-  }, [props.compactionCount, props.sessionKey, t]);
+  const [actionError, setActionError] = useState("");
+  const checkpoints = checkpointsQuery.data?.checkpoints ?? [];
+  const loading = checkpointsQuery.isLoading;
+  const queryError = checkpointsQuery.error;
+  const error =
+    actionError ||
+    (queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? t("failedLoadCompaction")
+        : "");
 
   useEffect(() => {
     setActionResult("");
-    void refresh();
-  }, [refresh]);
+    setActionError("");
+    setRestoreConfirmingCheckpointId("");
+  }, [props.sessionKey]);
 
   const runCheckpointAction = async (checkpointId: string, action: "branch" | "restore") => {
     const sessionKey = props.sessionKey.trim();
@@ -73,20 +68,24 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
       return;
     }
     setActingCheckpointId(checkpointId);
+    if (action === "branch") {
+      setRestoreConfirmingCheckpointId("");
+    }
     try {
       const result =
         action === "branch"
-          ? await branchCompactionCheckpoint(sessionKey, checkpointId)
-          : await restoreCompactionCheckpoint(sessionKey, checkpointId);
+          ? await branchMutation.mutateAsync({ checkpointId, sessionKey })
+          : await restoreMutation.mutateAsync({ checkpointId, sessionKey });
       setActionResult(
         action === "branch" ? `branch ${result.key ?? checkpointId}` : `restore ${checkpointId}`,
       );
-      setError("");
+      setRestoreConfirmingCheckpointId("");
+      setActionError("");
       if (action === "restore") {
-        await refresh();
+        await checkpointsQuery.refetch();
       }
     } catch (actionError) {
-      setError(
+      setActionError(
         actionError instanceof Error
           ? actionError.message
           : t("compactionActionFailed", { action }),
@@ -141,9 +140,17 @@ export function SessionCompactionHistory(props: SessionCompactionHistoryProps) {
                   <Button
                     size="sm"
                     disabled={isActing}
-                    onClick={() => void runCheckpointAction(checkpoint.checkpointId, "restore")}
+                    onClick={() => {
+                      if (restoreConfirmingCheckpointId !== checkpoint.checkpointId) {
+                        setRestoreConfirmingCheckpointId(checkpoint.checkpointId);
+                        return;
+                      }
+                      void runCheckpointAction(checkpoint.checkpointId, "restore");
+                    }}
                   >
-                    {t("restoreCheckpoint", { checkpointId: checkpoint.checkpointId })}
+                    {restoreConfirmingCheckpointId === checkpoint.checkpointId
+                      ? t("confirmRestore")
+                      : t("restoreCheckpoint", { checkpointId: checkpoint.checkpointId })}
                   </Button>
                 </div>
               </li>

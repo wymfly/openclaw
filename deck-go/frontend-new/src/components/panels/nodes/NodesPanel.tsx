@@ -6,17 +6,14 @@ import type {
   DeckGoPairingRequest,
 } from "../../../api";
 import {
-  approveNodePairing,
-  describeNode,
-  enqueueNodePendingWork,
-  fetchNodePairing,
-  fetchNodes,
-  invokeNodeCommand,
-  rejectNodePairing,
-  renameNode,
-  requestNodePairing,
-  verifyNodePairing,
-} from "../../../api";
+  useEnqueueNodePendingWorkMutation,
+  useInvokeNodeCommandMutation,
+  useNodeDetailQuery,
+  useNodePairingMutations,
+  useNodePairingQuery,
+  useNodesListQuery,
+  useRenameNodeMutation,
+} from "../../../data/modules/nodes";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
 import "./nodes-panel.css";
@@ -183,8 +180,6 @@ function actionStateFor(action: PendingNodeAction): ActionState {
 export function NodesPanel() {
   const t = useTranslations("nodes");
   const tc = useTranslations("common");
-  const [nodes, setNodes] = useState<DeckGoNodeSummary[]>([]);
-  const [pending, setPending] = useState<DeckGoPairingRequest[]>([]);
   const [nodeDetails, setNodeDetails] = useState<Record<string, DeckGoNodeSummary>>({});
   const [selectedNodeId, setSelectedNodeId] = useState("");
   const [renameValue, setRenameValue] = useState("");
@@ -196,78 +191,72 @@ export function NodesPanel() {
     useState<DeckGoNodePendingWorkType>("status.request");
   const [pendingPriority, setPendingPriority] = useState<DeckGoNodePendingWorkPriority>("normal");
   const [pendingWake, setPendingWake] = useState(true);
-  const [loadState, setLoadState] = useState<PanelState>("idle");
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [pendingAction, setPendingAction] = useState<PendingNodeAction | null>(null);
   const [actionResult, setActionResult] = useState<unknown>(null);
   const [error, setError] = useState("");
+  const nodesQuery = useNodesListQuery();
+  const pairingQuery = useNodePairingQuery();
+  const nodes = nodesQuery.data?.nodes ?? [];
+  const pending = pairingQuery.data?.pending ?? [];
+  const loadState: PanelState =
+    nodesQuery.isLoading || pairingQuery.isLoading ? "loading" : "ready";
+  const detailQuery = useNodeDetailQuery(selectedNodeId, {
+    enabled:
+      Boolean(selectedNodeId) &&
+      nodes.some((node) => node.nodeId === selectedNodeId) &&
+      !nodeDetails[selectedNodeId],
+  });
+  const renameNodeMutation = useRenameNodeMutation();
+  const invokeNodeCommandMutation = useInvokeNodeCommandMutation();
+  const enqueueNodePendingWorkMutation = useEnqueueNodePendingWorkMutation();
+  const pairingMutations = useNodePairingMutations();
 
   const refresh = async (preferredNodeId?: string) => {
-    setLoadState("loading");
     try {
-      const [nodesResponse, pairingResponse] = await Promise.all([
-        fetchNodes(),
-        fetchNodePairing(),
-      ]);
-      const nextNodes = nodesResponse.nodes ?? [];
-      const nextPending = pairingResponse.pending ?? [];
-      setNodes(nextNodes);
-      setPending(nextPending);
-      setLoadState("ready");
-      setError("");
-      const currentStillExists =
-        selectedNodeId &&
-        (nextNodes.some((node) => node.nodeId === selectedNodeId) ||
-          nextPending.some((request) => request.nodeId === selectedNodeId));
-      const preferredStillExists =
-        preferredNodeId &&
-        (nextNodes.some((node) => node.nodeId === preferredNodeId) ||
-          nextPending.some((request) => request.nodeId === preferredNodeId));
-      const nextSelected = preferredStillExists
-        ? preferredNodeId
-        : currentStillExists
-          ? selectedNodeId
-          : (nextPending[0]?.nodeId ?? nextNodes[0]?.nodeId ?? "");
-      setSelectedNodeId(nextSelected || "");
-      const selectedDetail =
-        nextSelected && nextNodes.some((node) => node.nodeId === nextSelected)
-          ? await describeNode(nextSelected)
-          : null;
-      if (selectedDetail) {
-        setNodeDetails((current) => ({ ...current, [nextSelected]: selectedDetail }));
-        setRenameValue(selectedDetail.displayName || selectedDetail.nodeId);
-      } else {
-        setRenameValue("");
+      if (preferredNodeId) {
+        setSelectedNodeId(preferredNodeId);
       }
+      await Promise.all([nodesQuery.refetch(), pairingQuery.refetch()]);
+      setError("");
     } catch (loadError) {
-      setLoadState("idle");
       setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
     }
   };
 
   useEffect(() => {
-    void refresh();
-  }, []);
+    setSelectedNodeId((current) => {
+      const currentStillExists =
+        current &&
+        (nodes.some((node) => node.nodeId === current) ||
+          pending.some((request) => request.nodeId === current));
+      return currentStillExists ? current : (pending[0]?.nodeId ?? nodes[0]?.nodeId ?? "");
+    });
+  }, [nodes, pending]);
 
   useEffect(() => {
-    if (
-      !selectedNodeId ||
-      nodeDetails[selectedNodeId] ||
-      !nodes.some((node) => node.nodeId === selectedNodeId)
-    ) {
+    if (!nodesQuery.error && !pairingQuery.error) {
       return;
     }
-    setActionState("describing");
-    void describeNode(selectedNodeId)
-      .then((detail) => {
-        setNodeDetails((current) => ({ ...current, [selectedNodeId]: detail }));
-        setRenameValue(detail.displayName || detail.nodeId);
-      })
-      .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : t("describeFailed"));
-      })
-      .finally(() => setActionState("idle"));
-  }, [nodeDetails, nodes, selectedNodeId, t]);
+    const loadError = nodesQuery.error ?? pairingQuery.error;
+    setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
+  }, [nodesQuery.error, pairingQuery.error, t]);
+
+  useEffect(() => {
+    if (!detailQuery.data || !selectedNodeId) {
+      return;
+    }
+    setNodeDetails((current) => ({ ...current, [selectedNodeId]: detailQuery.data }));
+    setRenameValue(detailQuery.data.displayName || detailQuery.data.nodeId);
+  }, [detailQuery.data, selectedNodeId]);
+
+  useEffect(() => {
+    if (detailQuery.error) {
+      setError(
+        detailQuery.error instanceof Error ? detailQuery.error.message : t("describeFailed"),
+      );
+    }
+  }, [detailQuery.error, t]);
 
   const selectedNode = selectedNodeId
     ? (nodeDetails[selectedNodeId] ?? nodes.find((node) => node.nodeId === selectedNodeId) ?? null)
@@ -433,19 +422,22 @@ export function NodesPanel() {
       let refreshNodeId: string | undefined;
       switch (pendingAction.kind) {
         case "rename":
-          result = await renameNode(pendingAction.nodeId, pendingAction.displayName);
+          result = await renameNodeMutation.mutateAsync({
+            displayName: pendingAction.displayName,
+            nodeId: pendingAction.nodeId,
+          });
           refreshNodeId = pendingAction.nodeId;
           break;
         case "approve":
-          result = await approveNodePairing(pendingAction.requestId);
+          result = await pairingMutations.approve.mutateAsync(pendingAction.requestId);
           refreshNodeId = pendingAction.preferredNodeId;
           break;
         case "reject":
-          result = await rejectNodePairing(pendingAction.requestId);
+          result = await pairingMutations.reject.mutateAsync(pendingAction.requestId);
           refreshNodeId = pendingAction.preferredNodeId;
           break;
         case "request":
-          result = await requestNodePairing({
+          result = await pairingMutations.request.mutateAsync({
             nodeId: pendingAction.node.nodeId,
             displayName: pendingAction.node.displayName,
             platform: pendingAction.node.platform,
@@ -461,20 +453,23 @@ export function NodesPanel() {
           refreshNodeId = pendingAction.node.nodeId;
           break;
         case "verify":
-          result = await verifyNodePairing(pendingAction.nodeId, pendingAction.token);
+          result = await pairingMutations.verify.mutateAsync({
+            nodeId: pendingAction.nodeId,
+            token: pendingAction.token,
+          });
           setVerifyToken("");
           refreshNodeId = pendingAction.nodeId;
           break;
         case "invoke":
-          result = await invokeNodeCommand(
-            pendingAction.nodeId,
-            pendingAction.command,
-            pendingAction.params,
-            pendingAction.timeoutMs,
-          );
+          result = await invokeNodeCommandMutation.mutateAsync({
+            command: pendingAction.command,
+            nodeId: pendingAction.nodeId,
+            params: pendingAction.params,
+            timeoutMs: pendingAction.timeoutMs,
+          });
           break;
         case "pending":
-          result = await enqueueNodePendingWork({
+          result = await enqueueNodePendingWorkMutation.mutateAsync({
             nodeId: pendingAction.nodeId,
             priority: pendingAction.priority,
             type: pendingAction.type,

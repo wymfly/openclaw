@@ -91,8 +91,9 @@ frontend-new/
     │   └── panels/                    ← 业务模块
     │       └── <module>/              ← 每个 panel 一目录（陆续从 frontend-handoff 协议化迁入）
     │
-    ├── stores/                        ← shared/UI state（具体库见 stack-decisions）
-    ├── api/                           ← API client + 流（具体 server-state 库见 stack-decisions）
+    ├── data/                          ← Data Fabric server-state 层（TanStack Query + 契约化 keys/policy）
+    ├── stores/                        ← shared/UI state（不得拥有 server fetch lifecycle）
+    ├── api/                           ← BFF facade + 流；Data Fabric 从这里包 read path
     ├── hooks/                         ← 模块外共享 hook
     ├── lib/                           ← 纯工具（无 React）
     ├── generated/                     ← codegen 输出（不手编）
@@ -111,6 +112,9 @@ frontend-new/
   - CSS 变量：`--ds-<category>-<role>` (e.g. `--ds-bg-1`, `--ds-text-2`, `--ds-radius-md`)
   - Hook：`use-<kebab-case>.ts`
 - **State**：本地 `useState` 用于组件内；跨组件库选择见 stack-decisions。**契约**：UI state 与 server state 分桶。
+- **Server state**：新增或触达的 deck-go backend / Gateway-backed read path 必须通过 `src/data` 的 Data Fabric query hook 或 query option factory。面板代码不要直接新增 `useEffect(fetch*)`、store-owned `load*/fetch*/refresh*` server lifecycle、裸 `deckFetch` 或裸 `gateway-client` 调用。
+- **Data Fabric 边界**：BFF endpoints 与 Gateway RPC helpers 分开建模；浏览器仍只通过 deck-go backend。local UI state（tab、filter、selected row、modal、form draft、expanded section）继续留在 React state 或 UI store，不进入 TanStack Query。
+- **Deferred**：mutation retry、offline mutation queue/replay、IndexedDB persistence、custom oxlint enforcement、generated live projection `patchStrategy`/`patchKeys` 都不是默认能力；只有后续 OpenSpec 明确立项并写验收后才能加入。
 - **Routing / i18n / Form / Animation**：具体库见 stack-decisions
 - **Testing**：Vitest 单测 (`*.test.ts(x)`) + vitest-axe a11y。Atom 单测 MUST 含 `axe.toHaveNoViolations()` 断言。
 - **Imports**：用 `@/` alias 指向 `src/`（在 `tsconfig.json` + `vite.config.ts` 配置）

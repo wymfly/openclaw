@@ -3,6 +3,7 @@ import type {
   DeckGoRuntimeEndpointPutRequest,
   DeckGoRuntimeEndpointResponse,
   DeckGoRuntimeEndpointTestRequest,
+  DeckGoRuntimeEndpointTestResponse,
   DeckGoSettings,
   DeckGoSettingsResponse,
 } from "../../../../../contracts/generated/ts/deck-api.generated";
@@ -11,25 +12,20 @@ import type {
   DeckGoPendingDeviceRequest as LocalPendingDeviceRequest,
 } from "../../../api";
 import {
-  approveDeviceRequest,
-  fetchDevices,
-  fetchEndpoint,
-  fetchSelfDevice,
-  fetchSettings,
-  fetchSettingsVersion,
-  rejectDeviceRequest,
-  removeDevice,
-  revokeDeviceToken,
-  rotateDeviceToken,
-  saveSettings,
-  testEndpoint,
-  updateEndpoint,
-  type DeckGoServerEvent,
-} from "../../../api";
+  useDeviceActionMutations,
+  useDevicePairingProjectionSubscription,
+  useDevicesQuery,
+  useRuntimeEndpointQuery,
+  useSaveSettingsMutation,
+  useSelfDeviceQuery,
+  useSettingsQuery,
+  useSettingsVersionQuery,
+  useTestEndpointMutation,
+  useUpdateEndpointMutation,
+} from "../../../data/modules/settings";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { Badge, Button, Code, Input, Modal, Spinner, Toggle } from "../../../design-system/atoms";
 import { useCapabilities } from "../../../hooks/useCapabilities";
-import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
 import type { Locale } from "../../../i18n/config";
 import { useLocale, useSetLocale, useTranslations } from "../../../i18n/provider";
 import { EndpointSection } from "../../runtime/EndpointSection";
@@ -256,6 +252,15 @@ export function SettingsPanel() {
     loading: capabilitiesLoading,
     refresh: refreshCapabilities,
   } = useCapabilities();
+  const settingsQuery = useSettingsQuery();
+  const endpointQuery = useRuntimeEndpointQuery();
+  const versionQuery = useSettingsVersionQuery();
+  const devicesQuery = useDevicesQuery();
+  const selfDeviceQuery = useSelfDeviceQuery();
+  const saveSettingsMutation = useSaveSettingsMutation();
+  const updateEndpointMutation = useUpdateEndpointMutation();
+  const testEndpointMutation = useTestEndpointMutation();
+  const deviceActionMutations = useDeviceActionMutations();
   const locale = useLocale();
   const setLocale = useSetLocale();
   const [baselineSettings, setBaselineSettings] = useState<DeckGoSettings>({
@@ -291,6 +296,18 @@ export function SettingsPanel() {
   const [devicesError, setDevicesError] = useState("");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [accessTokenDialogOpen, setAccessTokenDialogOpen] = useState(false);
+  const deviceActions = useMemo(
+    () => ({
+      approve: (requestId: string) => deviceActionMutations.approve.mutateAsync(requestId),
+      reject: (requestId: string) => deviceActionMutations.reject.mutateAsync(requestId),
+      remove: (deviceId: string) => deviceActionMutations.remove.mutateAsync(deviceId),
+      revokeToken: (deviceId: string, role: string) =>
+        deviceActionMutations.revokeToken.mutateAsync({ deviceId, role }),
+      rotateToken: (deviceId: string, role: string) =>
+        deviceActionMutations.rotateToken.mutateAsync({ deviceId, role }),
+    }),
+    [deviceActionMutations],
+  );
 
   const dirtyBySection = useDirtyBySection(baselineSettings, draftSettings);
   const dirtyTotal = Object.values(dirtyBySection).reduce((sum, value) => sum + value, 0);
@@ -298,100 +315,127 @@ export function SettingsPanel() {
   const refreshSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchSettings();
-      const normalized = normalizeSettings(result);
+      const result = await settingsQuery.refetch();
+      if (!result.data) {
+        throw result.error ?? new Error(t("loadSettingsFailed"));
+      }
+      const normalized = normalizeSettings(result.data);
       setBaselineSettings(normalized);
       setDraftSettings(normalized);
-      setSettingsPath(result.path);
+      setSettingsPath(result.data.path);
       setError("");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : t("loadSettingsFailed"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [settingsQuery, t]);
 
   useEffect(() => {
-    void refreshSettings();
-  }, [refreshSettings]);
-
-  const refreshEndpoint = useCallback(async () => {
-    setEndpointLoading(true);
-    try {
-      const result = await fetchEndpoint();
-      setEndpoint(result);
-      setEndpointError("");
-    } catch (loadError) {
-      setEndpointError(loadError instanceof Error ? loadError.message : t("loadEndpointFailed"));
-    } finally {
-      setEndpointLoading(false);
+    if (settingsQuery.data) {
+      const normalized = normalizeSettings(settingsQuery.data);
+      setBaselineSettings(normalized);
+      setDraftSettings(normalized);
+      setSettingsPath(settingsQuery.data.path);
+      setError("");
     }
-  }, [t]);
+    if (settingsQuery.error) {
+      setError(
+        settingsQuery.error instanceof Error
+          ? settingsQuery.error.message
+          : t("loadSettingsFailed"),
+      );
+    }
+    setLoading(settingsQuery.isLoading);
+  }, [settingsQuery.data, settingsQuery.error, settingsQuery.isLoading, t]);
 
   useEffect(() => {
-    void refreshEndpoint();
-  }, [refreshEndpoint]);
+    if (endpointQuery.data) {
+      setEndpoint(endpointQuery.data);
+      setEndpointError("");
+    }
+    if (endpointQuery.error) {
+      setEndpointError(
+        endpointQuery.error instanceof Error
+          ? endpointQuery.error.message
+          : t("loadEndpointFailed"),
+      );
+    }
+    setEndpointLoading(endpointQuery.isLoading);
+  }, [endpointQuery.data, endpointQuery.error, endpointQuery.isLoading, t]);
 
-  const refreshVersion = useCallback(async () => {
-    try {
-      const result = await fetchSettingsVersion();
+  useEffect(() => {
+    if (versionQuery.data) {
       setVersionInfo({
-        deck: result.deck ?? "",
-        gateway: result.gateway ?? "",
-        cli: result.cli ?? "",
+        deck: versionQuery.data.deck ?? "",
+        gateway: versionQuery.data.gateway ?? "",
+        cli: versionQuery.data.cli ?? "",
       });
-    } catch {
+    } else if (versionQuery.error) {
       setVersionInfo({ deck: "", gateway: "", cli: "" });
     }
-  }, []);
-
-  useEffect(() => {
-    void refreshVersion();
-  }, [refreshVersion]);
+  }, [versionQuery.data, versionQuery.error]);
 
   const refreshDevices = useCallback(async () => {
     setDevicesLoading(true);
     try {
       const [devices, self] = await Promise.all([
-        fetchDevices(),
-        fetchSelfDevice().catch(() => ({ deviceId: null })),
+        devicesQuery.refetch(),
+        selfDeviceQuery.refetch(),
       ]);
-      setPendingDevices(devices.pending ?? []);
-      setPairedDevices(devices.paired ?? []);
-      setSelfDeviceId(self.deviceId ?? null);
+      if (!devices.data) {
+        throw devices.error ?? new Error(t("loadDevicesFailed"));
+      }
+      setPendingDevices(devices.data.pending ?? []);
+      setPairedDevices(devices.data.paired ?? []);
+      setSelfDeviceId(self.data?.deviceId ?? null);
       setDevicesError("");
     } catch (loadError) {
       setDevicesError(loadError instanceof Error ? loadError.message : t("loadDevicesFailed"));
     } finally {
       setDevicesLoading(false);
     }
-  }, [t]);
+  }, [devicesQuery, selfDeviceQuery, t]);
 
   useEffect(() => {
-    void refreshDevices();
-  }, [refreshDevices]);
+    if (devicesQuery.data) {
+      setPendingDevices(devicesQuery.data.pending ?? []);
+      setPairedDevices(devicesQuery.data.paired ?? []);
+      setDevicesError("");
+    }
+    if (selfDeviceQuery.data) {
+      setSelfDeviceId(selfDeviceQuery.data.deviceId ?? null);
+    }
+    const loadError = devicesQuery.error ?? selfDeviceQuery.error;
+    if (loadError) {
+      setDevicesError(loadError instanceof Error ? loadError.message : t("loadDevicesFailed"));
+    }
+    setDevicesLoading(devicesQuery.isLoading || selfDeviceQuery.isLoading);
+  }, [
+    devicesQuery.data,
+    devicesQuery.error,
+    devicesQuery.isLoading,
+    selfDeviceQuery.data,
+    selfDeviceQuery.error,
+    selfDeviceQuery.isLoading,
+    t,
+  ]);
 
   const handleDeviceStreamEvent = useCallback(
-    (event: DeckGoServerEvent) => {
-      if (event.event !== "device.pair.requested" && event.event !== "device.pair.resolved") {
-        return;
-      }
+    (event: { data?: string; event?: string; json?: unknown }) => {
       setLastDeviceStreamEvent(
         deviceStreamLabel(event, {
           deviceEvent: t("deviceEvent"),
           unknownDevice: t("unknownDevice"),
         }),
       );
-      void refreshDevices();
     },
-    [refreshDevices, t],
+    [t],
   );
 
-  useLiveProjectionSubscription({
-    projectionId: "device-pairing",
+  useDevicePairingProjectionSubscription({
+    onDeviceEvent: handleDeviceStreamEvent,
     retryDelayMs: 1_000,
-    onEvent: handleDeviceStreamEvent,
-    onProjectionGap: refreshDevices,
   });
 
   useEffect(() => {
@@ -442,7 +486,9 @@ export function SettingsPanel() {
   const onSave = async () => {
     setSaving(true);
     try {
-      const result = await saveSettings(buildSettingsSavePayload(draftSettings));
+      const result = await saveSettingsMutation.mutateAsync(
+        buildSettingsSavePayload(draftSettings),
+      );
       const normalized = normalizeSettings({
         ok: result.ok,
         path: settingsPath,
@@ -463,18 +509,21 @@ export function SettingsPanel() {
 
   const saveEndpoint = useCallback(
     async (payload: DeckGoRuntimeEndpointPutRequest) => {
-      const result = await updateEndpoint(payload);
+      const result = await updateEndpointMutation.mutateAsync(payload);
       setEndpoint(result);
       await refreshCapabilities();
       await refreshRuntimeSummary();
       return result;
     },
-    [refreshCapabilities, refreshRuntimeSummary],
+    [refreshCapabilities, refreshRuntimeSummary, updateEndpointMutation],
   );
 
-  const testRuntimeEndpoint = useCallback(async (payload?: DeckGoRuntimeEndpointTestRequest) => {
-    return testEndpoint(payload);
-  }, []);
+  const testRuntimeEndpoint = useCallback(
+    async (payload?: DeckGoRuntimeEndpointTestRequest) => {
+      return testEndpointMutation.mutateAsync(payload);
+    },
+    [testEndpointMutation],
+  );
 
   const requestDeviceAction = (action: PendingDeviceAction) => {
     setDeviceActionError("");
@@ -541,6 +590,7 @@ export function SettingsPanel() {
       <DevicesSection
         deviceActionState={deviceActionState}
         deviceActionResult={deviceActionResult}
+        deviceActions={deviceActions}
         devicesError={devicesError}
         devicesLoading={devicesLoading}
         lastDeviceStreamEvent={lastDeviceStreamEvent}
@@ -886,7 +936,7 @@ function RuntimeSection(props: {
   ) => Promise<DeckGoRuntimeEndpointResponse>;
   testRuntimeEndpoint: (
     payload?: DeckGoRuntimeEndpointTestRequest,
-  ) => ReturnType<typeof testEndpoint>;
+  ) => Promise<DeckGoRuntimeEndpointTestResponse>;
 }) {
   const t = useTranslations("settings");
   return (
@@ -1065,6 +1115,13 @@ function NotificationsSection(props: {
 function DevicesSection(props: {
   deviceActionState: string;
   deviceActionResult: unknown;
+  deviceActions: {
+    approve: (requestId: string) => Promise<unknown>;
+    reject: (requestId: string) => Promise<unknown>;
+    remove: (deviceId: string) => Promise<unknown>;
+    revokeToken: (deviceId: string, role: string) => Promise<unknown>;
+    rotateToken: (deviceId: string, role: string) => Promise<unknown>;
+  };
   devicesError: string;
   devicesLoading: boolean;
   lastDeviceStreamEvent: string;
@@ -1155,7 +1212,7 @@ function DevicesSection(props: {
                           confirmLabel: t("approveRequest"),
                           variant: "default",
                           actionName: "approving",
-                          action: () => approveDeviceRequest(request.requestId),
+                          action: () => props.deviceActions.approve(request.requestId),
                         })
                       }
                       disabled={props.deviceActionState !== "idle"}
@@ -1174,7 +1231,7 @@ function DevicesSection(props: {
                           confirmLabel: t("rejectRequest"),
                           variant: "danger",
                           actionName: "rejecting",
-                          action: () => rejectDeviceRequest(request.requestId),
+                          action: () => props.deviceActions.reject(request.requestId),
                         })
                       }
                       disabled={props.deviceActionState !== "idle"}
@@ -1255,7 +1312,10 @@ function DevicesSection(props: {
                                         actionName: "rotating",
                                         showToken: true,
                                         action: () =>
-                                          rotateDeviceToken(device.deviceId, token.role),
+                                          props.deviceActions.rotateToken(
+                                            device.deviceId,
+                                            token.role,
+                                          ),
                                       })
                                     }
                                     disabled={props.deviceActionState !== "idle" || revoked}
@@ -1276,7 +1336,10 @@ function DevicesSection(props: {
                                         variant: "danger",
                                         actionName: "revoking",
                                         action: () =>
-                                          revokeDeviceToken(device.deviceId, token.role),
+                                          props.deviceActions.revokeToken(
+                                            device.deviceId,
+                                            token.role,
+                                          ),
                                       })
                                     }
                                     disabled={
@@ -1305,7 +1368,7 @@ function DevicesSection(props: {
                             confirmLabel: t("removeDevice"),
                             variant: "danger",
                             actionName: "removing",
-                            action: () => removeDevice(device.deviceId),
+                            action: () => props.deviceActions.remove(device.deviceId),
                           })
                         }
                         disabled={props.deviceActionState !== "idle" || isSelf}

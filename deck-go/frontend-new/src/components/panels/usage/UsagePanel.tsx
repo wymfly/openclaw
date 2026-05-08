@@ -1,20 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   DeckGoContextWeightReport,
   DeckGoUsageCostEntry,
   DeckGoUsageProviderStatus,
   DeckGoUsageSessionEntry,
   DeckGoUsageSessionLogEntry,
-  DeckGoUsageSessionsResponse,
   DeckGoUsageTimePoint,
 } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  fetchModelUsageCost,
-  fetchModelUsageProviders,
-  fetchUsageSessionLogs,
-  fetchUsageSessions,
-  fetchUsageTimeseries,
-} from "../../../api";
+  usageSessionLogsQueryOptions,
+  usageSessionsQueryOptions,
+  usageTimeseriesQueryOptions,
+  useUsageCostQuery,
+  useUsageProvidersQuery,
+  useUsageSessionsQuery,
+} from "../../../data/modules/usage";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
@@ -39,10 +41,9 @@ type PanelState = "idle" | "loading" | "ready";
 export function UsagePanel() {
   const t = useTranslations("usage");
   const ui = useDeckUI();
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
   const [days, setDays] = useState("14");
-  const [costEntries, setCostEntries] = useState<DeckGoUsageCostEntry[]>([]);
-  const [providers, setProviders] = useState<DeckGoUsageProviderStatus[]>([]);
-  const [sessionsUsage, setSessionsUsage] = useState<DeckGoUsageSessionsResponse | null>(null);
   const [sessionSearch, setSessionSearch] = useState("");
   const [agentFilter, setAgentFilter] = useState("");
   const [channelFilter, setChannelFilter] = useState("");
@@ -57,52 +58,23 @@ export function UsagePanel() {
   >({});
   const [sessionLogsLoading, setSessionLogsLoading] = useState(false);
   const [selectedProviderId, setSelectedProviderId] = useState("");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [error, setError] = useState("");
-  const didInitialRefresh = useRef(false);
-
-  const refresh = useCallback(
-    async (preferredProviderId?: string, daysValue = days) => {
-      setLoadState("loading");
-      try {
-        const usageRange = usageRangeFromDays(daysValue);
-        const [costResult, providersResult, sessionsResult] = await Promise.all([
-          fetchModelUsageCost(parseUsageDays(daysValue)),
-          fetchModelUsageProviders(),
-          fetchUsageSessions({ ...usageRange, limit: 50 }),
-        ]);
-        const nextCosts = (costResult.daily ?? [])
-          .slice()
-          .toSorted((left, right) => left.date.localeCompare(right.date));
-        const nextProviders = providersResult.providers ?? [];
-        setCostEntries(nextCosts);
-        setProviders(nextProviders);
-        setSessionsUsage(sessionsResult);
-        setLoadState("ready");
-        setError("");
-        const fallbackId = preferredProviderId?.trim() || nextProviders[0]?.provider || "";
-        setSelectedProviderId((current) =>
-          nextProviders.some((provider) => provider.provider === current)
-            ? current
-            : nextProviders.some((provider) => provider.provider === fallbackId)
-              ? fallbackId
-              : nextProviders[0]?.provider || "",
-        );
-      } catch (loadError) {
-        setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : t("failedLoadUsage"));
-      }
-    },
-    [days, t],
+  const [detailError, setDetailError] = useState("");
+  const usageRange = useMemo(() => usageRangeFromDays(days), [days]);
+  const costQuery = useUsageCostQuery(parseUsageDays(days) ?? 14);
+  const providersQuery = useUsageProvidersQuery();
+  const sessionsUsageQuery = useUsageSessionsQuery({ ...usageRange, limit: 50 });
+  const costEntries = useMemo<DeckGoUsageCostEntry[]>(
+    () =>
+      (costQuery.data?.daily ?? [])
+        .slice()
+        .toSorted((left, right) => left.date.localeCompare(right.date)),
+    [costQuery.data?.daily],
   );
-
-  useEffect(() => {
-    if (didInitialRefresh.current) {
-      return;
-    }
-    didInitialRefresh.current = true;
-    void refresh();
-  }, [refresh]);
+  const providers = useMemo<DeckGoUsageProviderStatus[]>(
+    () => providersQuery.data?.providers ?? [],
+    [providersQuery.data?.providers],
+  );
+  const sessionsUsage = sessionsUsageQuery.data ?? null;
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -121,10 +93,25 @@ export function UsagePanel() {
 
   const refreshUsageRange = useCallback(
     (nextDays: string) => {
-      void refresh(selectedProviderId, nextDays);
+      const changed = nextDays !== days;
+      setDays(nextDays);
+      if (!changed) {
+        void costQuery.refetch();
+        void providersQuery.refetch();
+        void sessionsUsageQuery.refetch();
+      }
     },
-    [refresh, selectedProviderId],
+    [costQuery, days, providersQuery, sessionsUsageQuery],
   );
+
+  useEffect(() => {
+    setSelectedProviderId((current) => {
+      if (providers.some((provider) => provider.provider === current)) {
+        return current;
+      }
+      return providers[0]?.provider ?? "";
+    });
+  }, [providers]);
 
   const sessionEntries = useMemo(() => sessionsUsage?.sessions ?? [], [sessionsUsage]);
   const agentOptions = useMemo(
@@ -220,15 +207,23 @@ export function UsagePanel() {
         const [logsResult, timeseriesResult, contextWeightResult] = await Promise.all([
           sessionLogs[entry.key]
             ? Promise.resolve({ logs: sessionLogs[entry.key] })
-            : fetchUsageSessionLogs({ key: entry.key, limit: 50 }),
+            : queryClient.fetchQuery(
+                usageSessionLogsQueryOptions(bff, { key: entry.key, limit: 50 }),
+              ),
           sessionTimeseries[entry.key]
             ? Promise.resolve({ points: sessionTimeseries[entry.key] })
-            : fetchUsageTimeseries({ key: entry.key }),
+            : queryClient.fetchQuery(usageTimeseriesQueryOptions(bff, { key: entry.key })),
           Object.hasOwn(sessionContextWeights, entry.key)
             ? Promise.resolve({
                 sessions: [{ contextWeight: sessionContextWeights[entry.key], key: entry.key }],
               })
-            : fetchUsageSessions({ includeContextWeight: true, key: entry.key, limit: 1 }),
+            : queryClient.fetchQuery(
+                usageSessionsQueryOptions(bff, {
+                  includeContextWeight: true,
+                  key: entry.key,
+                  limit: 1,
+                }),
+              ),
         ]);
         setSessionLogs((current) => ({ ...current, [entry.key]: logsResult.logs ?? [] }));
         setSessionTimeseries((current) => ({
@@ -243,15 +238,37 @@ export function UsagePanel() {
           ...current,
           [entry.key]: contextSession?.contextWeight ?? null,
         }));
-        setError("");
+        setDetailError("");
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : t("failedLoadSessionDetail"));
+        setDetailError(
+          loadError instanceof Error ? loadError.message : t("failedLoadSessionDetail"),
+        );
       } finally {
         setSessionLogsLoading(false);
       }
     },
-    [expandedSessionKey, sessionContextWeights, sessionLogs, sessionTimeseries, t],
+    [
+      bff,
+      expandedSessionKey,
+      queryClient,
+      sessionContextWeights,
+      sessionLogs,
+      sessionTimeseries,
+      t,
+    ],
   );
+
+  const loadState: PanelState =
+    costQuery.isLoading || providersQuery.isLoading || sessionsUsageQuery.isLoading
+      ? "loading"
+      : costQuery.data || providersQuery.data || sessionsUsageQuery.data
+        ? "ready"
+        : "idle";
+  const error =
+    costQuery.error || providersQuery.error || sessionsUsageQuery.error
+      ? ((costQuery.error ?? providersQuery.error ?? sessionsUsageQuery.error) as Error).message ||
+        t("failedLoadUsage")
+      : detailError;
 
   return (
     <section className="usage-panel deck-ui-usage" data-testid="usage-panel">

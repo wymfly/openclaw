@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect } from "react";
+import {
+  useCommandDiscoveryProjectionInvalidation,
+  useCommandDiscoveryQuery,
+} from "@/data/modules/commands";
 import { commandRegistry } from "@/lib/command-registry";
 import { SOURCE_PRIORITY, type RegisteredCommand } from "@/lib/command-types";
-import { deckFetch } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
-import { useLiveProjectionSubscription } from "./useLiveProjectionSubscription";
 
 type DiscoveredSource = Extract<RegisteredCommand["source"], "builtin" | "skill" | "plugin">;
 
@@ -80,65 +82,32 @@ function toRegisteredCommand(command: DiscoveredCommand): RegisteredCommand | nu
 
 export function useCommandDiscovery(): void {
   const activeAgentId = useChatStore((state) => state.activeAgentId);
-  const versionRef = useRef<string | null>(null);
-  const mountedRef = useRef(true);
+  const discoveryQuery = useCommandDiscoveryQuery(activeAgentId);
 
-  const discover = useCallback(async (agentId?: string) => {
-    try {
-      const response = await deckFetch("/api/deck/commands/discover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(agentId ? { agentId } : {}),
-      });
-      if (!response.ok) {
-        console.warn(`[useCommandDiscovery] Discovery failed: HTTP ${response.status}`);
-        return;
-      }
-      if (!mountedRef.current) {
-        return;
-      }
-
-      const data = (await response.json()) as CommandDiscoveryResult;
-      if (!mountedRef.current || data.version === versionRef.current) {
-        return;
-      }
-
-      versionRef.current = data.version ?? null;
-      unregisterDiscoveredCommands();
-      for (const command of data.commands ?? []) {
-        const registered = toRegisteredCommand(command);
-        if (registered) {
-          commandRegistry.register(registered);
-        }
-      }
-    } catch (error) {
-      console.warn("[useCommandDiscovery] Failed to discover commands:", error);
-    }
-  }, []);
-
-  const handleStreamEvent = useCallback(
-    (event: { event?: string }) => {
-      if (event.event === "commands.changed") {
-        void discover(activeAgentId ?? undefined);
-      }
-    },
-    [activeAgentId, discover],
-  );
-
-  useLiveProjectionSubscription({
-    projectionId: "command-discovery",
-    onEvent: handleStreamEvent,
-    onProjectionGap: () => discover(activeAgentId ?? undefined),
-  });
+  useCommandDiscoveryProjectionInvalidation(activeAgentId);
 
   useEffect(() => {
-    mountedRef.current = true;
-    versionRef.current = null;
-    void discover(activeAgentId ?? undefined);
+    const data = discoveryQuery.data as CommandDiscoveryResult | undefined;
+    if (!data) {
+      return undefined;
+    }
+
+    unregisterDiscoveredCommands();
+    for (const command of data.commands ?? []) {
+      const registered = toRegisteredCommand(command);
+      if (registered) {
+        commandRegistry.register(registered);
+      }
+    }
 
     return () => {
-      mountedRef.current = false;
       unregisterDiscoveredCommands();
     };
-  }, [activeAgentId, discover]);
+  }, [discoveryQuery.data]);
+
+  useEffect(() => {
+    if (discoveryQuery.isError) {
+      console.warn("[useCommandDiscovery] Failed to discover commands:", discoveryQuery.error);
+    }
+  }, [discoveryQuery.error, discoveryQuery.isError]);
 }

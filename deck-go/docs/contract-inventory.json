@@ -1,14 +1,14 @@
 {
-  "generatedAt": "2026-05-07T07:24:12.891Z",
+  "generatedAt": "2026-05-08T05:37:47.679Z",
   "summary": {
-    "apiFunctions": 170,
+    "apiFunctions": 171,
     "classifiedEndpointRows": 150,
     "contractTypes": 294,
     "dynamicSurfaceLines": 1435,
     "endpoints": 137,
     "exceptionRecordsMissingFields": 0,
     "frontendDeckGoTypes": 240,
-    "frontendEndpointCallerLines": 121,
+    "frontendEndpointCallerLines": 123,
     "frontendGeneratedDtoAliases": 240,
     "frontendLocalDtoDefinitions": 0,
     "gatewayUntypedExceptions": 0,
@@ -608,10 +608,7 @@
         "migrationStatus": "migrated"
       },
       {
-        "actions": [
-          "gateway.refresh",
-          "gateway.batch.readOnly"
-        ],
+        "actions": ["gateway.refresh", "gateway.batch.readOnly"],
         "dtos": [
           "DeckGoActivityResponse",
           "DeckGoGatewayBatchRequest",
@@ -707,11 +704,7 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": [
-          "identity.refresh",
-          "identity.link",
-          "identity.unlink"
-        ],
+        "actions": ["identity.refresh", "identity.link", "identity.unlink"],
         "dtos": [
           "DeckGoAgentIdentityResponse",
           "DeckGoIdentityLink",
@@ -841,10 +834,7 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": [
-          "usage.refresh",
-          "monitor.runs.refresh"
-        ],
+        "actions": ["usage.refresh", "monitor.runs.refresh"],
         "dtos": [
           "DeckGoChannelThroughputBucket",
           "DeckGoChannelThroughputResponse",
@@ -1771,58 +1761,65 @@
     {
       "endpoint": "DELETE /api/chat/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2768,
+      "line": 2782,
       "literal": "/chat/sessions",
       "symbol": "deleteSession"
     },
     {
       "endpoint": "GET /api/activity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2040,
+      "line": 2042,
       "literal": "/activity",
       "symbol": "fetchActivityEvents"
     },
     {
       "endpoint": "GET /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1411,
+      "line": 1413,
       "literal": "/alerts",
       "symbol": "fetchAlertRules"
     },
     {
       "endpoint": "GET /api/approvals/pending",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1086,
+      "line": 1088,
       "literal": "/approvals/pending",
       "symbol": "fetchPendingApprovals"
     },
     {
       "endpoint": "GET /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1128,
+      "line": 1130,
       "literal": "/approvals/plugins",
       "symbol": "fetchPluginApprovals"
     },
     {
       "endpoint": "GET /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1078,
+      "line": 1080,
       "literal": "/approvals/policy",
       "symbol": "fetchApprovalsPolicy"
     },
     {
       "endpoint": "GET /api/audit/events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2048,
+      "line": 2050,
       "literal": "/audit/events",
       "symbol": "fetchControlAuditEvents"
     },
     {
       "endpoint": "GET /api/bootstrap/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 714,
+      "line": 716,
       "literal": "/bootstrap/status",
       "symbol": "fetchBootstrapStatus"
+    },
+    {
+      "endpoint": "GET /api/bootstrap/status",
+      "file": "deck-go/frontend-new/src/data/queries/runtime.ts",
+      "line": 15,
+      "literal": "/bootstrap/status",
+      "symbol": "runtimeBootstrapSource"
     },
     {
       "endpoint": "GET /api/canvas/{path}",
@@ -1834,14 +1831,14 @@
     {
       "endpoint": "GET /api/channels",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 815,
+      "line": 817,
       "literal": "/channels",
       "symbol": "fetchChannels"
     },
     {
       "endpoint": "GET /api/chat/history",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2672,
+      "line": 2686,
       "literal": "/chat/history",
       "symbol": "fetchChatHistory"
     },
@@ -1855,168 +1852,175 @@
     {
       "endpoint": "GET /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1275,
+      "line": 1277,
       "literal": "/cron",
       "symbol": "fetchCronJobs"
     },
     {
       "endpoint": "GET /api/cron/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1292,
+      "line": 1294,
       "literal": "/cron/status",
       "symbol": "raw"
     },
     {
       "endpoint": "GET /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1810,
+      "line": 1812,
       "literal": "/deck/identity",
       "symbol": "fetchIdentityLinks"
     },
     {
       "endpoint": "GET /api/devices",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 641,
+      "line": 643,
       "literal": "/devices",
       "symbol": "fetchDevices"
     },
     {
       "endpoint": "GET /api/devices/self",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 646,
+      "line": 648,
       "literal": "/devices/self",
       "symbol": "fetchSelfDevice"
     },
     {
       "endpoint": "GET /api/docs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1362,
+      "line": 1364,
       "literal": "/docs",
       "symbol": "fetchDocs"
     },
     {
       "endpoint": "GET /api/gateway/describe",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1014,
+      "line": 1016,
       "literal": "/gateway/describe",
       "symbol": "fetchGatewayDescribe"
     },
     {
       "endpoint": "GET /api/gateway/health",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 778,
+      "line": 780,
       "literal": "/gateway/health",
       "symbol": "fetchGatewayHealth"
     },
     {
       "endpoint": "GET /api/gateway/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 786,
+      "line": 788,
       "literal": "/gateway/status",
       "symbol": "fetchGatewayStatus"
     },
     {
       "endpoint": "GET /api/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1006,
+      "line": 1008,
       "literal": "/logs",
       "symbol": "fetchLogsTail"
     },
     {
       "endpoint": "GET /api/logs/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 3015,
+      "line": 3029,
       "literal": "/logs/stream",
       "symbol": "streamLogEvents"
     },
     {
       "endpoint": "GET /api/logs/stream",
       "file": "deck-go/frontend-new/src/components/panels/logs/LogsPanel.tsx",
-      "line": 891,
+      "line": 901,
       "literal": "/logs/stream",
-      "symbol": "labelForSource"
+      "symbol": "tailError"
     },
     {
       "endpoint": "GET /api/memory/health",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1691,
+      "line": 1693,
       "literal": "/memory/health",
       "symbol": "fetchMemoryHealth"
     },
     {
       "endpoint": "GET /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2262,
+      "line": 2264,
       "literal": "/models/config",
       "symbol": "fetchModelsConfig"
     },
     {
       "endpoint": "GET /api/monitor/runs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2064,
+      "line": 2066,
       "literal": "/monitor/runs",
       "symbol": "fetchMonitorRuns"
     },
     {
       "endpoint": "GET /api/monitor/stats",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2072,
+      "line": 2074,
       "literal": "/monitor/stats",
       "symbol": "fetchMonitorStats"
     },
     {
       "endpoint": "GET /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1523,
+      "line": 1525,
       "literal": "/nodes",
       "symbol": "fetchNodes"
     },
     {
       "endpoint": "GET /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1528,
+      "line": 1530,
       "literal": "/nodes/pair",
       "symbol": "fetchNodePairing"
     },
     {
       "endpoint": "GET /api/runtime/capabilities",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 738,
+      "line": 740,
       "literal": "/runtime/capabilities",
       "symbol": "fetchCapabilities"
     },
     {
       "endpoint": "GET /api/runtime/endpoint",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 746,
+      "line": 748,
       "literal": "/runtime/endpoint",
       "symbol": "fetchEndpoint"
     },
     {
       "endpoint": "GET /api/runtime/gateway",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 726,
+      "line": 728,
       "literal": "/runtime/gateway",
       "symbol": "runtime"
     },
     {
+      "endpoint": "GET /api/runtime/gateway",
+      "file": "deck-go/frontend-new/src/data/queries/runtime.ts",
+      "line": 20,
+      "literal": "/runtime/gateway",
+      "symbol": "runtimeGatewaySource"
+    },
+    {
       "endpoint": "GET /api/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2615,
+      "line": 2629,
       "literal": "/sessions",
       "symbol": "fetchSessions"
     },
     {
       "endpoint": "GET /api/settings/version",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 634,
+      "line": 636,
       "literal": "/settings/version",
       "symbol": "fetchSettingsVersion"
     },
     {
       "endpoint": "GET /api/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 3011,
+      "line": 3025,
       "literal": "/stream",
       "symbol": "streamEvents"
     },
@@ -2030,588 +2034,588 @@
     {
       "endpoint": "GET /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1754,
+      "line": 1756,
       "literal": "/usage/budget",
       "symbol": "fetchBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/budget/evaluate",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1799,
+      "line": 1801,
       "literal": "/usage/budget/evaluate",
       "symbol": "evaluateBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/providers",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2101,
+      "line": 2103,
       "literal": "/usage/providers",
       "symbol": "fetchModelUsageProviders"
     },
     {
       "endpoint": "GET /api/usage/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2115,
+      "line": 2117,
       "literal": "/usage/sessions",
       "symbol": "fetchUsageSessions"
     },
     {
       "endpoint": "GET /api/usage/sessions/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2123,
+      "line": 2125,
       "literal": "/usage/sessions/logs",
       "symbol": "fetchUsageSessionLogs"
     },
     {
       "endpoint": "GET /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1452,
+      "line": 1454,
       "literal": "/webhooks",
       "symbol": "fetchWebhooks"
     },
     {
       "endpoint": "PATCH /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2319,
+      "line": 2321,
       "literal": "/models/config",
       "symbol": "saveModelsConfig"
     },
     {
       "endpoint": "POST /api/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2573,
+      "line": 2587,
       "literal": "/agents",
       "symbol": "createAgent"
     },
     {
       "endpoint": "POST /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1418,
+      "line": 1420,
       "literal": "/alerts",
       "symbol": "createAlertRule"
     },
     {
       "endpoint": "POST /api/approvals",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1097,
+      "line": 1099,
       "literal": "/approvals",
       "symbol": "resolveApproval"
     },
     {
       "endpoint": "POST /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1139,
+      "line": 1141,
       "literal": "/approvals/plugins",
       "symbol": "resolvePluginApproval"
     },
     {
       "endpoint": "POST /api/chat/abort",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2708,
+      "line": 2722,
       "literal": "/chat/abort",
       "symbol": "abortChatRun"
     },
     {
       "endpoint": "POST /api/chat/compact",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2818,
+      "line": 2832,
       "literal": "/chat/compact",
       "symbol": "compactChatSession"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2840,
+      "line": 2854,
       "literal": "/chat/compaction",
       "symbol": "fetchCompactionCheckpoints"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2857,
+      "line": 2871,
       "literal": "/chat/compaction",
       "symbol": "branchCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2877,
+      "line": 2891,
       "literal": "/chat/compaction",
       "symbol": "restoreCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/projection",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2910,
+      "line": 2924,
       "literal": "/chat/projection",
       "symbol": "persistChatProjection"
     },
     {
       "endpoint": "POST /api/chat/send",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2693,
+      "line": 2707,
       "literal": "/chat/send",
       "symbol": "sendChatMessage"
     },
     {
       "endpoint": "POST /api/chat/session-events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2892,
+      "line": 2906,
       "literal": "/chat/session-events",
       "symbol": "setSessionEventsSubscription"
     },
     {
       "endpoint": "POST /api/chat/sessions/clear",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2753,
+      "line": 2767,
       "literal": "/chat/sessions/clear",
       "symbol": "clearSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/create",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2680,
+      "line": 2694,
       "literal": "/chat/sessions/create",
       "symbol": "createChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2783,
+      "line": 2797,
       "literal": "/chat/sessions/patch",
       "symbol": "patchSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2797,
+      "line": 2811,
       "literal": "/chat/sessions/patch",
       "symbol": "patchChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/preview",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2623,
+      "line": 2637,
       "literal": "/chat/sessions/preview",
       "symbol": "fetchSessionPreviews"
     },
     {
       "endpoint": "POST /api/chat/sessions/reset",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2738,
+      "line": 2752,
       "literal": "/chat/sessions/reset",
       "symbol": "resetSession"
     },
     {
       "endpoint": "POST /api/chat/steer",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2723,
+      "line": 2737,
       "literal": "/chat/steer",
       "symbol": "steerChatSession"
     },
     {
       "endpoint": "POST /api/config/apply",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2163,
+      "line": 2165,
       "literal": "/config/apply",
       "symbol": "applyDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2175,
+      "line": 2177,
       "literal": "/config/patch",
       "symbol": "patchDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2247,
+      "line": 2249,
       "literal": "/config/patch",
       "symbol": "nextEntry"
     },
     {
       "endpoint": "POST /api/config/schema-lookup",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 794,
+      "line": 796,
       "literal": "/config/schema-lookup",
       "symbol": "postConfigSchemaLookup"
     },
     {
       "endpoint": "POST /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1311,
+      "line": 1313,
       "literal": "/cron",
       "symbol": "createCronJob"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2356,
+      "line": 2358,
       "literal": "/deck/agents",
       "symbol": "fetchAgentHealthSnapshot"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2368,
+      "line": 2370,
       "literal": "/deck/agents",
       "symbol": "fetchAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2384,
+      "line": 2386,
       "literal": "/deck/agents",
       "symbol": "updateAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2399,
+      "line": 2401,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2414,
+      "line": 2416,
       "literal": "/deck/agents",
       "symbol": "updateAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2433,
+      "line": 2435,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2467,
+      "line": 2469,
       "literal": "/deck/agents",
       "symbol": "updateAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2488,
+      "line": 2490,
       "literal": "/deck/agents",
       "symbol": "fetchAgentToolPolicyPreview"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2500,
+      "line": 2502,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSystemPromptPreview"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2933,
+      "line": 2947,
       "literal": "/deck/canvas",
       "symbol": "setCanvasBridgeReady"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2949,
+      "line": 2963,
       "literal": "/deck/canvas",
       "symbol": "resolveCanvasEval"
     },
     {
       "endpoint": "POST /api/deck/commands/discover",
-      "file": "deck-go/frontend-new/src/hooks/use-command-discovery.ts",
-      "line": 88,
-      "literal": "/api/deck/commands/discover",
-      "symbol": "discover"
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2575,
+      "literal": "/deck/commands/discover",
+      "symbol": "fetchCommandDiscovery"
     },
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1823,
+      "line": 1825,
       "literal": "/deck/identity",
       "symbol": "linkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1841,
+      "line": 1843,
       "literal": "/deck/identity",
       "symbol": "unlinkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1903,
+      "line": 1905,
       "literal": "/deck/routing",
       "symbol": "validateRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1921,
+      "line": 1923,
       "literal": "/deck/routing",
       "symbol": "addRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1934,
+      "line": 1936,
       "literal": "/deck/routing",
       "symbol": "removeRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1954,
+      "line": 1956,
       "literal": "/deck/routing",
       "symbol": "simulateRouting"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2002,
+      "line": 2004,
       "literal": "/deck/subagents",
       "symbol": "fetchSubagentLineage"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2014,
+      "line": 2016,
       "literal": "/deck/subagents",
       "symbol": "killSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2027,
+      "line": 2029,
       "literal": "/deck/subagents",
       "symbol": "steerSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/tools-effective",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2561,
+      "line": 2563,
       "literal": "/deck/tools-effective",
       "symbol": "fetchEffectiveTools"
     },
     {
       "endpoint": "POST /api/devices/approve",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 654,
+      "line": 656,
       "literal": "/devices/approve",
       "symbol": "approveDeviceRequest"
     },
     {
       "endpoint": "POST /api/devices/reject",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 666,
+      "line": 668,
       "literal": "/devices/reject",
       "symbol": "rejectDeviceRequest"
     },
     {
       "endpoint": "POST /api/devices/remove",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 678,
+      "line": 680,
       "literal": "/devices/remove",
       "symbol": "removeDevice"
     },
     {
       "endpoint": "POST /api/devices/token/revoke",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 702,
+      "line": 704,
       "literal": "/devices/token/revoke",
       "symbol": "revokeDeviceToken"
     },
     {
       "endpoint": "POST /api/devices/token/rotate",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 690,
+      "line": 692,
       "literal": "/devices/token/rotate",
       "symbol": "rotateDeviceToken"
     },
     {
       "endpoint": "POST /api/docs/extract",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1378,
+      "line": 1380,
       "literal": "/docs/extract",
       "symbol": "extractDocs"
     },
     {
       "endpoint": "POST /api/memory/dreams",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1742,
+      "line": 1744,
       "literal": "/memory/dreams",
       "symbol": "runMemoryDreams"
     },
     {
       "endpoint": "POST /api/memory/search",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1711,
+      "line": 1713,
       "literal": "/memory/search",
       "symbol": "res"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1536,
+      "line": 1538,
       "literal": "/nodes",
       "symbol": "describeNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1548,
+      "line": 1550,
       "literal": "/nodes",
       "symbol": "renameNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1583,
+      "line": 1585,
       "literal": "/nodes",
       "symbol": "invokeNodeCommand"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1601,
+      "line": 1603,
       "literal": "/nodes",
       "symbol": "enqueueNodePendingWork"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1616,
+      "line": 1618,
       "literal": "/nodes/pair",
       "symbol": "approveNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1631,
+      "line": 1633,
       "literal": "/nodes/pair",
       "symbol": "requestNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1644,
+      "line": 1646,
       "literal": "/nodes/pair",
       "symbol": "rejectNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1657,
+      "line": 1659,
       "literal": "/nodes/pair",
       "symbol": "verifyNodePairing"
     },
     {
       "endpoint": "POST /api/runtime/endpoint:test",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 766,
+      "line": 768,
       "literal": "/runtime/endpoint:test",
       "symbol": "testEndpoint"
     },
     {
       "endpoint": "POST /api/settings/test-connection",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 622,
+      "line": 624,
       "literal": "/settings/test-connection",
       "symbol": "testSettingsConnection"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1188,
+      "line": 1190,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubBins"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1200,
+      "line": 1202,
       "literal": "/skills/hub",
       "symbol": "searchSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1212,
+      "line": 1214,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubDetail"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1228,
+      "line": 1230,
       "literal": "/skills/hub",
       "symbol": "installSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1245,
+      "line": 1247,
       "literal": "/skills/hub",
       "symbol": "updateSkillHub"
     },
     {
       "endpoint": "POST /api/skills/install",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1175,
+      "line": 1177,
       "literal": "/skills/install",
       "symbol": "installSkill"
     },
     {
       "endpoint": "POST /api/tools/catalog",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2549,
+      "line": 2551,
       "literal": "/tools/catalog",
       "symbol": "fetchToolsCatalog"
     },
     {
       "endpoint": "POST /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1764,
+      "line": 1766,
       "literal": "/usage/budget",
       "symbol": "createBudgetRule"
     },
     {
       "endpoint": "POST /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1463,
+      "line": 1465,
       "literal": "/webhooks",
       "symbol": "createWebhook"
     },
     {
       "endpoint": "PUT /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1112,
+      "line": 1114,
       "literal": "/approvals/policy",
       "symbol": "updateApprovalsPolicy"
     },
     {
       "endpoint": "PUT /api/runtime/endpoint",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 754,
+      "line": 756,
       "literal": "/runtime/endpoint",
       "symbol": "updateEndpoint"
     },
     {
       "endpoint": "PUT /api/settings",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 605,
+      "line": 607,
       "literal": "/settings",
       "symbol": "fetchSettings"
     },
     {
       "endpoint": "PUT /api/settings",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 610,
+      "line": 612,
       "literal": "/settings",
       "symbol": "saveSettings"
     }

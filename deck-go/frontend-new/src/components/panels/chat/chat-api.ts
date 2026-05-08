@@ -19,6 +19,8 @@ import {
   steerChatSession,
   type DeckGoCompactionCheckpoint,
   type DeckGoCompactionListResponse,
+  type DeckGoChatSnapshotResponse,
+  type DeckGoSessionsPreviewResponse,
 } from "@/api";
 import { normalizeGatewayUserDisplayText } from "@/lib/transcript-adapter";
 import type {
@@ -28,7 +30,7 @@ import type {
   SessionPreviewOverlay,
 } from "@/stores/chat-types";
 
-type RawSessionMeta = {
+export type RawSessionMeta = {
   key?: string;
   sessionKey?: string;
   agentId?: string;
@@ -183,7 +185,7 @@ function normalizeSessionDisplayText(value: string | undefined): string | undefi
   return normalizeGatewayUserDisplayText(value) || undefined;
 }
 
-function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): SessionMeta {
+export function normalizeSessionMeta(raw: RawSessionMeta, fallbackAgentId?: string): SessionMeta {
   return {
     key: raw.key ?? raw.sessionKey ?? "",
     agentId: raw.agentId ?? fallbackAgentId ?? "main",
@@ -239,6 +241,12 @@ export async function fetchSessionPreviews(
   }
 
   const data = await fetchSessionPreviewsRequest(keys);
+  return normalizeSessionPreviewOverlays(data);
+}
+
+export function normalizeSessionPreviewOverlays(
+  data: DeckGoSessionsPreviewResponse,
+): Record<string, SessionPreviewOverlay | null> {
   const overlays: Record<string, SessionPreviewOverlay | null> = {};
   for (const preview of data.previews ?? []) {
     const text = buildSessionPreviewText(preview.items);
@@ -259,6 +267,13 @@ export async function fetchChatSnapshot(params: {
   limit?: number;
 }): Promise<ChatSnapshot> {
   const data = await fetchChatSnapshotRequest(params);
+  return normalizeChatSnapshotResponse(data, params);
+}
+
+export function normalizeChatSnapshotResponse(
+  data: DeckGoChatSnapshotResponse,
+  params: { agentId?: string },
+): ChatSnapshot {
   return {
     messages: Array.isArray(data.messages) ? data.messages : [],
     meta: data.session

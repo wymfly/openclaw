@@ -1,4 +1,4 @@
-import type { DeckGoSubagentsLineageResponse } from "../../../api";
+import type { DeckGoSubagentsLineageResponse } from "@/api-types";
 import { Badge, Button } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 

@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider, type NextIntlClientProviderProps } from "../../../i18n/provider";
 import { DocsPanel } from "./DocsPanel";
 
@@ -37,7 +38,13 @@ let root: Root | null = null;
 function renderPanel(locale: NextIntlClientProviderProps["locale"] = "en") {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, createElement(DocsPanel)));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(DocsPanel)),
+      ),
+    );
   });
 }
 
@@ -287,6 +294,7 @@ describe("DocsPanel", () => {
     renderPanel("zh");
 
     await waitFor(() => expect(apiMocks.fetchDocs).toHaveBeenCalledWith());
+    await waitFor(() => expect(container.textContent).toContain("文档就绪"));
 
     expect(container.textContent).toContain("文档就绪");
     expect(container.textContent).toContain("2 份文档");

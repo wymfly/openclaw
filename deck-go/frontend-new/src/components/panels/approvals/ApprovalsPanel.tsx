@@ -7,15 +7,15 @@ import type {
   DeckGoPendingApprovalsResponse,
   DeckGoPluginApprovalEntry,
   DeckGoPluginApprovalsResponse,
-} from "../../../api";
+} from "@/api-types";
 import {
-  fetchApprovalsPolicy,
-  fetchPendingApprovals,
-  fetchPluginApprovals,
-  resolveApproval,
-  resolvePluginApproval,
-  updateApprovalsPolicy,
-} from "../../../api";
+  useApprovalsPolicyQuery,
+  usePendingApprovalsQuery,
+  usePluginApprovalsQuery,
+  useResolveApprovalMutation,
+  useResolvePluginApprovalMutation,
+  useUpdateApprovalsPolicyMutation,
+} from "../../../data/modules/approvals";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
@@ -199,11 +199,13 @@ function recordDecisionLabel(t: ReturnType<typeof useTranslations>, decision: Ap
 export function ApprovalsPanel() {
   const t = useTranslations("approvals");
   const ui = useDeckUI();
-  const [policyResponse, setPolicyResponse] = useState<DeckGoApprovalPolicyResponse | null>(null);
-  const [pendingResponse, setPendingResponse] = useState<DeckGoPendingApprovalsResponse | null>(
-    null,
-  );
-  const [pluginResponse, setPluginResponse] = useState<DeckGoPluginApprovalsResponse | null>(null);
+  const policyQuery = useApprovalsPolicyQuery();
+  const pendingQuery = usePendingApprovalsQuery();
+  const pluginQuery = usePluginApprovalsQuery();
+  const resolveApprovalMutation = useResolveApprovalMutation();
+  const resolvePluginApprovalMutation = useResolvePluginApprovalMutation();
+  const updatePolicyMutation = useUpdateApprovalsPolicyMutation();
+  const [pendingOverlay, setPendingOverlay] = useState<DeckGoPendingApprovalsResponse | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState("");
   const [selectedPluginApprovalId, setSelectedPluginApprovalId] = useState("");
   const [surface, setSurface] = useState<ApprovalSurface>("exec");
@@ -211,7 +213,6 @@ export function ApprovalsPanel() {
   const [query, setQuery] = useState("");
   const [detailTab, setDetailTab] = useState<DetailTab>("overview");
   const [policyOpen, setPolicyOpen] = useState(false);
-  const [loadState, setLoadState] = useState<PanelState>("idle");
   const [actionState, setActionState] = useState<ApprovalDecision | "idle">("idle");
   const [policySaveState, setPolicySaveState] = useState<"idle" | "saving">("idle");
   const [actionResult, setActionResult] = useState<unknown>(null);
@@ -219,7 +220,7 @@ export function ApprovalsPanel() {
   const [policyDraft, setPolicyDraft] = useState("");
   const [newAgentId, setNewAgentId] = useState("");
   const [newAllowlistPath, setNewAllowlistPath] = useState("");
-  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [nowMs, setNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -227,52 +228,53 @@ export function ApprovalsPanel() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const refresh = async (preferredApprovalId?: string, preferredPluginApprovalId?: string) => {
-    setLoadState("loading");
+  useEffect(() => {
+    if (pendingQuery.data) {
+      setPendingOverlay(pendingQuery.data);
+    }
+  }, [pendingQuery.data]);
+
+  const policyResponse = policyQuery.data ?? null;
+  const pendingResponse = pendingOverlay ?? pendingQuery.data ?? null;
+  const pluginResponse = pluginQuery.data ?? null;
+  const queryError = policyQuery.error ?? pendingQuery.error ?? pluginQuery.error;
+  const error =
+    actionError ||
+    (queryError instanceof Error ? queryError.message : queryError ? t("loadFailed") : "");
+  const loadState: PanelState =
+    policyQuery.isLoading || pendingQuery.isLoading || pluginQuery.isLoading
+      ? "loading"
+      : policyResponse || pendingResponse || pluginResponse
+        ? "ready"
+        : "idle";
+
+  const refresh = async () => {
     try {
       const [nextPolicy, nextPending, nextPlugins] = await Promise.all([
-        fetchApprovalsPolicy(),
-        fetchPendingApprovals(),
-        fetchPluginApprovals(),
+        policyQuery.refetch(),
+        pendingQuery.refetch(),
+        pluginQuery.refetch(),
       ]);
-      const nextPolicyDraft = normalizePolicy(nextPolicy);
-      setPolicyResponse(nextPolicy);
-      setPendingResponse(nextPending);
-      setPluginResponse(nextPlugins);
-      setPolicyDraft(
-        formatPolicyDraft(nextPolicyDraft ?? { defaults: {}, agents: {}, allowlist: [] }),
-      );
-      setLoadState("ready");
-      setError("");
-      const approvals = filterActivePendingApprovals(nextPending.pending ?? []);
-      const fallbackId = preferredApprovalId?.trim() || approvals[0]?.id || "";
-      setSelectedApprovalId((current) =>
-        fallbackId && approvals.some((approval) => approval.id === fallbackId)
-          ? fallbackId
-          : current && approvals.some((approval) => approval.id === current)
-            ? current
-            : approvals[0]?.id || "",
-      );
-      const pluginApprovals = normalizePluginApprovals(nextPlugins);
-      const pluginFallbackId = preferredPluginApprovalId?.trim() || pluginApprovals[0]?.id || "";
-      setSelectedPluginApprovalId((current) =>
-        pluginFallbackId && pluginApprovals.some((approval) => approval.id === pluginFallbackId)
-          ? pluginFallbackId
-          : current && pluginApprovals.some((approval) => approval.id === current)
-            ? current
-            : pluginApprovals[0]?.id || "",
-      );
+      const failedResult = [nextPolicy, nextPending, nextPlugins].find((result) => result.error);
+      if (failedResult?.error) {
+        throw failedResult.error;
+      }
+      setPendingOverlay(nextPending.data ?? null);
+      setActionError("");
     } catch (loadError) {
-      setLoadState("idle");
-      setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
+      setActionError(loadError instanceof Error ? loadError.message : t("loadFailed"));
     }
   };
 
   useEffect(() => {
-    void refresh();
-  }, []);
+    const nextPolicyDraft = normalizePolicy(policyResponse);
+    const formatted = formatPolicyDraft(
+      nextPolicyDraft ?? { defaults: {}, agents: {}, allowlist: [] },
+    );
+    setPolicyDraft((current) => (policyOpen && current.trim() ? current : formatted));
+  }, [policyOpen, policyResponse]);
 
-  useApprovalsStream({ setPendingResponse, setSelectedApprovalId });
+  useApprovalsStream({ setPendingResponse: setPendingOverlay, setSelectedApprovalId });
 
   const policy = useMemo(() => normalizePolicy(policyResponse), [policyResponse]);
   const pendingApprovals = useMemo(
@@ -409,7 +411,10 @@ export function ApprovalsPanel() {
     }
     setActionState(decision);
     try {
-      const result = await resolveApproval(selectedApproval.id, decision);
+      const result = await resolveApprovalMutation.mutateAsync({
+        decision,
+        id: selectedApproval.id,
+      });
       setActionResult(result);
       const evidence: DecisionEvidence = {
         id: selectedApproval.id,
@@ -420,10 +425,12 @@ export function ApprovalsPanel() {
         decidedAtMs: Date.now(),
       };
       setRecentDecisionEvidence((current) => [evidence, ...current].slice(0, 12));
-      setError("");
-      await refresh(selectedApproval.id, selectedPluginApprovalId);
+      setActionError("");
+      await refresh();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("approvalActionFailed"));
+      setActionError(
+        actionError instanceof Error ? actionError.message : t("approvalActionFailed"),
+      );
     } finally {
       setActionState("idle");
     }
@@ -435,7 +442,10 @@ export function ApprovalsPanel() {
     }
     setActionState(decision);
     try {
-      const result = await resolvePluginApproval(selectedPluginApproval.id, decision);
+      const result = await resolvePluginApprovalMutation.mutateAsync({
+        decision,
+        id: selectedPluginApproval.id,
+      });
       setActionResult(result);
       const evidence: DecisionEvidence = {
         id: selectedPluginApproval.id,
@@ -449,10 +459,10 @@ export function ApprovalsPanel() {
         decidedAtMs: Date.now(),
       };
       setRecentDecisionEvidence((current) => [evidence, ...current].slice(0, 12));
-      setError("");
-      await refresh(selectedApprovalId, selectedPluginApproval.id);
+      setActionError("");
+      await refresh();
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : t("pluginResolveFailed"));
+      setActionError(actionError instanceof Error ? actionError.message : t("pluginResolveFailed"));
     } finally {
       setActionState("idle");
     }
@@ -473,13 +483,16 @@ export function ApprovalsPanel() {
       if (!normalized) {
         throw new Error(t("policyJsonInvalidShort"));
       }
-      const result = await updateApprovalsPolicy(normalized, policyResponse?.hash);
+      const result = await updatePolicyMutation.mutateAsync({
+        baseHash: policyResponse?.hash,
+        file: normalized,
+      });
       setActionResult(result);
-      setError("");
-      await refresh(selectedApprovalId, selectedPluginApprovalId);
+      setActionError("");
+      await refresh();
       setPolicyOpen(false);
     } catch (policyError) {
-      setError(policyError instanceof Error ? policyError.message : t("policySaveFailed"));
+      setActionError(policyError instanceof Error ? policyError.message : t("policySaveFailed"));
     } finally {
       setPolicySaveState("idle");
     }
@@ -568,11 +581,7 @@ export function ApprovalsPanel() {
           </p>
         </div>
         <div className="approvals-panel__topbar-actions">
-          <button
-            className="approvals-panel__button"
-            type="button"
-            onClick={() => void refresh(selectedApprovalId, selectedPluginApprovalId)}
-          >
+          <button className="approvals-panel__button" type="button" onClick={() => void refresh()}>
             {t("refreshApprovals")}
           </button>
           <button

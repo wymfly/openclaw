@@ -28,14 +28,26 @@ test.describe("sessions mock visual handoff alignment", () => {
     await expect(page.getByText("Inventory ready").first()).toBeVisible();
     await expect(page.getByText("Detail ready").first()).toBeVisible();
     await expect(page.getByText("Main Session").first()).toBeVisible();
-    await expect(page.getByText("Usage and context")).toBeVisible();
-    await expect(page.getByText("Compaction checkpoints")).toBeVisible();
-    await expect(page.getByText("Session actions")).toBeVisible();
+    await expect(page.getByText("Session Inspector")).toBeVisible();
+    await expect(page.getByText("Metadata").first()).toBeVisible();
     await page.waitForTimeout(500);
 
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("sessions-workbench-ready.png"),
+    });
+
+    await page.getByRole("tab", { name: "Usage" }).click();
+    await expect(page.getByText("Usage and context")).toBeVisible();
+    await page.getByRole("tab", { name: "Compaction" }).click();
+    await expect(page.getByText("Compaction checkpoints")).toBeVisible();
+    await page.getByRole("tab", { name: "Actions" }).click();
+    await expect(page.getByText("Session actions")).toBeVisible();
+    await page.waitForTimeout(500);
+
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("sessions-inspector-actions.png"),
     });
 
     await page.getByPlaceholder("search transcript").fill("history");
@@ -47,7 +59,8 @@ test.describe("sessions mock visual handoff alignment", () => {
       path: testInfo.outputPath("sessions-export-state.png"),
     });
 
-    await page.getByRole("button", { name: "Compact session" }).click();
+    await page.getByRole("tab", { name: "Actions" }).click();
+    await page.getByRole("button", { exact: true, name: "Compact session" }).click();
     await expect(page.getByRole("button", { name: "Confirm compact" })).toBeVisible();
     await page.screenshot({
       fullPage: false,

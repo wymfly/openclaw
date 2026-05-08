@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { ChannelsPanel } from "./ChannelsPanel";
 
@@ -38,7 +39,11 @@ let container: HTMLDivElement;
 let root: Root | null = null;
 
 function renderChannelsPanel(locale: "en" | "zh" = "en") {
-  return createElement(DeckIntlProvider, { locale }, createElement(ChannelsPanel));
+  return createElement(
+    DataFabricTestProvider,
+    null,
+    createElement(DeckIntlProvider, { locale }, createElement(ChannelsPanel)),
+  );
 }
 
 function channelsPayload() {

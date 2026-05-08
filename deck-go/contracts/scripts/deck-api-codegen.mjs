@@ -12,6 +12,16 @@ function isExported(node) {
   return Boolean(node.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword));
 }
 
+function stringLiteralValue(node) {
+  if (!node) {
+    return undefined;
+  }
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+    return node.text;
+  }
+  return undefined;
+}
+
 function fieldNameText(name) {
   if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
     return name.text;
@@ -238,6 +248,10 @@ function renderTypeAlias(node, sourceFile) {
   return `type ${name} ${toGoType(type, sourceFile)}`;
 }
 
+function renderConst(declaration) {
+  return `const ${declaration.name} = ${JSON.stringify(declaration.value)}`;
+}
+
 export function parseContractSource(source, fileName = "deck-api.contract.ts") {
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -266,6 +280,23 @@ export function parseContractSource(source, fileName = "deck-api.contract.ts") {
         name: node.name.text,
         node,
       });
+      continue;
+    }
+    if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        if (!ts.isIdentifier(declaration.name)) {
+          continue;
+        }
+        const value = stringLiteralValue(declaration.initializer);
+        if (value == null) {
+          continue;
+        }
+        declarations.push({
+          kind: "const",
+          name: declaration.name.text,
+          value,
+        });
+      }
     }
   }
 
@@ -281,6 +312,9 @@ export function renderGo(source) {
   const goBodies = contract.declarations.map((declaration) => {
     if (declaration.kind === "interface") {
       return renderInterface(declaration.node, contract.sourceFile);
+    }
+    if (declaration.kind === "const") {
+      return renderConst(declaration);
     }
     return renderTypeAlias(declaration.node, contract.sourceFile);
   });

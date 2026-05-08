@@ -47,6 +47,7 @@ docs/
 │   ├── stack-decisions.md          · ⭐ 当前技术栈决策（解耦自协议）
 │   ├── current-state.md            · 历史快照，非代码真相
 │   ├── contract-chain-guide.md     · Gateway → deck-go → frontend-new 契约链条导读
+│   ├── e2e-stack-operations.md      · mock/real Gateway 调试栈与 Playwright E2E 矩阵
 │   ├── module-convergence-workflow.md · 模块收敛开发流程：Explore → Brainstorming → OpenSpec → mock/real E2E
 │   └── design-system-implementation-plan.md
 ├── contract-chain-audit.matrix.json · 契约链审计矩阵源码，机器可校验
@@ -104,6 +105,7 @@ docs/
 | [`project/stack-decisions.md`](./project/stack-decisions.md) | ⭐ 当前技术栈决策（locked / defaulting / pending）。协议层不绑库——具体库选择记在这里。任何 agent 想知道"现在用什么 routing / state / i18n"先读这份。 |
 | [`project/current-state.md`](./project/current-state.md) | 历史快照，非代码真相。实际状态以源码、契约源文件、生成产物和测试结果为准；不要用它替代 contract inventory 或当前代码审计。 |
 | [`project/contract-chain-guide.md`](./project/contract-chain-guide.md) | Gateway → deck-go Go BFF → contracts/source → generated artifacts → frontend-new facade → E2E 的契约链条导读。给初级程序员阅读，包含架构图、数据流图、契约类型和审计问题清单。 |
+| [`project/e2e-stack-operations.md`](./project/e2e-stack-operations.md) | mock Gateway 与真实 OpenClaw Gateway 的调试栈、env 文件、状态目录、Make targets 和 Playwright E2E 命名矩阵。启动或排查 E2E 前先看这份。 |
 | [`project/module-convergence-workflow.md`](./project/module-convergence-workflow.md) | 模块收敛开发流程。规定先 Explore 事实，再和用户 Brainstorming 产品/方案细节，输出方案设计后再写 OpenSpec，并用 mock + real E2E 双层证据验收。 |
 | [`project/design-system-implementation-plan.md`](./project/design-system-implementation-plan.md) | deck-go design-system 工程化方案——建 molecules、review canvas、README、收敛旧 token。可直接喂给 Claude Code 在仓库本地执行。 |
 | [`project/codex-prototype-quality-assessment.md`](./project/codex-prototype-quality-assessment.md) | Codex agents 原型质量评估——问题定位 + 正确做法指南 + 质量检查清单。任何 agent 做 handoff 原型前必读。 |

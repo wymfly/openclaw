@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { ApprovalsPanel } from "./ApprovalsPanel";
 
@@ -22,6 +23,7 @@ const deckUIMocks = vi.hoisted(() => ({
   ui: { setActivePanel: vi.fn() },
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 vi.mock("../../../deck-ui/panel-navigation", () => ({
   navigateToAgent: deckUIMocks.navigateToAgent,
@@ -44,7 +46,13 @@ const baseTime = Date.now();
 
 function renderApprovalsPanel() {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(ApprovalsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale: "en" }, createElement(ApprovalsPanel)),
+    ),
+  );
 }
 
 function policyPayload() {
@@ -187,10 +195,32 @@ describe("ApprovalsPanel", () => {
     expect(container.textContent).toContain("Recent decisions");
     expect(container.querySelector('input[aria-label="search approvals"]')).toBeTruthy();
 
-    const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.className.includes("is-selected"),
-    );
-    expect(selectedButton?.textContent).toContain("approval-main");
+    await waitFor(() => {
+      const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
+        button.className.includes("is-selected"),
+      );
+      expect(selectedButton?.textContent).toContain("approval-main");
+    });
+  });
+
+  it("preserves cached approval rows when manual refresh reports an error", async () => {
+    await act(async () => {
+      renderApprovalsPanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));
+
+    apiMocks.fetchPendingApprovals.mockRejectedValueOnce(new Error("pending approvals down"));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Refresh approvals")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("pending approvals down"));
+    expect(container.textContent).toContain("pnpm test");
+    expect(container.textContent).toContain("pnpm build");
   });
 
   it("runs approval decisions for the selected request and preserves preferred selection", async () => {

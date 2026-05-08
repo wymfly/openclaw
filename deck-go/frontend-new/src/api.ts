@@ -1,4 +1,5 @@
 import type * as DeckApi from "../../contracts/generated/ts/deck-api.generated";
+import type { DeckCommandsDiscoverResult } from "../../contracts/generated/ts/gateway/protocol";
 import type {
   DeckGoActivityEvent,
   DeckGoActivityResponse,
@@ -480,6 +481,7 @@ import { deckFetch, deckStream, type DeckEvent } from "./lib/deck-client";
 import { createDeckGatewayClient } from "./lib/gateway-client";
 import { buildListQueryString, withListQuery } from "./lib/list-query-contract";
 import { acknowledgeMutationResponse } from "./lib/mutation-evidence";
+import { DEFAULT_RUNTIME_ID } from "./lib/runtime-id";
 import type { A2UIState } from "./stores/chat-types";
 
 export function isBundledRuntimeStatus(
@@ -965,7 +967,9 @@ function normalizeGatewayAgentSummary(
   };
 }
 
-function normalizeAgentDetailResponse(detail: DeckGoAgentDetailResponse): DeckGoAgentDetailResponse {
+function normalizeAgentDetailResponse(
+  detail: DeckGoAgentDetailResponse,
+): DeckGoAgentDetailResponse {
   const isMainProtected = detail.isMainProtected ?? detail.id === "main";
   const isConfiguredDefault = detail.isConfiguredDefault ?? detail.isDefault;
   return {
@@ -977,17 +981,15 @@ function normalizeAgentDetailResponse(detail: DeckGoAgentDetailResponse): DeckGo
       (isMainProtected
         ? ["main is the protected system/fallback agent and cannot be deleted"]
         : undefined),
-    availableActions:
-      detail.availableActions ??
-      {
-        canEditIdentity: true,
-        canEditRuntime: true,
-        canDelete: !isMainProtected,
-        canChangeDefault: false,
-        deleteDisabledReason: isMainProtected
-          ? "main is the protected system/fallback agent"
-          : undefined,
-      },
+    availableActions: detail.availableActions ?? {
+      canEditIdentity: true,
+      canEditRuntime: true,
+      canDelete: !isMainProtected,
+      canChangeDefault: false,
+      deleteDisabledReason: isMainProtected
+        ? "main is the protected system/fallback agent"
+        : undefined,
+    },
     impact: detail.impact ?? {
       bindingCount: detail.bindingCount,
       sessionCount: detail.sessionCount,
@@ -1021,7 +1023,7 @@ export async function submitGatewayBatch(
   request: DeckGoGatewayBatchRequest,
   options?: { runtimeId?: string },
 ) {
-  const runtimeId = options?.runtimeId?.trim() || "rt_local";
+  const runtimeId = options?.runtimeId?.trim() || DEFAULT_RUNTIME_ID;
   return fetchDeckJson<DeckGoGatewayBatchResponse>(
     `/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/batch`,
     {
@@ -1038,7 +1040,7 @@ export async function invokeGatewayMethod(
   params: Record<string, unknown>,
   options?: { runtimeId?: string; timeoutMs?: number },
 ): Promise<DeckGoGatewayInvokeResult> {
-  const runtimeId = options?.runtimeId?.trim() || "rt_local";
+  const runtimeId = options?.runtimeId?.trim() || DEFAULT_RUNTIME_ID;
   const response = await deckFetch(
     buildApiPath(`/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/rpc`),
     {
@@ -2266,7 +2268,7 @@ export async function fetchModelsConfig() {
 }
 
 export async function fetchRuntimeConfiguredModels(
-  runtimeId = "rt_local",
+  runtimeId = DEFAULT_RUNTIME_ID,
 ): Promise<DeckGoRuntimeConfiguredModelsResponse> {
   const payload = await createDeckGatewayClient({ runtimeId }).models.configured({});
   const responsePayload: DeckGoRuntimeConfiguredModelsResponse["payload"] = { ...payload };
@@ -2277,7 +2279,7 @@ export async function fetchRuntimeConfiguredModels(
 }
 
 export async function fetchRuntimeModelAuthOverview(
-  runtimeId = "rt_local",
+  runtimeId = DEFAULT_RUNTIME_ID,
 ): Promise<DeckGoModelAuthOverviewResponse> {
   const payload = await createDeckGatewayClient({ runtimeId }).deck.auth.overview({});
   const responsePayload: DeckGoModelAuthOverviewResponse["payload"] = { ...payload };
@@ -2289,7 +2291,7 @@ export async function fetchRuntimeModelAuthOverview(
 }
 
 export async function fetchRuntimeModelCatalogProviders(
-  runtimeId = "rt_local",
+  runtimeId = DEFAULT_RUNTIME_ID,
 ): Promise<DeckGoModelCatalogProvidersResponse> {
   const payload = await createDeckGatewayClient({ runtimeId }).models.catalog.providers({});
   const responsePayload: DeckGoModelCatalogProvidersResponse["payload"] = { ...payload };
@@ -2302,7 +2304,7 @@ export async function fetchRuntimeModelCatalogProviders(
 
 export async function probeRuntimeModelAuth(
   provider: string,
-  runtimeId = "rt_local",
+  runtimeId = DEFAULT_RUNTIME_ID,
 ): Promise<DeckGoModelProbeResponse> {
   const payload = await createDeckGatewayClient({ runtimeId }).deck.auth.probe({ provider });
   const responsePayload: DeckGoModelProbeResponse["payload"] = { ...payload };
@@ -2332,7 +2334,7 @@ export async function lookupConfigPath(path: string) {
 }
 
 export async function fetchAgentsList(): Promise<DeckGoAgentsListResponse> {
-  const payload = await createDeckGatewayClient({ runtimeId: "rt_local" }).agents.list({});
+  const payload = await createDeckGatewayClient({ runtimeId: DEFAULT_RUNTIME_ID }).agents.list({});
   return {
     agents: payload.agents.map((agent) =>
       normalizeGatewayAgentSummary(agent, payload.defaultId, payload.mainKey),
@@ -2565,6 +2567,18 @@ export async function fetchEffectiveTools(params: { agentId: string; sessionKey:
       body: JSON.stringify(params),
     },
     "effective tools fetch failed",
+  );
+}
+
+export async function fetchCommandDiscovery(agentId?: string): Promise<DeckCommandsDiscoverResult> {
+  return fetchDeckJson<DeckCommandsDiscoverResult>(
+    "/deck/commands/discover",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(agentId ? { agentId } : {}),
+    },
+    "command discovery failed",
   );
 }
 

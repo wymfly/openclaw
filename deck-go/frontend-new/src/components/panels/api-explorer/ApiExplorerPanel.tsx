@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DeckGoGatewayDescribeResponse, DeckGoGatewayInvokeResult } from "../../../api";
-import { fetchGatewayDescribe, invokeGatewayMethod } from "../../../api";
+import type { DeckGoGatewayInvokeResult } from "../../../api";
+import { invokeGatewayMethod } from "../../../api";
+import { useGatewayDescribeQuery } from "../../../data/modules/gateway";
 import { useTranslations } from "../../../i18n/provider";
+import { DEFAULT_RUNTIME_ID } from "../../../lib/runtime-id";
 import {
   GatewayNotConfiguredEmptyState,
   gatewayNotConfiguredValue,
@@ -43,7 +45,6 @@ type MethodDomainEntry = [domain: string, items: MethodInfo[]];
 type SchemaRecord = Record<string, unknown>;
 
 const MAX_SCHEMA_DEPTH = 4;
-const DEFAULT_RUNTIME_ID = "rt_local";
 
 function groupMethodsByDomain(methods: MethodInfo[]) {
   const groups: Record<string, MethodInfo[]> = {};
@@ -199,8 +200,7 @@ function ApiMetric(props: { label: string; value: string | number; tone?: "posit
 
 export function ApiExplorerPanel() {
   const t = useTranslations("apiExplorer");
-  const [payload, setPayload] = useState<DeckGoGatewayDescribeResponse | null>(null);
-  const [loadState, setLoadState] = useState<PanelState>("idle");
+  const describeQuery = useGatewayDescribeQuery();
   const [catalogTab, setCatalogTab] = useState<ExplorerTab>("methods");
   const [builderTab, setBuilderTab] = useState<BuilderTab>("params");
   const [responseTab, setResponseTab] = useState<ResponseTab>("body");
@@ -216,41 +216,27 @@ export function ApiExplorerPanel() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(true);
   const [copiedKey, setCopiedKey] = useState("");
-  const [reloadNonce, setReloadNonce] = useState(0);
-  const [error, setError] = useState("");
   const copyTimerRef = useRef<number | null>(null);
   const skipNextSeedRef = useRef(false);
 
+  const payload = describeQuery.data ?? null;
+  const loadState: PanelState = describeQuery.isFetching ? "loading" : payload ? "ready" : "idle";
+  const error = describeQuery.error
+    ? gatewayNotConfiguredValue(describeQuery.error, t("failedLoadDescribe"))
+    : "";
+
   useEffect(() => {
-    let cancelled = false;
-    setLoadState("loading");
-    void fetchGatewayDescribe()
-      .then((next) => {
-        if (cancelled) {
-          return;
-        }
-        setPayload(next);
-        setLoadState("ready");
-        setError("");
-        const firstMethod =
-          Object.keys(next.methods ?? {})
-            .slice()
-            .toSorted((left, right) => left.localeCompare(right))[0] ?? "";
-        setSelectedMethodName((current) =>
-          current && next.methods && current in next.methods ? current : firstMethod,
-        );
-      })
-      .catch((loadError) => {
-        if (cancelled) {
-          return;
-        }
-        setLoadState("idle");
-        setError(gatewayNotConfiguredValue(loadError, t("failedLoadDescribe")));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [reloadNonce, t]);
+    if (!payload) {
+      return;
+    }
+    const firstMethod =
+      Object.keys(payload.methods ?? {})
+        .slice()
+        .toSorted((left, right) => left.localeCompare(right))[0] ?? "";
+    setSelectedMethodName((current) =>
+      current && payload.methods && current in payload.methods ? current : firstMethod,
+    );
+  }, [payload]);
 
   useEffect(
     () => () => {
@@ -360,7 +346,10 @@ export function ApiExplorerPanel() {
     if (!selectedMethod || running || !runAllowed) {
       return;
     }
-    let params = draft;
+    let params =
+      bodyMode === "form" && Object.keys(draft).length === 0
+        ? buildDraftFromSchema(selectedMethod.params)
+        : draft;
     if (bodyMode === "raw") {
       try {
         params = parseJsonObject(rawBody);
@@ -441,7 +430,7 @@ export function ApiExplorerPanel() {
             className="api-explorer-panel__button"
             disabled={loadState === "loading"}
             type="button"
-            onClick={() => setReloadNonce((current) => current + 1)}
+            onClick={() => void describeQuery.refetch()}
           >
             {loadState === "loading" ? t("loadingDescribe") : t("refreshDescribe")}
           </button>

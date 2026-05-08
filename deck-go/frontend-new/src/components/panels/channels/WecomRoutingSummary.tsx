@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { fetchRoutingBindings, type DeckGoRoutingBinding } from "../../../api";
+import { useMemo } from "react";
+import type { DeckGoRoutingBinding } from "../../../api";
+import { useRoutingBindingsQuery } from "../../../data/modules/routing";
 import { navigateToRouting } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
@@ -13,37 +14,22 @@ function bindingTargetsAccount(binding: DeckGoRoutingBinding, accountId: string)
 export function WecomRoutingSummary(props: { channelId: string; accountId: string }) {
   const t = useTranslations("channels");
   const ui = useDeckUI();
-  const [loadState, setLoadState] = useState<PanelState>("idle");
-  const [bindings, setBindings] = useState<DeckGoRoutingBinding[]>([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-    setLoadState("loading");
-    void fetchRoutingBindings({
-      channel: props.channelId,
-      accountId: props.accountId,
-    })
-      .then((next) => {
-        if (!mounted) {
-          return;
-        }
-        setBindings(next.bindings ?? []);
-        setError("");
-        setLoadState("ready");
-      })
-      .catch((loadError) => {
-        if (!mounted) {
-          return;
-        }
-        setBindings([]);
-        setError(loadError instanceof Error ? loadError.message : t("routingBindingsFetchFailed"));
-        setLoadState("idle");
-      });
-    return () => {
-      mounted = false;
-    };
-  }, [props.accountId, props.channelId, t]);
+  const routingQuery = useRoutingBindingsQuery({
+    channel: props.channelId,
+    accountId: props.accountId,
+  });
+  const loadState: PanelState = routingQuery.isLoading
+    ? "loading"
+    : routingQuery.data
+      ? "ready"
+      : "idle";
+  const bindings = routingQuery.data?.bindings ?? [];
+  const error =
+    routingQuery.error instanceof Error
+      ? routingQuery.error.message
+      : routingQuery.error
+        ? t("routingBindingsFetchFailed")
+        : "";
 
   const bindingCount = useMemo(
     () =>

@@ -1,5 +1,10 @@
 import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useDeleteSessionMutation,
+  usePatchSessionMutation,
+  useSessionPreviewsQuery,
+} from "@/data/modules/sessions";
 import { HashIcon, PanelCollapseIcon, PanelExpandIcon, PlusIcon, TrashIcon } from "@/deck-ui/icons";
 import { Button } from "@/design-system/atoms/Button";
 import { IconButton } from "@/design-system/atoms/IconButton";
@@ -10,7 +15,7 @@ import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey } from "@/stores/chat-hooks";
 import type { SessionMeta } from "@/stores/chat-types";
 import { AgentTabs } from "./AgentTabs";
-import { deleteChatSession, fetchSessionPreviews, patchSession } from "./chat-api";
+import { normalizeSessionPreviewOverlays } from "./chat-api";
 import "./session-sidebar.css";
 
 const COLLAPSED_AGENT_LIMIT = 3;
@@ -81,55 +86,51 @@ export function SessionSidebar(
   const setActiveSession = useChatStore((state) => state.setActiveSession);
   const setActiveAgent = useChatStore((state) => state.setActiveAgent);
   const agents = useAgentsStore((state) => state.agents);
+  const deleteSessionMutation = useDeleteSessionMutation();
+  const patchSessionMutation = usePatchSessionMutation();
   const activeSessionKey = props.activeSessionKey ?? storeActiveSessionKey;
   const activeAgentId = props.activeAgentId ?? storeActiveAgentId;
   const sessionMetas = props.sessionMetas ?? storeSessionMetas;
   const sessionPreviewOverlays = props.sessionPreviewOverlays ?? storeSessionPreviewOverlays;
   const isControlled = props.sessionMetas !== undefined;
+  const previewKeys = useMemo(() => sessionMetas.map((session) => session.key), [sessionMetas]);
+  const previewsQuery = useSessionPreviewsQuery(previewKeys, {
+    enabled: !isControlled && previewKeys.length > 0,
+  });
 
   useEffect(() => {
     if (isControlled) {
       return undefined;
     }
-    const keys = sessionMetas.map((session) => session.key);
-    if (keys.length === 0) {
+    if (previewKeys.length === 0) {
+      return undefined;
+    }
+    if (previewsQuery.data) {
+      const overlays = normalizeSessionPreviewOverlays(previewsQuery.data);
+      const store = useChatStore.getState();
+      for (const key of previewKeys) {
+        const overlay = overlays[key];
+        if (overlay) {
+          store.mergeSessionPreviewOverlay(key, overlay);
+          continue;
+        }
+        if (store.sessionPreviewOverlays[key]?.source === "remote") {
+          store.clearSessionPreviewOverlay(key);
+        }
+      }
       return undefined;
     }
 
-    let cancelled = false;
-    void fetchSessionPreviews(keys)
-      .then((overlays) => {
-        if (cancelled) {
-          return;
+    if (previewsQuery.isError) {
+      const store = useChatStore.getState();
+      for (const key of previewKeys) {
+        if (store.sessionPreviewOverlays[key]?.source === "remote") {
+          store.clearSessionPreviewOverlay(key);
         }
-        const store = useChatStore.getState();
-        for (const key of keys) {
-          const overlay = overlays[key];
-          if (overlay) {
-            store.mergeSessionPreviewOverlay(key, overlay);
-            continue;
-          }
-          if (store.sessionPreviewOverlays[key]?.source === "remote") {
-            store.clearSessionPreviewOverlay(key);
-          }
-        }
-      })
-      .catch(() => {
-        if (cancelled) {
-          return;
-        }
-        const store = useChatStore.getState();
-        for (const key of keys) {
-          if (store.sessionPreviewOverlays[key]?.source === "remote") {
-            store.clearSessionPreviewOverlay(key);
-          }
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isControlled, sessionMetas]);
+      }
+    }
+    return undefined;
+  }, [isControlled, previewKeys, previewsQuery.data, previewsQuery.isError]);
 
   const handleNew = () => {
     if (props.onCreateSession) {
@@ -155,7 +156,10 @@ export function SessionSidebar(
       return;
     }
     try {
-      const result = await deleteChatSession(deleteTarget, activeAgentId);
+      const result = await deleteSessionMutation.mutateAsync({
+        agentId: activeAgentId ?? undefined,
+        sessionKey: deleteTarget,
+      });
       if (result.ok === false) {
         return;
       }
@@ -192,14 +196,22 @@ export function SessionSidebar(
     if (trimmed === current) {
       return;
     }
-    const ok = await patchSession(session.key, { label: trimmed });
-    if (ok) {
+    try {
+      const result = await patchSessionMutation.mutateAsync({
+        label: trimmed,
+        sessionKey: session.key,
+      });
+      if (result.ok === false) {
+        return;
+      }
       useChatStore.setState((state) => {
         const metas = state.sessionMetas.map((entry) =>
           entry.key === session.key ? { ...entry, title: trimmed } : entry,
         );
         return { sessionMetas: metas, sessionMeta: metas };
       });
+    } catch {
+      // Keep the existing title if the backend rejects the rename.
     }
   };
 

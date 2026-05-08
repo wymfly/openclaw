@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import type {
   DeckGoActivityEvent,
@@ -9,15 +10,16 @@ import type {
   DeckGoRoutingSimulationTier,
   DeckGoRoutingValidateResponse,
 } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  addRoutingBinding,
-  fetchActivityEvents,
-  fetchRoutingBindings,
-  patchRoutingDmScope,
-  removeRoutingBinding,
-  simulateRouting,
-  validateRoutingBinding,
-} from "../../../api";
+  routingActivityQueryOptions,
+  routingBindingsQueryOptions,
+  useAddRoutingBindingMutation,
+  usePatchRoutingDmScopeMutation,
+  useRemoveRoutingBindingMutation,
+  useSimulateRoutingMutation,
+  useValidateRoutingBindingMutation,
+} from "../../../data/modules/routing";
 import {
   navigateToAgent,
   navigateToChannel,
@@ -346,6 +348,13 @@ export function RoutingPanel() {
   const t = useTranslations("routing");
   const tc = useTranslations("common");
   const ui = useDeckUI();
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const addRoutingBindingMutation = useAddRoutingBindingMutation();
+  const removeRoutingBindingMutation = useRemoveRoutingBindingMutation();
+  const patchRoutingDmScopeMutation = usePatchRoutingDmScopeMutation();
+  const simulateRoutingMutation = useSimulateRoutingMutation();
+  const validateRoutingBindingMutation = useValidateRoutingBindingMutation();
   const initialSimulationDraft = useMemo(() => buildInitialSimulationDraft(), []);
   const [filters, setFilters] = useState(buildInitialFilters);
   const [bindingDraft, setBindingDraft] = useState(DEFAULT_BINDING_DRAFT);
@@ -379,7 +388,10 @@ export function RoutingPanel() {
   const refresh = async (preferredBindingId?: string) => {
     setLoadState("loading");
     try {
-      const next = await fetchRoutingBindings(filters);
+      const next = await queryClient.fetchQuery({
+        ...routingBindingsQueryOptions(bff, filters),
+        staleTime: 0,
+      });
       const nextBindings = next.bindings ?? [];
       setBindings(nextBindings);
       setDefaultAgentId(next.defaultAgentId || "");
@@ -405,7 +417,10 @@ export function RoutingPanel() {
   const loadRoutingActivity = async () => {
     setRoutingActivityError("");
     try {
-      const next = await fetchActivityEvents(20);
+      const next = await queryClient.fetchQuery({
+        ...routingActivityQueryOptions(bff, 20),
+        staleTime: 0,
+      });
       setRoutingActivityEvents(
         (next.events ?? [])
           .filter(
@@ -468,7 +483,7 @@ export function RoutingPanel() {
     setActionState("simulating");
     try {
       const memberRoleIds = parseCommaList(simulationDraft.memberRoleIds);
-      const result = await simulateRouting({
+      const result = await simulateRoutingMutation.mutateAsync({
         channel: simulationDraft.channel.trim(),
         accountId: simulationDraft.accountId.trim() || undefined,
         peer:
@@ -518,7 +533,7 @@ export function RoutingPanel() {
     }
     setActionState("validating");
     try {
-      const result = await validateRoutingBinding({
+      const result = await validateRoutingBindingMutation.mutateAsync({
         agentId: bindingDraft.agentId.trim(),
         match: buildRoutingMatch(bindingDraft),
       });
@@ -557,7 +572,7 @@ export function RoutingPanel() {
   const executeAddBinding = async (draft: RoutingBindingDraft, baseHash: string) => {
     setActionState("adding");
     try {
-      const result = await addRoutingBinding({
+      const result = await addRoutingBindingMutation.mutateAsync({
         agentId: draft.agentId.trim(),
         match: buildRoutingMatch(draft),
         baseHash,
@@ -598,7 +613,7 @@ export function RoutingPanel() {
   const executeRemoveBinding = async (binding: DeckGoRoutingBinding, baseHash: string) => {
     setActionState("removing");
     try {
-      const result = await removeRoutingBinding({
+      const result = await removeRoutingBindingMutation.mutateAsync({
         id: binding.id,
         baseHash,
       });
@@ -652,11 +667,11 @@ export function RoutingPanel() {
     }
     setActionState("reordering");
     try {
-      const removeResult = await removeRoutingBinding({
+      const removeResult = await removeRoutingBindingMutation.mutateAsync({
         id: binding.id,
         baseHash,
       });
-      const addResult = await addRoutingBinding({
+      const addResult = await addRoutingBindingMutation.mutateAsync({
         agentId: binding.agentId,
         match: binding.match,
         baseHash: removeResult.configHash,
@@ -701,7 +716,10 @@ export function RoutingPanel() {
   const executePatchDmScope = async (nextScope: string, baseHash: string) => {
     setActionState("scope");
     try {
-      const result = await patchRoutingDmScope(nextScope, baseHash);
+      const result = await patchRoutingDmScopeMutation.mutateAsync({
+        baseHash,
+        scope: nextScope,
+      });
       setScopeResult(t("dmScopeUpdated", { scope: nextScope }));
       setDmScope(nextScope);
       setConfigHash(result.hash || result.baseHash || baseHash);

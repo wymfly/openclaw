@@ -1,6 +1,4 @@
 import {
-  fetchApprovalsPolicy,
-  fetchPendingApprovals,
   resolveApproval as resolveApprovalRequest,
   type DeckGoApprovalPolicy,
   type DeckGoApprovalPolicyDefaults,
@@ -33,8 +31,6 @@ export interface ApprovalsState {
   loading: boolean;
   error: string | null;
 
-  fetchPolicy: () => Promise<void>;
-  fetchPending: () => Promise<void>;
   resolveApproval: (id: string, decision: ApprovalDecision) => Promise<boolean>;
   addPending: (approval: PendingApproval) => void;
   removePending: (id: string) => void;
@@ -46,38 +42,6 @@ export const useApprovalsStore = createLocalStore<ApprovalsState>((set) => ({
   policyHash: null,
   loading: false,
   error: null,
-
-  fetchPolicy: async () => {
-    set({ loading: true, error: null });
-    try {
-      const data = await fetchApprovalsPolicy();
-      const file = data.file ?? {};
-      set({
-        policy: {
-          defaults: file.defaults ?? {},
-          agents: file.agents ?? {},
-          allowlist: file.allowlist ?? [],
-        },
-        policyHash: data.hash ?? null,
-        loading: false,
-      });
-    } catch (error) {
-      set({
-        error: error instanceof Error ? error.message : "Failed to fetch policy",
-        loading: false,
-      });
-    }
-  },
-
-  fetchPending: async () => {
-    try {
-      const data = await fetchPendingApprovals();
-      set({ pending: filterActivePendingApprovals(data.pending ?? []) });
-    } catch {
-      // Pending approvals are opportunistic UI state; live stream events can
-      // still populate the store if this poll fails.
-    }
-  },
 
   resolveApproval: async (id, decision) => {
     try {

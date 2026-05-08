@@ -262,9 +262,14 @@ test.describe("sessions real deck-go BFF contract chain", () => {
         compact: "Compact session",
         confirmCompact: "Confirm compact",
         expectedTitle: "Sessions",
+        inspectorTitle: "Session Inspector",
         locale: "en" as const,
         navLabel: "Sessions",
         searchPlaceholder: "title, key, preview",
+        tabs: {
+          actions: "Actions",
+          usage: "Usage",
+        },
         transcriptPlaceholder: "search transcript",
         usageContext: "Usage and context",
         theme: "dark" as const,
@@ -274,9 +279,14 @@ test.describe("sessions real deck-go BFF contract chain", () => {
         compact: "压缩会话",
         confirmCompact: "确认压缩",
         expectedTitle: "会话",
+        inspectorTitle: "会话检查器",
         locale: "zh" as const,
         navLabel: "会话",
         searchPlaceholder: "标题、Key、预览",
+        tabs: {
+          actions: "操作",
+          usage: "用量",
+        },
         transcriptPlaceholder: "搜索对话记录",
         usageContext: "用量与上下文",
         theme: "light" as const,
@@ -321,16 +331,19 @@ test.describe("sessions real deck-go BFF contract chain", () => {
           await expect(
             panel.getByRole("heading", { exact: true, name: variant.expectedTitle }),
           ).toBeVisible();
-          await expect(panel.getByText(variant.actionsTitle).first()).toBeVisible();
+          await expect(panel.getByText(variant.inspectorTitle)).toBeVisible();
 
           await panel.getByPlaceholder(variant.searchPlaceholder).fill(fixture.runId);
           await expect(panel.getByText(fixture.label).first()).toBeVisible({ timeout: 20_000 });
           await panel.getByText(fixture.label).first().click();
           await expect(panel.getByText(fixture.key).first()).toBeVisible();
+          await panel.getByRole("tab", { name: variant.tabs.usage }).click();
           await expect(panel.getByText(variant.usageContext).first()).toBeVisible();
 
           await panel.getByPlaceholder(variant.transcriptPlaceholder).fill(fixture.runId);
-          await panel.getByRole("button", { name: variant.compact }).click();
+          await panel.getByRole("tab", { name: variant.tabs.actions }).click();
+          await expect(panel.getByText(variant.actionsTitle).first()).toBeVisible();
+          await panel.getByRole("button", { exact: true, name: variant.compact }).click();
           await expect(panel.getByRole("button", { name: variant.confirmCompact })).toBeVisible();
 
           await expect.poll(() => unexpected.slice()).toEqual([]);

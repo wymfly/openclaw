@@ -1,13 +1,15 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import type { DeckGoWebhook, DeckGoWebhookDelivery } from "../../../api";
+import type { DeckGoWebhook, DeckGoWebhookDelivery } from "@/api-types";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  createWebhook,
-  deleteWebhook,
-  fetchWebhookDeliveries,
-  fetchWebhooks,
-  testWebhook,
-  updateWebhook,
-} from "../../../api";
+  useCreateWebhookMutation,
+  useDeleteWebhookMutation,
+  useTestWebhookMutation,
+  useUpdateWebhookMutation,
+  webhookDeliveriesQueryOptions,
+  webhooksListQueryOptions,
+} from "../../../data/modules/webhooks";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 import {
@@ -102,6 +104,12 @@ function metricValue(value: number | string | null | undefined, fallback: string
 
 export function WebhooksPanel() {
   const t = useTranslations("webhooks");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const createWebhookMutation = useCreateWebhookMutation();
+  const updateWebhookMutation = useUpdateWebhookMutation();
+  const deleteWebhookMutation = useDeleteWebhookMutation();
+  const testWebhookMutation = useTestWebhookMutation();
   const [webhooks, setWebhooks] = useState<DeckGoWebhook[]>([]);
   const [deliveries, setDeliveries] = useState<DeckGoWebhookDelivery[]>([]);
   const [selectedWebhookId, setSelectedWebhookId] = useState("");
@@ -129,14 +137,20 @@ export function WebhooksPanel() {
       setDeliveries([]);
       return;
     }
-    const nextDeliveries = await fetchWebhookDeliveries(webhookId);
+    const nextDeliveries = await queryClient.fetchQuery({
+      ...webhookDeliveriesQueryOptions(bff, webhookId),
+      staleTime: 0,
+    });
     setDeliveries(nextDeliveries.deliveries ?? []);
   };
 
   const refresh = async (preferredWebhookId?: string) => {
     setLoadState("loading");
     try {
-      const next = await fetchWebhooks();
+      const next = await queryClient.fetchQuery({
+        ...webhooksListQueryOptions(bff),
+        staleTime: 0,
+      });
       const nextWebhooks = next.webhooks ?? [];
       setWebhooks(nextWebhooks);
       setLoadState("ready");
@@ -171,7 +185,7 @@ export function WebhooksPanel() {
     void loadDeliveries(selectedWebhookId).catch((loadError) => {
       setError(loadError instanceof Error ? loadError.message : t("deliveriesLoadFailed"));
     });
-  }, [selectedWebhookId]);
+  }, [bff, queryClient, selectedWebhookId, t]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -259,8 +273,8 @@ export function WebhooksPanel() {
     try {
       const input = webhookInputFromDraft(draft);
       const result = savingExisting
-        ? await updateWebhook(editingWebhook.id, input)
-        : await createWebhook(input);
+        ? await updateWebhookMutation.mutateAsync({ id: editingWebhook.id, input })
+        : await createWebhookMutation.mutateAsync(input);
       setActionResult(safeWebhookPayload(result));
       setError("");
       setBuilderOpen(false);
@@ -286,7 +300,7 @@ export function WebhooksPanel() {
     }
     setActionState("testing");
     try {
-      const result = await testWebhook(selectedWebhook.id);
+      const result = await testWebhookMutation.mutateAsync(selectedWebhook.id);
       setActionResult(result);
       setError("");
       await refresh(selectedWebhook.id);
@@ -304,7 +318,7 @@ export function WebhooksPanel() {
     }
     setActionState("deleting");
     try {
-      const result = await deleteWebhook(confirmingDelete.id);
+      const result = await deleteWebhookMutation.mutateAsync(confirmingDelete.id);
       setActionResult(result);
       setError("");
       setConfirmingDelete(null);

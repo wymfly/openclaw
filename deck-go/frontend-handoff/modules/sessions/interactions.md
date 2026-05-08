@@ -8,14 +8,19 @@
 - Search/type/time filters update local filter state and reload inventory where
   the API wrapper currently supports query params.
 - Inventory row click selects the session and loads detail/history.
+- Inspector tabs switch visible secondary sections only; they do not trigger
+  their own data fetching, clear transcript cache, or change selection.
 - Parent/child relation buttons select the related session key.
 - Open Subagents calls `navigateToPanel(ui, "subagents")`.
 - Transcript match buttons cycle through local search matches.
 - Export buttons prepare local JSON/Markdown previews.
-- Reset/clear/patch buttons call the existing wrappers.
-- Compact/delete buttons require a second confirmation click before calling the
-  existing wrappers.
+- Patch buttons call the existing wrapper for product-backed fields.
+- Reset/clear/compact/delete buttons require a second confirmation click before
+  calling the existing wrappers.
 - Compaction branch/restore actions call compaction wrappers.
+- Restore requires a second confirmation click before calling the existing
+  wrapper.
+- Do not add message compose, send, abort, or steer controls to Sessions.
 
 ## Keyboard
 
@@ -56,6 +61,7 @@
 
 ## Responsive
 
-- Desktop: inventory left, selected-session evidence center, actions right.
-- Mid-width: actions stack below detail.
+- Desktop: inventory left, selected-session evidence center, default-open
+  Inspector right.
+- Mid-width: Inspector stacks below detail.
 - Narrow: columns collapse; inventory remains above selected evidence.

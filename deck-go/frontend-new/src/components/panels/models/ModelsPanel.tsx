@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DeckGoCatalogProvider,
@@ -13,17 +14,18 @@ import type {
   DeckGoUsageProviderStatus,
   DeckGoUsageProvidersResponse,
 } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  fetchModelUsageCost,
-  fetchModelUsageProviders,
-  fetchModelsConfig,
-  fetchRuntimeConfiguredModels,
-  fetchRuntimeModelAuthOverview,
-  fetchRuntimeModelCatalogProviders,
-  lookupConfigPath,
-  probeRuntimeModelAuth,
-  saveModelsConfig,
-} from "../../../api";
+  modelConfigLookupQueryOptions,
+  useModelAuthOverviewQuery,
+  useModelCatalogProvidersQuery,
+  useModelsConfigQuery,
+  useModelsConfiguredQuery,
+  useModelUsageCostQuery,
+  useModelUsageProvidersQuery,
+  useProbeModelAuthMutation,
+  useSaveModelsConfigMutation,
+} from "../../../data/modules/models";
 import {
   IconAlert,
   IconArrowL,
@@ -594,6 +596,16 @@ function buildConfigWithAuth(raw: string, provider: string, draft: AuthDraft) {
 
 export function ModelsPanel() {
   const t = useTranslations("models");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const modelsConfigQuery = useModelsConfigQuery();
+  const runtimeModelsQuery = useModelsConfiguredQuery();
+  const modelAuthQuery = useModelAuthOverviewQuery();
+  const catalogProvidersQuery = useModelCatalogProvidersQuery();
+  const usageCostQuery = useModelUsageCostQuery(14);
+  const usageProvidersQuery = useModelUsageProvidersQuery();
+  const saveModelsConfigMutation = useSaveModelsConfigMutation();
+  const probeModelAuthMutation = useProbeModelAuthMutation();
   const [view, setView] = useState<ModelsView>("list");
   const [activeTab, setActiveTab] = useState<ModelDetailTab>("overview");
   const [activeDialog, setActiveDialog] = useState<ActiveDialog>(null);
@@ -721,14 +733,89 @@ export function ModelsPanel() {
   );
 
   useEffect(() => {
-    void refresh();
-  }, []);
+    const config = modelsConfigQuery.data;
+    if (!config) {
+      setLoadState(
+        modelsConfigQuery.isLoading ||
+          runtimeModelsQuery.isLoading ||
+          modelAuthQuery.isLoading ||
+          catalogProvidersQuery.isLoading ||
+          usageCostQuery.isLoading ||
+          usageProvidersQuery.isLoading
+          ? "loading"
+          : "idle",
+      );
+      return;
+    }
+    setRawConfig((current) => current || modelsConfigRaw(config));
+    setBaseHash((current) => current || config.hash || "");
+    setRuntimeModels(runtimeModelsQuery.data ?? null);
+    setModelAuth(modelAuthQuery.data ?? null);
+    setCatalogProviders(catalogProvidersQuery.data ?? null);
+    setUsageCost(usageCostQuery.data ?? null);
+    setUsageProviders(usageProvidersQuery.data ?? null);
+    setLoadState("ready");
+    if (
+      !modelsConfigQuery.error &&
+      !runtimeModelsQuery.error &&
+      !modelAuthQuery.error &&
+      !catalogProvidersQuery.error &&
+      !usageCostQuery.error &&
+      !usageProvidersQuery.error
+    ) {
+      setError("");
+    }
+  }, [
+    catalogProvidersQuery.data,
+    catalogProvidersQuery.error,
+    catalogProvidersQuery.isLoading,
+    modelAuthQuery.data,
+    modelAuthQuery.error,
+    modelAuthQuery.isLoading,
+    modelsConfigQuery.data,
+    modelsConfigQuery.error,
+    modelsConfigQuery.isLoading,
+    runtimeModelsQuery.data,
+    runtimeModelsQuery.error,
+    runtimeModelsQuery.isLoading,
+    usageCostQuery.data,
+    usageCostQuery.error,
+    usageCostQuery.isLoading,
+    usageProvidersQuery.data,
+    usageProvidersQuery.error,
+    usageProvidersQuery.isLoading,
+  ]);
+
+  useEffect(() => {
+    const loadError =
+      modelsConfigQuery.error ||
+      runtimeModelsQuery.error ||
+      modelAuthQuery.error ||
+      catalogProvidersQuery.error ||
+      usageCostQuery.error ||
+      usageProvidersQuery.error;
+    if (loadError) {
+      setError(loadError instanceof Error ? loadError.message : t("errors.failedLoad"));
+    }
+  }, [
+    catalogProvidersQuery.error,
+    modelAuthQuery.error,
+    modelsConfigQuery.error,
+    runtimeModelsQuery.error,
+    t,
+    usageCostQuery.error,
+    usageProvidersQuery.error,
+  ]);
 
   useEffect(() => {
     if (!selectedRef && allModels[0]) {
-      setSelectedRef(allModels[0].ref);
+      setSelectedRef(
+        allModels.find((model) => model.ref === textChain.primary)?.ref ??
+          allModels.find((model) => model.isDefault)?.ref ??
+          allModels[0].ref,
+      );
     }
-  }, [allModels, selectedRef]);
+  }, [allModels, selectedRef, textChain.primary]);
 
   useEffect(() => {
     if (activeDialog !== "catalog") {
@@ -747,27 +834,31 @@ export function ModelsPanel() {
     setLoadState("loading");
     try {
       const [
-        config,
-        nextRuntimeModels,
-        nextModelAuth,
-        nextCatalogProviders,
-        nextUsageCost,
-        nextUsageProviders,
+        configResult,
+        runtimeResult,
+        authResult,
+        catalogResult,
+        usageCostResult,
+        usageProvidersResult,
       ] = await Promise.all([
-        fetchModelsConfig(),
-        fetchRuntimeConfiguredModels(),
-        fetchRuntimeModelAuthOverview(),
-        fetchRuntimeModelCatalogProviders(),
-        fetchModelUsageCost(14),
-        fetchModelUsageProviders(),
+        modelsConfigQuery.refetch(),
+        runtimeModelsQuery.refetch(),
+        modelAuthQuery.refetch(),
+        catalogProvidersQuery.refetch(),
+        usageCostQuery.refetch(),
+        usageProvidersQuery.refetch(),
       ]);
+      const config = configResult.data;
+      if (!config) {
+        throw new Error(t("errors.failedLoad"));
+      }
       setRawConfig(modelsConfigRaw(config));
       setBaseHash(config.hash ?? "");
-      setRuntimeModels(nextRuntimeModels);
-      setModelAuth(nextModelAuth);
-      setCatalogProviders(nextCatalogProviders);
-      setUsageCost(nextUsageCost);
-      setUsageProviders(nextUsageProviders);
+      setRuntimeModels(runtimeResult.data ?? null);
+      setModelAuth(authResult.data ?? null);
+      setCatalogProviders(catalogResult.data ?? null);
+      setUsageCost(usageCostResult.data ?? null);
+      setUsageProviders(usageProvidersResult.data ?? null);
       setLoadState("ready");
       setError("");
       void lookupAction("models.providers");
@@ -780,7 +871,7 @@ export function ModelsPanel() {
   const lookupAction = async (path = "models.providers") => {
     setActionState("lookup");
     try {
-      const result = await lookupConfigPath(path);
+      const result = await queryClient.fetchQuery(modelConfigLookupQueryOptions(bff, path));
       setLookupResult(result);
     } catch (lookupError) {
       setError(lookupError instanceof Error ? lookupError.message : t("errors.schemaLookupFailed"));
@@ -789,25 +880,32 @@ export function ModelsPanel() {
     }
   };
 
+  useEffect(() => {
+    if (loadState === "ready" && !lookupResult) {
+      void lookupAction("models.providers");
+    }
+  }, [loadState, lookupResult]);
+
   const saveRaw = async (nextRaw = rawConfig, noteResult = true) => {
     setActionState("saving");
     try {
-      const result = await saveModelsConfig(nextRaw, baseHash);
+      const result = await saveModelsConfigMutation.mutateAsync({ baseHash, raw: nextRaw });
       setActionResult(result);
       setBaseHash(result.baseHash ?? result.hash ?? baseHash);
       setError("");
-      const config = await fetchModelsConfig();
-      setRawConfig(modelsConfigRaw(config) || nextRaw);
-      setBaseHash(config.hash ?? result.baseHash ?? result.hash ?? baseHash);
+      const configResult = await modelsConfigQuery.refetch();
+      const config = configResult.data;
+      setRawConfig(config ? modelsConfigRaw(config) || nextRaw : nextRaw);
+      setBaseHash(config?.hash ?? result.baseHash ?? result.hash ?? baseHash);
       if (noteResult) {
         setActionResult(result);
       }
       await Promise.all([
-        fetchRuntimeConfiguredModels().then(setRuntimeModels),
-        fetchRuntimeModelAuthOverview().then(setModelAuth),
-        fetchRuntimeModelCatalogProviders().then(setCatalogProviders),
-        fetchModelUsageCost(14).then(setUsageCost),
-        fetchModelUsageProviders().then(setUsageProviders),
+        runtimeModelsQuery.refetch().then((next) => setRuntimeModels(next.data ?? null)),
+        modelAuthQuery.refetch().then((next) => setModelAuth(next.data ?? null)),
+        catalogProvidersQuery.refetch().then((next) => setCatalogProviders(next.data ?? null)),
+        usageCostQuery.refetch().then((next) => setUsageCost(next.data ?? null)),
+        usageProvidersQuery.refetch().then((next) => setUsageProviders(next.data ?? null)),
       ]);
       setLoadState("ready");
       return true;
@@ -857,10 +955,11 @@ export function ModelsPanel() {
   const probeAction = async (provider: string) => {
     setActionState("probe");
     try {
-      const result = await probeRuntimeModelAuth(provider);
+      const result = await probeModelAuthMutation.mutateAsync(provider);
       setProbeResult(result);
       setError("");
-      setModelAuth(await fetchRuntimeModelAuthOverview());
+      const authResult = await modelAuthQuery.refetch();
+      setModelAuth(authResult.data ?? null);
       setActiveDialog("probe");
     } catch (probeError) {
       setError(probeError instanceof Error ? probeError.message : t("errors.modelAuthProbeFailed"));

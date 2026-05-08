@@ -107,6 +107,47 @@ Workflow hygiene:
 
 如果头脑风暴尚未回答足以防止“实现者建错东西”的问题，不要进入实施。应先补头脑风暴或修正 OpenSpec，而不是在 implementation 阶段临场发明产品设计。
 
+## OpenSpec 完成闭环规则
+
+OpenSpec completion discipline 不绑定具体协作方式。无论任务是否经过头脑风暴、是否使用 `/goal`、是否拆成多个提案，只要使用 OpenSpec，就必须按任务复杂度完成对应闭环后才能宣称完成。
+
+### 单 OpenSpec change
+
+任何单个 OpenSpec change 在宣称完成或归档前，必须满足：
+
+- 已读取并遵守该 change 的 `proposal.md`、`design.md`、`specs/**/*.md`、`tasks.md`，以及存在时的 `verification.yaml`。
+- task 勾选必须有本轮 fresh evidence；不能只凭历史记忆、旧归档或口头结论勾选。
+- 若 change 需要场景级闭环，应使用 `$openspec-closure-workflow` 的语义维护或检查 `verification.yaml`，确认 `archiveReady` 和 gaps。
+- 必须运行 `openspec validate <change> --type change --strict`，并按触达面运行相关测试、build、contract 或 E2E 验证。
+- accepted spec deltas 必须同步到 `openspec/specs/**`，被触达的 accepted specs 必须 strict validate。
+- 未提交代码、未归档 change、未验证场景、已知失败或 circuit-breaker handoff 必须在最终报告中明确列出；不能用“完成”掩盖交付风险。
+
+### 多 OpenSpec change / program matrix
+
+如果一个设计方案、目标、模块收敛、架构重构或连续工作流拆成多个 OpenSpec changes，则每个子 change 必须先满足单 change 闭环；在宣称整个 program 完成前，还必须执行 program-level closure，可使用 `$openspec-program-closure`。
+
+Program-level closure 至少检查：
+
+- 设计文档、goal 或用户约定中的 change matrix 是否全部创建、实施、验证、归档或明确 handoff。
+- 每个子 change 的 tasks、`verification.yaml`、OpenSpec strict validation、accepted spec sync 和 archive 状态是否自洽。
+- 后续 change 抽出的 shared abstraction、governance rule、contract rule、test helper 是否反哺早期 reference change，避免跨 change 漂移。
+- 所有 deferred、rejected-for-now、needs-redesign、circuit-breaker handoff 和 external review findings 是否形成统一 follow-up matrix。
+- 相关代码是否可安全分组提交；若 worktree 混有非本 program 改动，必须报告 commit-readiness 风险而不是混提交。
+
+### OpenSpec follow-up inbox
+
+实施和验证后允许出现偏离原设计、更优设计、环境熔断、外部审查争议或明确 deferred 项。为了真正闭环，这些 follow-up 必须落到专用 inbox，而不是只留在聊天、review prose 或归档 change 里。
+
+- OpenSpec 相关 follow-up 默认记录在 `openspec/follow-ups/`。
+- follow-up 文件不是 active proposal，也不是完成声明；它是后续创建 OpenSpec 提案、小 plan 或 backlog 决策的候选输入。
+- 每条 follow-up 至少包含：来源、事实证据、分类、建议下一步、是否需要新 OpenSpec、验收线索、当前状态。
+- Program-level closure 若产生 follow-up matrix，必须同步或链接到 `openspec/follow-ups/` 中的 tracked 文件。
+- 后续真正创建 OpenSpec change 时，应从 follow-up 条目复制或引用事实来源，并把该条目标记为 `promoted`、`resolved` 或保留 `deferred`。
+
+### 外部审查输入
+
+Claude Code、其他 agent、人工 review、设计复查或外部报告都只能作为输入，不是任务真相。处理外部审查时必须先建立事实基线，把 finding 分成 `accepted` / `corrected` / `rejected` / `deferred-uncertain`，并用代码引用或可重跑命令支撑结论。确认成立且范围清楚的问题应直接修复；有争议或会改变设计边界的问题进入 follow-up matrix。
+
 ## Build, Test, and Development Commands
 
 - Runtime: Node **>=22.14.0** for the OpenClaw TypeScript workspace; `deck-go/backend` uses Go **1.24**.

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DeckGoLogStreamEvent } from "../../../../../contracts/generated/ts/deck-api.generated";
-import { fetchLogsTail, type DeckGoLogsTailResponse } from "../../../api";
+import type { DeckGoLogsTailResponse } from "../../../api-types";
+import { useLogsTailQuery, useLogTailProjectionSubscription } from "../../../data/modules/logs";
 import {
   Badge,
   Button,
@@ -21,7 +22,6 @@ import {
   IconStream,
   IconX,
 } from "../../../design-system/icons";
-import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
 import { useTranslations } from "../../../i18n/provider";
 import { parseLogEvent, summarizeLogEvent } from "../../../stream-contract";
 import "./logs-panel.css";
@@ -282,7 +282,6 @@ function MetricTile(props: {
 export function LogsPanel() {
   const t = useTranslations("logs");
   const [tail, setTail] = useState<DeckGoLogsTailResponse | null>(null);
-  const [tailState, setTailState] = useState<LogsState>("idle");
   const [streamState, setStreamState] = useState<StreamState>("idle");
   const [logEvents, setLogEvents] = useState<DeckGoLogStreamEvent[]>([]);
   const [selectedLevels, setSelectedLevels] = useState(ALL_LOG_LEVELS);
@@ -295,35 +294,36 @@ export function LogsPanel() {
   const [selectedEntryId, setSelectedEntryId] = useState("");
   const [selectedRawEvent, setSelectedRawEvent] = useState<DeckGoLogStreamEvent | null>(null);
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");
-  const [error, setError] = useState("");
-
-  const refreshLogsTail = useCallback(
-    async (cursor?: number) => {
-      setTailState("loading");
-      try {
-        const result = await fetchLogsTail({ cursor, limit: 200, maxBytes: 65536 });
-        setTail(result);
-        if (typeof result.cursor === "number") {
-          window.localStorage.setItem(LOG_CURSOR_KEY, String(result.cursor));
-        }
-        setTailState("ready");
-        setError("");
-      } catch (tailError) {
-        setTailState("idle");
-        setError(tailError instanceof Error ? tailError.message : t("failedFetchTail"));
-      }
-    },
-    [t],
-  );
-
-  useEffect(() => {
+  const [streamError, setStreamError] = useState("");
+  const [tailCursor, setTailCursor] = useState<number | undefined>(() => {
     const initialCursorRaw =
       typeof window === "undefined"
         ? ""
         : window.localStorage.getItem(LOG_CURSOR_KEY)?.trim() || "";
     const initialCursor = initialCursorRaw ? Number.parseInt(initialCursorRaw, 10) : undefined;
-    void refreshLogsTail(Number.isFinite(initialCursor) ? initialCursor : undefined);
-  }, [refreshLogsTail]);
+    return Number.isFinite(initialCursor) ? initialCursor : undefined;
+  });
+  const tailQuery = useLogsTailQuery({ cursor: tailCursor, limit: 200, maxBytes: 65536 });
+
+  const refreshLogsTail = useCallback(
+    (cursor?: number) => {
+      setTailCursor(cursor);
+      if (cursor === tailCursor) {
+        void tailQuery.refetch();
+      }
+    },
+    [tailCursor, tailQuery],
+  );
+
+  useEffect(() => {
+    if (!tailQuery.data) {
+      return;
+    }
+    setTail(tailQuery.data);
+    if (typeof tailQuery.data.cursor === "number") {
+      window.localStorage.setItem(LOG_CURSOR_KEY, String(tailQuery.data.cursor));
+    }
+  }, [tailQuery.data]);
 
   const handleLogStreamEvent = useCallback((event: DeckGoLogStreamEvent) => {
     setLogEvents((current) => [event, ...current].slice(0, 30));
@@ -348,14 +348,13 @@ export function LogsPanel() {
     }
   }, []);
 
-  useLiveProjectionSubscription({
-    projectionId: "log-tail",
+  useLogTailProjectionSubscription({
     enabled: streamingEnabled,
     onEvent: handleLogStreamEvent,
     onStatusChange(nextState) {
       setStreamState(nextState.status);
       if (nextState.status === "error") {
-        setError(t("failedConnectStream"));
+        setStreamError(t("failedConnectStream"));
       }
     },
   });
@@ -473,6 +472,13 @@ export function LogsPanel() {
     }
     return source;
   };
+  const tailState: LogsState = tailQuery.isLoading && !tail ? "loading" : tail ? "ready" : "idle";
+  const tailError = tailQuery.error
+    ? tailQuery.error instanceof Error
+      ? tailQuery.error.message
+      : t("failedFetchTail")
+    : "";
+  const error = tailError || streamError;
 
   return (
     <section className="logs-panel" data-testid="logs-panel">
@@ -498,7 +504,7 @@ export function LogsPanel() {
             />
             <span>{streamingEnabled ? t("streamLive") : t("streamPaused")}</span>
           </label>
-          <Button size="sm" onClick={() => void refreshLogsTail(tail?.cursor)}>
+          <Button size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
             <span className="logs-button-content">
               <IconRefresh size={14} />
               {t("refreshTail")}
@@ -635,7 +641,7 @@ export function LogsPanel() {
           </div>
 
           <div className="log-stream__action-row">
-            <Button variant="primary" size="sm" onClick={() => void refreshLogsTail(tail?.cursor)}>
+            <Button variant="primary" size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
               <span className="logs-button-content">
                 <IconRefresh size={14} />
                 {t("refreshTail")}

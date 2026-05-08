@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "@/data/testing/DataFabricTestProvider";
 import {
   clearTranscriptCache,
   getCachedTranscript,
@@ -32,11 +33,23 @@ const chatApi = vi.hoisted(() => ({
   steerChatSession: vi.fn(),
 }));
 
+const deckApi = vi.hoisted(() => ({
+  fetchChatSnapshot: vi.fn(),
+  fetchCommandDiscovery: vi.fn(),
+  fetchSessionPreviews: vi.fn(),
+  fetchSessions: vi.fn(),
+  setSessionEventsSubscription: vi.fn(),
+}));
+
 const commandDiscovery = vi.hoisted(() => ({
   useCommandDiscovery: vi.fn(),
 }));
 
-vi.mock("../chat-api", () => chatApi);
+vi.mock("@/api", () => deckApi);
+vi.mock("../chat-api", async () => {
+  const actual = await vi.importActual<typeof import("../chat-api")>("../chat-api");
+  return { ...actual, ...chatApi };
+});
 vi.mock("@/hooks/use-command-discovery", () => commandDiscovery);
 
 const messages = {
@@ -154,7 +167,18 @@ function renderPanel() {
   act(() => {
     root = createRoot(container);
     root.render(
-      createElement(NextIntlClientProvider, { locale: "en", messages }, createElement(ChatPanel)),
+      createElement(
+        DataFabricTestProvider,
+        {
+          gatewayRpc: async () => ({
+            agents: [
+              { id: "main", name: "Main Agent", status: "idle" },
+              { id: "ops", name: "Ops Bot", status: "idle" },
+            ],
+          }),
+        },
+        createElement(NextIntlClientProvider, { locale: "en", messages }, createElement(ChatPanel)),
+      ),
     );
   });
 }
@@ -181,7 +205,20 @@ describe("ChatPanel active entry", () => {
     clearTranscriptCache();
     resetChatStore();
     vi.clearAllMocks();
-    chatApi.fetchSessionPreviews.mockResolvedValue({});
+    deckApi.fetchSessions.mockResolvedValue({ sessions: [] });
+    deckApi.fetchSessionPreviews.mockResolvedValue({});
+    deckApi.fetchChatSnapshot.mockResolvedValue({
+      activeApproval: null,
+      a2uiState: null,
+      messages: [],
+      session: null,
+    });
+    deckApi.setSessionEventsSubscription.mockImplementation(
+      async (body: { action: "subscribe" | "unsubscribe"; sessionKey: string }) => ({
+        ...body,
+        ok: true,
+      }),
+    );
     chatApi.patchSession.mockResolvedValue(true);
     chatApi.createChatSession.mockResolvedValue({ key: "sess-created" });
     chatApi.sendChatMessage.mockResolvedValue({ status: "started" });
@@ -201,8 +238,8 @@ describe("ChatPanel active entry", () => {
   });
 
   it("seeds deterministic rich visual state behind the dev/test URL flag", async () => {
-    chatApi.fetchSessionList.mockRejectedValue(new Error("visual seed skips API"));
-    chatApi.fetchChatSnapshot.mockRejectedValue(new Error("visual seed skips snapshot"));
+    deckApi.fetchSessions.mockRejectedValue(new Error("visual seed skips API"));
+    deckApi.fetchChatSnapshot.mockRejectedValue(new Error("visual seed skips snapshot"));
     window.history.replaceState(null, "", "/?deckVisualState=chat-rich");
 
     renderPanel();
@@ -233,17 +270,19 @@ describe("ChatPanel active entry", () => {
   });
 
   it("hydrates the first Gateway session through the migrated store path", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      {
-        key: "sess-1",
-        agentId: "main",
-        title: "Primary Session",
-        updatedAt: 10,
-        status: "done",
-        model: "gpt-5.4",
-      },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [
+        {
+          key: "sess-1",
+          agentId: "main",
+          title: "Primary Session",
+          updatedAt: 10,
+          status: "done",
+          model: "gpt-5.4",
+        },
+      ],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [
         {
           id: "msg-1",
@@ -252,7 +291,7 @@ describe("ChatPanel active entry", () => {
           timestamp: 20,
         },
       ],
-      meta: {
+      session: {
         key: "sess-1",
         agentId: "main",
         title: "Primary Session",
@@ -270,10 +309,10 @@ describe("ChatPanel active entry", () => {
     renderPanel();
 
     await vi.waitFor(() => {
-      expect(chatApi.fetchSessionList).toHaveBeenCalledWith("main");
+      expect(deckApi.fetchSessions).toHaveBeenCalledWith({ agentId: "main" });
     });
     await vi.waitFor(() => {
-      expect(chatApi.fetchChatSnapshot).toHaveBeenCalledWith({
+      expect(deckApi.fetchChatSnapshot).toHaveBeenCalledWith({
         sessionKey: "sess-1",
         agentId: "main",
       });
@@ -309,10 +348,10 @@ describe("ChatPanel active entry", () => {
   });
 
   it("uses cached transcript messages while refreshing the selected Gateway session", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockReturnValue(new Promise(() => {}));
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockReturnValue(new Promise(() => {}));
     setCachedTranscript("sess-1", [
       {
         id: "cached-1",
@@ -327,14 +366,14 @@ describe("ChatPanel active entry", () => {
     await vi.waitFor(() => {
       expect(container.textContent).toContain("Cached transcript");
     });
-    expect(chatApi.fetchChatSnapshot).toHaveBeenCalledWith({
+    expect(deckApi.fetchChatSnapshot).toHaveBeenCalledWith({
       sessionKey: "sess-1",
       agentId: "main",
     });
   });
 
   it("fills the migrated message input from an empty-state suggested prompt", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([]);
+    deckApi.fetchSessions.mockResolvedValue({ sessions: [] });
 
     renderPanel();
 
@@ -357,16 +396,16 @@ describe("ChatPanel active entry", () => {
       );
       expect(textarea?.value).toBe("Create something");
     });
-    expect(chatApi.fetchChatSnapshot).not.toHaveBeenCalled();
+    expect(deckApi.fetchChatSnapshot).not.toHaveBeenCalled();
   });
 
   it("subscribes and unsubscribes the selected session event stream", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: null,
     });
@@ -374,17 +413,19 @@ describe("ChatPanel active entry", () => {
     renderPanel();
 
     await vi.waitFor(() => {
-      expect(chatApi.setSessionMessageSubscription).toHaveBeenCalledWith({
+      expect(deckApi.setSessionEventsSubscription).toHaveBeenCalledWith({
+        action: "subscribe",
         sessionKey: "sess-1",
-        subscribed: true,
       });
     });
 
     unmountPanel();
 
-    expect(chatApi.setSessionMessageSubscription).toHaveBeenCalledWith({
-      sessionKey: "sess-1",
-      subscribed: false,
+    await vi.waitFor(() => {
+      expect(deckApi.setSessionEventsSubscription).toHaveBeenCalledWith({
+        action: "unsubscribe",
+        sessionKey: "sess-1",
+      });
     });
   });
 
@@ -394,10 +435,10 @@ describe("ChatPanel active entry", () => {
       items: [1, 2, 3],
       nested: { ok: true },
     });
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [
         {
           id: "msg-1",
@@ -418,7 +459,7 @@ describe("ChatPanel active entry", () => {
           timestamp: 20,
         },
       ],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: { visible: true, surfaces: ["summary"] },
     });
@@ -449,12 +490,12 @@ describe("ChatPanel active entry", () => {
   });
 
   it("auto-opens canvas from snapshot state and persists close projection", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: { visible: true, url: "preview.html", surfaces: ["summary"] },
     });
@@ -485,14 +526,64 @@ describe("ChatPanel active entry", () => {
     });
   });
 
+  it("keeps a locally opened canvas when a late snapshot has no A2UI projection", async () => {
+    let resolveSnapshot:
+      | ((value: { activeApproval: null; a2uiState: null; messages: []; session: null }) => void)
+      | null = null;
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockReturnValue(
+      new Promise((resolve) => {
+        resolveSnapshot = resolve;
+      }),
+    );
+
+    renderPanel();
+
+    await vi.waitFor(() => {
+      expect(useChatStore.getState().activeSessionKey).toBe("sess-1");
+    });
+
+    const canvasButton = await vi.waitFor(() => {
+      const button = Array.from(container.querySelectorAll("button")).find(
+        (candidate) => candidate.textContent === "Canvas panel",
+      );
+      expect(button).toBeTruthy();
+      return button;
+    });
+
+    act(() => {
+      canvasButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-right-panel-mode="canvas"]')).toBeTruthy();
+    });
+
+    await act(async () => {
+      resolveSnapshot?.({
+        activeApproval: null,
+        a2uiState: null,
+        messages: [],
+        session: null,
+      });
+      await Promise.resolve();
+    });
+
+    await vi.waitFor(() => {
+      expect(container.querySelector('[data-right-panel-mode="canvas"]')).toBeTruthy();
+    });
+  });
+
   it("restores the old resizable right-panel width persistence", async () => {
     window.localStorage.setItem("deck:rightPanelWidth", "640");
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: { visible: true, url: "preview.html", surfaces: ["summary"] },
     });
@@ -526,11 +617,13 @@ describe("ChatPanel active entry", () => {
 
   it("clears right-panel artifact state when switching active sessions", async () => {
     const artifactContent = JSON.stringify({ name: "report", ok: true });
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-      { key: "sess-2", agentId: "main", title: "Second Session", updatedAt: 9 },
-    ]);
-    chatApi.fetchChatSnapshot.mockImplementation(async ({ sessionKey }: { sessionKey: string }) => {
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [
+        { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
+        { key: "sess-2", agentId: "main", title: "Second Session", updatedAt: 9 },
+      ],
+    });
+    deckApi.fetchChatSnapshot.mockImplementation(async ({ sessionKey }: { sessionKey: string }) => {
       if (sessionKey === "sess-2") {
         return {
           messages: [
@@ -541,7 +634,7 @@ describe("ChatPanel active entry", () => {
               timestamp: 30,
             },
           ],
-          meta: null,
+          session: null,
           activeApproval: null,
           a2uiState: null,
         };
@@ -567,7 +660,7 @@ describe("ChatPanel active entry", () => {
             timestamp: 20,
           },
         ],
-        meta: null,
+        session: null,
         activeApproval: null,
         a2uiState: null,
       };
@@ -601,10 +694,10 @@ describe("ChatPanel active entry", () => {
   });
 
   it("navigates transcript search matches without hiding nonmatching messages", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [
         {
           id: "msg-1",
@@ -626,7 +719,7 @@ describe("ChatPanel active entry", () => {
           timestamp: 30,
         },
       ],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: null,
     });
@@ -667,10 +760,10 @@ describe("ChatPanel active entry", () => {
   });
 
   it("focuses transcript search with the migrated Cmd/Ctrl+F shortcut", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [
         {
           id: "msg-1",
@@ -679,7 +772,7 @@ describe("ChatPanel active entry", () => {
           timestamp: 20,
         },
       ],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: null,
     });
@@ -710,12 +803,12 @@ describe("ChatPanel active entry", () => {
   });
 
   it("steers a streaming session through the migrated chat API", async () => {
-    chatApi.fetchSessionList.mockResolvedValue([
-      { key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 },
-    ]);
-    chatApi.fetchChatSnapshot.mockResolvedValue({
+    deckApi.fetchSessions.mockResolvedValue({
+      sessions: [{ key: "sess-1", agentId: "main", title: "Primary Session", updatedAt: 10 }],
+    });
+    deckApi.fetchChatSnapshot.mockResolvedValue({
       messages: [],
-      meta: null,
+      session: null,
       activeApproval: null,
       a2uiState: null,
     });

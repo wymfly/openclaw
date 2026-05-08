@@ -3,17 +3,19 @@ import { waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "@/data/testing/DataFabricTestProvider";
 import { commandRegistry } from "@/lib/command-registry";
-import type { DeckStreamOptions } from "@/lib/deck-client";
 import { useChatStore } from "@/stores/chat";
 import { useCommandDiscovery } from "./use-command-discovery";
 
-const deckClient = vi.hoisted(() => ({
-  deckFetch: vi.fn(),
-  deckStream: vi.fn(),
+const apiMocks = vi.hoisted(() => ({
+  fetchCommandDiscovery: vi.fn(),
+  streamEvents: vi.fn(),
+  streamLogEvents: vi.fn(),
 }));
 
-vi.mock("@/lib/deck-client", () => deckClient);
+vi.mock("@/api", () => apiMocks);
+vi.mock("../api", () => apiMocks);
 
 let container: HTMLDivElement;
 let root: Root | null = null;
@@ -26,7 +28,7 @@ function Harness() {
 function renderHarness() {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(Harness));
+    root.render(createElement(DataFabricTestProvider, null, createElement(Harness)));
   });
 }
 
@@ -46,6 +48,11 @@ function unregisterDiscoveredCommands() {
   commandRegistry.unregisterBySource("plugin");
 }
 
+type CapturedStreamParams = {
+  onEvent?: (event: { event?: string; projection?: string; projectionId?: string }) => void;
+  signal?: AbortSignal;
+};
+
 describe("useCommandDiscovery", () => {
   beforeEach(() => {
     (
@@ -55,9 +62,10 @@ describe("useCommandDiscovery", () => {
     document.body.appendChild(container);
     unregisterDiscoveredCommands();
     useChatStore.setState({ activeAgentId: "main" });
-    deckClient.deckFetch.mockReset();
-    deckClient.deckStream.mockReset();
-    deckClient.deckStream.mockImplementation((_path: string, options: DeckStreamOptions) => {
+    apiMocks.fetchCommandDiscovery.mockReset();
+    apiMocks.streamEvents.mockReset();
+    apiMocks.streamLogEvents.mockReset();
+    apiMocks.streamEvents.mockImplementation((options: CapturedStreamParams) => {
       return new Promise<void>((resolve) => {
         options.signal?.addEventListener("abort", () => resolve(), { once: true });
       });
@@ -72,24 +80,19 @@ describe("useCommandDiscovery", () => {
   });
 
   it("registers discovered Gateway commands and cleans them up on unmount", async () => {
-    deckClient.deckFetch.mockImplementation(async () => {
-      return new Response(
-        JSON.stringify({
-          version: "v1",
-          commands: [
-            {
-              name: "deploy",
-              aliases: ["ship"],
-              source: "builtin",
-              description: "Deploy target",
-              args: "<target>",
-              argChoices: ["staging", "prod"],
-              category: "tools",
-            },
-          ],
-        }),
-        { status: 200 },
-      );
+    apiMocks.fetchCommandDiscovery.mockResolvedValue({
+      version: "v1",
+      commands: [
+        {
+          name: "deploy",
+          aliases: ["ship"],
+          source: "builtin",
+          description: "Deploy target",
+          args: "<target>",
+          argChoices: ["staging", "prod"],
+          category: "tools",
+        },
+      ],
     });
 
     renderHarness();
@@ -103,17 +106,8 @@ describe("useCommandDiscovery", () => {
         category: "tools",
       });
     });
-    expect(deckClient.deckFetch).toHaveBeenCalledWith(
-      "/api/deck/commands/discover",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ agentId: "main" }),
-      }),
-    );
-    expect(deckClient.deckStream).toHaveBeenCalledWith(
-      "/api/stream",
-      expect.objectContaining({ reconnect: true }),
-    );
+    expect(apiMocks.fetchCommandDiscovery).toHaveBeenCalledWith("main");
+    expect(apiMocks.streamEvents).toHaveBeenCalledTimes(1);
 
     cleanupHarness();
 
@@ -121,7 +115,7 @@ describe("useCommandDiscovery", () => {
   });
 
   it("refreshes discovered commands when the Gateway reports commands.changed", async () => {
-    let streamOptions: DeckStreamOptions | undefined;
+    let streamOptions: CapturedStreamParams | undefined;
     const payloads = [
       { version: "v1", commands: [] },
       {
@@ -135,10 +129,12 @@ describe("useCommandDiscovery", () => {
         ],
       },
     ];
-    deckClient.deckFetch.mockImplementation(async () => {
-      return new Response(JSON.stringify(payloads.shift() ?? payloads[0]), { status: 200 });
+    let latestPayload = payloads[0];
+    apiMocks.fetchCommandDiscovery.mockImplementation(async () => {
+      latestPayload = payloads.shift() ?? latestPayload;
+      return latestPayload;
     });
-    deckClient.deckStream.mockImplementation((_path: string, options: DeckStreamOptions) => {
+    apiMocks.streamEvents.mockImplementation((options: CapturedStreamParams) => {
       streamOptions = options;
       return new Promise<void>((resolve) => {
         options.signal?.addEventListener("abort", () => resolve(), { once: true });
@@ -148,10 +144,10 @@ describe("useCommandDiscovery", () => {
     renderHarness();
 
     await waitFor(() => {
-      expect(deckClient.deckFetch).toHaveBeenCalledTimes(1);
+      expect(apiMocks.fetchCommandDiscovery).toHaveBeenCalledTimes(1);
     });
     act(() => {
-      streamOptions?.onEvent?.({ event: "commands.changed" });
+      streamOptions?.onEvent?.({ event: "commands.changed", projectionId: "command-discovery" });
     });
 
     await waitFor(() => {

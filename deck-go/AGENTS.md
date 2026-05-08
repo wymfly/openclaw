@@ -105,16 +105,28 @@ Read deeper frontend protocol files when touching those areas:
   - `.env.remote.example`
   - `.env.real-stack.example`
 - Local backend scripts:
+  - `scripts/dev/run-stack-mock.sh`
   - `scripts/dev/run-bundled.sh`
   - `scripts/dev/run-remote.sh`
 - Real Gateway stack script:
   - `scripts/dev/run-stack-real.sh`
 
-`run-stack-real.sh` is the default E2E infrastructure for real Gateway coverage.
-It starts OpenClaw Gateway, backend, and a Vite frontend server, and clears the
-fixed ports before startup. The frontend defaults to Vite dev mode for visual
-debugging; set `DECK_GO_FRONTEND_MODE=preview` when a built-output smoke is
-needed.
+Operator stack targets must name their Gateway layer explicitly:
+
+| Target family       | Gateway                          | Use                                               |
+| ------------------- | -------------------------------- | ------------------------------------------------- |
+| `make mock-stack-*` | `test/fixtures/mock-gateway.mjs` | mock visual/debug and CI-friendly behavior checks |
+| `make real-stack-*` | real OpenClaw Gateway            | manual E2E and real contract-chain validation     |
+
+Legacy `make stack-*` targets are mock aliases only. Do not use them when a
+real OpenClaw Gateway is required.
+
+`run-stack-real.sh` is the default operator infrastructure for real Gateway
+coverage. It starts OpenClaw Gateway, backend, and a Vite frontend server, and
+clears the fixed ports before startup. The frontend defaults to Vite dev mode
+for visual debugging; set `DECK_GO_FRONTEND_MODE=preview` when a built-output
+smoke is needed. The script defaults to `deck-go/.env.real-stack` and supports
+`DECK_GO_REAL_STACK_ENV` for alternate real-stack env files.
 
 Important L2 real-stack facts:
 
@@ -127,19 +139,24 @@ Important L2 real-stack facts:
   dirty-tree rebuilds and `runtime-postbuild` dependency staging.
 - `RUNTIME_BUNDLED_ARGS` must include `--allow-unconfigured` for bundled real
   Gateway startup.
-- OpenClaw state intentionally uses `~/.openclaw` for real LLM key/channel
-  access.
+- The preferred local real E2E env uses an isolated copy of OpenClaw state under
+  `deck-go/.local/deck-go-real-stack/isolated/data/managed-gateway-state`.
+  `run-stack-real.sh` prefers `gateway.auth.token` from that isolated
+  `openclaw.json` so deck-go backend and Gateway auth stay aligned.
+- The full stack/E2E matrix lives in
+  `docs/project/e2e-stack-operations.md`.
 
 ## Testing
 
 Two E2E layers coexist:
 
-- L1 mock Gateway: `test/e2e/{bundled,remote}.spec.ts` plus
-  `test/fixtures/mock-gateway.mjs`. This is CI-friendly and validates deck-go
-  behavior without a real Gateway.
-- L2 real Gateway: `scripts/dev/run-stack-real.sh start`. New E2E coverage
-  defaults to L2 unless the scenario is explicitly CI-only, offline, or mock
-  specific.
+- L1 mock Gateway: `test/e2e/{bundled,remote}.spec.ts`, `test/e2e/*-visual.spec.ts`,
+  and `test/fixtures/mock-gateway.mjs`. Use `make e2e-mock-runtime`,
+  `make e2e-mock-module MODULE=<name>`, or `make e2e-mock-visual`.
+- L2 real Gateway: `test/e2e/real-gateway.spec.ts` and
+  `test/e2e/*-real-gateway.spec.ts`. Use `make e2e-real-smoke`,
+  `make e2e-real-module MODULE=<name>`, or `make e2e-real-all`.
+  These specs must keep the `DECK_GO_REAL_GATEWAY_E2E=1` guard.
 
 Verification by touched surface:
 

@@ -5,17 +5,21 @@ import type {
   DeckGoSubagentLineageNode,
   DeckGoSubagentRun,
   DeckGoSubagentsLineageResponse,
-} from "../../../api";
+} from "../../../api-types";
 import {
-  fetchAgentsList,
-  fetchAgentSubagentConfig,
-  fetchDeckConfig,
-  fetchSubagentLineage,
-  fetchSubagentRuns,
-  killSubagentRun,
-  steerSubagentRun,
-  updateAgentSubagentConfig,
-} from "../../../api";
+  useAgentsListQuery,
+  useAgentSubagentsFetcher,
+  useAgentSubagentsQueries,
+  useSaveAgentSubagentsMutation,
+} from "../../../data/modules/agents";
+import { useConfigSnapshotQuery } from "../../../data/modules/config";
+import {
+  useKillSubagentRunMutation,
+  useSteerSubagentRunMutation,
+  useSubagentLineageFetcher,
+  useSubagentLineageQuery,
+  useSubagentRunsQuery,
+} from "../../../data/modules/subagents";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import {
@@ -304,21 +308,21 @@ export function SubagentsPanel() {
   const searchRef = useRef<HTMLInputElement>(null);
   const selectedRunIdRef = useRef("");
 
-  const [loadState, setLoadState] = useState<LoadState>("idle");
+  const runsQuery = useSubagentRunsQuery({ limit: RUNS_FETCH_LIMIT, status: "all" });
+  const agentsQuery = useAgentsListQuery();
+  const configSnapshotQuery = useConfigSnapshotQuery();
+  const killSubagentMutation = useKillSubagentRunMutation();
+  const steerSubagentMutation = useSteerSubagentRunMutation();
+  const saveAgentSubagentsMutation = useSaveAgentSubagentsMutation();
+  const loadAgentSubagents = useAgentSubagentsFetcher();
+  const loadLineage = useSubagentLineageFetcher();
+
   const [mode, setMode] = useState<ListMode>("runs");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [spawnFilter, setSpawnFilter] = useState<SpawnFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [agents, setAgents] = useState<DeckGoAgentSummary[]>([]);
-  const [agentConfigs, setAgentConfigs] = useState<
-    Record<string, DeckGoAgentSubagentConfigResponse>
-  >({});
-  const [globalDefaults, setGlobalDefaults] = useState<GlobalDefaults>({});
-  const [runs, setRuns] = useState<DeckGoSubagentRun[]>([]);
-  const [total, setTotal] = useState(0);
   const [selectedRunId, setSelectedRunId] = useState("");
-  const [lineage, setLineage] = useState<DeckGoSubagentsLineageResponse | null>(null);
   const [detailTab, setDetailTab] = useState<DetailTab>("overview");
   const [error, setError] = useState("");
   const [actionState, setActionState] = useState<
@@ -331,6 +335,53 @@ export function SubagentsPanel() {
   const [permissionOpen, setPermissionOpen] = useState(false);
   const [permissionDraft, setPermissionDraft] = useState<PermissionDraft | null>(null);
   const [outcomeOpen, setOutcomeOpen] = useState(false);
+
+  const agents = useMemo<DeckGoAgentSummary[]>(
+    () => agentsQuery.data?.agents ?? [],
+    [agentsQuery.data],
+  );
+  const agentIds = useMemo(
+    () =>
+      agents
+        .map((agent) => agent.id)
+        .filter(Boolean)
+        .toSorted(),
+    [agents],
+  );
+  const agentConfigResults = useAgentSubagentsQueries(agentIds, { enabled: agentIds.length > 0 });
+  const agentConfigs = useMemo<Record<string, DeckGoAgentSubagentConfigResponse>>(() => {
+    const entries: Array<[string, DeckGoAgentSubagentConfigResponse]> = [];
+    agentConfigResults.forEach((result, index) => {
+      if (result.data) {
+        entries.push([agentIds[index] ?? "", result.data]);
+      }
+    });
+    return Object.fromEntries(entries.filter(([agentId]) => agentId));
+  }, [agentConfigResults, agentIds]);
+  const globalDefaults = useMemo(
+    () => readGlobalDefaults(configSnapshotQuery.data?.config),
+    [configSnapshotQuery.data],
+  );
+  const runs = useMemo<DeckGoSubagentRun[]>(() => runsQuery.data?.runs ?? [], [runsQuery.data]);
+  const total = runsQuery.data?.total ?? runs.length;
+  const lineageQuery = useSubagentLineageQuery(selectedRunId ? { runId: selectedRunId } : null, {
+    enabled: Boolean(selectedRunId),
+  });
+  const lineage: DeckGoSubagentsLineageResponse | null = lineageQuery.data ?? null;
+  const loadingConfig = agentConfigResults.some((result) => result.isFetching);
+  const loadState: LoadState =
+    runsQuery.isFetching ||
+    agentsQuery.isFetching ||
+    configSnapshotQuery.isFetching ||
+    loadingConfig
+      ? "loading"
+      : runsQuery.data
+        ? "ready"
+        : "idle";
+  const queryError =
+    runsQuery.error ?? agentsQuery.error ?? configSnapshotQuery.error ?? lineageQuery.error;
+  const displayedError =
+    error || (queryError instanceof Error ? queryError.message : queryError ? t("loadFailed") : "");
 
   useEffect(() => {
     selectedRunIdRef.current = selectedRunId;
@@ -389,49 +440,11 @@ export function SubagentsPanel() {
     });
   }, [agentOptions, searchQuery]);
 
-  const loadAgentsAndConfig = useCallback(async () => {
-    try {
-      const [agentList, configSnapshot] = await Promise.all([fetchAgentsList(), fetchDeckConfig()]);
-      const nextAgents = agentList.agents ?? [];
-      setAgents(nextAgents);
-      setGlobalDefaults(readGlobalDefaults(configSnapshot.config));
-
-      const pairs = await Promise.all(
-        nextAgents.map(async (agent) => {
-          try {
-            return [agent.id, await fetchAgentSubagentConfig(agent.id)] as const;
-          } catch {
-            return [agent.id, null] as const;
-          }
-        }),
-      );
-      setAgentConfigs(
-        Object.fromEntries(
-          pairs.filter(
-            (pair): pair is readonly [string, DeckGoAgentSubagentConfigResponse] =>
-              pair[1] !== null,
-          ),
-        ),
-      );
-    } catch {
-      setAgents([]);
-      setAgentConfigs({});
-      setGlobalDefaults({});
-    }
-  }, []);
-
   const refresh = useCallback(
     async (preferredRunId?: string) => {
-      setLoadState("loading");
       try {
-        const next = await fetchSubagentRuns({
-          limit: RUNS_FETCH_LIMIT,
-          status: "all",
-        });
-        const nextRuns = next.runs ?? [];
-        setRuns(nextRuns);
-        setTotal(next.total ?? nextRuns.length);
-        setLoadState("ready");
+        const result = await runsQuery.refetch();
+        const nextRuns = result.data?.runs ?? [];
         setError("");
 
         const currentId = selectedRunIdRef.current;
@@ -443,26 +456,24 @@ export function SubagentsPanel() {
         setSelectedRunId(nextSelected);
 
         if (nextSelected) {
-          const lineageResult = await fetchSubagentLineage({ runId: nextSelected });
-          setLineage(lineageResult);
-        } else {
-          setLineage(null);
+          await loadLineage({ runId: nextSelected });
         }
       } catch (loadError) {
-        setLoadState("idle");
         setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
       }
     },
-    [t],
+    [loadLineage, runsQuery, t],
   );
 
   useEffect(() => {
-    void loadAgentsAndConfig();
-  }, [loadAgentsAndConfig]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const currentId = selectedRunIdRef.current;
+    if (currentId && runs.some((run) => run.runId === currentId)) {
+      return;
+    }
+    const nextRunId = runs[0]?.runId ?? "";
+    selectedRunIdRef.current = nextRunId;
+    setSelectedRunId(nextRunId);
+  }, [runs]);
 
   useEffect(() => {
     if (!autoRefresh) {
@@ -504,7 +515,7 @@ export function SubagentsPanel() {
     selectedRunIdRef.current = runId;
     setActionState("lineage");
     try {
-      setLineage(await fetchSubagentLineage({ runId }));
+      await loadLineage({ runId });
       setDetailTab("overview");
       setError("");
     } catch (loadError) {
@@ -520,7 +531,7 @@ export function SubagentsPanel() {
     }
     setActionState("killing");
     try {
-      const result = await killSubagentRun(selectedRun.runId);
+      const result = await killSubagentMutation.mutateAsync(selectedRun.runId);
       setActionResult(result);
       setKillOpen(false);
       setError("");
@@ -538,7 +549,10 @@ export function SubagentsPanel() {
     }
     setActionState("steering");
     try {
-      const result = await steerSubagentRun(selectedRun.runId, steerDraft.trim());
+      const result = await steerSubagentMutation.mutateAsync({
+        instruction: steerDraft.trim(),
+        runId: selectedRun.runId,
+      });
       setActionResult(result);
       setSteerDraft("");
       setSteerOpen(false);
@@ -554,8 +568,7 @@ export function SubagentsPanel() {
   const openPermissionEditor = async (agentId: string) => {
     let config = agentConfigs[agentId];
     if (!config) {
-      config = await fetchAgentSubagentConfig(agentId);
-      setAgentConfigs((current) => ({ ...current, [agentId]: config }));
+      config = await loadAgentSubagents(agentId);
     }
     setPermissionDraft({
       agentId,
@@ -578,19 +591,13 @@ export function SubagentsPanel() {
     setActionState("saving");
     try {
       const allowAgents = permissionDraft.allowAny ? ["*"] : permissionDraft.allowAgents;
-      const result = await updateAgentSubagentConfig(permissionDraft.agentId, {
+      const result = await saveAgentSubagentsMutation.mutateAsync({
+        agentId: permissionDraft.agentId,
+        baseHash: currentConfig.configHash,
         allowAgents,
         model: permissionDraft.model.trim() || undefined,
-        baseHash: currentConfig.configHash,
       });
-      const refreshed = await fetchAgentSubagentConfig(permissionDraft.agentId);
-      setAgentConfigs((current) => ({
-        ...current,
-        [permissionDraft.agentId]: {
-          ...refreshed,
-          configHash: refreshed.configHash || result.configHash || currentConfig.configHash,
-        },
-      }));
+      await loadAgentSubagents(permissionDraft.agentId);
       setActionResult(result);
       setPermissionOpen(false);
       setPermissionDraft(null);
@@ -633,10 +640,10 @@ export function SubagentsPanel() {
         </div>
       </header>
 
-      {error ? (
+      {displayedError ? (
         <div className="banner banner--error" role="status">
           <Badge variant="err">{t("failed")}</Badge>
-          <span>{error}</span>
+          <span>{displayedError}</span>
         </div>
       ) : null}
 

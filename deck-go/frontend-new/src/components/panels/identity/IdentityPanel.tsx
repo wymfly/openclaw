@@ -3,13 +3,13 @@ import type {
   DeckGoAgentIdentityResponse,
   DeckGoIdentityLink,
   DeckGoIdentityPeer,
-} from "../../../api";
+} from "../../../api-types";
+import { useAgentIdentityQuery } from "../../../data/modules/agents";
 import {
-  fetchAgentIdentity,
-  fetchIdentityLinks,
-  linkIdentityPeer,
-  unlinkIdentityPeer,
-} from "../../../api";
+  useIdentityLinksQuery,
+  useLinkIdentityPeerMutation,
+  useUnlinkIdentityPeerMutation,
+} from "../../../data/modules/identity";
 import {
   IconAlert,
   IconClock,
@@ -60,10 +60,10 @@ function HashChip(props: { value: string; label: string }) {
 export function IdentityPanel() {
   const t = useTranslations("identity");
   const tc = useTranslations("common");
-  const [links, setLinks] = useState<DeckGoIdentityLink[]>([]);
+  const identityLinksQuery = useIdentityLinksQuery();
+  const linkIdentityMutation = useLinkIdentityPeerMutation();
+  const unlinkIdentityMutation = useUnlinkIdentityPeerMutation();
   const [selectedCanonical, setSelectedCanonical] = useState<string | null>(null);
-  const [configHash, setConfigHash] = useState("");
-  const [loadState, setLoadState] = useState<PanelState>("idle");
   const [query, setQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [submittingLink, setSubmittingLink] = useState(false);
@@ -71,17 +71,31 @@ export function IdentityPanel() {
   const [error, setError] = useState("");
   const [dialogError, setDialogError] = useState("");
   const [lastAction, setLastAction] = useState("");
-  const [agentProfile, setAgentProfile] = useState<DeckGoAgentIdentityResponse | null>(null);
+  const agentProfileQuery = useAgentIdentityQuery("main", {
+    enabled: selectedCanonical === "main",
+  });
+  const links = useMemo(() => identityLinksQuery.data?.links ?? [], [identityLinksQuery.data]);
+  const configHash = identityLinksQuery.data?.configHash ?? "";
+  const loadState: PanelState = identityLinksQuery.isFetching
+    ? "loading"
+    : identityLinksQuery.data
+      ? "ready"
+      : "idle";
+  const agentProfile: DeckGoAgentIdentityResponse | null =
+    selectedCanonical === "main" ? (agentProfileQuery.data ?? null) : null;
+  const loadError =
+    identityLinksQuery.error instanceof Error
+      ? identityLinksQuery.error.message
+      : identityLinksQuery.error
+        ? t("loadFailed")
+        : "";
 
   const refresh = useCallback(
     async (preferredCanonical?: string) => {
-      setLoadState("loading");
       try {
-        const response = await fetchIdentityLinks();
-        const nextLinks = response.links ?? [];
-        setLinks(nextLinks);
-        setConfigHash(response.configHash ?? "");
-        setLoadState("ready");
+        const result = await identityLinksQuery.refetch();
+        const response = result.data;
+        const nextLinks = response?.links ?? [];
         setError("");
         setSelectedCanonical((current) => {
           const preferred = preferredCanonical?.trim();
@@ -94,38 +108,20 @@ export function IdentityPanel() {
           return nextLinks[0]?.canonical ?? null;
         });
       } catch (loadError) {
-        setLoadState("idle");
         setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
       }
     },
-    [t],
+    [identityLinksQuery, t],
   );
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (selectedCanonical !== "main") {
-      setAgentProfile(null);
-      return undefined;
-    }
-    void fetchAgentIdentity("main")
-      .then((profile) => {
-        if (!cancelled) {
-          setAgentProfile(profile);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAgentProfile(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedCanonical]);
+    setSelectedCanonical((current) => {
+      if (current && links.some((link) => link.canonical === current)) {
+        return current;
+      }
+      return links[0]?.canonical ?? null;
+    });
+  }, [links]);
 
   const selectedLink = useMemo(
     () => links.find((link) => link.canonical === selectedCanonical) ?? null,
@@ -182,7 +178,12 @@ export function IdentityPanel() {
     setSubmittingLink(true);
     setDialogError("");
     try {
-      await linkIdentityPeer(canonical, channel, peerId, configHash);
+      await linkIdentityMutation.mutateAsync({
+        baseHash: configHash,
+        canonical,
+        channel,
+        peerId,
+      });
       setLastAction(t("linkedPeer", { channel, peerId, canonical }));
       setShowDialog(false);
       setError("");
@@ -206,7 +207,12 @@ export function IdentityPanel() {
     const nextPendingKey = `${canonical}:${channel}:${peerId}`;
     setPendingUnlinkKey(nextPendingKey);
     try {
-      await unlinkIdentityPeer(canonical, channel, peerId, configHash);
+      await unlinkIdentityMutation.mutateAsync({
+        baseHash: configHash,
+        canonical,
+        channel,
+        peerId,
+      });
       setLastAction(t("unlinkedPeer", { channel, peerId, canonical }));
       setError("");
       await refresh(canonical);
@@ -270,7 +276,7 @@ export function IdentityPanel() {
         </div>
       </div>
 
-      {error ? <p className="identity-panel__error">{error}</p> : null}
+      {error || loadError ? <p className="identity-panel__error">{error || loadError}</p> : null}
       {lastAction ? (
         <div className="identity-panel__notice">
           <strong>{t("lastAction")}</strong>

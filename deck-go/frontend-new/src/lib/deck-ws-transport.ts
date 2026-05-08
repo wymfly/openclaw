@@ -3,6 +3,7 @@ import type {
   GatewayMethodName,
 } from "../../../contracts/generated/ts/gateway/protocol";
 import { GatewayError, type GatewayErrorPayload } from "./gateway-client";
+import { DEFAULT_RUNTIME_ID } from "./runtime-id";
 
 type PendingRequest = {
   resolve: (value: unknown) => void;
@@ -33,7 +34,7 @@ export class DeckGatewayWebSocketTransport {
   private nextId = 0;
 
   constructor(options: DeckWebSocketTransportOptions = {}) {
-    const runtimeId = options.runtimeId ?? "rt_local";
+    const runtimeId = options.runtimeId ?? DEFAULT_RUNTIME_ID;
     const token = options.accessToken?.trim();
     const base = options.url ?? `/api/v1/runtimes/${encodeURIComponent(runtimeId)}/gateway/ws`;
     const url = token ? appendToken(base, token) : base;

@@ -1,15 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DeckGoPendingApproval } from "../../api";
-import {
-  fetchApprovalsPolicy,
-  fetchPendingApprovals,
-  resolveApproval as resolveApprovalRequest,
-} from "../../api";
+import { resolveApproval as resolveApprovalRequest } from "../../api";
 import { useApprovalsStore } from "../approvals";
 
 vi.mock("../../api", () => ({
-  fetchApprovalsPolicy: vi.fn(),
-  fetchPendingApprovals: vi.fn(),
   resolveApproval: vi.fn(),
 }));
 
@@ -33,12 +27,10 @@ beforeEach(() => {
 });
 
 describe("useApprovalsStore", () => {
-  it("fetches pending approvals and filters expired entries", async () => {
-    vi.mocked(fetchPendingApprovals).mockResolvedValue({
-      pending: [pending("active", 2_000), pending("expired", 999)],
-    });
-
-    await useApprovalsStore.getState().fetchPending();
+  it("keeps stream-fed pending approvals active and de-duplicated", () => {
+    useApprovalsStore.getState().addPending(pending("active", 2_000));
+    useApprovalsStore.getState().addPending(pending("expired", 999));
+    useApprovalsStore.getState().addPending(pending("active", 2_000));
 
     expect(useApprovalsStore.getState().pending.map((approval) => approval.id)).toEqual(["active"]);
   });
@@ -58,22 +50,15 @@ describe("useApprovalsStore", () => {
     ]);
   });
 
-  it("normalizes fetched policy snapshots", async () => {
-    vi.mocked(fetchApprovalsPolicy).mockResolvedValue({
-      hash: "hash-1",
-      file: {
-        defaults: { ask: "always" },
-        agents: { main: { security: "allowlist" } },
-      },
+  it("removes pending approvals by id when the live stream reports completion", () => {
+    useApprovalsStore.setState({
+      pending: [pending("approval-1"), pending("approval-2")],
     });
 
-    await useApprovalsStore.getState().fetchPolicy();
+    useApprovalsStore.getState().removePending("approval-1");
 
-    expect(useApprovalsStore.getState().policy).toEqual({
-      defaults: { ask: "always" },
-      agents: { main: { security: "allowlist" } },
-      allowlist: [],
-    });
-    expect(useApprovalsStore.getState().policyHash).toBe("hash-1");
+    expect(useApprovalsStore.getState().pending.map((approval) => approval.id)).toEqual([
+      "approval-2",
+    ]);
   });
 });

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -9,33 +10,37 @@ import {
   type ReactNode,
 } from "react";
 import {
-  createAgent,
-  deleteAgent,
-  fetchAgentDetail,
-  fetchAgentEventStreams,
-  fetchAgentFile,
-  fetchAgentFiles,
-  fetchRuntimeConfiguredModels,
-  fetchAgentSkills,
-  fetchAgentSubagentConfig,
-  fetchAgentSystemPromptPreview,
-  fetchAgentToolPolicyPreview,
   normalizeAgentSubagentPermissionOptions,
-  saveAgentFile,
-  updateAgent,
-  updateAgentEventStreams,
-  updateAgentSkills,
-  updateAgentSubagentConfig,
   type DeckGoAgentDetailResponse,
   type DeckGoAgentEventStreamsResponse,
   type DeckGoAgentFile,
   type DeckGoAgentSkillsResponse,
-  type DeckGoAgentSubagentConfigResponse,
   type DeckGoAgentSubagentPermissionOption,
   type DeckGoAgentSystemPromptPreviewResponse,
   type DeckGoAgentToolPolicyPreviewResponse,
 } from "@/api";
 import type { DeckGoRuntimeConfiguredModel, DeckGoServerEvent } from "@/api-types";
+import {
+  applyAgentStatusInvalidation,
+  isProtectedAgentDeleteTarget,
+  useAgentDetailQuery,
+  useAgentEventStreamsQuery,
+  useAgentFileQuery,
+  useAgentFilesQuery,
+  useAgentsConfiguredModelsQuery,
+  useAgentsListQuery,
+  useAgentSkillsQuery,
+  useAgentSubagentsQuery,
+  useAgentSystemPromptQuery,
+  useAgentToolPolicyQuery,
+  useCreateAgentMutation,
+  useDeleteAgentMutation,
+  useSaveAgentEventStreamsMutation,
+  useSaveAgentFileMutation,
+  useSaveAgentSkillsMutation,
+  useSaveAgentSubagentsMutation,
+  useUpdateAgentMutation,
+} from "@/data/modules/agents";
 import {
   Badge,
   Banner,
@@ -51,7 +56,7 @@ import {
   Toggle,
 } from "@/design-system/atoms";
 import { useLiveProjectionSubscription } from "@/hooks/useLiveProjectionSubscription";
-import { useAgentsStore, type Agent } from "@/stores/agents";
+import { normalizeAgentSummary, useAgentsStore, type Agent } from "@/stores/agents";
 import {
   AGENT_SECTIONS,
   buildAgentIdentityPatch,
@@ -159,11 +164,9 @@ function sortAgents(agents: Agent[], sort: AgentsSort) {
 
 export function AgentsPanel() {
   const t = useTranslations("agentsPanel");
-  const list = useAgentsStore((state) => state.agents);
+  const queryClient = useQueryClient();
+  const agentsQuery = useAgentsListQuery();
   const selectedAgentId = useAgentsStore((state) => state.selectedAgentId);
-  const status = useAgentsStore((state) => state.status);
-  const error = useAgentsStore((state) => state.error);
-  const loadAgents = useAgentsStore((state) => state.loadAgents);
   const selectAgent = useAgentsStore((state) => state.selectAgent);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<AgentsFilter>("all");
@@ -172,21 +175,33 @@ export function AgentsPanel() {
   const [deleteTarget, setDeleteTarget] = useState<Agent | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const rowRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const handleServerEvent = useCallback((event: DeckGoServerEvent) => {
-    useAgentsStore.getState().applyServerEvent(event);
-  }, []);
+  const handleServerEvent = useCallback(
+    (event: DeckGoServerEvent) => {
+      void applyAgentStatusInvalidation(queryClient, event);
+    },
+    [queryClient],
+  );
   const liveProjection = useLiveProjectionSubscription({
     projectionId: "agent-status",
     onEvent: handleServerEvent,
     retryDelayMs: 2_000,
   });
   const streamStatus = liveProjection.status;
-
-  useEffect(() => {
-    if (status === "idle") {
-      void loadAgents();
-    }
-  }, [loadAgents, status]);
+  const list = useMemo(
+    () => (agentsQuery.data?.agents ?? []).map(normalizeAgentSummary),
+    [agentsQuery.data?.agents],
+  );
+  const hasListData = Boolean(agentsQuery.data);
+  const status =
+    !hasListData && agentsQuery.isPending
+      ? "loading"
+      : !hasListData && agentsQuery.isError
+        ? "error"
+        : "ready";
+  const error = agentsQuery.error ? formatAgentError(agentsQuery.error) : null;
+  const retryAgentsList = useCallback(async () => {
+    await agentsQuery.refetch();
+  }, [agentsQuery]);
 
   useEffect(() => {
     const requestedAgentId = readAgentParam();
@@ -367,7 +382,16 @@ export function AgentsPanel() {
             <Banner variant="error">
               <strong>{t("errors.listTitle")}</strong>
               <span>{error}</span>
-              <Button size="sm" onClick={() => void loadAgents()}>
+              <Button size="sm" onClick={() => void retryAgentsList()}>
+                {t("retry")}
+              </Button>
+            </Banner>
+          ) : null}
+          {hasListData && agentsQuery.isError ? (
+            <Banner variant="warn">
+              <strong>{t("errors.listTitle")}</strong>
+              <span>{error}</span>
+              <Button size="sm" onClick={() => void retryAgentsList()}>
                 {t("retry")}
               </Button>
             </Banner>
@@ -514,9 +538,10 @@ function AgentDetailView({
   const [section, setSection] = useState<AgentSectionId>(() =>
     readSectionFromHash(window.location.hash),
   );
-  const [detail, setDetail] = useState<DeckGoAgentDetailResponse | null>(null);
-  const [detailError, setDetailError] = useState<string | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const detailQuery = useAgentDetailQuery(agent.id);
+  const detail = detailQuery.data ?? null;
+  const detailError = detailQuery.error ? formatAgentError(detailQuery.error) : null;
+  const detailLoading = detailQuery.isPending && !detailQuery.data;
   const [overviewDraft, setOverviewDraft] = useState<OverviewDraft>(() =>
     overviewDraftFromAgent(agent),
   );
@@ -525,13 +550,15 @@ function AgentDetailView({
   const [runtimeSaving, setRuntimeSaving] = useState(false);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
-  const [skills, setSkills] = useState<DeckGoAgentSkillsResponse | null>(null);
+  const skillsQuery = useAgentSkillsQuery(agent.id, { enabled: section === "skills" });
+  const skills = skillsQuery.data ?? null;
   const [skillsDraft, setSkillsDraft] = useState<{ mode: string; skills: string[] } | null>(null);
   const [skillsSaving, setSkillsSaving] = useState(false);
   const [skillsError, setSkillsError] = useState<string | null>(null);
   const [skillsConflict, setSkillsConflict] = useState(false);
 
-  const [subagents, setSubagents] = useState<DeckGoAgentSubagentConfigResponse | null>(null);
+  const subagentsQuery = useAgentSubagentsQuery(agent.id, { enabled: section === "subagents" });
+  const subagents = subagentsQuery.data ?? null;
   const [subagentRows, setSubagentRows] = useState<DeckGoAgentSubagentPermissionOption[]>([]);
   const [subagentAllowAny, setSubagentAllowAny] = useState(false);
   const [subagentModel, setSubagentModel] = useState("");
@@ -539,25 +566,40 @@ function AgentDetailView({
   const [subagentError, setSubagentError] = useState<string | null>(null);
   const [subagentConflict, setSubagentConflict] = useState(false);
 
-  const [streams, setStreams] = useState<DeckGoAgentEventStreamsResponse | null>(null);
+  const streamsQuery = useAgentEventStreamsQuery(agent.id, {
+    enabled: section === "event-streams",
+  });
+  const streams = streamsQuery.data ?? null;
   const [streamDraft, setStreamDraft] = useState<string[]>([]);
   const [streamSaving, setStreamSaving] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const [streamConflict, setStreamConflict] = useState(false);
 
-  const [toolPolicy, setToolPolicy] = useState<DeckGoAgentToolPolicyPreviewResponse | null>(null);
+  const toolPolicyQuery = useAgentToolPolicyQuery(agent.id, { enabled: section === "tool-policy" });
+  const toolPolicy = toolPolicyQuery.data ?? null;
   const [toolPolicyError, setToolPolicyError] = useState<string | null>(null);
-  const [systemPrompt, setSystemPrompt] = useState<DeckGoAgentSystemPromptPreviewResponse | null>(
-    null,
-  );
+  const systemPromptQuery = useAgentSystemPromptQuery(agent.id, {
+    enabled: section === "system-prompt",
+  });
+  const systemPrompt = systemPromptQuery.data ?? null;
   const [systemPromptError, setSystemPromptError] = useState<string | null>(null);
 
-  const [files, setFiles] = useState<DeckGoAgentFile[] | null>(null);
+  const filesQuery = useAgentFilesQuery(agent.id, { enabled: section === "files" });
+  const files = filesQuery.data?.files ?? null;
   const [fileName, setFileName] = useState("");
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const fileQuery = useAgentFileQuery(agent.id, selectedFileName, {
+    enabled: section === "files" && Boolean(selectedFileName),
+  });
   const [fileContent, setFileContent] = useState("");
   const [fileDirty, setFileDirty] = useState(false);
   const [fileSaving, setFileSaving] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const updateAgentMutation = useUpdateAgentMutation();
+  const saveSkillsMutation = useSaveAgentSkillsMutation();
+  const saveSubagentsMutation = useSaveAgentSubagentsMutation();
+  const saveStreamsMutation = useSaveAgentEventStreamsMutation();
+  const saveFileMutation = useSaveAgentFileMutation();
 
   const overviewDirty = hasOverviewChanges(agent, overviewDraft);
   const runtimeDirty = hasRuntimeChanges(agent, overviewDraft);
@@ -567,12 +609,14 @@ function AgentDetailView({
       skillsDraft?.skills.join("\n") !== skills?.skills.join("\n"));
   const subagentsDirty =
     Boolean(subagents) &&
-    ((subagentAllowAny ? "*" : subagentRows
-      .filter((row) => row.allowed)
-      .map((row) => row.id)
-      .toSorted()
-      .join("\n")) !==
-      ((subagents?.allowAny || subagents?.allowAgents.includes("*"))
+    ((subagentAllowAny
+      ? "*"
+      : subagentRows
+          .filter((row) => row.allowed)
+          .map((row) => row.id)
+          .toSorted()
+          .join("\n")) !==
+      (subagents?.allowAny || subagents?.allowAgents.includes("*")
         ? "*"
         : [...(subagents?.allowAgents ?? [])].toSorted().join("\n")) ||
       subagentModel !== (subagents?.model ?? ""));
@@ -593,35 +637,26 @@ function AgentDetailView({
     window.location.hash = next;
   }, []);
 
-  const loadDetail = useCallback(async () => {
-    setDetailLoading(true);
-    setDetailError(null);
-    try {
-      setDetail(await fetchAgentDetail(agent.id));
-    } catch (error) {
-      setDetailError(formatAgentError(error));
-    } finally {
-      setDetailLoading(false);
-    }
-  }, [agent.id]);
-
   useEffect(() => {
     setOverviewDraft(overviewDraftFromAgent(agent));
-    setDetail(null);
-    setSkills(null);
     setSkillsDraft(null);
-    setSubagents(null);
     setSubagentRows([]);
     setSubagentAllowAny(false);
-    setStreams(null);
-    setToolPolicy(null);
-    setSystemPrompt(null);
-    setFiles(null);
+    setSubagentModel("");
+    setStreamDraft([]);
     setFileName("");
+    setSelectedFileName("");
     setFileContent("");
     setFileDirty(false);
-    void loadDetail();
-  }, [agent, loadDetail]);
+    setOverviewError(null);
+    setRuntimeError(null);
+    setSkillsError(null);
+    setSubagentError(null);
+    setStreamError(null);
+    setToolPolicyError(null);
+    setSystemPromptError(null);
+    setFileError(null);
+  }, [agent]);
 
   useEffect(() => {
     const handleHash = () => setSection(readSectionFromHash(window.location.hash));
@@ -629,107 +664,86 @@ function AgentDetailView({
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
 
+  useEffect(() => {
+    if (!skills) {
+      return;
+    }
+    setSkillsDraft({ mode: skills.mode, skills: skills.skills });
+  }, [skills]);
+
+  useEffect(() => {
+    if (!subagents) {
+      return;
+    }
+    setSubagentRows(normalizeAgentSubagentPermissionOptions(subagents));
+    setSubagentAllowAny(subagents.allowAny === true || subagents.allowAgents.includes("*"));
+    setSubagentModel(subagents.model ?? "");
+  }, [subagents]);
+
+  useEffect(() => {
+    if (streams) {
+      setStreamDraft(streams.eventStreams);
+    }
+  }, [streams]);
+
+  useEffect(() => {
+    const file = fileQuery.data?.file;
+    if (!file) {
+      return;
+    }
+    setFileName(file.name);
+    setFileContent(file.content ?? "");
+    setFileDirty(false);
+  }, [fileQuery.data?.file]);
+
   const reloadSkills = useCallback(async () => {
     setSkillsError(null);
     setSkillsConflict(false);
-    try {
-      const response = await fetchAgentSkills(agent.id);
-      setSkills(response);
-      setSkillsDraft({ mode: response.mode, skills: response.skills });
-    } catch (error) {
-      setSkillsError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await skillsQuery.refetch();
+  }, [skillsQuery]);
 
   const reloadSubagents = useCallback(async () => {
     setSubagentError(null);
     setSubagentConflict(false);
-    try {
-      const response = await fetchAgentSubagentConfig(agent.id);
-      setSubagents(response);
-      setSubagentRows(normalizeAgentSubagentPermissionOptions(response));
-      setSubagentAllowAny(response.allowAny === true || response.allowAgents.includes("*"));
-      setSubagentModel(response.model ?? "");
-    } catch (error) {
-      setSubagentError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await subagentsQuery.refetch();
+  }, [subagentsQuery]);
 
   const reloadStreams = useCallback(async () => {
     setStreamError(null);
     setStreamConflict(false);
-    try {
-      const response = await fetchAgentEventStreams(agent.id);
-      setStreams(response);
-      setStreamDraft(response.eventStreams);
-    } catch (error) {
-      setStreamError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await streamsQuery.refetch();
+  }, [streamsQuery]);
 
   const reloadToolPolicy = useCallback(async () => {
     setToolPolicyError(null);
-    try {
-      setToolPolicy(await fetchAgentToolPolicyPreview(agent.id));
-    } catch (error) {
-      setToolPolicyError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await toolPolicyQuery.refetch();
+  }, [toolPolicyQuery]);
 
   const reloadSystemPrompt = useCallback(async () => {
     setSystemPromptError(null);
-    try {
-      setSystemPrompt(await fetchAgentSystemPromptPreview(agent.id));
-    } catch (error) {
-      setSystemPromptError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await systemPromptQuery.refetch();
+  }, [systemPromptQuery]);
 
   const reloadFiles = useCallback(async () => {
     setFileError(null);
-    try {
-      const response = await fetchAgentFiles(agent.id);
-      setFiles(response.files);
-    } catch (error) {
-      setFileError(formatAgentError(error));
-    }
-  }, [agent.id]);
+    await filesQuery.refetch();
+  }, [filesQuery]);
 
-  useEffect(() => {
-    if (section === "skills" && !skills && !skillsError) {
-      void reloadSkills();
-    } else if (section === "subagents" && !subagents && !subagentError) {
-      void reloadSubagents();
-    } else if (section === "event-streams" && !streams && !streamError) {
-      void reloadStreams();
-    } else if (section === "tool-policy" && !toolPolicy && !toolPolicyError) {
-      void reloadToolPolicy();
-    } else if (section === "system-prompt" && !systemPrompt && !systemPromptError) {
-      void reloadSystemPrompt();
-    } else if (section === "files" && !files && !fileError) {
-      void reloadFiles();
-    }
-  }, [
-    fileError,
-    files,
-    reloadFiles,
-    reloadSkills,
-    reloadStreams,
-    reloadSubagents,
-    reloadSystemPrompt,
-    reloadToolPolicy,
-    section,
-    skills,
-    skillsError,
-    streamError,
-    streams,
-    subagentError,
-    subagents,
-    systemPrompt,
-    systemPromptError,
-    toolPolicy,
-    toolPolicyError,
-  ]);
+  const skillsDisplayError =
+    skillsError ?? (skillsQuery.error ? formatAgentError(skillsQuery.error) : null);
+  const subagentDisplayError =
+    subagentError ?? (subagentsQuery.error ? formatAgentError(subagentsQuery.error) : null);
+  const streamDisplayError =
+    streamError ?? (streamsQuery.error ? formatAgentError(streamsQuery.error) : null);
+  const toolPolicyDisplayError =
+    toolPolicyError ?? (toolPolicyQuery.error ? formatAgentError(toolPolicyQuery.error) : null);
+  const systemPromptDisplayError =
+    systemPromptError ??
+    (systemPromptQuery.error ? formatAgentError(systemPromptQuery.error) : null);
+  const fileDisplayError =
+    fileError ??
+    (filesQuery.error ? formatAgentError(filesQuery.error) : null) ??
+    (fileQuery.error ? formatAgentError(fileQuery.error) : null);
 
   const saveOverview = useCallback(async () => {
     if (!overviewDirty) {
@@ -738,15 +752,17 @@ function AgentDetailView({
     setOverviewSaving(true);
     setOverviewError(null);
     try {
-      await updateAgent(agent.id, buildAgentIdentityPatch(agent, overviewDraft));
-      await useAgentsStore.getState().refreshAgents();
-      await loadDetail();
+      await updateAgentMutation.mutateAsync({
+        agentId: agent.id,
+        patch: buildAgentIdentityPatch(agent, overviewDraft),
+      });
+      await detailQuery.refetch();
     } catch (error) {
       setOverviewError(formatAgentError(error));
     } finally {
       setOverviewSaving(false);
     }
-  }, [agent, loadDetail, overviewDirty, overviewDraft]);
+  }, [agent, detailQuery, overviewDirty, overviewDraft, updateAgentMutation]);
 
   const saveRuntime = useCallback(async () => {
     if (!runtimeDirty) {
@@ -755,15 +771,17 @@ function AgentDetailView({
     setRuntimeSaving(true);
     setRuntimeError(null);
     try {
-      await updateAgent(agent.id, buildAgentRuntimePatch(agent, overviewDraft));
-      await useAgentsStore.getState().refreshAgents();
-      await loadDetail();
+      await updateAgentMutation.mutateAsync({
+        agentId: agent.id,
+        patch: buildAgentRuntimePatch(agent, overviewDraft),
+      });
+      await detailQuery.refetch();
     } catch (error) {
       setRuntimeError(formatAgentError(error));
     } finally {
       setRuntimeSaving(false);
     }
-  }, [agent, loadDetail, runtimeDirty, overviewDraft]);
+  }, [agent, detailQuery, runtimeDirty, overviewDraft, updateAgentMutation]);
 
   const saveSkills = useCallback(async () => {
     if (!skills || !skillsDraft) {
@@ -773,24 +791,24 @@ function AgentDetailView({
     setSkillsError(null);
     setSkillsConflict(false);
     try {
-      const response = await updateAgentSkills(agent.id, {
+      const response = await saveSkillsMutation.mutateAsync({
+        agentId: agent.id,
+        baseHash: skills.configHash,
         mode: skillsDraft.mode === "whitelist" ? "whitelist" : "all",
         skills: skillsDraft.skills,
-        baseHash: skills.configHash,
       });
-      setSkills({
-        ...skills,
+      setSkillsDraft({
         mode: response.mode ?? skillsDraft.mode,
         skills: response.skills ?? skillsDraft.skills,
-        configHash: response.configHash ?? skills.configHash,
       });
+      await skillsQuery.refetch();
     } catch (error) {
       setSkillsConflict(isConflictError(error));
       setSkillsError(formatAgentError(error));
     } finally {
       setSkillsSaving(false);
     }
-  }, [agent.id, skills, skillsDraft]);
+  }, [agent.id, saveSkillsMutation, skills, skillsDraft, skillsQuery]);
 
   const saveSubagents = useCallback(async () => {
     if (!subagents) {
@@ -803,29 +821,37 @@ function AgentDetailView({
       const allowAgents = subagentAllowAny
         ? ["*"]
         : subagentRows.filter((row) => row.allowed).map((row) => row.id);
-      const response = await updateAgentSubagentConfig(agent.id, {
+      const response = await saveSubagentsMutation.mutateAsync({
+        agentId: agent.id,
         allowAgents,
-        model: subagentModel.trim() || undefined,
         baseHash: subagents.configHash,
+        model: subagentModel.trim() || undefined,
       });
-      setSubagents({
-        ...subagents,
-        allowAgents: response.allowAgents ?? allowAgents,
-        allowAny: allowAgents.includes("*"),
-        model: response.model ?? subagentModel,
-        configHash: response.configHash ?? subagents.configHash,
-      });
-      setSubagentAllowAny(allowAgents.includes("*"));
+      const nextAllowAgents = response.allowAgents ?? allowAgents;
+      setSubagentAllowAny(nextAllowAgents.includes("*"));
       setSubagentRows((rows) =>
-        rows.map((row) => ({ ...row, allowed: allowAgents.includes("*") || allowAgents.includes(row.id) })),
+        rows.map((row) => ({
+          ...row,
+          allowed: nextAllowAgents.includes("*") || nextAllowAgents.includes(row.id),
+        })),
       );
+      setSubagentModel(response.model ?? subagentModel);
+      await subagentsQuery.refetch();
     } catch (error) {
       setSubagentConflict(isConflictError(error));
       setSubagentError(formatAgentError(error));
     } finally {
       setSubagentSaving(false);
     }
-  }, [agent.id, subagentAllowAny, subagentModel, subagentRows, subagents]);
+  }, [
+    agent.id,
+    saveSubagentsMutation,
+    subagentAllowAny,
+    subagentModel,
+    subagentRows,
+    subagents,
+    subagentsQuery,
+  ]);
 
   const saveStreams = useCallback(async () => {
     if (!streams) {
@@ -835,34 +861,25 @@ function AgentDetailView({
     setStreamError(null);
     setStreamConflict(false);
     try {
-      const response = await updateAgentEventStreams(agent.id, streamDraft, streams.configHash);
-      setStreams({
-        ...streams,
-        eventStreams: response.eventStreams ?? streamDraft,
-        configHash: response.configHash ?? streams.configHash,
+      const response = await saveStreamsMutation.mutateAsync({
+        agentId: agent.id,
+        baseHash: streams.configHash,
+        eventStreams: streamDraft,
       });
+      setStreamDraft(response.eventStreams ?? streamDraft);
+      await streamsQuery.refetch();
     } catch (error) {
       setStreamConflict(isConflictError(error));
       setStreamError(formatAgentError(error));
     } finally {
       setStreamSaving(false);
     }
-  }, [agent.id, streamDraft, streams]);
+  }, [agent.id, saveStreamsMutation, streamDraft, streams, streamsQuery]);
 
-  const openFile = useCallback(
-    async (name: string) => {
-      setFileError(null);
-      try {
-        const response = await fetchAgentFile(agent.id, name);
-        setFileName(response.file.name);
-        setFileContent(response.file.content ?? "");
-        setFileDirty(false);
-      } catch (error) {
-        setFileError(formatAgentError(error));
-      }
-    },
-    [agent.id],
-  );
+  const openFile = useCallback((name: string) => {
+    setFileError(null);
+    setSelectedFileName(name);
+  }, []);
 
   const saveFile = useCallback(async () => {
     if (!fileName.trim()) {
@@ -872,7 +889,11 @@ function AgentDetailView({
     setFileSaving(true);
     setFileError(null);
     try {
-      await saveAgentFile(agent.id, fileName.trim(), fileContent);
+      await saveFileMutation.mutateAsync({
+        agentId: agent.id,
+        content: fileContent,
+        name: fileName.trim(),
+      });
       setFileDirty(false);
       await reloadFiles();
     } catch (error) {
@@ -880,7 +901,7 @@ function AgentDetailView({
     } finally {
       setFileSaving(false);
     }
-  }, [agent.id, fileContent, fileName, reloadFiles, t]);
+  }, [agent.id, fileContent, fileName, reloadFiles, saveFileMutation, t]);
 
   useEffect(() => {
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -936,7 +957,8 @@ function AgentDetailView({
   const detailModel = detail?.model ?? agent.model ?? t("missingModel");
   const detailWorkspace = detail?.workspace ?? agent.workspace ?? "/";
   const isMainProtected = detail?.isMainProtected ?? agent.isMainProtected;
-  const isConfiguredDefault = detail?.isConfiguredDefault ?? agent.isConfiguredDefault ?? agent.isDefault;
+  const isConfiguredDefault =
+    detail?.isConfiguredDefault ?? agent.isConfiguredDefault ?? agent.isDefault;
   const mainKey = detail?.mainKey ?? agent.mainKey;
   const skillCount =
     detail && Array.isArray(detail.effectiveSkills)
@@ -1007,7 +1029,7 @@ function AgentDetailView({
         <Banner variant="error">
           <strong>{t("errors.detailTitle")}</strong>
           <span>{detailError}</span>
-          <Button size="sm" onClick={() => void loadDetail()}>
+          <Button size="sm" onClick={() => void detailQuery.refetch()}>
             {t("retry")}
           </Button>
         </Banner>
@@ -1064,7 +1086,7 @@ function AgentDetailView({
             draft={skillsDraft}
             dirty={skillsDirty}
             saving={skillsSaving}
-            error={skillsError}
+            error={skillsDisplayError}
             conflict={skillsConflict}
             onReload={reloadSkills}
             onDraftChange={setSkillsDraft}
@@ -1079,7 +1101,7 @@ function AgentDetailView({
             loaded={Boolean(subagents)}
             dirty={subagentsDirty}
             saving={subagentSaving}
-            error={subagentError}
+            error={subagentDisplayError}
             conflict={subagentConflict}
             onReload={reloadSubagents}
             onAllowAnyChange={setSubagentAllowAny}
@@ -1091,14 +1113,14 @@ function AgentDetailView({
         {section === "tool-policy" ? (
           <ToolPolicySection
             preview={toolPolicy}
-            error={toolPolicyError}
+            error={toolPolicyDisplayError}
             onReload={reloadToolPolicy}
           />
         ) : null}
         {section === "system-prompt" ? (
           <SystemPromptSection
             preview={systemPrompt}
-            error={systemPromptError}
+            error={systemPromptDisplayError}
             onReload={reloadSystemPrompt}
           />
         ) : null}
@@ -1109,7 +1131,7 @@ function AgentDetailView({
             content={fileContent}
             dirty={fileDirty}
             saving={fileSaving}
-            error={fileError}
+            error={fileDisplayError}
             onReload={reloadFiles}
             onOpen={openFile}
             onFileNameChange={setFileName}
@@ -1126,7 +1148,7 @@ function AgentDetailView({
             draft={streamDraft}
             dirty={streamsDirty}
             saving={streamSaving}
-            error={streamError}
+            error={streamDisplayError}
             conflict={streamConflict}
             onReload={reloadStreams}
             onDraftChange={setStreamDraft}
@@ -1249,34 +1271,14 @@ function RuntimeSection({
   onSave: () => Promise<void>;
 }) {
   const t = useTranslations("agentsPanel");
-  const [models, setModels] = useState<DeckGoRuntimeConfiguredModel[]>([]);
-  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
+  const modelsQuery = useAgentsConfiguredModelsQuery();
+  const models = modelsQuery.data?.payload?.models ?? modelsQuery.data?.payload?.items ?? [];
+  const modelLoadError = modelsQuery.error ? formatAgentError(modelsQuery.error) : null;
   const update = (patch: Partial<OverviewDraft>) => onDraftChange({ ...draft, ...patch });
   const isProtected = detail?.isMainProtected ?? agent.isMainProtected;
   const modelOptions = models
     .map((model) => ({ value: configuredModelRef(model), label: configuredModelLabel(model) }))
     .filter((model) => model.value);
-
-  useEffect(() => {
-    let active = true;
-    setModelLoadError(null);
-    void fetchRuntimeConfiguredModels()
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        const payloadModels = response.payload?.models ?? response.payload?.items ?? [];
-        setModels(payloadModels);
-      })
-      .catch((loadError) => {
-        if (active) {
-          setModelLoadError(formatAgentError(loadError));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   return (
     <SectionCard title={t("sections.runtime")} description={t("runtime.description")}>
@@ -1316,7 +1318,10 @@ function RuntimeSection({
               ))}
             </Select>
           ) : (
-            <Input value={draft.model} onChange={(event) => update({ model: event.target.value })} />
+            <Input
+              value={draft.model}
+              onChange={(event) => update({ model: event.target.value })}
+            />
           )}
         </label>
         <label>
@@ -1327,7 +1332,9 @@ function RuntimeSection({
           />
         </label>
       </div>
-      {modelLoadError ? <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner> : null}
+      {modelLoadError ? (
+        <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner>
+      ) : null}
       <div className="agent-guarded-list" aria-label={t("runtime.guardsLabel")}>
         {(detail?.guardedEdits ?? []).map((guard) => (
           <div key={guard.field} className="agent-preview-row">
@@ -1452,7 +1459,11 @@ function SkillsSection({
                 <div key={skill.key} className="agent-option-row">
                   <div>
                     <strong>{skill.name}</strong>
-                    <small>{skill.eligible ? skill.key : t("skills.ineligibleReason", { key: skill.key })}</small>
+                    <small>
+                      {skill.eligible
+                        ? skill.key
+                        : t("skills.ineligibleReason", { key: skill.key })}
+                    </small>
                   </div>
                   <Toggle
                     aria-label={t("skills.toggle", { name: skill.name })}
@@ -1752,7 +1763,7 @@ function FilesSection({
   saving: boolean;
   error: string | null;
   onReload: () => Promise<void>;
-  onOpen: (name: string) => Promise<void>;
+  onOpen: (name: string) => void;
   onFileNameChange: (name: string) => void;
   onContentChange: (content: string) => void;
   onSave: () => Promise<void>;
@@ -1770,7 +1781,7 @@ function FilesSection({
               key={file.name}
               type="button"
               className="agent-file-row"
-              onClick={() => void onOpen(file.name)}
+              onClick={() => onOpen(file.name)}
             >
               <strong>{file.name}</strong>
               <small>{formatMaybeCount(file.size)}</small>
@@ -1828,7 +1839,9 @@ function RoutingImpactSection({
         </div>
         <div>
           <span>{t("routing.defaultState")}</span>
-          <strong>{(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}</strong>
+          <strong>
+            {(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}
+          </strong>
         </div>
         <div>
           <span>{t("meta.mainKey", { value: detail?.mainKey ?? agent.mainKey ?? "-" })}</span>
@@ -1881,7 +1894,9 @@ function DangerZoneSection({
             </div>
             <div>
               <span>{t("danger.configuredDefault")}</span>
-              <strong>{(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}</strong>
+              <strong>
+                {(detail?.isConfiguredDefault ?? agent.isConfiguredDefault) ? t("yes") : t("no")}
+              </strong>
             </div>
           </div>
           <Banner variant="warn">{t("danger.deleteImpact")}</Banner>
@@ -1909,38 +1924,17 @@ function CreateAgentWizard({
   const [draft, setDraft] = useState<CreateAgentDraft>(initialCreateDraft);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [models, setModels] = useState<DeckGoRuntimeConfiguredModel[]>([]);
-  const [modelLoadError, setModelLoadError] = useState<string | null>(null);
+  const modelsQuery = useAgentsConfiguredModelsQuery({ enabled: open });
+  const createAgentMutation = useCreateAgentMutation();
+  const models = modelsQuery.data?.payload?.models ?? modelsQuery.data?.payload?.items ?? [];
+  const modelLoadError = modelsQuery.error ? formatAgentError(modelsQuery.error) : null;
 
   useEffect(() => {
     if (!open) {
       setDraft(initialCreateDraft());
       setError(null);
       setSubmitting(false);
-      setModelLoadError(null);
     }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    let active = true;
-    void fetchRuntimeConfiguredModels()
-      .then((response) => {
-        if (!active) {
-          return;
-        }
-        setModels(response.payload?.models ?? response.payload?.items ?? []);
-      })
-      .catch((loadError) => {
-        if (active) {
-          setModelLoadError(formatAgentError(loadError));
-        }
-      });
-    return () => {
-      active = false;
-    };
   }, [open]);
 
   const validationKey = validateCreateStep(draft);
@@ -1964,8 +1958,7 @@ function CreateAgentWizard({
     setSubmitting(true);
     setError(null);
     try {
-      const response = await createAgent(buildCreateAgentRequest(draft));
-      await useAgentsStore.getState().refreshAgents();
+      const response = await createAgentMutation.mutateAsync(buildCreateAgentRequest(draft));
       onClose();
       onCreated(response.id ?? draft.name.trim());
     } catch (submitError) {
@@ -2053,7 +2046,9 @@ function CreateAgentWizard({
             </label>
             <Banner>{t("create.followUp")}</Banner>
             {modelLoadError ? (
-              <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner>
+              <Banner variant="warn">
+                {t("runtime.modelFallback", { error: modelLoadError })}
+              </Banner>
             ) : null}
           </div>
         ) : null}
@@ -2105,6 +2100,7 @@ function ConfirmDelete({
   onDeleted: (fallbackId: string | null) => void;
 }) {
   const t = useTranslations("agentsPanel");
+  const deleteAgentMutation = useDeleteAgentMutation();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -2119,17 +2115,15 @@ function ConfirmDelete({
     if (!agent) {
       return;
     }
-    if (agent.isMainProtected || agent.id === "main") {
+    if (isProtectedAgentDeleteTarget(agent)) {
       setError(t("delete.protectedMain"));
       return;
     }
     setDeleting(true);
     setError(null);
     try {
-      await deleteAgent(agent.id);
-      useAgentsStore.getState().removeAgent(agent.id);
-      await useAgentsStore.getState().refreshAgents();
-      onDeleted(useAgentsStore.getState().selectedAgentId);
+      await deleteAgentMutation.mutateAsync({ agent });
+      onDeleted(null);
     } catch (deleteError) {
       setError(formatAgentError(deleteError));
     } finally {
@@ -2152,7 +2146,7 @@ function ConfirmDelete({
           <p id="agent-delete-body">{agent ? t("delete.body", { name: agent.name }) : ""}</p>
         </header>
         {error ? <Banner variant="error">{error}</Banner> : null}
-        {agent?.isMainProtected || agent?.id === "main" ? (
+        {isProtectedAgentDeleteTarget(agent) ? (
           <Banner variant="warn">{t("delete.protectedMain")}</Banner>
         ) : (
           <Banner variant="warn">{t("danger.deleteImpact")}</Banner>
@@ -2161,7 +2155,7 @@ function ConfirmDelete({
           <Button onClick={onCancel}>{t("cancel")}</Button>
           <Button
             variant="danger"
-            disabled={deleting || agent?.isMainProtected || agent?.id === "main"}
+            disabled={deleting || isProtectedAgentDeleteTarget(agent)}
             onClick={() => void confirm()}
           >
             {deleting ? t("saving") : t("delete.confirm")}

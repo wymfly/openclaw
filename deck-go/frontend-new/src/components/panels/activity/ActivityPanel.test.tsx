@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { ActivityPanel } from "./ActivityPanel";
 
@@ -12,6 +13,7 @@ const apiMocks = vi.hoisted(() => ({
   streamLogEvents: vi.fn(),
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
@@ -64,6 +66,7 @@ function activityEvents() {
 async function flushEffects() {
   await act(async () => {
     await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(0);
     await Promise.resolve();
   });
 }
@@ -71,7 +74,13 @@ async function flushEffects() {
 async function renderActivityPanel(locale: "en" | "zh" = "en") {
   root = createRoot(container);
   await act(async () => {
-    root?.render(createElement(DeckIntlProvider, { locale }, createElement(ActivityPanel)));
+    root?.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(ActivityPanel)),
+      ),
+    );
   });
   await flushEffects();
 }

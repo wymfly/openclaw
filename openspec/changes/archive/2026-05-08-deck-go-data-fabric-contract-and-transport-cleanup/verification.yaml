@@ -1,0 +1,79 @@
+changeName: deck-go-data-fabric-contract-and-transport-cleanup
+archiveReady: true
+gapCount: 0
+generatedAt: "2026-05-08T05:40:10Z"
+decisions:
+  runtimeIdAuthority: "Generated Deck API contract constant plus explicit Go bridge test"
+  gatewayTransport: "Reuse Data Fabric Gateway client state only after moving default X-Request-Id generation to per-request execution"
+  queryKeyNumericOrdering: "Document deterministic JavaScript serialization for numeric-like keys without changing cache-key semantics"
+scenarios:
+  - scenarioId: baseline.contract-truth-reread
+    ownerTask: "1.1-1.3"
+    status: passed
+    verificationCommand: "Manual source inspection of design.md listed files"
+    evidence:
+      - "Confirmed Go runtime default is `runtimeid.Default`, frontend mirror had been `frontend-new/src/lib/runtime-id.ts`, Gateway client generated request ids at transport construction time, and query keys normalized filters through stableValue()."
+      - "Selected path: add generated `DeckGoDefaultRuntimeId` to Deck API contract artifacts and verify the Go bridge against `runtimeid.Default`."
+  - scenarioId: contracts.runtime-id-generated
+    ownerTask: "2.1-2.2,5.4"
+    status: passed
+    verificationCommand: "cd deck-go && make contracts-sync && make contracts-codegen-test deck-api-check && make contract-gate"
+    evidence:
+      - "`DeckGoDefaultRuntimeId` is generated in `contracts/generated/ts/deck-api.generated.ts` and `backend/internal/deckapi/types.generated.go` from `contracts/source/deck-api.contract.ts`."
+      - "`make contracts-codegen-test deck-api-check` passed."
+      - "`make contract-gate` initially exposed stale line-number generated reports after source insertion; after `node contracts/scripts/sync-deck-api-dynamic-surfaces.mjs`, final `make contract-gate` passed."
+  - scenarioId: backend.runtime-id-bridge
+    ownerTask: "2.1,5.4"
+    status: passed
+    verificationCommand: "cd deck-go/backend && go test ./internal/runtime/runtimeid"
+    evidence:
+      - "Passed. `default_test.go` asserts `runtimeid.Default` equals generated `deckapi.DeckGoDefaultRuntimeId`."
+  - scenarioId: frontend.runtime-id-and-query-keys
+    ownerTask: "2.1-2.3,5.1"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/data/contracts/query-keys.test.ts src/lib/gateway-client.test.ts src/data/transport/gateway-rpc.test.ts"
+    evidence:
+      - "Passed: 3 files, 11 tests."
+      - "Coverage includes default runtime id query-key prefix, equivalent filter-object serialization, and numeric-like key serialization."
+  - scenarioId: frontend.gateway-rpc-tracing
+    ownerTask: "3.1-3.3,5.1"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/lib/gateway-client.test.ts src/data/transport/gateway-rpc.test.ts"
+    evidence:
+      - "Passed. Default typed RPC calls generate fresh `X-Request-Id` values across repeated calls."
+      - "Existing explicit `requestId` tests remain stable."
+      - "Data Fabric Gateway RPC transport now reuses one generated client per transport instance without dispatching already-aborted requests."
+  - scenarioId: frontend.typecheck
+    ownerTask: "5.2"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npx tsc -b --pretty false"
+    evidence:
+      - "Passed with no TypeScript output."
+  - scenarioId: frontend.production-build
+    ownerTask: "5.3"
+    status: passed
+    verificationCommand: "cd deck-go && make frontend-build"
+    evidence:
+      - "Passed: deck-ui host check, TypeScript build, and Vite production build completed."
+      - "Vite reported only the existing large chunk warning."
+  - scenarioId: openspec.strict-validate
+    ownerTask: "5.5"
+    status: passed
+    verificationCommand: "openspec validate deck-go-data-fabric-contract-and-transport-cleanup --type change --strict"
+    evidence:
+      - "Change 'deck-go-data-fabric-contract-and-transport-cleanup' is valid."
+  - scenarioId: follow-up-status
+    ownerTask: "4.1-4.2,5.6"
+    status: passed
+    verificationCommand: "Inspect `openspec/follow-ups/2026-05-08-frontend-data-fabric-follow-ups.md` and scoped diff"
+    evidence:
+      - "FU-002, FU-003, and FU-004 are marked resolved with evidence and links to this cleanup change."
+      - "`git diff --check` on the scoped changed files passed."
+  - scenarioId: archive-readiness
+    ownerTask: "5.7"
+    status: passed
+    verificationCommand: "openspec archive deck-go-data-fabric-contract-and-transport-cleanup -y; openspec validate deck-go-data-fabric-contract-and-transport-cleanup --type spec --strict; openspec validate deck-go-data-fabric-foundation --type spec --strict"
+    evidence:
+      - "All implementation and verification tasks are complete."
+      - "Archive synced specs: created deck-go-data-fabric-contract-and-transport-cleanup and updated deck-go-data-fabric-foundation."
+      - "Post-archive strict spec validation passed for both touched specs."

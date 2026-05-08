@@ -3,6 +3,7 @@ import { fireEvent } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { LogsPanel } from "./LogsPanel";
 
@@ -18,6 +19,7 @@ const apiMocks = vi.hoisted(() => ({
   streamLogEvents: vi.fn(),
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
@@ -26,7 +28,21 @@ let streamParams: CapturedLogStreamParams | null = null;
 
 function renderLogsPanel() {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale: "en" }, createElement(LogsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale: "en" }, createElement(LogsPanel)),
+    ),
+  );
+}
+
+async function flushLogsQuery() {
+  await act(async () => {
+    await Promise.resolve();
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    await Promise.resolve();
+  });
 }
 
 describe("LogsPanel", () => {
@@ -77,6 +93,7 @@ describe("LogsPanel", () => {
     await act(async () => {
       renderLogsPanel();
     });
+    await flushLogsQuery();
 
     expect(apiMocks.fetchLogsTail).toHaveBeenCalledWith({
       cursor: 7,
@@ -103,6 +120,7 @@ describe("LogsPanel", () => {
     await act(async () => {
       renderLogsPanel();
     });
+    await flushLogsQuery();
 
     expect(container.textContent).toContain("boot line");
     expect(container.textContent).toContain("json line");
@@ -150,6 +168,7 @@ describe("LogsPanel", () => {
     await act(async () => {
       renderLogsPanel();
     });
+    await flushLogsQuery();
 
     expect(streamParams).toBeTruthy();
 

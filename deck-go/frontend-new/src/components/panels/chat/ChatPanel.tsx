@@ -1,5 +1,7 @@
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useChatSnapshotQuery, useSessionEventsSubscriptionMutation } from "@/data/modules/chat";
+import { useSessionsListQuery } from "@/data/modules/sessions";
 import { useCommandDiscovery } from "@/hooks/use-command-discovery";
 import { getCachedTranscript, setCachedTranscript } from "@/lib/transcript-cache";
 import { useChatStore, type ChatState } from "@/stores/chat";
@@ -22,10 +24,10 @@ import { BlockFilterBar } from "./BlockFilterBar";
 import { CanvasPanel } from "./CanvasPanel";
 import "./chat-shell.css";
 import {
-  fetchChatSnapshot,
-  fetchSessionList,
+  normalizeChatSnapshotResponse,
+  normalizeSessionMeta,
   persistChatProjection,
-  setSessionMessageSubscription,
+  type RawSessionMeta,
 } from "./chat-api";
 import { ChatContextBar } from "./ChatContextBar";
 import { EmptyState } from "./EmptyState";
@@ -111,6 +113,19 @@ export function ChatPanel() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const steerContainerRef = useRef<HTMLDivElement>(null);
   const visualStateRequested = useMemo(() => isChatVisualStateRequested(), []);
+  const sessionListQuery = useSessionsListQuery(activeAgentId ? { agentId: activeAgentId } : {}, {
+    enabled: !visualStateRequested,
+  });
+  const chatSnapshotQuery = useChatSnapshotQuery(
+    activeSessionKey
+      ? {
+          agentId: activeAgentId ?? undefined,
+          sessionKey: activeSessionKey,
+        }
+      : null,
+    { enabled: !visualStateRequested && Boolean(activeSessionKey) && !isStreaming },
+  );
+  const sessionEventsMutation = useSessionEventsSubscriptionMutation();
 
   useEffect(() => {
     initializeLocalCommands();
@@ -164,36 +179,32 @@ export function ChatPanel() {
     if (visualStateRequested) {
       return undefined;
     }
+    const response = sessionListQuery.data;
+    if (!response) {
+      return undefined;
+    }
 
-    let cancelled = false;
-    void fetchSessionList(activeAgentId ?? undefined)
-      .then((metas) => {
-        if (cancelled) {
-          return;
-        }
+    const metas = (response.sessions ?? []).map((session) =>
+      normalizeSessionMeta(session as RawSessionMeta, activeAgentId ?? undefined),
+    );
+    const store = useChatStore.getState();
+    store.setSessionMetas(metas);
+    if (store.activeSessionKey || metas.length === 0) {
+      return undefined;
+    }
 
-        const store = useChatStore.getState();
-        store.setSessionMetas(metas);
-        if (store.activeSessionKey || metas.length === 0) {
-          return;
-        }
-
-        const initialSession = activeAgentId
-          ? (metas.find((meta) => meta.agentId === activeAgentId) ?? metas[0])
-          : metas[0];
-        if (!initialSession) {
-          return;
-        }
-        store.setActiveSession(initialSession.key);
-        if (initialSession.agentId) {
-          store.setActiveAgent(initialSession.agentId);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAgentId, visualStateRequested]);
+    const initialSession = activeAgentId
+      ? (metas.find((meta) => meta.agentId === activeAgentId) ?? metas[0])
+      : metas[0];
+    if (!initialSession) {
+      return undefined;
+    }
+    store.setActiveSession(initialSession.key);
+    if (initialSession.agentId) {
+      store.setActiveAgent(initialSession.agentId);
+    }
+    return undefined;
+  }, [activeAgentId, sessionListQuery.data, visualStateRequested]);
 
   useEffect(() => {
     if (visualStateRequested) {
@@ -203,15 +214,15 @@ export function ChatPanel() {
       return undefined;
     }
 
-    void setSessionMessageSubscription({
+    sessionEventsMutation.mutate({
+      action: "subscribe",
       sessionKey: activeSessionKey,
-      subscribed: true,
-    }).catch(() => {});
+    });
     return () => {
-      void setSessionMessageSubscription({
+      sessionEventsMutation.mutate({
+        action: "unsubscribe",
         sessionKey: activeSessionKey,
-        subscribed: false,
-      }).catch(() => {});
+      });
     };
   }, [activeSessionKey, visualStateRequested]);
 
@@ -225,49 +236,50 @@ export function ChatPanel() {
 
     const store = useChatStore.getState();
     const session = store.ensureSession(activeSessionKey);
-    if (session.isStreaming) {
+    if (session.isStreaming || isStreaming) {
       return undefined;
     }
     const cachedMessages = getCachedTranscript(activeSessionKey, session.isStreaming);
     if (cachedMessages && cachedMessages.length > 0) {
       store.setMessages(activeSessionKey, cachedMessages);
     }
+    return undefined;
+  }, [activeSessionKey, isStreaming, visualStateRequested]);
 
-    let cancelled = false;
-    void fetchChatSnapshot({
-      sessionKey: activeSessionKey,
+  useEffect(() => {
+    if (visualStateRequested) {
+      return undefined;
+    }
+    if (!activeSessionKey || !chatSnapshotQuery.data) {
+      return undefined;
+    }
+
+    const latestStore = useChatStore.getState();
+    if (latestStore.activeSessionKey !== activeSessionKey) {
+      return undefined;
+    }
+
+    const latestSession = latestStore.ensureSession(activeSessionKey);
+    if (latestSession.isStreaming || isStreaming) {
+      return undefined;
+    }
+
+    const snapshot = normalizeChatSnapshotResponse(chatSnapshotQuery.data, {
       agentId: activeAgentId ?? undefined,
-    })
-      .then((snapshot) => {
-        if (cancelled) {
-          return;
-        }
-
-        const latestStore = useChatStore.getState();
-        if (latestStore.activeSessionKey !== activeSessionKey) {
-          return;
-        }
-
-        const latestSession = latestStore.ensureSession(activeSessionKey);
-        if (latestSession.isStreaming) {
-          return;
-        }
-
-        const normalizedMessages = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
-        setCachedTranscript(activeSessionKey, normalizedMessages);
-        if (!(normalizedMessages.length === 0 && latestSession.messages.length > 0)) {
-          latestStore.setMessages(activeSessionKey, normalizedMessages);
-        }
-        applySnapshotMeta(latestStore, activeSessionKey, snapshot.meta);
-        latestStore.setActiveApproval(activeSessionKey, snapshot.activeApproval);
-        latestStore.setA2UIState(activeSessionKey, snapshot.a2uiState);
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeAgentId, activeSessionKey, visualStateRequested]);
+    });
+    const normalizedMessages = normalizeHistoryMessages(activeSessionKey, snapshot.messages);
+    setCachedTranscript(activeSessionKey, normalizedMessages);
+    if (!(normalizedMessages.length === 0 && latestSession.messages.length > 0)) {
+      latestStore.setMessages(activeSessionKey, normalizedMessages);
+    }
+    applySnapshotMeta(latestStore, activeSessionKey, snapshot.meta);
+    latestStore.setActiveApproval(activeSessionKey, snapshot.activeApproval);
+    const currentA2UI = latestStore.sessions.get(activeSessionKey)?.a2uiState ?? null;
+    if (snapshot.a2uiState || !currentA2UI?.visible) {
+      latestStore.setA2UIState(activeSessionKey, snapshot.a2uiState);
+    }
+    return undefined;
+  }, [activeAgentId, activeSessionKey, chatSnapshotQuery.data, isStreaming, visualStateRequested]);
 
   const updateBlockPrefs = useCallback((next: ChatBlockPreferences) => {
     const normalized = {

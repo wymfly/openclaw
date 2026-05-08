@@ -198,9 +198,12 @@ test.describe("chat real deck-go BFF contract chain", () => {
           await transcriptSearch.fill(fixture ? "Gateway" : "main");
           await expect(transcriptSearch).toHaveValue(fixture ? "Gateway" : "main");
 
+          const canvasPanel = page.locator('[data-right-panel-mode="canvas"]');
           await expect(page.getByRole("button", { name: variant.canvasLabel })).toBeVisible();
-          await page.getByRole("button", { name: variant.canvasLabel }).click();
-          await expect(page.locator('[data-right-panel-mode="canvas"]')).toBeVisible();
+          if (!(await canvasPanel.isVisible().catch(() => false))) {
+            await page.getByRole("button", { name: variant.canvasLabel }).click();
+          }
+          await expect(canvasPanel).toBeVisible();
           await expect(page.getByRole("button", { name: variant.artifactLabel })).toBeVisible();
 
           await expect.poll(() => unexpected.apiErrors.slice()).toEqual([]);

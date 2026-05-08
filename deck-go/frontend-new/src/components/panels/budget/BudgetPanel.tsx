@@ -1,12 +1,14 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { DeckGoBudgetEvaluation, DeckGoBudgetRule } from "../../../api";
+import type { DeckGoBudgetEvaluation, DeckGoBudgetRule } from "@/api-types";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
-  createBudgetRule,
-  deleteBudgetRule,
-  evaluateBudgetRules,
-  fetchBudgetRules,
-  updateBudgetRule,
-} from "../../../api";
+  budgetEvaluationsQueryOptions,
+  budgetRulesQueryOptions,
+  useCreateBudgetRuleMutation,
+  useDeleteBudgetRuleMutation,
+  useUpdateBudgetRuleMutation,
+} from "../../../data/modules/budget";
 import { useTranslations } from "../../../i18n/provider";
 import { BudgetMetric } from "./BudgetMetric";
 import { budgetProgressPercent, budgetStatusClass, formatBudgetValue } from "./BudgetStatus";
@@ -73,6 +75,11 @@ function ruleSearchText(rule: DeckGoBudgetRule) {
 export function BudgetPanel() {
   const t = useTranslations("budget");
   const tc = useTranslations("common");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const createRuleMutation = useCreateBudgetRuleMutation();
+  const updateRuleMutation = useUpdateBudgetRuleMutation();
+  const deleteRuleMutation = useDeleteBudgetRuleMutation();
   const [rules, setRules] = useState<DeckGoBudgetRule[]>([]);
   const [evaluations, setEvaluations] = useState<DeckGoBudgetEvaluation[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
@@ -90,11 +97,17 @@ export function BudgetPanel() {
     async (preferredRuleId?: string) => {
       setLoadState("loading");
       try {
-        const rulesResponse = await fetchBudgetRules();
+        const rulesResponse = await queryClient.fetchQuery({
+          ...budgetRulesQueryOptions(bff),
+          staleTime: 0,
+        });
         let nextEvaluations: DeckGoBudgetEvaluation[] = [];
         let evaluationError = "";
         try {
-          const evalResponse = await evaluateBudgetRules();
+          const evalResponse = await queryClient.fetchQuery({
+            ...budgetEvaluationsQueryOptions(bff),
+            staleTime: 0,
+          });
           nextEvaluations = evalResponse.evaluations ?? [];
         } catch (loadEvaluationError) {
           evaluationError =
@@ -120,7 +133,7 @@ export function BudgetPanel() {
         setError(loadError instanceof Error ? loadError.message : t("loadRulesFailed"));
       }
     },
-    [t],
+    [bff, queryClient, t],
   );
 
   useEffect(() => {
@@ -223,12 +236,15 @@ export function BudgetPanel() {
     setSaving(true);
     try {
       if (dialog?.type === "edit") {
-        const result = await updateBudgetRule(dialog.rule.id, input);
+        const result = await updateRuleMutation.mutateAsync({
+          id: dialog.rule.id,
+          input,
+        });
         await refresh(result.id);
         recordLocalChange(result.id, "update", t("changeUpdated", { name: result.name }));
         setLastAction("updated");
       } else {
-        const result = await createBudgetRule(input);
+        const result = await createRuleMutation.mutateAsync(input);
         await refresh(result.id);
         recordLocalChange(result.id, "create", t("changeCreated", { name: result.name }));
         setLastAction("created");
@@ -245,7 +261,10 @@ export function BudgetPanel() {
   const handleToggle = async (rule: DeckGoBudgetRule) => {
     setSaving(true);
     try {
-      const result = await updateBudgetRule(rule.id, { enabled: !rule.enabled });
+      const result = await updateRuleMutation.mutateAsync({
+        id: rule.id,
+        input: { enabled: !rule.enabled },
+      });
       await refresh(result.id);
       recordLocalChange(
         result.id,
@@ -268,7 +287,7 @@ export function BudgetPanel() {
     setSaving(true);
     try {
       const deletedRule = rules.find((rule) => rule.id === ruleId) ?? null;
-      await deleteBudgetRule(ruleId);
+      await deleteRuleMutation.mutateAsync(ruleId);
       await refresh();
       recordLocalChange(
         ruleId,

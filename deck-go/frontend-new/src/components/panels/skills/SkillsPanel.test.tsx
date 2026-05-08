@@ -5,6 +5,7 @@ import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { SkillsPanel } from "./SkillsPanel";
 
@@ -41,7 +42,13 @@ let root: Root | null = null;
 
 function renderSkillsPanel(locale: "en" | "zh" = "en") {
   root = createRoot(container);
-  root.render(createElement(DeckIntlProvider, { locale }, createElement(SkillsPanel)));
+  root.render(
+    createElement(
+      DataFabricTestProvider,
+      null,
+      createElement(DeckIntlProvider, { locale }, createElement(SkillsPanel)),
+    ),
+  );
 }
 
 function skillsPayload() {
@@ -208,7 +215,9 @@ describe("SkillsPanel product control plane", () => {
 
     expect(screen.getByText("main")).toBeTruthy();
     expect(screen.getByText("ops")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /Add GitHub|Remove GitHub|Save skills/i })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /Add GitHub|Remove GitHub|Save skills/i }),
+    ).toBeNull();
 
     clickText("Open main in Agents");
     expect(deckUIMocks.navigateToAgent).toHaveBeenCalledWith(deckUIMocks.ui, "main", "skills");
@@ -228,19 +237,25 @@ describe("SkillsPanel product control plane", () => {
     changeField("New API key", "new-secret-token");
     expect(container.textContent).not.toContain("new-secret-token");
     clickText("Save API key");
-    await waitFor(() => expect(apiMocks.updateSkill).toHaveBeenCalledWith("github", { apiKey: "new-secret-token" }));
+    await waitFor(() =>
+      expect(apiMocks.updateSkill).toHaveBeenCalledWith("github", { apiKey: "new-secret-token" }),
+    );
 
     clickText("Edit env");
     changeField("Env key 1", "bad-key");
     expect(screen.getByText("Keys must match ^[A-Z][A-Z0-9_]*$")).toBeTruthy();
-    expect((screen.getByRole("button", { name: "Save env" }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Save env" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it("runs global ClawHub update-all with no slug or version", async () => {
     await renderReady();
 
     clickText("Update all managed");
-    expect(screen.getByText("This updates all tracked ClawHub skills in this Gateway workspace.")).toBeTruthy();
+    expect(
+      screen.getByText("This updates all tracked ClawHub skills in this Gateway workspace."),
+    ).toBeTruthy();
     clickText("Confirm update all");
 
     await waitFor(() => expect(apiMocks.updateSkillHub).toHaveBeenCalledWith());
@@ -273,7 +288,11 @@ describe("SkillsPanel product control plane", () => {
         env: { GIT_TOKEN: "1" },
       }),
     );
-    expect(screen.getByText("Install succeeded. API key or env setup failed; retry from the detail sections.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Install succeeded. API key or env setup failed; retry from the detail sections.",
+      ),
+    ).toBeTruthy();
   });
 
   it("preserves per-bin install recipe behavior in AddBinDialog", async () => {

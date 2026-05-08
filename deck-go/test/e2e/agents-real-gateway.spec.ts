@@ -149,7 +149,13 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
           runId: fixture.runId,
           status: "passed",
           fixture: { id: fixture.id, name: fixture.name, workspace: fixture.workspace },
-          methods: ["agents.list", "agents.create", "agents.update", "agents.delete", "deck.agents.*"],
+          methods: [
+            "agents.list",
+            "agents.create",
+            "agents.update",
+            "agents.delete",
+            "deck.agents.*",
+          ],
           protectedMainDelete: { status: protectedDelete.status() },
         },
         testInfo,
@@ -289,11 +295,14 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await expect(page.getByRole("button", { name: "Save changes" }).first()).toBeEnabled();
 
   await clickDetailTab(page, "Runtime");
-  await expect(page.getByText("Guarded runtime fields")).toBeVisible();
+  await expect(page.getByText("Model source")).toBeVisible();
+  await expect(page.getByText("Workspace source")).toBeVisible();
   await expect(page.getByRole("button", { name: "Review and save" })).toBeVisible();
 
   await clickDetailTab(page, "Skills");
-  await expect(page.getByRole("tab", { name: "All" })).toBeVisible();
+  await expect(
+    page.getByLabel("Skill mode", { exact: true }).getByRole("tab", { name: "All" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Reload" }).click();
   await expect(page.getByRole("heading", { name: "Skills" })).toBeVisible();
 
@@ -329,7 +338,7 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await expect(page.getByRole("button", { name: "Open Routing" })).toBeVisible();
 
   await clickDetailTab(page, "Danger zone");
-  await expect(page.getByRole("button", { name: "Delete agent" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Delete agent" }).first()).toBeVisible();
 }
 
 async function clickDetailTab(page: Page, name: string) {

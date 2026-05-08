@@ -3,8 +3,8 @@ import type {
   DeckGoPendingApproval,
   DeckGoPendingApprovalsResponse,
   DeckGoServerEvent,
-} from "../../../api";
-import { useLiveProjectionSubscription } from "../../../hooks/useLiveProjectionSubscription";
+} from "@/api-types";
+import { useApprovalQueueProjectionSubscription } from "../../../data/modules/approvals";
 
 function filterActivePendingApprovals(approvals: DeckGoPendingApproval[], now = Date.now()) {
   return approvals.filter(
@@ -129,8 +129,7 @@ export function useApprovalsStream({
     [setPendingResponse, setSelectedApprovalId],
   );
 
-  useLiveProjectionSubscription({
-    projectionId: "approval-queue",
+  useApprovalQueueProjectionSubscription({
     retryDelayMs: 1_000,
     onEvent: handleEvent,
   });

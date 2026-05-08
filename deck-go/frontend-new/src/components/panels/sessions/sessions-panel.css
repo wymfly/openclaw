@@ -15,6 +15,10 @@
   box-sizing: border-box;
 }
 
+.sessions-panel [hidden] {
+  display: none !important;
+}
+
 .sessions-panel h2,
 .sessions-panel h3,
 .sessions-panel p {
@@ -338,14 +342,39 @@
   align-self: start;
 }
 
+.sessions-inspector-card .sessions-card__body,
+.sessions-actions-panel {
+  align-content: start;
+}
+
+.sessions-inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.sessions-inspector-tabs .ds-segmented__tab {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessions-actions-panel {
+  display: grid;
+  gap: var(--ds-sp-3);
+  min-width: 0;
+}
+
 @media (max-width: 1320px) {
   .sessions-workbench {
     grid-template-columns: minmax(300px, 0.9fr) minmax(520px, 1.1fr);
   }
 
-  .sessions-column--actions {
+  .sessions-column--inspector {
     grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -357,7 +386,7 @@
 
   .sessions-metrics,
   .sessions-workbench,
-  .sessions-column--actions,
+  .sessions-column--inspector,
   .sessions-controls,
   .sessions-stat-grid {
     grid-template-columns: minmax(0, 1fr);

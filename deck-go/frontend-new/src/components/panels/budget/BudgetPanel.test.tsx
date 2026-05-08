@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { BudgetPanel } from "./BudgetPanel";
 
@@ -14,6 +15,7 @@ const apiMocks = vi.hoisted(() => ({
   updateBudgetRule: vi.fn(),
 }));
 
+vi.mock("@/api", () => apiMocks);
 vi.mock("../../../api", () => apiMocks);
 
 let container: HTMLDivElement;
@@ -65,7 +67,13 @@ function evaluationsPayload() {
 function renderBudget(locale: "en" | "zh" = "en") {
   act(() => {
     root = createRoot(container);
-    root.render(createElement(DeckIntlProvider, { locale }, createElement(BudgetPanel)));
+    root.render(
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(DeckIntlProvider, { locale }, createElement(BudgetPanel)),
+      ),
+    );
   });
 }
 

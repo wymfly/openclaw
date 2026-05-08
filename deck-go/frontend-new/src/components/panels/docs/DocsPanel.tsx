@@ -13,7 +13,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { DeckGoDoc, DeckGoDocCategory } from "../../../api";
-import { deleteDoc, extractDocs, fetchDoc, fetchDocs } from "../../../api";
+import {
+  useDeleteDocMutation,
+  useDocDetailQuery,
+  useDocsListQuery,
+  useExtractDocsMutation,
+} from "../../../data/modules/docs";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
 import { useTranslations } from "../../../i18n/provider";
@@ -205,8 +210,6 @@ export function DocsPanel() {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const copyTimerRef = useRef<number | null>(null);
   const extractTimerRef = useRef<number | null>(null);
-  const [docs, setDocs] = useState<DeckGoDoc[]>([]);
-  const [docDetails, setDocDetails] = useState<Record<string, DeckGoDoc>>({});
   const [selectedDocId, setSelectedDocId] = useState(() => readHashDocId());
   const [collapsedCategories, setCollapsedCategories] = useState<Set<DeckGoDocCategory>>(
     () => new Set(),
@@ -223,20 +226,16 @@ export function DocsPanel() {
   const [confirmDeleteDocId, setConfirmDeleteDocId] = useState("");
   const [copiedDocId, setCopiedDocId] = useState("");
   const [error, setError] = useState("");
+  const docsQuery = useDocsListQuery();
+  const detailQuery = useDocDetailQuery(selectedDocId, { enabled: Boolean(selectedDocId) });
+  const extractDocsMutation = useExtractDocsMutation();
+  const deleteDocMutation = useDeleteDocMutation();
 
   const refresh = useCallback(
     async (preferredDocId?: string) => {
-      setLoadState("loading");
       try {
-        const next = await fetchDocs();
-        const nextDocs = next.docs ?? [];
-        setDocs(nextDocs);
-        setDocDetails((current) => {
-          const nextIds = new Set(nextDocs.map((doc) => doc.id));
-          return Object.fromEntries(
-            Object.entries(current).filter(([docId]) => nextIds.has(docId)),
-          );
-        });
+        const result = await docsQuery.refetch();
+        const nextDocs = result.data?.docs ?? [];
         setLoadState("ready");
         setError("");
         setSelectedDocId((current) => {
@@ -251,12 +250,24 @@ export function DocsPanel() {
         setError(loadError instanceof Error ? loadError.message : t("loadFailed"));
       }
     },
-    [t],
+    [docsQuery, t],
   );
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const nextDocs = docsQuery.data?.docs ?? [];
+    setLoadState(docsQuery.isLoading ? "loading" : docsQuery.data ? "ready" : "idle");
+    if (docsQuery.error) {
+      setError(docsQuery.error instanceof Error ? docsQuery.error.message : t("loadFailed"));
+      return;
+    }
+    setSelectedDocId((current) => {
+      const candidates = [current, readHashDocId(), nextDocs[0]?.id];
+      const match = candidates.find(
+        (candidate) => candidate && nextDocs.some((doc) => doc.id === candidate),
+      );
+      return match || "";
+    });
+  }, [docsQuery.data, docsQuery.error, docsQuery.isLoading, t]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -287,25 +298,12 @@ export function DocsPanel() {
   );
 
   useEffect(() => {
-    if (!selectedDocId || docDetails[selectedDocId]) {
-      return undefined;
+    if (detailQuery.error) {
+      setError(
+        detailQuery.error instanceof Error ? detailQuery.error.message : t("detailLoadFailed"),
+      );
     }
-    let cancelled = false;
-    void fetchDoc(selectedDocId)
-      .then((detail) => {
-        if (!cancelled) {
-          setDocDetails((current) => ({ ...current, [selectedDocId]: detail }));
-        }
-      })
-      .catch((loadError) => {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : t("detailLoadFailed"));
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [docDetails, selectedDocId, t]);
+  }, [detailQuery.error, t]);
 
   useEffect(() => {
     setConfirmDeleteDocId("");
@@ -314,8 +312,13 @@ export function DocsPanel() {
     }
   }, [selectedDocId]);
 
+  const docs = useMemo(() => docsQuery.data?.docs ?? [], [docsQuery.data]);
   const selectedListDoc = docs.find((doc) => doc.id === selectedDocId) ?? docs[0] ?? null;
-  const selectedDoc = selectedListDoc ? (docDetails[selectedListDoc.id] ?? selectedListDoc) : null;
+  const selectedDoc = selectedListDoc
+    ? detailQuery.data && detailQuery.data.id === selectedListDoc.id
+      ? detailQuery.data
+      : selectedListDoc
+    : null;
   const confirmDeleteSelected = Boolean(selectedDoc && confirmDeleteDocId === selectedDoc.id);
   const searchResults = useMemo(() => buildSearchResults(docs, query), [docs, query]);
   const filteredTreeDocs = useMemo(
@@ -404,7 +407,7 @@ export function DocsPanel() {
     setExtractPhase("running");
     setExtractError("");
     try {
-      const result = await extractDocs(sessionKey);
+      const result = await extractDocsMutation.mutateAsync(sessionKey);
       setActionResult(result);
       setError("");
       setExtractPhase("done");
@@ -434,7 +437,7 @@ export function DocsPanel() {
     }
     setActionState("deleting");
     try {
-      const result = await deleteDoc(selectedDoc.id);
+      const result = await deleteDocMutation.mutateAsync(selectedDoc.id);
       setActionResult(result);
       setError("");
       setConfirmDeleteDocId("");

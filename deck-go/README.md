@@ -46,32 +46,15 @@ All Gateway calls go through typed bindings:
 - Deck Go BFF control-plane, binary, SSE, and upload/download routes are classified in `docs/fe-endpoint-classification.md` and intentionally remain outside typed RPC.
 - Run `make gateway-typecheck` before pushing protocol or Deck caller changes; run `make gateway-coverage-report` after upstream syncs or typed migration work.
 
-Local Stage 3 operator stack:
+Local operator stacks:
 
-- copy `deck-go/.env.example` to `deck-go/.env`
-- `cd deck-go && make stack-start`
-- `cd deck-go && make stack-chat-smoke`
-- To force local Chrome for the browser smoke:
-  `DECK_GO_SMOKE_BROWSER=chrome make stack-chat-smoke`
-- If the environment cannot launch Chrome/Chromium directly, run Chrome outside
-  the sandbox and connect over CDP:
+- Mock Gateway UI/debug: `cd deck-go && make mock-stack-restart`
+- Real OpenClaw Gateway UI/debug: `cd deck-go && make real-stack-restart`
+- Status/logs: `make mock-stack-status` / `make real-stack-status`, and
+  `make mock-stack-logs` / `make real-stack-logs`
 
-```bash
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-  --remote-debugging-port=9333 \
-  --user-data-dir=/tmp/deck-go-smoke-chrome \
-  --no-first-run \
-  --no-default-browser-check
+Legacy `make stack-*` targets are mock aliases only. Use `real-stack-*` whenever
+manual E2E must run against the real OpenClaw Gateway.
 
-DECK_GO_SMOKE_BROWSER=cdp \
-DECK_GO_SMOKE_CDP_URL=http://127.0.0.1:9333 \
-make stack-chat-smoke
-```
-
-That stack uses:
-
-- `backend/` as the control-plane truth
-- `frontend/` as the active Vite host
-- `deck-go` backend managed runtime APIs to own the local Gateway lifecycle
-- `stack-chat-smoke` as the focused browser proof that the live frontend can unlock,
-  send a chat message, and render the assistant reply through the active host
+See `docs/project/e2e-stack-operations.md` for the full matrix of mock vs real
+env files, state directories, and Playwright commands.

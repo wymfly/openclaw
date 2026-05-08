@@ -3,6 +3,7 @@ import { fireEvent, waitFor } from "@testing-library/react";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "../../../data/testing/DataFabricTestProvider";
 import { DeckIntlProvider } from "../../../i18n/provider";
 import { ConfigPanel } from "./ConfigPanel";
 
@@ -131,7 +132,11 @@ function rootLookupPayload() {
 }
 
 function renderConfigPanel(locale: "en" | "zh" = "en") {
-  return createElement(DeckIntlProvider, { locale }, createElement(ConfigPanel));
+  return createElement(
+    DataFabricTestProvider,
+    null,
+    createElement(DeckIntlProvider, { locale }, createElement(ConfigPanel)),
+  );
 }
 
 function findButton(label: string) {

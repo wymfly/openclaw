@@ -195,13 +195,14 @@ test.describe("chat visual handoff alignment", () => {
 
     await openRichChat(page, stack);
 
-    const activeToolTab = page.getByRole("tab", { name: "read" });
+    const activeToolTab = page
+      .locator('button[role="tab"]:not([disabled])')
+      .filter({ hasText: /^read$/ });
     await activeToolTab.focus();
     await page.keyboard.press("ArrowLeft");
-    await expect(page.getByRole("tab", { name: "Show Raw" })).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
+    await expect(
+      page.locator('button[role="tab"][aria-selected="true"]').filter({ hasText: /^Show Raw$/ }),
+    ).toHaveCount(1);
 
     await expectKeyboardFocusable(page, page.getByRole("button", { exact: true, name: "Approve" }));
     await expectKeyboardFocusable(page, page.getByRole("button", { name: "Deny" }));
@@ -210,7 +211,7 @@ test.describe("chat visual handoff alignment", () => {
     await page.keyboard.press("Enter");
     await expect(page.locator('[data-right-panel-mode="canvas"]')).toHaveCount(0);
 
-    await page.locator(".ds-artifact-card button").focus();
+    await page.locator(".ds-artifact-card button").first().focus();
     await page.keyboard.press("Enter");
     await expect(page.locator('[data-right-panel-mode="artifact"]')).toBeVisible();
 

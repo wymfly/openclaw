@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ComponentType } from "react";
 import type { DeckGoActivityEvent } from "../../../api";
-import { fetchActivityEvents } from "../../../api";
+import { useActivityEventsQuery } from "../../../data/modules/activity";
 import {
   IconAgent,
   IconAlert,
@@ -380,18 +380,17 @@ function EventDetailDialog(props: {
 
 export function ActivityPanel() {
   const t = useTranslations("activity");
-  const [events, setEvents] = useState<DeckGoActivityEvent[]>([]);
+  const [liveEvents, setLiveEvents] = useState<DeckGoActivityEvent[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<DeckGoActivityEvent | null>(null);
-  const [state, setState] = useState<PanelState>("idle");
-  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [family, setFamily] = useState<ActivityFamily>("all");
   const [severity, setSeverity] = useState<ActivitySeverity>("all");
   const [timeRange, setTimeRange] = useState<ActivityTimeRange>("24h");
   const [asOfMs, setAsOfMs] = useState(() => Date.now());
+  const activityQuery = useActivityEventsQuery(ACTIVITY_LIMIT);
 
   const mergeEvent = useCallback((event: DeckGoActivityEvent) => {
-    setEvents((current) => {
+    setLiveEvents((current) => {
       const withoutDuplicate = current.filter((entry) => entry.id !== event.id);
       return [event, ...withoutDuplicate]
         .toSorted((left, right) => right.timestamp - left.timestamp)
@@ -401,32 +400,18 @@ export function ActivityPanel() {
 
   useActivitySSE(mergeEvent);
 
-  const refresh = useCallback(async () => {
-    setState("loading");
-    setAsOfMs(Date.now());
-    try {
-      const payload = await fetchActivityEvents(ACTIVITY_LIMIT);
-      const nextEvents = (payload.events ?? [])
-        .slice()
-        .toSorted((left, right) => right.timestamp - left.timestamp);
-      setEvents((current) => {
-        const seen = new Set(nextEvents.map((event) => event.id));
-        const liveOnly = current.filter((event) => !seen.has(event.id));
-        return [...nextEvents, ...liveOnly]
-          .toSorted((left, right) => right.timestamp - left.timestamp)
-          .slice(0, 200);
-      });
-      setState("ready");
-      setError("");
-    } catch (loadError) {
-      setState("error");
-      setError(gatewayNotConfiguredValue(loadError, t("failedLoadActivity")));
-    }
-  }, [t]);
+  const events = useMemo(() => {
+    const readEvents = activityQuery.data?.events ?? [];
+    const seen = new Set(readEvents.map((event) => event.id));
+    return [...readEvents, ...liveEvents.filter((event) => !seen.has(event.id))]
+      .toSorted((left, right) => right.timestamp - left.timestamp)
+      .slice(0, 200);
+  }, [activityQuery.data?.events, liveEvents]);
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  const refresh = useCallback(() => {
+    setAsOfMs(Date.now());
+    void activityQuery.refetch();
+  }, [activityQuery]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -437,7 +422,7 @@ export function ActivityPanel() {
       }
       if (meta && event.key.toLowerCase() === "r") {
         event.preventDefault();
-        void refresh();
+        refresh();
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -483,6 +468,14 @@ export function ActivityPanel() {
     setTimeRange("all");
   };
 
+  const state: PanelState = activityQuery.isLoading
+    ? "loading"
+    : activityQuery.error
+      ? "error"
+      : "ready";
+  const error = activityQuery.error
+    ? gatewayNotConfiguredValue(activityQuery.error, t("failedLoadActivity"))
+    : "";
   const notConfigured = isGatewayNotConfiguredValue(error);
   const familyItems = FAMILY_FILTERS.map((entry) => ({ id: entry.id, label: t(entry.labelKey) }));
   const severityItems = SEVERITY_FILTERS.map((entry) => ({
@@ -563,7 +556,7 @@ export function ActivityPanel() {
             value={timeRange}
           />
         </div>
-        <button className="activity-button" onClick={() => void refresh()} type="button">
+        <button className="activity-button" onClick={() => refresh()} type="button">
           <IconRefresh size={15} />
           {t("refreshActivity")}
         </button>
@@ -585,7 +578,7 @@ export function ActivityPanel() {
           <p>{error}</p>
           <button
             className="activity-button activity-button--primary"
-            onClick={() => void refresh()}
+            onClick={() => refresh()}
             type="button"
           >
             <IconRefresh size={15} />

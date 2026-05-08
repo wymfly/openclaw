@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type {
   DeckGoContextWeightReport,
   DeckGoUsageSessionEntry,
   DeckGoUsageSessionLogEntry,
-} from "../../../api";
-import { fetchUsageSessionLogs, fetchUsageSessions } from "../../../api";
+} from "@/api-types";
+import { useSessionUsageLogsQuery, useSessionUsageQuery } from "../../../data/modules/sessions";
 import { Badge } from "../../../design-system/atoms";
 import { useTranslations } from "../../../i18n/provider";
 
@@ -112,54 +112,27 @@ function UsageStat(props: { label: string; value: string | number }) {
 
 export function SessionUsageDetails(props: SessionUsageDetailsProps) {
   const t = useTranslations("sessions");
-  const [loadState, setLoadState] = useState<UsageLoadState>("idle");
-  const [usageEntry, setUsageEntry] = useState<DeckGoUsageSessionEntry | null>(null);
-  const [logs, setLogs] = useState<DeckGoUsageSessionLogEntry[]>([]);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    const sessionKey = props.sessionKey.trim();
-    if (!sessionKey) {
-      setLoadState("idle");
-      setUsageEntry(null);
-      setLogs([]);
-      setError("");
-      return undefined;
-    }
-
-    let cancelled = false;
-    setLoadState("loading");
-    void Promise.all([
-      fetchUsageSessions({ includeContextWeight: true, key: sessionKey, limit: 1 }),
-      fetchUsageSessionLogs({ key: sessionKey, limit: SESSION_LOG_LIMIT }),
-    ])
-      .then(([usageResult, logsResult]) => {
-        if (cancelled) {
-          return;
-        }
-        const nextUsage =
-          usageResult.sessions.find((entry) => entry.key === sessionKey) ??
-          usageResult.sessions[0] ??
-          null;
-        setUsageEntry(nextUsage);
-        setLogs(logsResult.logs ?? []);
-        setLoadState("ready");
-        setError("");
-      })
-      .catch((loadError) => {
-        if (cancelled) {
-          return;
-        }
-        setUsageEntry(null);
-        setLogs([]);
-        setLoadState("idle");
-        setError(loadError instanceof Error ? loadError.message : t("failedLoadSessionUsage"));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [props.sessionKey, t]);
+  const sessionKey = props.sessionKey.trim();
+  const usageQuery = useSessionUsageQuery(sessionKey);
+  const logsQuery = useSessionUsageLogsQuery(sessionKey, SESSION_LOG_LIMIT);
+  const usageEntry =
+    usageQuery.data?.sessions.find((entry) => entry.key === sessionKey) ??
+    usageQuery.data?.sessions[0] ??
+    null;
+  const logs = logsQuery.data?.logs ?? [];
+  const queryError = usageQuery.error ?? logsQuery.error;
+  const error =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+        ? t("failedLoadSessionUsage")
+        : "";
+  const loadState: UsageLoadState =
+    usageQuery.isLoading || logsQuery.isLoading
+      ? "loading"
+      : usageQuery.data || logsQuery.data
+        ? "ready"
+        : "idle";
 
   const contextSummary = contextWeightSummary(usageEntry?.contextWeight);
   const threshold = useMemo(() => highTokenThreshold(logs), [logs]);

@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   DeckGoAgentSummary,
@@ -12,14 +13,16 @@ import type {
   DeckGoMemorySearchResult,
   DeckGoMemorySearchScope,
 } from "../../../api";
+import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
+import { useAgentsListQuery } from "../../../data/modules/agents";
 import {
-  browseMemory,
-  fetchAgentsList,
-  fetchMemoryHealth,
-  readMemoryFile,
-  runMemoryDreams,
-  searchMemory,
-} from "../../../api";
+  memoryBrowseQueryOptions,
+  memoryFileQueryOptions,
+  memoryHealthQueryOptions,
+  memorySearchQueryOptions,
+  useMemoryHealthQuery,
+  useRunMemoryDreamsMutation,
+} from "../../../data/modules/memory";
 import { Markdown } from "../../../design-system/atoms/Markdown";
 import { ProgressBar } from "../../../design-system/atoms/ProgressBar";
 import {
@@ -199,6 +202,11 @@ function DecayBar(props: { value?: number }) {
 
 export function MemoryPanel() {
   const t = useTranslations("memory");
+  const queryClient = useQueryClient();
+  const { bff } = useDataFabricTransports();
+  const agentsQuery = useAgentsListQuery();
+  const healthQuery = useMemoryHealthQuery();
+  const runDreamsMutation = useRunMemoryDreamsMutation();
   const [activeTab, setActiveTab] = useState<MemoryTab>(() => {
     if (typeof window === "undefined") {
       return "browse";
@@ -243,7 +251,10 @@ export function MemoryPanel() {
     }
     setActionState("browse");
     try {
-      const result = await browseMemory(agentId, normalizedPath || undefined);
+      const result = await queryClient.fetchQuery({
+        ...memoryBrowseQueryOptions(bff, agentId, normalizedPath || undefined),
+        staleTime: force ? 0 : undefined,
+      });
       setDirectoryCache((current) => ({
         ...current,
         [normalizedPath]: result.files ?? [],
@@ -258,27 +269,13 @@ export function MemoryPanel() {
     }
   };
 
-  const refreshAgents = async () => {
-    try {
-      const result = await fetchAgentsList();
-      const nextAgents = result.agents ?? [];
-      const fallbackId = result.defaultId || nextAgents[0]?.id || "main";
-      setAgents(nextAgents);
-      setAgentId((current) =>
-        nextAgents.some((agent) => agent.id === current) ? current : fallbackId,
-      );
-      setDreamAgentId((current) =>
-        nextAgents.some((agent) => agent.id === current) ? current : fallbackId,
-      );
-    } catch {
-      setAgents([]);
-    }
-  };
-
   const refreshHealth = async () => {
     setActionState("health");
     try {
-      const result = await fetchMemoryHealth();
+      const result = await queryClient.fetchQuery({
+        ...memoryHealthQueryOptions(bff),
+        staleTime: 0,
+      });
       setHealthResponse(result);
       setError("");
     } catch (loadError) {
@@ -293,7 +290,9 @@ export function MemoryPanel() {
     setSelectedPath(normalizedPath);
     setActionState("read");
     try {
-      const result = await readMemoryFile(agentId, normalizedPath);
+      const result = await queryClient.fetchQuery(
+        memoryFileQueryOptions(bff, agentId, normalizedPath),
+      );
       if (typeof result.content !== "string") {
         throw new Error(t("missingFileContent"));
       }
@@ -342,10 +341,13 @@ export function MemoryPanel() {
     }
     setActionState("search");
     try {
-      const result = await searchMemory({
-        query,
-        scope: searchScope,
-        agentId: searchScope === "agent" ? agentId : undefined,
+      const result = await queryClient.fetchQuery({
+        ...memorySearchQueryOptions(bff, {
+          query,
+          scope: searchScope,
+          agentId: searchScope === "agent" ? agentId : undefined,
+        }),
+        staleTime: 0,
       });
       setSearchResponse(result);
       setError("");
@@ -360,7 +362,10 @@ export function MemoryPanel() {
   const readDreamDiary = async (targetAgentId = dreamAgentId) => {
     setActionState("dreams");
     try {
-      const result = await runMemoryDreams("read", targetAgentId);
+      const result = await runDreamsMutation.mutateAsync({
+        action: "read",
+        agentId: targetAgentId,
+      });
       if (isDreamDiaryResult(result)) {
         setDreamDiary(result);
       } else {
@@ -394,10 +399,13 @@ export function MemoryPanel() {
     setPendingDreamAction(null);
     setActionState("dreams");
     try {
-      const result = await runMemoryDreams(action, dreamAgentId);
+      const result = await runDreamsMutation.mutateAsync({ action, agentId: dreamAgentId });
       setDreamResult(result);
       if (action !== "read") {
-        const diaryResult = await runMemoryDreams("read", dreamAgentId);
+        const diaryResult = await runDreamsMutation.mutateAsync({
+          action: "read",
+          agentId: dreamAgentId,
+        });
         if (isDreamDiaryResult(diaryResult)) {
           setDreamDiary(diaryResult);
         }
@@ -411,9 +419,25 @@ export function MemoryPanel() {
   };
 
   useEffect(() => {
-    void refreshAgents();
-    void refreshHealth();
-  }, []);
+    const nextAgents = agentsQuery.data?.agents ?? [];
+    const fallbackId = agentsQuery.data?.defaultId || nextAgents[0]?.id || "main";
+    setAgents(nextAgents);
+    setAgentId((current) =>
+      nextAgents.some((agent) => agent.id === current) ? current : fallbackId,
+    );
+    setDreamAgentId((current) =>
+      nextAgents.some((agent) => agent.id === current) ? current : fallbackId,
+    );
+  }, [agentsQuery.data]);
+
+  useEffect(() => {
+    if (healthQuery.data) {
+      setHealthResponse(healthQuery.data);
+    }
+    if (healthQuery.error) {
+      setError(memoryErrorMessage(healthQuery.error, t("failedHealth")));
+    }
+  }, [healthQuery.data, healthQuery.error, t]);
 
   useEffect(() => {
     setDirectoryCache({});

@@ -12,14 +12,14 @@
 #   scripts/dev/run-stack-real.sh status   # 检查端口/PID
 #   scripts/dev/run-stack-real.sh logs     # tail 后台日志
 #
-# 环境覆盖优先级：DECK_GO_STACK_ENV 指向的 .env 文件 > 进程 env > 内置默认。
+# 环境覆盖优先级：DECK_GO_REAL_STACK_ENV / DECK_GO_STACK_ENV 指向的 .env 文件 > 进程 env > 内置默认。
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DECK_GO_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="$(cd "${DECK_GO_DIR}/.." && pwd)"
-ENV_FILE="${DECK_GO_STACK_ENV:-${DECK_GO_DIR}/.env.real-stack}"
+ENV_FILE="${DECK_GO_REAL_STACK_ENV:-${DECK_GO_STACK_ENV:-${DECK_GO_DIR}/.env.real-stack}}"
 
 STATE_DIR="${DECK_GO_DIR}/.local/deck-go-real-stack"
 PID_DIR="${STATE_DIR}/pids"
@@ -53,10 +53,40 @@ commands:
   logs     tail backend/frontend 日志
 
 env file:
-  默认读 deck-go/.env.real-stack；用 DECK_GO_STACK_ENV 覆盖路径。
+  默认读 deck-go/.env.real-stack；用 DECK_GO_REAL_STACK_ENV 覆盖路径。
+  DECK_GO_STACK_ENV 仍兼容旧入口，但新脚本应优先使用 DECK_GO_REAL_STACK_ENV。
   可参考 deck-go/.env.real-stack.example。
   前端默认 DECK_GO_FRONTEND_MODE=dev；如需验证构建产物，设为 preview。
 EOF
+}
+
+read_gateway_config_token() {
+  local config_file="$1"
+  if [[ ! -f "${config_file}" ]]; then
+    return 0
+  fi
+  node - "${config_file}" 2>/dev/null <<'NODE' || true
+const fs = require("fs");
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const config = JSON.parse(raw);
+const token = config?.gateway?.auth?.token;
+if (typeof token === "string" && token.trim()) {
+  process.stdout.write(token.trim());
+}
+NODE
+}
+
+redact_secret() {
+  local value="${1:-}"
+  local length="${#value}"
+  if [[ "${length}" -eq 0 ]]; then
+    printf '<empty>'
+  elif [[ "${length}" -le 12 ]]; then
+    printf '<redacted len=%s>' "${length}"
+  else
+    printf '%s…%s' "${value:0:6}" "${value: -4}"
+  fi
 }
 
 load_env() {
@@ -112,6 +142,17 @@ load_env() {
 
   if [[ "${DECK_GO_DATA_DIR}" != /* ]]; then
     DECK_GO_DATA_DIR="${DECK_GO_DIR}/${DECK_GO_DATA_DIR}"
+  fi
+  : "${DECK_GO_REAL_STACK_CONFIG_TOKEN_MODE:=prefer}"
+  if [[ "${DECK_GO_REAL_STACK_CONFIG_TOKEN_MODE}" != "off" ]]; then
+    local config_gateway_token=""
+    config_gateway_token="$(read_gateway_config_token "${DECK_GO_DATA_DIR}/managed-gateway-state/openclaw.json")"
+    if [[ -n "${config_gateway_token}" ]]; then
+      if [[ -n "${RUNTIME_BUNDLED_TOKEN:-}" && "${RUNTIME_BUNDLED_TOKEN}" != "${config_gateway_token}" ]]; then
+        echo "[real-stack] using gateway.auth.token from isolated openclaw.json for backend/Gateway auth alignment"
+      fi
+      RUNTIME_BUNDLED_TOKEN="${config_gateway_token}"
+    fi
   fi
   : "${RUNTIME_ADMIN_SOCKET:=${DECK_GO_DATA_DIR}/admin.sock}"
 
@@ -189,6 +230,8 @@ gateway_listener_kind() {
   body="$(curl_local -sS -m 2 "http://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}/" 2>/dev/null || true)"
   if grep -qi "mock gateway only serves" <<<"${body}"; then
     echo "mock"
+  elif grep -qi "Control UI assets not found" <<<"${body}"; then
+    echo "real"
   elif grep -Eqi "(OpenClaw|<!doctype html|<html)" <<<"${body}"; then
     echo "real"
   elif [[ -n "${body}" ]]; then
@@ -410,8 +453,8 @@ cmd_start() {
   backend       ${BACKEND_BASE}
   frontend      ${FRONTEND_BASE} (${DECK_GO_FRONTEND_MODE})
   Gateway       ws://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}
-  deck token    ${DECK_GO_ACCESS_TOKEN}
-  gateway token ${RUNTIME_BUNDLED_TOKEN}
+  deck token    $(redact_secret "${DECK_GO_ACCESS_TOKEN}")
+  gateway token $(redact_secret "${RUNTIME_BUNDLED_TOKEN}")
   state dir     ${DECK_GO_DATA_DIR}
   admin socket  ${RUNTIME_ADMIN_SOCKET}
   logs          ${BACKEND_LOG} | ${FRONTEND_LOG}

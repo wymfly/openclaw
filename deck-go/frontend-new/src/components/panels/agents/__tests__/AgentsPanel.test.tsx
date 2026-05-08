@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { DataFabricTestProvider } from "@/data/testing/DataFabricTestProvider";
 import { expectNoAxeViolations } from "@/design-system/atoms/__tests__/axe-helper";
 import messages from "@/i18n/en.json";
 import { useAgentsStore } from "@/stores/agents";
@@ -69,7 +70,15 @@ function renderPanel() {
   act(() => {
     root = createRoot(container);
     root.render(
-      createElement(NextIntlClientProvider, { locale: "en", messages }, createElement(AgentsPanel)),
+      createElement(
+        DataFabricTestProvider,
+        null,
+        createElement(
+          NextIntlClientProvider,
+          { locale: "en", messages },
+          createElement(AgentsPanel),
+        ),
+      ),
     );
   });
 }
@@ -290,6 +299,7 @@ describe("AgentsPanel", () => {
 
     await waitFor(() => {
       expect(api.updateAgent).toHaveBeenCalledWith("ops", {
+        model: "gpt-5.4",
         workspace: "/ops-v2",
       });
     });
@@ -309,7 +319,9 @@ describe("AgentsPanel", () => {
     fireEvent.click(opsRow!);
     fireEvent.click(await screen.findByRole("tab", { name: /Skills/ }));
 
-    const disabledSkill = await screen.findByRole("switch", { name: "Toggle skill Legacy Browser" });
+    const disabledSkill = await screen.findByRole("switch", {
+      name: "Toggle skill Legacy Browser",
+    });
     expect(disabledSkill.hasAttribute("disabled")).toBe(true);
     fireEvent.click(disabledSkill);
     fireEvent.click(screen.getByRole("switch", { name: "Toggle skill Write" }));

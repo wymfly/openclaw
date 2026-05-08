@@ -69,6 +69,9 @@ export function collectDtoFieldsFromContractSource(source) {
       dtoFields.set(declaration.name, fieldsFromMembers(declaration.node.members, sourceFile));
       continue;
     }
+    if (declaration.kind === "const") {
+      continue;
+    }
     if (ts.isTypeLiteralNode(declaration.node.type)) {
       dtoFields.set(declaration.name, fieldsFromMembers(declaration.node.type.members, sourceFile));
       continue;

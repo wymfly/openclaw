@@ -1,8 +1,14 @@
 # Frontend Server-State Refresh Design
 
-**Date:** 2026-05-08  
-**Scope:** `deck-go/frontend-new` data refresh architecture  
+**Date:** 2026-05-08
+**Status:** Superseded by `docs/superpowers/specs/2026-05-08-frontend-data-fabric-design.md`
+**Scope:** `deck-go/frontend-new` data refresh architecture
 **Decision:** Adopt TanStack Query as the shared server-state layer and migrate all modules progressively.
+
+This was the initial Codex implementation-spine design. The final merged
+baseline is now `docs/superpowers/specs/2026-05-08-frontend-data-fabric-design.md`,
+which combines this document's conservative architecture with Claude Code's UX,
+testing, and governance blueprint after correcting code-truth drift.
 
 ## Context
 
