@@ -306,6 +306,24 @@ describe("ModelsPanel prototype parity shell", () => {
     expect(container.textContent).toContain("Inspect runtime-configured models");
   });
 
+  it("shows model filter counts and clear recovery for filtered-empty results", async () => {
+    await renderReady();
+
+    await act(async () => {
+      clickButton("Local");
+    });
+
+    expect(container.textContent).toContain("No models match this filter");
+    expect(container.textContent).toContain("Filter: Local");
+    expect(container.textContent).toContain("Local 0");
+    await act(async () => {
+      clickButton("Clear filters");
+    });
+
+    expect(container.textContent).toContain("GPT-5.4");
+    expect(container.textContent).toContain("Claude Sonnet 4.6");
+  });
+
   it("adds a catalog model through the dialog and saves through /models/config", async () => {
     await renderReady();
 

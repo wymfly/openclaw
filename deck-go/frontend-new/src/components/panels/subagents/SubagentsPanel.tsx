@@ -417,12 +417,32 @@ export function SubagentsPanel() {
     [runs],
   );
   const lineageTree = useMemo(() => buildLineageTree(lineage?.nodes ?? []), [lineage]);
+  const statusCounts = useMemo<Record<StatusFilter, number>>(
+    () => ({
+      active: runs.filter((run) => run.status === "active").length,
+      all: runs.length,
+      completed: runs.filter((run) => run.status === "completed").length,
+      failed: runs.filter((run) => run.status === "failed").length,
+      timeout: runs.filter((run) => run.status === "timeout").length,
+    }),
+    [runs],
+  );
+  const spawnCounts = useMemo<Record<SpawnFilter, number>>(
+    () => ({
+      all: runs.length,
+      background: runs.filter((run) => run.spawnMode?.toLowerCase() === "background").length,
+      blocking: runs.filter((run) => run.spawnMode?.toLowerCase() === "blocking").length,
+    }),
+    [runs],
+  );
 
   const filteredRuns = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return runs
       .filter((run) => (statusFilter === "all" ? true : run.status === statusFilter))
-      .filter((run) => (spawnFilter === "all" ? true : run.spawnMode.toLowerCase() === spawnFilter))
+      .filter((run) =>
+        spawnFilter === "all" ? true : run.spawnMode?.toLowerCase() === spawnFilter,
+      )
       .filter((run) => (query ? runSearchText(run).includes(query) : true))
       .toSorted((left, right) => {
         const liveDelta = Number(isLiveStatus(right.status)) - Number(isLiveStatus(left.status));
@@ -610,6 +630,18 @@ export function SubagentsPanel() {
   };
 
   const emptyLabel = t("notAvailable");
+  const runCriteria = [
+    searchQuery.trim() ? t("criteriaSearch", { value: searchQuery.trim() }) : "",
+    statusFilter !== "all" ? t("criteriaStatus", { value: statusLabel(t, statusFilter) }) : "",
+    spawnFilter !== "all" ? t("criteriaSpawn", { value: spawnLabel(t, spawnFilter) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const clearFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setSpawnFilter("all");
+  };
 
   return (
     <section className="subagents-panel" data-testid="subagents-panel">
@@ -691,7 +723,7 @@ export function SubagentsPanel() {
                   controlSize="xs"
                   items={STATUS_FILTERS.map((status) => ({
                     value: status,
-                    label: statusLabel(t, status),
+                    label: `${statusLabel(t, status)} ${statusCounts[status]}`,
                   }))}
                   value={statusFilter}
                   onChange={(next) => setStatusFilter(next)}
@@ -701,7 +733,7 @@ export function SubagentsPanel() {
                   controlSize="xs"
                   items={SPAWN_FILTERS.map((spawn) => ({
                     value: spawn,
-                    label: spawnLabel(t, spawn),
+                    label: `${spawnLabel(t, spawn)} ${spawnCounts[spawn]}`,
                   }))}
                   value={spawnFilter}
                   onChange={(next) => setSpawnFilter(next)}
@@ -734,7 +766,19 @@ export function SubagentsPanel() {
                 </div>
               </section>
               {filteredAgents.length === 0 ? (
-                <div className="empty-block">{t("noAgentsConfigured")}</div>
+                <div className="empty-block">
+                  <strong>
+                    {agentOptions.length === 0 ? t("noAgentsConfigured") : t("noAgentsFiltered")}
+                  </strong>
+                  {agentOptions.length > 0 && searchQuery.trim() ? (
+                    <>
+                      <p>{t("criteriaSearch", { value: searchQuery.trim() })}</p>
+                      <Button size="sm" onClick={clearFilters}>
+                        {t("clearFilters")}
+                      </Button>
+                    </>
+                  ) : null}
+                </div>
               ) : (
                 <ul className="row-list">
                   {filteredAgents.map((agent) => {
@@ -775,7 +819,17 @@ export function SubagentsPanel() {
               )}
             </div>
           ) : filteredRuns.length === 0 ? (
-            <div className="empty-block">{t("noRunsFound")}</div>
+            <div className="empty-block">
+              <strong>{runs.length === 0 ? t("noRunsFound") : t("noRunsFiltered")}</strong>
+              {runs.length > 0 ? (
+                <>
+                  <p>{runCriteria}</p>
+                  <Button size="sm" onClick={clearFilters}>
+                    {t("clearFilters")}
+                  </Button>
+                </>
+              ) : null}
+            </div>
           ) : (
             <ul className="row-list">
               {filteredRuns.map((run) => (

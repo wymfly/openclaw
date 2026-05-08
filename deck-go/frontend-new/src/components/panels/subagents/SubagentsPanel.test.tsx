@@ -181,8 +181,8 @@ function configSnapshot() {
 }
 
 function clickButtonByText(text: string) {
-  const button = Array.from(container.querySelectorAll("button")).find(
-    (candidate) => candidate.textContent?.trim() === text,
+  const button = Array.from(container.querySelectorAll("button")).find((candidate) =>
+    candidate.textContent?.includes(text),
   );
   expect(button).toBeTruthy();
   act(() => {
@@ -379,6 +379,35 @@ describe("SubagentsPanel", () => {
     );
     clickDialogButtonByText("Kill run");
     await waitFor(() => expect(apiMocks.killSubagentRun).toHaveBeenCalledWith("run-root"));
+  });
+
+  it("separates filtered-empty runs and permissions from true empty states", async () => {
+    renderPanel();
+
+    await waitFor(() =>
+      expect(apiMocks.fetchSubagentLineage).toHaveBeenCalledWith({ runId: "run-root" }),
+    );
+
+    const search = container.querySelector<HTMLInputElement>("input.toolbar__search");
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "not-a-run" } });
+    });
+
+    expect(container.textContent).toContain("No subagent runs match the current filters.");
+    expect(container.textContent).toContain("Search: not-a-run");
+    clickButtonByText("Clear filters");
+    expect(container.textContent).toContain("Builder Agent");
+
+    clickButtonByText("Per-agent permissions");
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "not-an-agent" } });
+    });
+
+    expect(container.textContent).toContain("No agents match the current search.");
+    expect(container.textContent).toContain("Search: not-an-agent");
+    clickButtonByText("Clear filters");
+    expect(container.textContent).toContain("Main Agent");
   });
 
   it("renders the subagents shell in Chinese", async () => {

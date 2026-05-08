@@ -369,7 +369,7 @@ export function ApprovalsPanel() {
     activePluginApprovals[0] ??
     null;
 
-  const selectedEntry: QueueEntry | null =
+  const selectedSourceEntry: QueueEntry | null =
     surface === "exec" && selectedApproval
       ? {
           kind: "exec",
@@ -404,6 +404,14 @@ export function ApprovalsPanel() {
             payload: selectedPluginApproval,
           }
         : null;
+  const selectedSourceEntryKey = selectedSourceEntry
+    ? `${selectedSourceEntry.kind}:${selectedSourceEntry.id}`
+    : "";
+  const selectedEntry =
+    selectedSourceEntry &&
+    queueEntries.some((entry) => `${entry.kind}:${entry.id}` === selectedSourceEntryKey)
+      ? selectedSourceEntry
+      : null;
 
   const runDecision = async (decision: ApprovalDecision) => {
     if (!selectedApproval) {
@@ -560,15 +568,28 @@ export function ApprovalsPanel() {
     }
   };
 
-  const decisionDisabled =
-    actionState !== "idle" ||
-    (surface === "exec" && !selectedApproval) ||
-    (surface === "plugins" && !selectedPluginApproval);
+  const decisionDisabled = actionState !== "idle" || !selectedEntry;
 
   const detailTabs: DetailTab[] =
     surface === "exec"
       ? ["overview", "argv", "plan", "activity"]
       : ["overview", "scopes", "source", "activity"];
+  const approvalCriteria = [
+    query.trim() ? t("criteriaSearch", { value: query.trim() }) : "",
+    kindFilter !== "all"
+      ? t("criteriaKind", {
+          value: kindFilter === "exec" ? t("execApprovals") : t("pluginApprovals"),
+        })
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const queueEmptyCopy =
+    allQueueEntries.length === 0
+      ? t("noPending")
+      : query.trim()
+        ? t("noPendingSearch")
+        : t("noPendingKind");
 
   return (
     <section className="approvals-panel" data-testid="approvals-panel">
@@ -690,7 +711,22 @@ export function ApprovalsPanel() {
                 })}
               </ul>
             ) : (
-              <p className="approvals-panel__note">{t("noPendingMatch")}</p>
+              <div className="approvals-panel__note">
+                <p>{queueEmptyCopy}</p>
+                {allQueueEntries.length > 0 ? <p>{approvalCriteria}</p> : null}
+                {allQueueEntries.length > 0 ? (
+                  <button
+                    className="approvals-panel__button"
+                    type="button"
+                    onClick={() => {
+                      setKindFilter("all");
+                      setQuery("");
+                    }}
+                  >
+                    {t("clearFilters")}
+                  </button>
+                ) : null}
+              </div>
             )}
           </div>
         </article>

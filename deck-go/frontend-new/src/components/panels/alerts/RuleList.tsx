@@ -29,9 +29,13 @@ function formatLastFired(value: string | null, never: string) {
 export function RuleList(props: {
   rules: DeckGoAlertRule[];
   selectedRuleId: string | null;
+  activeCriteria?: string;
+  clearLabel?: string;
   loading: boolean;
   onCreate: () => void;
+  onClearFilters?: () => void;
   onSelect: (rule: DeckGoAlertRule) => void;
+  sourceCount: number;
   onToggleEnabled: (rule: DeckGoAlertRule) => void;
   onTestFire: (rule: DeckGoAlertRule) => void;
 }) {
@@ -42,13 +46,25 @@ export function RuleList(props: {
   }
 
   if (props.rules.length === 0) {
+    const filteredEmpty = props.sourceCount > 0;
     return (
       <div className="alerts-panel__empty-state">
-        <strong>{t("noMatchingRules")}</strong>
-        <p>{t("emptyFilterDescription")}</p>
-        <button className="alerts-panel__button is-primary" type="button" onClick={props.onCreate}>
-          {t("addRule")}
-        </button>
+        <strong>{filteredEmpty ? t("noMatchingRules") : t("noRules")}</strong>
+        <p>{filteredEmpty ? t("emptyFilterDescription") : t("emptyDescription")}</p>
+        {props.activeCriteria ? <p>{props.activeCriteria}</p> : null}
+        {filteredEmpty && props.clearLabel && props.onClearFilters ? (
+          <button className="alerts-panel__button" type="button" onClick={props.onClearFilters}>
+            {props.clearLabel}
+          </button>
+        ) : (
+          <button
+            className="alerts-panel__button is-primary"
+            type="button"
+            onClick={props.onCreate}
+          >
+            {t("addRule")}
+          </button>
+        )}
       </div>
     );
   }

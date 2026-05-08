@@ -17,13 +17,26 @@ export function RuleList(props: {
   evaluations: DeckGoBudgetEvaluation[];
   selectedRuleId: string | null;
   onSelect: (rule: DeckGoBudgetRule) => void;
+  activeCriteria?: string;
+  clearLabel?: string;
   emptyLabel: string;
+  onClearFilters?: () => void;
 }) {
   const t = useTranslations("budget");
   const evaluationByRuleId = new Map(props.evaluations.map((item) => [item.ruleId, item]));
 
   if (props.rules.length === 0) {
-    return <p className="budget-panel__empty">{props.emptyLabel}</p>;
+    return (
+      <div className="budget-panel__empty">
+        <p>{props.emptyLabel}</p>
+        {props.activeCriteria ? <p>{props.activeCriteria}</p> : null}
+        {props.activeCriteria && props.clearLabel && props.onClearFilters ? (
+          <button className="budget-panel__button" type="button" onClick={props.onClearFilters}>
+            {props.clearLabel}
+          </button>
+        ) : null}
+      </div>
+    );
   }
 
   return (

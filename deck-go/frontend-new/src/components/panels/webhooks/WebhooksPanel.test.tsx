@@ -187,6 +187,33 @@ describe("WebhooksPanel", () => {
     expect(container.textContent).toContain("No delivery records");
   });
 
+  it("renders recoverable filtered-empty state when webhooks exist", async () => {
+    await act(async () => {
+      renderWebhooksPanel();
+    });
+    await waitFor(() => expect(apiMocks.fetchWebhooks).toHaveBeenCalledTimes(1));
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="name, url, id, or event"]',
+    );
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "not-a-webhook" } });
+    });
+
+    expect(container.textContent).toContain("No webhooks match the current filters");
+    expect(container.textContent).toContain("Search: not-a-webhook");
+    expect(button("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      button("Clear filters").click();
+    });
+
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(container.textContent).toContain("Alerts");
+    expect(container.textContent).toContain("Usage");
+  });
+
   it("expands delivery rows to reveal payload and response evidence", async () => {
     await act(async () => {
       renderWebhooksPanel();

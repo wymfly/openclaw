@@ -208,6 +208,9 @@ describe("PluginsPanel", () => {
     renderPanel();
     await waitForInventory();
 
+    expect(buttonByText("Provider")).toBeUndefined();
+    expect(buttonByText("Tool")).toBeTruthy();
+
     const search = container.querySelector<HTMLInputElement>(
       'input[placeholder="Search plugins by id, name, capability, channel, tool..."]',
     );
@@ -226,6 +229,31 @@ describe("PluginsPanel", () => {
     expect(container.querySelector(".list")?.textContent).toContain("GitHub");
     expect(container.querySelector(".list")?.textContent).not.toContain("Slack");
     expect(container.textContent).toContain("runtime inventory");
+  });
+
+  it("explains filtered-empty plugin inventory and clears local criteria", async () => {
+    renderPanel();
+    await waitForInventory();
+
+    const search = container.querySelector<HTMLInputElement>(
+      'input[placeholder="Search plugins by id, name, capability, channel, tool..."]',
+    );
+    expect(search).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "not-a-plugin" } });
+    });
+
+    expect(container.textContent).toContain("No plugins match this filter.");
+    expect(container.textContent).toContain("Search: not-a-plugin");
+    expect(buttonByText("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(buttonByText("Clear filters") as HTMLButtonElement);
+    });
+
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(container.querySelector(".list")?.textContent).toContain("GitHub");
   });
 
   it("selects navigation targets and exposes prototype detail tabs", async () => {

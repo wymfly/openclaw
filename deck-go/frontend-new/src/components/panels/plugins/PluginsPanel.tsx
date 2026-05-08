@@ -207,6 +207,31 @@ function countPluginsWithCapability(plugins: DeckGoPluginInventoryEntry[], capab
   return plugins.filter((plugin) => (plugin.capabilityKinds ?? []).includes(capability)).length;
 }
 
+function availableCapabilityFilters(plugins: DeckGoPluginInventoryEntry[]): CapabilityFilter[] {
+  const kinds = new Set(plugins.flatMap((plugin) => plugin.capabilityKinds ?? []));
+  return CAPABILITY_FILTERS.filter((filter) => filter === "all" || kinds.has(filter));
+}
+
+function activePluginCriteria(
+  t: PluginTranslator,
+  query: string,
+  originFilter: string,
+  kindFilter: CapabilityFilter,
+) {
+  const criteria: string[] = [];
+  const normalizedQuery = query.trim();
+  if (normalizedQuery) {
+    criteria.push(t("criteriaSearch", { value: normalizedQuery }));
+  }
+  if (originFilter !== "all") {
+    criteria.push(t("criteriaOrigin", { value: originFilter }));
+  }
+  if (kindFilter !== "all") {
+    criteria.push(t("criteriaCapability", { value: t(`capability.${kindFilter}`) }));
+  }
+  return criteria.join(" | ");
+}
+
 function activatedCount(plugins: DeckGoPluginInventoryEntry[]) {
   return plugins.filter((plugin) => plugin.status === "ready" && plugin.activated !== false).length;
 }
@@ -283,6 +308,14 @@ export function PluginsPanel() {
   const origins = useMemo(() => allOrigins(plugins, t("unknown")), [plugins, t]);
   const availableChannels = useMemo(() => channelIdSet(channelsPayload), [channelsPayload]);
   const accessChannels = useMemo(() => accessChannelIdSet(channelsPayload), [channelsPayload]);
+  const capabilityFilters = useMemo(() => availableCapabilityFilters(plugins), [plugins]);
+
+  useEffect(() => {
+    if (!capabilityFilters.includes(kindFilter)) {
+      setKindFilter("all");
+    }
+  }, [capabilityFilters, kindFilter]);
+
   const filteredPlugins = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return plugins.filter((plugin) => {
@@ -361,6 +394,7 @@ export function PluginsPanel() {
       ) : (
         <PluginsListView
           capability={capability}
+          capabilityFilters={capabilityFilters}
           error={error}
           filteredPlugins={filteredPlugins}
           kindFilter={kindFilter}
@@ -376,6 +410,11 @@ export function PluginsPanel() {
           t={t}
           tc={tc}
           onCapabilityFilter={setKindFilter}
+          onClearFilters={() => {
+            setQuery("");
+            setOriginFilter("all");
+            setKindFilter("all");
+          }}
           onOpenDetail={openDetail}
           onOriginFilter={setOriginFilter}
           onQuery={setQuery}
@@ -398,6 +437,7 @@ export function PluginsPanel() {
 
 function PluginsListView(props: {
   capability: DeckGoPluginCapability;
+  capabilityFilters: CapabilityFilter[];
   error: string;
   filteredPlugins: DeckGoPluginInventoryEntry[];
   kindFilter: CapabilityFilter;
@@ -413,6 +453,7 @@ function PluginsListView(props: {
   t: PluginTranslator;
   tc: PluginTranslator;
   onCapabilityFilter: (filter: CapabilityFilter) => void;
+  onClearFilters: () => void;
   onOpenDetail: (pluginId: string) => void;
   onOriginFilter: (origin: string) => void;
   onQuery: (query: string) => void;
@@ -420,6 +461,8 @@ function PluginsListView(props: {
   onScope: (capability: DeckGoPluginCapability) => void;
 }) {
   const t = props.t;
+  const filteredEmpty = props.plugins.length > 0 && props.filteredPlugins.length === 0;
+  const criteria = activePluginCriteria(t, props.query, props.originFilter, props.kindFilter);
   return (
     <div className="list-view">
       <header className="page-header">
@@ -454,7 +497,7 @@ function PluginsListView(props: {
         <div className="toolbar__group">
           <SegmentedControl
             ariaLabel={t("capabilityFilter")}
-            items={CAPABILITY_FILTERS.map((filter) => ({
+            items={props.capabilityFilters.map((filter) => ({
               id: filter,
               label: t(`capability.${filter}`),
             }))}
@@ -514,6 +557,12 @@ function PluginsListView(props: {
           <div>
             <strong>{t("emptyFilteredTitle")}</strong>
             <p>{props.plugins.length === 0 ? t("empty") : t("emptyFilteredHint")}</p>
+            {filteredEmpty && criteria ? <p>{criteria}</p> : null}
+            {filteredEmpty ? (
+              <button className="btn btn--ghost" type="button" onClick={props.onClearFilters}>
+                {t("clearFilters")}
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (

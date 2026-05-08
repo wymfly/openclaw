@@ -230,6 +230,15 @@ export function WebhooksPanel() {
   const enabledCount = webhooks.filter((webhook) => webhook.enabled).length;
   const failingCount = webhooks.filter((webhook) => webhookHealth(webhook) === "failing").length;
   const degradedCount = webhooks.filter((webhook) => webhookHealth(webhook) === "degraded").length;
+  const filterCounts: Record<WebhookFilter, number> = {
+    all: webhooks.length,
+    disabled: webhooks.filter((webhook) => !webhook.enabled).length,
+    enabled: webhooks.filter((webhook) => webhook.enabled).length,
+    failing: webhooks.filter((webhook) => {
+      const health = webhookHealth(webhook);
+      return health === "failing" || health === "degraded";
+    }).length,
+  };
   const successCount = deliveries.filter((delivery) => delivery.success).length;
   const successRate =
     deliveries.length === 0
@@ -402,7 +411,7 @@ export function WebhooksPanel() {
                 type="button"
                 onClick={() => setFilter(nextFilter)}
               >
-                {t(`filter.${nextFilter}`)}
+                {t(`filter.${nextFilter}`)} {filterCounts[nextFilter]}
               </button>
             ))}
           </div>
@@ -412,7 +421,29 @@ export function WebhooksPanel() {
           {filteredWebhooks.length === 0 ? (
             <div className="webhooks-panel__empty">
               <strong>{webhooks.length === 0 ? t("noWebhooks") : t("noWebhooksMatch")}</strong>
-              <p>{t("emptyDescription")}</p>
+              <p>{webhooks.length === 0 ? t("emptyDescription") : t("emptyFilterDescription")}</p>
+              {webhooks.length > 0 ? (
+                <p>
+                  {[
+                    query.trim() ? t("criteriaSearch", { value: query.trim() }) : "",
+                    filter !== "all" ? t("criteriaFilter", { value: t(`filter.${filter}`) }) : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" | ")}
+                </p>
+              ) : null}
+              {webhooks.length > 0 ? (
+                <button
+                  className="webhooks-panel__button"
+                  type="button"
+                  onClick={() => {
+                    setQuery("");
+                    setFilter("all");
+                  }}
+                >
+                  {t("clearFilters")}
+                </button>
+              ) : null}
             </div>
           ) : (
             <ul className="webhooks-panel__list">

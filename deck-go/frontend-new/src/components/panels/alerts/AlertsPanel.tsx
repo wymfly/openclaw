@@ -38,26 +38,9 @@ type DialogState =
   | { type: "test"; rule: DeckGoAlertRule }
   | null;
 
-const DEFAULT_ENTITY_TYPES = [
-  "channel",
-  "model",
-  "subagent",
-  "budget",
-  "approval",
-  "plugin",
-  "session",
-  "test",
-  "auth",
-  "pr",
-  "provider",
-  "routing",
-  "usage",
-  "cron",
-  "agent",
-];
-
 const ACTION_FILTERS: AlertActionFilter[] = ["all", "toast", "activity", "webhook"];
 const ENABLED_FILTERS: AlertEnabledFilter[] = ["all", "enabled", "disabled"];
+const FORM_ENTITY_TYPES = ["usage", "cron", "approval", "agent"];
 
 function formatCooldown(cooldownMs: number) {
   const minutes = Math.max(0, Math.round(cooldownMs / 60_000));
@@ -127,7 +110,7 @@ export function AlertsPanel() {
   const [dialog, setDialog] = useState<DialogState>(null);
 
   const entityTypes = useMemo(() => {
-    const values = new Set(DEFAULT_ENTITY_TYPES);
+    const values = new Set<string>();
     for (const rule of rules) {
       if (rule.entityType) {
         values.add(rule.entityType);
@@ -135,6 +118,15 @@ export function AlertsPanel() {
     }
     return Array.from(values).toSorted();
   }, [rules]);
+  const formEntityTypes = useMemo(
+    () => Array.from(new Set([...FORM_ENTITY_TYPES, ...entityTypes])).toSorted(),
+    [entityTypes],
+  );
+  useEffect(() => {
+    if (filterEntity !== "all" && !entityTypes.includes(filterEntity)) {
+      setFilterEntity("all");
+    }
+  }, [entityTypes, filterEntity]);
 
   const enabledCount = useMemo(() => rules.filter((rule) => rule.enabled).length, [rules]);
   const webhookCount = useMemo(
@@ -168,6 +160,35 @@ export function AlertsPanel() {
       }),
     [filterAction, filterEnabled, filterEntity, rules, searchQuery],
   );
+  const actionCounts = useMemo<Record<AlertActionFilter, number>>(
+    () => ({
+      activity: rules.filter((rule) => rule.action === "activity").length,
+      all: rules.length,
+      toast: rules.filter((rule) => rule.action === "toast").length,
+      webhook: rules.filter((rule) => rule.action === "webhook").length,
+    }),
+    [rules],
+  );
+  const enabledCounts = useMemo<Record<AlertEnabledFilter, number>>(
+    () => ({
+      all: rules.length,
+      disabled: rules.filter((rule) => !rule.enabled).length,
+      enabled: rules.filter((rule) => rule.enabled).length,
+    }),
+    [rules],
+  );
+  const activeCriteria = [
+    searchQuery.trim() ? t("criteriaSearch", { value: searchQuery.trim() }) : "",
+    filterAction !== "all"
+      ? t("criteriaAction", {
+          value: t(filterAction),
+        })
+      : "",
+    filterEntity !== "all" ? t("criteriaEntity", { value: filterEntity }) : "",
+    filterEnabled !== "all" ? t("criteriaEnabled", { value: t(filterEnabled) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   const refresh = useCallback(
     async (preferredRuleId?: string) => {
@@ -351,7 +372,7 @@ export function AlertsPanel() {
               type="button"
               onClick={() => setFilterAction(action)}
             >
-              {action === "all" ? t("allActions") : t(action)}
+              {action === "all" ? t("allActions") : t(action)} {actionCounts[action]}
             </button>
           ))}
         </div>
@@ -380,7 +401,7 @@ export function AlertsPanel() {
               type="button"
               onClick={() => setFilterEnabled(filter)}
             >
-              {t(filter)}
+              {t(filter)} {enabledCounts[filter]}
             </button>
           ))}
         </div>
@@ -405,13 +426,22 @@ export function AlertsPanel() {
             <RuleList
               rules={filteredRules}
               selectedRuleId={selectedRule?.id ?? null}
+              activeCriteria={rules.length > 0 && filteredRules.length === 0 ? activeCriteria : ""}
+              clearLabel={t("clearFilters")}
               loading={loadState === "loading" && rules.length === 0}
               onCreate={() => setDialog({ type: "create" })}
+              onClearFilters={() => {
+                setSearchQuery("");
+                setFilterAction("all");
+                setFilterEntity("all");
+                setFilterEnabled("all");
+              }}
               onSelect={(rule) => {
                 setSelectedRuleId(rule.id);
                 setActiveTab("overview");
                 setView("detail");
               }}
+              sourceCount={rules.length}
               onTestFire={(rule) => {
                 setSelectedRuleId(rule.id);
                 setDialog({ type: "test", rule });
@@ -619,7 +649,7 @@ export function AlertsPanel() {
                   </button>
                 </div>
                 <RuleForm
-                  entityTypes={entityTypes}
+                  entityTypes={formEntityTypes}
                   rule={dialog.type === "edit" ? dialog.rule : undefined}
                   saving={saving}
                   onSubmit={handleSubmit}

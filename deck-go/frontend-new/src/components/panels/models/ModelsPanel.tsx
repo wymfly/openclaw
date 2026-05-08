@@ -258,6 +258,10 @@ function providerFromRef(ref: string) {
   return "";
 }
 
+function filterLabel(t: ReturnType<typeof useTranslations>, filter: ModelFilter) {
+  return t(`v2.filter.${filter}`);
+}
+
 function modelIdFromRef(ref: string) {
   if (ref.includes("/")) {
     return ref.split("/").pop() || ref;
@@ -1012,6 +1016,10 @@ export function ModelsPanel() {
           totals={totals}
           usageWindowCost={usageWindowCost}
           onCatalog={() => setActiveDialog("catalog")}
+          onClearFilters={() => {
+            setQuery("");
+            setFilter("all");
+          }}
           onFilter={setFilter}
           onQuery={setQuery}
           onRefresh={() => void refresh()}
@@ -1094,6 +1102,7 @@ function ModelsListView({
   totals,
   usageWindowCost,
   onCatalog,
+  onClearFilters,
   onFilter,
   onQuery,
   onRefresh,
@@ -1120,6 +1129,7 @@ function ModelsListView({
   };
   usageWindowCost: number;
   onCatalog: () => void;
+  onClearFilters: () => void;
   onFilter: (filter: ModelFilter) => void;
   onQuery: (query: string) => void;
   onRefresh: () => void;
@@ -1127,6 +1137,20 @@ function ModelsListView({
   onSetDefault: (model: ModelEntry) => void;
 }) {
   const t = useTranslations("models");
+  const filterCounts: Record<ModelFilter, number> = {
+    all: totals.models,
+    default: totals.defaults,
+    fallback: totals.fallbacks,
+    local: totals.local,
+    reasoning: totals.reasoning,
+  };
+  const criteria = [
+    query.trim() ? t("v2.empty.criteriaSearch", { value: query.trim() }) : "",
+    filter !== "all" ? t("v2.empty.criteriaFilter", { value: filterLabel(t, filter) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
+  const filteredEmpty = models.length > 0 && groups.length === 0;
   return (
     <main className="models-view models-view--list">
       <header className="models-list-head">
@@ -1198,7 +1222,7 @@ function ModelsListView({
               type="button"
               onClick={() => onFilter(item)}
             >
-              {t(`v2.filter.${item}`)}
+              {filterLabel(t, item)} {filterCounts[item]}
             </button>
           ))}
         </div>
@@ -1212,8 +1236,9 @@ function ModelsListView({
           body={
             query || filter !== "all" ? t("v2.empty.noMatchesHint") : t("v2.empty.noModelsHint")
           }
-          action={t("v2.actions.addCatalog")}
-          onAction={onCatalog}
+          detail={filteredEmpty ? criteria : undefined}
+          action={filteredEmpty ? t("v2.empty.clearFilters") : t("v2.actions.addCatalog")}
+          onAction={filteredEmpty ? onClearFilters : onCatalog}
         />
       ) : (
         <section className="models-registry" aria-label={t("v2.registry")}>
@@ -2172,11 +2197,13 @@ function ModalShell({
 function ModelsEmptyState({
   action,
   body,
+  detail,
   title,
   onAction,
 }: {
   action?: string;
   body: string;
+  detail?: string;
   title: string;
   onAction?: () => void;
 }) {
@@ -2185,6 +2212,7 @@ function ModelsEmptyState({
       <IconInfo size={18} />
       <strong>{title}</strong>
       <span>{body}</span>
+      {detail ? <span>{detail}</span> : null}
       {action && onAction ? (
         <button className="models-btn models-btn--primary" type="button" onClick={onAction}>
           {action}

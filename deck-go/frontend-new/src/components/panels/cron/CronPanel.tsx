@@ -213,6 +213,12 @@ export function CronPanel() {
     });
     return sortJobs(filtered, sortBy);
   }, [enabledFilter, jobs, query, sortBy]);
+  const activeCriteria = [
+    query.trim() ? t("criteriaSearch", { value: query.trim() }) : "",
+    enabledFilter !== "all" ? t("criteriaEnabled", { value: t(`filters.${enabledFilter}`) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   const saveBuilder = async () => {
     if (!builder) {
@@ -412,9 +418,22 @@ export function CronPanel() {
               <span role="columnheader">{t("state")}</span>
             </div>
             {visibleJobs.length === 0 ? (
-              <p className="cron-panel__empty">
-                {jobs.length === 0 ? t("noJobs") : t("noMatches")}
-              </p>
+              <div className="cron-panel__empty">
+                <p>{jobs.length === 0 ? t("noJobs") : t("noMatches")}</p>
+                {jobs.length > 0 ? <p>{activeCriteria}</p> : null}
+                {jobs.length > 0 ? (
+                  <button
+                    className="cron-panel__button"
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setEnabledFilter("all");
+                    }}
+                  >
+                    {t("clearFilters")}
+                  </button>
+                ) : null}
+              </div>
             ) : (
               visibleJobs.map((job) => {
                 const rowLastRun = selectedJobId === job.id ? selectedLastRun : undefined;

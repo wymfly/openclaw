@@ -209,6 +209,19 @@ describe("SkillsPanel product control plane", () => {
     expect(screen.queryByText("Triggers")).toBeNull();
   });
 
+  it("distinguishes filtered-empty skills from a truly empty skill inventory", async () => {
+    await renderReady();
+
+    changeField("Search skills", "not-a-skill");
+
+    expect(screen.getByText("No installed skills match filters.")).toBeTruthy();
+    expect(screen.getByText("Search: not-a-skill")).toBeTruthy();
+    clickText("Clear filters");
+
+    expect(screen.getAllByText("Shell").length).toBeGreaterThan(0);
+    expect((screen.getByLabelText("Search skills") as HTMLInputElement).value).toBe("");
+  });
+
   it("keeps Agent Usage read-only and routes edits to Agents", async () => {
     await renderReady();
     clickText("GitHub");

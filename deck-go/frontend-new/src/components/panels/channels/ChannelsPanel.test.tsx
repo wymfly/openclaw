@@ -301,6 +301,30 @@ describe("ChannelsPanel", () => {
     expect(container.textContent).toContain("Routing");
   });
 
+  it("omits impossible WeCom filter and recovers from filtered-empty channels", async () => {
+    await mount();
+
+    expect(buttonByText("WeCom")).toBeUndefined();
+
+    const search = container.querySelector<HTMLInputElement>(".toolbar__search input");
+    expect(search).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(search as HTMLInputElement, { target: { value: "not-a-channel" } });
+    });
+
+    expect(container.textContent).toContain("No channels match this filter");
+    expect(container.textContent).toContain("Search: not-a-channel");
+    expect(buttonByText("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      buttonByText("Clear filters")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect((search as HTMLInputElement).value).toBe("");
+    expect(container.textContent).toContain("Telegram");
+    expect(container.textContent).toContain("Discord");
+  });
+
   it("renders localized Chinese copy in the v2 shell", async () => {
     await mount("zh");
 

@@ -200,6 +200,12 @@ export function BudgetPanel() {
       return normalizedQuery ? ruleSearchText(rule).includes(normalizedQuery) : true;
     });
   }, [evaluationByRuleId, ruleQuery, rules, statusFilter]);
+  const activeCriteria = [
+    ruleQuery.trim() ? t("criteriaSearch", { value: ruleQuery.trim() }) : "",
+    statusFilter !== "all" ? t("criteriaStatus", { value: t(`${statusFilter}Filter`) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
   const selectedRuleChanges = useMemo(
     () => localChanges.filter((change) => change.ruleId === selectedRuleId).slice(0, 6),
     [localChanges, selectedRuleId],
@@ -400,7 +406,15 @@ export function BudgetPanel() {
                 evaluations={evaluations}
                 selectedRuleId={selectedRuleId}
                 onSelect={handleSelect}
+                activeCriteria={
+                  rules.length > 0 && filteredRules.length === 0 ? activeCriteria : ""
+                }
+                clearLabel={t("clearFilters")}
                 emptyLabel={rules.length === 0 ? t("noRules") : t("noMatchingRules")}
+                onClearFilters={() => {
+                  setRuleQuery("");
+                  setStatusFilter("all");
+                }}
               />
             )}
           </div>

@@ -62,6 +62,29 @@ const SOURCE_FILTERS: SourceFilter[] = [
   "unknown",
 ];
 
+function countSkillsByStatus(skills: DeckGoSkillEntry[]) {
+  const counts: Record<SkillStatusFilter, number> = {
+    all: skills.length,
+    disabled: 0,
+    "needs-setup": 0,
+    ready: 0,
+  };
+  for (const skill of skills) {
+    if (skill.status in counts) {
+      counts[skill.status as SkillStatusFilter] += 1;
+    }
+  }
+  return counts;
+}
+
+function countSkillsBySource(skills: DeckGoSkillEntry[]) {
+  const counts: Record<string, number> = { all: skills.length };
+  for (const skill of skills) {
+    counts[skill.source] = (counts[skill.source] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export function SkillsPanel() {
   const t = useTranslations("skills");
   const ui = useDeckUI();
@@ -140,6 +163,12 @@ export function SkillsPanel() {
   const skills = useMemo(() => (payload?.skills ?? []).map(normalizeSkill), [payload]);
   const selectedSkill = skills.find((skill) => skill.key === selectedSkillKey) ?? skills[0] ?? null;
   const managedSkills = skills.filter((skill) => skill.source === "managed");
+  const statusCounts = useMemo(() => countSkillsByStatus(skills), [skills]);
+  const sourceCounts = useMemo(() => countSkillsBySource(skills), [skills]);
+  const availableSourceFilters = useMemo<SourceFilter[]>(
+    () => SOURCE_FILTERS.filter((source) => source === "all" || (sourceCounts[source] ?? 0) > 0),
+    [sourceCounts],
+  );
   const visibleSkills = useMemo(() => {
     const search = query.trim().toLowerCase();
     return skills.filter((skill) => {
@@ -166,6 +195,28 @@ export function SkillsPanel() {
         .includes(search);
     });
   }, [query, skills, sourceFilter, statusFilter]);
+  const visibleSelectedSkill =
+    visibleSkills.find((skill) => skill.key === selectedSkillKey) ?? visibleSkills[0] ?? null;
+  const activeCriteria = useMemo(() => {
+    const criteria: string[] = [];
+    const normalizedQuery = query.trim();
+    if (normalizedQuery) {
+      criteria.push(t("criteriaSearch", { value: normalizedQuery }));
+    }
+    if (statusFilter !== "all") {
+      criteria.push(t("criteriaStatus", { value: t(`statusFilters.${statusFilter}`) }));
+    }
+    if (sourceFilter !== "all") {
+      criteria.push(t("criteriaSource", { value: t(`sourceFilters.${sourceFilter}`) }));
+    }
+    return criteria.join(" | ");
+  }, [query, sourceFilter, statusFilter, t]);
+
+  useEffect(() => {
+    if (!availableSourceFilters.includes(sourceFilter)) {
+      setSourceFilter("all");
+    }
+  }, [availableSourceFilters, sourceFilter]);
 
   useEffect(() => {
     const env = selectedSkill?.config?.env;
@@ -369,19 +420,20 @@ export function SkillsPanel() {
               type="button"
               onClick={() => setStatusFilter(status)}
             >
-              {status === "all" ? t("all") : t(`statusFilters.${status}`)}
+              {status === "all" ? t("all") : t(`statusFilters.${status}`)} {statusCounts[status]}
             </button>
           ))}
         </SegmentedGroup>
         <SegmentedGroup label={t("sourceLabel")}>
-          {SOURCE_FILTERS.map((source) => (
+          {availableSourceFilters.map((source) => (
             <button
               key={source}
               className={`skills-panel__segment ${sourceFilter === source ? "is-active" : ""}`}
               type="button"
               onClick={() => setSourceFilter(source)}
             >
-              {source === "all" ? t("sourceFilters.all") : t(`sourceFilters.${source}`)}
+              {source === "all" ? t("sourceFilters.all") : t(`sourceFilters.${source}`)}{" "}
+              {sourceCounts[source] ?? 0}
             </button>
           ))}
         </SegmentedGroup>
@@ -400,21 +452,28 @@ export function SkillsPanel() {
       <div className="skills-panel__workbench">
         <SkillList
           loadState={loadState}
-          selectedSkillKey={selectedSkill?.key ?? ""}
+          activeCriteria={activeCriteria}
+          selectedSkillKey={visibleSelectedSkill?.key ?? ""}
           skills={visibleSkills}
+          sourceCount={skills.length}
+          onClearFilters={() => {
+            setQuery("");
+            setStatusFilter("all");
+            setSourceFilter("all");
+          }}
           onSelect={setSelectedSkillKey}
         />
-        {selectedSkill ? (
+        {visibleSelectedSkill ? (
           <SkillDetail
             managedSkills={managedSkills}
-            selectedSkill={selectedSkill}
+            selectedSkill={visibleSelectedSkill}
             ui={ui}
             actionState={actionState}
             onOpenBin={() => setActiveDialog("bin")}
             onOpenEnv={() => setActiveDialog("env")}
             onOpenSecret={() => setActiveDialog("secret")}
             onOpenUpdateAll={() => setActiveDialog("updateAll")}
-            onToggle={(enabled) => void runToggle(selectedSkill, enabled)}
+            onToggle={(enabled) => void runToggle(visibleSelectedSkill, enabled)}
           />
         ) : (
           <p className="skills-panel__note">{t("selectSkillHint")}</p>
@@ -514,17 +573,31 @@ export function SkillsPanel() {
 }
 
 function SkillList(props: {
+  activeCriteria: string;
   loadState: PanelState;
   selectedSkillKey: string;
   skills: DeckGoSkillEntry[];
+  sourceCount: number;
+  onClearFilters: () => void;
   onSelect: (skillKey: string) => void;
 }) {
   const t = useTranslations("skills");
   if (props.loadState === "loading") {
     return <StateBlock icon={<IconRefresh className="is-spinning" />} title={t("loadingSkills")} />;
   }
-  if (props.skills.length === 0) {
+  if (props.sourceCount === 0) {
     return <StateBlock icon={<IconBolt />} title={t("noSkillsReported")} />;
+  }
+  if (props.skills.length === 0) {
+    return (
+      <StateBlock
+        action={t("clearFilters")}
+        body={props.activeCriteria}
+        icon={<IconBolt />}
+        title={t("noInstalledSkillsMatch")}
+        onAction={props.onClearFilters}
+      />
+    );
   }
   return (
     <div className="skills-panel__list-card">
@@ -790,11 +863,23 @@ function SegmentedGroup(props: { label: string; children: ReactNode }) {
   );
 }
 
-function StateBlock(props: { icon: ReactNode; title: string }) {
+function StateBlock(props: {
+  action?: string;
+  body?: string;
+  icon: ReactNode;
+  title: string;
+  onAction?: () => void;
+}) {
   return (
     <div className="skills-panel__state">
       {props.icon}
       <p>{props.title}</p>
+      {props.body ? <p>{props.body}</p> : null}
+      {props.action && props.onAction ? (
+        <button className="skills-panel__button" type="button" onClick={props.onAction}>
+          {props.action}
+        </button>
+      ) : null}
     </div>
   );
 }

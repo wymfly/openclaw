@@ -223,6 +223,40 @@ describe("ApprovalsPanel", () => {
     expect(container.textContent).toContain("pnpm build");
   });
 
+  it("explains approval queue source and search filtered-empty states", async () => {
+    await act(async () => {
+      renderApprovalsPanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchPendingApprovals).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent?.startsWith("Exec "))
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    await act(async () => {
+      fireEvent.change(container.querySelector('input[aria-label="search approvals"]')!, {
+        target: { value: "connect workspace" },
+      });
+    });
+
+    expect(container.textContent).toContain(
+      "Search hides pending approvals in this approval kind.",
+    );
+    expect(container.textContent).toContain("Search: connect workspace");
+    expect(container.textContent).toContain("Kind: Exec");
+
+    await act(async () => {
+      Array.from(container.querySelectorAll("button"))
+        .find((button) => button.textContent === "Clear filters")
+        ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain("pnpm test");
+    expect(container.textContent).toContain("connect workspace");
+  });
+
   it("runs approval decisions for the selected request and preserves preferred selection", async () => {
     await act(async () => {
       renderApprovalsPanel();

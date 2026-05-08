@@ -309,6 +309,10 @@ function channelMatchesFilter(item: ChannelInventoryItem, filter: ChannelFilter)
   return true;
 }
 
+function hasWecomChannel(items: ChannelInventoryItem[]) {
+  return items.some((item) => item.id === "wecom" || item.meta?.pluginId === "wecom");
+}
+
 function ChannelGlyph(props: { id: string; label: string }) {
   const letters = props.label.slice(0, 2).toUpperCase();
   return (
@@ -689,6 +693,19 @@ export function ChannelsPanel() {
     );
     return { alerts, degraded, enabled, messagesIn, messagesOut, totalAccounts };
   }, [channelItems]);
+  const filterCounts = useMemo<Record<ChannelFilter, number>>(
+    () => ({
+      alerts: channelItems.filter((item) => channelMatchesFilter(item, "alerts")).length,
+      all: channelItems.length,
+      enabled: channelItems.filter((item) => channelMatchesFilter(item, "enabled")).length,
+      wecom: channelItems.filter((item) => channelMatchesFilter(item, "wecom")).length,
+    }),
+    [channelItems],
+  );
+  const availableFilters = useMemo(
+    () => FILTERS.filter((entry) => entry !== "wecom" || hasWecomChannel(channelItems)),
+    [channelItems],
+  );
 
   const filteredItems = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -704,6 +721,12 @@ export function ChannelsPanel() {
       );
     });
   }, [channelItems, filter, searchQuery]);
+
+  useEffect(() => {
+    if (!availableFilters.includes(filter)) {
+      setFilter("all");
+    }
+  }, [availableFilters, filter]);
 
   const openDetail = (channelId: string, tab: ChannelTabId = "overview") => {
     setSelectedChannelId(channelId);
@@ -848,14 +871,14 @@ export function ChannelsPanel() {
           <span className="kbd">cmd+k</span>
         </label>
         <div className="toolbar__filter" role="group" aria-label={t("filter")}>
-          {FILTERS.map((entry) => (
+          {availableFilters.map((entry) => (
             <button
               key={entry}
               type="button"
               className={filter === entry ? "is-active" : ""}
               onClick={() => setFilter(entry)}
             >
-              {t(`filter_${entry}`)}
+              {t(`filter_${entry}`)} {filterCounts[entry]}
             </button>
           ))}
         </div>
@@ -900,6 +923,24 @@ export function ChannelsPanel() {
         <div className="empty">
           <strong>{t("noFilteredChannels")}</strong>
           <span>{t("noFilteredChannelsDescription")}</span>
+          <span>
+            {[
+              searchQuery.trim() ? t("criteriaSearch", { value: searchQuery.trim() }) : "",
+              filter !== "all" ? t("criteriaFilter", { value: t(`filter_${filter}`) }) : "",
+            ]
+              .filter(Boolean)
+              .join(" | ")}
+          </span>
+          <button
+            className="btn btn--sm"
+            type="button"
+            onClick={() => {
+              setSearchQuery("");
+              setFilter("all");
+            }}
+          >
+            {t("clearFilters")}
+          </button>
         </div>
       ) : null}
 

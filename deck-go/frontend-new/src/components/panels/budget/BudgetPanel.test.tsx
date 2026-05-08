@@ -240,6 +240,31 @@ describe("BudgetPanel", () => {
     expect(catalog.textContent).not.toContain("Cost cap");
   });
 
+  it("renders recoverable filtered-empty state when budget rules exist", async () => {
+    renderBudget();
+    await waitFor(() => expect(apiMocks.fetchBudgetRules).toHaveBeenCalledTimes(1));
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="budget rule search"]',
+    );
+    expect(searchInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "not-a-budget" } });
+    });
+
+    expect(container.textContent).toContain("No budget rules match the current filters");
+    expect(container.textContent).toContain("Search: not-a-budget");
+    expect(buttonWithText("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.click(buttonWithText("Clear filters") as HTMLButtonElement);
+    });
+
+    expect((searchInput as HTMLInputElement).value).toBe("");
+    expect(container.textContent).toContain("Cost cap");
+    expect(container.textContent).toContain("Token cap");
+  });
+
   it("keeps invalid warn and over threshold ordering local", async () => {
     renderBudget();
 

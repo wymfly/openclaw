@@ -160,6 +160,31 @@ describe("CronPanel", () => {
     expect(container.textContent).toContain("OK");
   });
 
+  it("renders recoverable filtered-empty state when cron jobs exist", async () => {
+    await act(async () => {
+      renderCronPanel();
+    });
+    await waitFor(() => expect(apiMocks.fetchCronJobs).toHaveBeenCalledTimes(1));
+
+    const searchInput = container.querySelector<HTMLInputElement>(".cron-panel__search input");
+    expect(searchInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "not-a-job" } });
+    });
+
+    expect(container.textContent).toContain("No jobs match the current filters.");
+    expect(container.textContent).toContain("Search: not-a-job");
+    expect(buttonByText("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      buttonByText("Clear filters")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect((searchInput as HTMLInputElement).value).toBe("");
+    expect(container.textContent).toContain("Nightly");
+    expect(container.textContent).toContain("Frequent");
+  });
+
   it("creates and edits cron jobs through the builder dialog", async () => {
     await act(async () => {
       renderCronPanel();

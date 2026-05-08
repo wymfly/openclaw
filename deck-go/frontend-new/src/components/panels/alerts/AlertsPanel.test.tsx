@@ -153,6 +153,31 @@ describe("AlertsPanel", () => {
     expect(container.textContent).toContain("Action and delivery");
   });
 
+  it("renders recoverable filtered-empty state when alert rules exist", async () => {
+    renderAlerts();
+    await waitFor(() => expect(apiMocks.fetchAlertRules).toHaveBeenCalledTimes(1));
+
+    const searchInput = container.querySelector<HTMLInputElement>(
+      'input[aria-label="alert search"]',
+    );
+    expect(searchInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(searchInput as HTMLInputElement, { target: { value: "not-an-alert" } });
+    });
+
+    expect(container.textContent).toContain("No rules match the current filters");
+    expect(container.textContent).toContain("Search: not-an-alert");
+    expect(buttonWithText("Clear filters")).toBeTruthy();
+
+    await act(async () => {
+      buttonWithText("Clear filters")?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect((searchInput as HTMLInputElement).value).toBe("");
+    expect(container.textContent).toContain("Usage warning");
+    expect(container.textContent).toContain("Usage critical");
+  });
+
   it("creates, toggles, and deletes alert rules through inline workbench actions", async () => {
     apiMocks.fetchAlertRules
       .mockResolvedValueOnce(rulesPayload())
