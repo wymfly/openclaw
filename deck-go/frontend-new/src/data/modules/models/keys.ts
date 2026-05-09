@@ -5,6 +5,8 @@ const moduleName = "models";
 export const modelsKeys = {
   all: (scope?: DeckQueryScope) => deckKeys.module.all(moduleName, scope),
   config: (scope?: DeckQueryScope) => deckKeys.module.item(moduleName, ["config"], scope),
+  configDetail: (scope?: DeckQueryScope) =>
+    deckKeys.module.item(moduleName, ["config", "detail"], scope),
   configured: (scope?: DeckQueryScope) =>
     deckKeys.module.item(moduleName, ["runtime", "configured"], scope),
   authOverview: (scope?: DeckQueryScope) =>

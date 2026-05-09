@@ -1,87 +1,160 @@
 # models — states
 
-## View routing
+The Models panel is a single-route workbench (no list↔detail navigation).
+All states live inside the orchestrator and are driven by:
 
-| State         | Trigger                                                          | Notes                                                              |
-| ------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `view=list`   | initial mount, `Esc` from detail, "Models" breadcrumb            | Default.                                                           |
-| `view=detail` | row click, Tweaks `Active view = detail`, `Enter` on focused row | Re-mounts DetailView on `selectedModel` change (`key={model.id}`). |
+- the data-fabric query state for `useModelsConfigDetailQuery` and
+  `useModelCatalogProvidersQuery`;
+- four orchestrator state machines for editor / delete / mode / wizard
+  flows;
+- mutation pending/error states from the typed mutation hooks.
 
-## ListView state
+## Detail query state
 
-| State     | Description                  | UI                                                       |
-| --------- | ---------------------------- | -------------------------------------------------------- |
-| `ready`   | Models loaded, rows rendered | KPI strip + toolbar + provider sections.                 |
-| `loading` | Refresh before any data      | Centered spinner + "Loading models…".                    |
-| `error`   | `GET /models/config` failed  | Error block + Retry button; existing rows kept on retry. |
-| `empty`   | No models configured         | EmptyState with "Add from catalog" CTA.                  |
+| State                  | Trigger                                                      | UI                                                                                                             |
+| ---------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `pending` (initial)    | First mount with no cache.                                   | Centered Spinner with i18n loading label; the rest of the panel is hidden.                                     |
+| `pending` (refresh)    | Programmatic `refetch()` while data is present.              | Spinner adjacent to the Refresh button; the existing UI keeps rendering.                                       |
+| `success`              | `models.config.detail` resolved.                             | Catalog header + provider list; empty state when `providers` is empty.                                         |
+| `error`                | Query failed.                                                | Banner `error` with i18n message and Retry button; underlying empty-state visible if cache is empty.           |
+| `conflict` (transient) | Mutation returned `DataFabricError` with `kind: "conflict"`. | Banner `warn` inside the active drawer/dialog; query is refetched automatically by `invalidateConfigSurfaces`. |
 
-The Tweaks `listState` toggles between these for design verification.
+## ProviderEditorState (drawer flow)
 
-## DetailView state
+```ts
+type ProviderEditorState =
+  | { kind: "idle" }
+  | { kind: "new" }
+  | { kind: "edit"; providerId: string };
+```
 
-| State     | Description                                                           |
-| --------- | --------------------------------------------------------------------- |
-| `ready`   | Hero + tabs + selected-tab body all rendered.                         |
-| `loading` | Body shows single spinner; hero stays (it's derived from list cache). |
-| `error`   | Body shows error block; hero stays. Retry button.                     |
+Transitions:
 
-Switching models resets `activeTab` to `overview`.
+- `idle → new` — "Add Provider" wizard submitted (the wizard owns the
+  create path; `ProviderDrawer` is reserved for `edit` here).
+- `idle → edit` — "Edit" button on a provider row.
+- `new | edit → idle` — drawer close (`Esc` / cancel / submit success).
+- Conflict during submit → `kind` retained; conflict Banner surfaces in
+  the drawer; the user keeps editing until they retry against the fresh
+  detail.
 
-## Tab body states
+## ModelEditorState (drawer flow)
 
-- **Overview** — KPI tiles + provider auth row + 3-cell pricing strip.
-- **Limits** — tile row with caps + reasoning/local flags + caveat
-  banner.
-- **Pricing** — 3-cell strip with input / output / avg-call; warn
-  banner clarifying vendor invoice authority.
-- **Usage** — 3 sections: provider quota windows (quota bars at
-  0..100%; level=warn>60, err>80), this-model 24h spend, provider
-  health.
-- **Auth** — auth row + cooldown banner (if active) + OAuth tiles (if
-  applicable).
-- **Audit** — entries filtered to this model.
+```ts
+type ModelEditorState =
+  | { kind: "idle" }
+  | { kind: "new"; providerId: string }
+  | { kind: "edit"; providerId: string; modelId: string };
+```
 
-Each tab has an explicit empty-state when its source data is missing.
+Transitions parallel `ProviderEditorState`. The drawer is scoped to the
+provider regardless of `new` / `edit` so cross-provider model moves are
+not modeled here (out of scope).
 
-## Provider auth status levels
+## DeleteFlowState (preview → confirm)
 
-| Status     | Pill          |
-| ---------- | ------------- |
-| `ready`    | `pill--ok`    |
-| `cooldown` | `pill--warn`  |
-| `missing`  | `pill--err`   |
-| `error`    | `pill--err`   |
-| `unknown`  | `pill--muted` |
+```ts
+type DeleteFlowState =
+  | { kind: "idle" }
+  | { kind: "preview-provider"; providerId: string }
+  | { kind: "confirm-provider"; preview: DeckGoModelImpactPreview }
+  | { kind: "preview-model"; providerId: string; modelId: string }
+  | { kind: "confirm-model"; preview: DeckGoModelImpactPreview };
+```
 
-## Probe edge cases
+Transitions:
 
-- `status=ok` → ok pill + latency.
-- `status=cooldown` → warn pill; latency may be 0.
-- `status=unknown` → muted pill ("—").
-- `status=error` → err pill; reason in `reasonCode` + `error`.
+- `idle → preview-provider` (user clicks Preview delete on a provider).
+- `preview-provider → confirm-provider` (preview mutation success).
+- `preview-provider → idle` (preview error / cancel).
+- `confirm-provider → idle` (commit success or cancel).
+- Same loop applies for the model variant.
 
-## Mutations
+`expectedBaseHash` is sourced from the impact preview in the
+`confirm-*` state (the BFF rebinds the preview to the latest hash). Stale
+preview tokens are rejected by the BFF and surface as Banner errors
+inside the type-to-confirm dialog.
 
-- Set default → PATCH runtime config; runtime re-emits
-  `models.configured`; UI swaps `isDefault` flags.
-- Add model from catalog → PATCH runtime config; new
-  RuntimeConfiguredModel appears next cycle.
-- Configure auth → PATCH runtime config; refresh `deck.auth.overview`.
-- Probe → POST `deck.auth.probe`; result populates probe cache (~30s
-  server-side); dialog can force a re-run.
-- Edit fallback chain → PATCH config; new chain reflected next cycle.
+## ModeFlowState (catalog mode)
+
+```ts
+type ModeFlowState =
+  | { kind: "idle" }
+  | { kind: "preview"; targetMode: "merge" | "replace" }
+  | { kind: "confirm"; preview: DeckGoModelImpactPreview };
+```
+
+Transitions:
+
+- `idle → preview` — user toggles the catalog mode.
+- `preview → confirm` — dry-run mutation succeeded **and** the mode is
+  `replace` or the impact severity is `warn | danger`.
+- `preview → idle` — dry-run shows `safe | info` for `merge` (commit is
+  applied directly) or the user cancels.
+- `confirm → idle` — commit success or cancel.
+
+Mode dry-run does NOT invalidate any query keys; only the commit step
+does (and additionally invalidates `catalogProviders`).
+
+## Wizard state (Add Provider)
+
+The wizard owns its own three-step state inside `AddProviderWizard.tsx`:
+
+```
+"select" → "configure" → "review" → submit
+```
+
+- `select` — pick from `useModelCatalogProvidersQuery` data, or "Use
+  custom" entry.
+- `configure` — provider id/name/baseUrl/api/auth + SecretInput.
+- `review` — surface the planned upsert payload (including SecretRef
+  summary). Submit calls `useUpsertModelProviderMutation` with
+  `isCreate=true` and `expectedBaseHash` from the active detail query.
+
+If the catalog providers query is degraded, the `select` step Banner
+suggests "Use custom" and the wizard proceeds without seeded defaults.
+
+## Mutation lifecycle
+
+For each typed mutation:
+
+1. `idle` — drawer/dialog is in its working state; submit is enabled.
+2. `pending` — submit is disabled; Spinner replaces the action label.
+3. `success` — `invalidateConfigSurfaces` runs; drawer/dialog closes;
+   relevant orchestrator state returns to `idle`.
+4. `error` — Banner inside the surface; user can edit and retry.
+5. `conflict` — special-case `error` with `DataFabricError`
+   `kind: "conflict"`; the Banner copy points at base-hash staleness and
+   the detail query is refetched automatically (the user re-submits
+   against the fresh hash).
+
+Advanced raw save (`useSaveModelsConfigMutation`) follows the same
+lifecycle but invalidates `modelsKeys.all()` rather than the typed
+surfaces. Typed surfaces are not updated optimistically by the raw
+save — they are refetched.
 
 ## Responsive
 
-- ≥1080px: 5-col KPI / 7-col row / 4-col tile-row / 3-col pricing /
-  2-col catalog-grid.
-- 720–1080px: 3-col KPI / 6-col row (drop max-tokens) / 2-col tile-row
-  / 2-col pricing / 1-col catalog.
-- <720px: 2-col KPI / 4-col row (drop context) / 1-col tile / 1-col
-  pricing / 1-col catalog.
+Layout is content-first (no fixed multi-column grid).
+
+- ≥1080px: catalog header inline, action buttons right-aligned; provider
+  sections render as full-width cards.
+- 720–1080px: catalog header wraps, action buttons stack into a row
+  below the title.
+- <720px: drawers transition to full-screen sheets (per the canonical
+  Drawer atom); dialogs remain centered Modals.
 
 ## Density
 
-`data-density="compact"` reduces vertical padding on rows, KPI tiles,
-detail tiles, audit rows, and auth rows by ≈30%.
+The panel respects the global `data-density="compact"` attribute via
+canonical atom rules. There is no module-specific density override.
+
+## Out-of-scope states
+
+- Probe (ok / cooldown / error / unknown) — not modeled here.
+- OAuth runner — not modeled here.
+- Per-provider quota windows — not modeled here.
+- Audit history — not modeled here.
+
+These are tracked under `openspec/follow-ups/` and will land with their
+own contract chains and state diagrams when they ship.

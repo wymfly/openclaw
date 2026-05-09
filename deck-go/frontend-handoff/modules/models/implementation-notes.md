@@ -1,201 +1,203 @@
 # Models implementation notes
 
-Status: implemented — real-contract verified
-(`frontend-models-real-contract-verification`)
+Status: implemented — typed config-authority workbench
+(`deck-go-models-config-control-plane`).
 
-Follow-up closure: `deck-go-models-providers-contract-completion` archived the
-head-matrix gap by adding Models config save and provider probe actions to the
-shared mutation evidence contract while preserving config-write safety as the
-base-hash/conflict authority.
+The current Models module aligns the deck-go panel with OpenClaw config
+truth (`src/config/types.models.ts`) and the typed deck-go contract
+chain (`contracts/source/deck-api.contract.ts`). It supersedes the
+historical V2 list↔detail prototype and the V1 Codex single-file
+prototype, both of which remain on disk as labeled references.
 
-## Prototype parity remediation - 2026-05-05
+## Source truth
 
-Child proposal:
-`deck-go-frontend-models-prototype-parity-remediation`.
+- OpenClaw config truth:
+  `src/config/types.models.ts` (`ModelsConfig` shape with provider /
+  model field optionality), `src/config/zod-schema.core.ts` (zod
+  schema for the same), and `src/config/schema.help.ts` (descriptive
+  help text).
+- Deck-facing contract authority:
+  `contracts/source/deck-api.contract.ts` and
+  `contracts/source/deck-endpoints.contract.json` (typed mutations,
+  delete-preview/commit, mode dry-run/commit, SecretInput status, raw
+  fallback).
+- UI metadata: `contracts/source/deck-ui.contract.json` (Models domain
+  registers typed actions plus the advanced raw fallback as separate
+  paths).
+- Production frontend tree:
+  `frontend-new/src/components/panels/models/`.
+- Browser boundary: the panel calls deck-go BFF routes only; it does
+  not call the OpenClaw Gateway origin directly.
 
-Audit result:
+## Architecture
 
-- Active visual target is `frontend-handoff/modules/models/prototype.html`.
-- `prototype-v1-codex.html` is retained as historical reference only.
-- Production must preserve the current contract chain and translate it into the
-  active list-to-detail product flow: provider-grouped model list, model detail
-  hero, Overview/Limits/Pricing/Usage/Auth/Audit tabs, catalog dialog, auth
-  configuration dialog, and probe result dialog.
-- Supported contract surfaces remain `GET/PATCH /models/config`,
-  `models.configured`, `deck.auth.overview`, `models.catalog.providers`,
-  `deck.auth.probe`, `/usage/cost`, and `/usage/providers`.
-- Pricing snapshots, PATCH audit history, and force probe cache refresh remain
-  handoff projections. Production may show unavailable/projected states, but
-  must not claim those as current Gateway-backed truth.
+```
+ModelsPanel (orchestrator)
+├── lib/models-selectors.ts      — pure projections over DeckGoModelsConfigDetail
+├── parts/CatalogHeader.tsx      — mode badge + counts + runtime status + actions
+├── parts/ProviderListSection.tsx — collapsible per-provider section with badges + actions
+├── parts/ModelRow.tsx           — per-model row with chips/badges + actions
+├── drawers/ProviderDrawer.tsx   — 5 tabs (overview/identity/networking/models/advanced)
+├── drawers/ModelDrawer.tsx      — 6 tabs (overview/identity/capacity/cost/networking/advanced)
+├── drawers/SecretInputField.tsx — preserve / set-ref / clear radio + ref + refTemplate
+├── wizard/AddProviderWizard.tsx — select / configure / review (with custom-provider path)
+├── dialogs/ImpactPreviewDialog.tsx — severity / scope / references / defaults-affected banner
+└── dialogs/TypeToConfirmDialog.tsx — typed confirmation guard for delete + mode replace
+```
 
-Real E2E fixture strategy:
+State machines live inside `ModelsPanel.tsx`:
 
-- Models is safe to seed in the isolated real E2E state because
-  `openclaw.json` is copied into a temporary state directory.
-- The real test should fetch `/models/config`, add a provider/model/default
-  reference whose id/name include the current run id, save through
-  `PATCH /models/config`, verify the run-scoped model through shell navigation
-  and the user-visible Models UI, and clean up by removing only run-scoped
-  provider/model/default/fallback/allowlist values.
-- Cleanup must call the shared run-scope guard and refuse targets that do not
-  include the current run id.
+- `ProviderEditorState`, `ModelEditorState` — drawer flows.
+- `DeleteFlowState` — preview → impact-token → type-to-confirm commit.
+- `ModeFlowState` — dry-run → impact-token → type-to-confirm commit.
 
-Implementation result:
+`AddProviderWizard.tsx` owns its own three-step state (select /
+configure / review).
 
-- `ModelsPanel` now follows the active list-to-detail prototype: grouped model
-  registry, model detail hero, Overview/Limits/Pricing/Usage/Auth/Audit tabs,
-  catalog/auth/probe dialogs, and advanced raw config authority.
-- The deterministic Gateway schema drift found during real E2E was fixed:
-  Models auth save now writes `apiKey` or an env SecretRef object instead of the
-  unsupported `apiKeyEnv` field, provider fixtures include required `baseUrl`,
-  and the panel reads `raw`, `config`, `parsed`, or `sourceConfig` from
-  `/models/config`.
-- The mock Gateway Models fixture was moved closer to the real schema with
-  explicit provider `baseUrl`, `apiKey` SecretRefs, object model definitions,
-  and representative OpenAI/Anthropic/Ollama model density.
-- Real E2E now creates run-scoped model entries through the isolated
-  `/models/config` route, retries documented `config.patch` rate limits, refuses
-  non-run-scoped cleanup targets, and verifies BFF-only browser transport.
+Confirm strings: `CONFIRM_TEXT_DELETE = "delete"`,
+`CONFIRM_TEXT_REPLACE = "replace"` (passed into `TypeToConfirmDialog`
+as `expectedText`).
 
-Prototype parity verdict:
+## Contract chain
 
-- Status: `pass-with-exceptions`.
-- Evidence: `.local/models-prototype-remediation-parity-report/`,
-  `.local/models-remediation-mock-visual/`, and
-  `.local/models-remediation-real-e2e-strengthened/`.
-- Accepted exceptions: Deck shell chrome is present around the module; pricing
-  snapshot and PATCH audit history remain unavailable/projected because current
-  Deck-facing DTOs do not guarantee them; `deck.auth.probe` is not invoked in L2
-  to avoid real provider/network side effects before the dedicated live-LLM pass.
+The typed mutations carry `expectedBaseHash` derived from the latest
+`DeckGoModelsConfigDetailResponse`. Conflict (HTTP 409) projects into
+`DataFabricError` with `kind: "conflict"`; `invalidateConfigSurfaces`
+refreshes `configDetail` automatically.
 
-Verification evidence:
+| Workflow                | Frontend wrapper                         | BFF route                                         | Authority                                                          |
+| ----------------------- | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
+| Read                    | `fetchModelsConfigDetail`                | `GET /models/config/detail`                       | Typed read authority for the panel.                                |
+| Provider create         | `upsertModelProvider` (`isCreate=true`)  | `POST /models/providers/upsert`                   | Wizard → typed mutation.                                           |
+| Provider edit           | `upsertModelProvider` (`isCreate=false`) | same                                              | Provider drawer → typed mutation.                                  |
+| Provider delete preview | `previewProviderDelete`                  | `POST /models/providers/delete-preview`           | Required before commit.                                            |
+| Provider delete commit  | `deleteModelProvider`                    | `POST /models/providers/delete`                   | Carries `impactToken` + `confirmText: "delete"`.                   |
+| Model create            | `upsertModel` (`isCreate=true`)          | `POST /models/{providerId}/models/upsert`         | Model drawer (new).                                                |
+| Model edit              | `upsertModel` (`isCreate=false`)         | same                                              | Model drawer (edit).                                               |
+| Model delete preview    | `previewModelDelete`                     | `POST /models/{providerId}/models/delete-preview` | Required before commit.                                            |
+| Model delete commit     | `deleteModel`                            | `POST /models/{providerId}/models/delete`         | Carries `impactToken` + `confirmText: "delete"`.                   |
+| Mode dry-run            | `setModelsCatalogMode` (`dryRun=true`)   | `POST /models/catalog/mode`                       | Returns impact preview; does not invalidate.                       |
+| Mode commit             | `setModelsCatalogMode` (`commit=true`)   | same                                              | Carries `impactToken` (and `confirmText: "replace"` for replace).  |
+| Advanced raw save       | `saveModelsConfig`                       | `PATCH /models/config`                            | Reserved for advanced editor only; invalidates `modelsKeys.all()`. |
 
-- `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/models/ModelsPanel.test.tsx`
-  -> 6 passed.
-- `cd deck-go && pnpm exec playwright test test/e2e/models-visual.spec.ts --config playwright.config.ts --output .local/models-remediation-mock-visual --reporter=line`
-  -> 1 passed.
-- `cd deck-go && node scripts/generate-prototype-parity-report.mjs --prototype-dir .local/prototype-gap-audit --mock-dir .local/models-remediation-mock-visual --out-dir .local/models-prototype-remediation-parity-report --sheet-size 1`
-  -> Models ready for review in the generated report.
-- `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/models-real-gateway.spec.ts --config playwright.config.ts --output .local/models-remediation-real-e2e-strengthened --reporter=line`
-  -> 2 passed. API evidence records `models.configured` as degraded with a
-  502 timeout, while config/auth/catalog/usage and UI variant checks passed.
-- `cd deck-go && make frontend-build` -> passed.
-- `openspec validate deck-go-frontend-models-prototype-parity-remediation --strict`
-  -> passed.
-- `openspec validate deck-go-frontend-prototype-parity-remediation --strict`
-  -> passed.
-- `git diff --check` -> passed.
+## SecretInput safety
 
-Residual risks:
+The contract enforces that literal secrets never cross the browser
+boundary:
 
-- Real `models.configured` timed out in L2 and is recorded as bounded runtime
-  RPC degradation. The UI remains functional through `/models/config` and other
-  supported surfaces.
-- Probe semantics remain environment-dependent and should be covered in the
-  later live-provider pass.
+- The detail response surfaces only `DeckGoModelSecretInputStatus`
+  (`missing | empty | ref | literal-redacted`).
+- Upsert requests carry one of `{ action: "preserve" }` /
+  `{ action: "clear" }` / `{ action: "set-ref"; ref; refTemplate? }`.
+- The advanced raw editor is the only surface that could write a
+  literal; even there the BFF normalizes literals into SecretRefs on
+  save.
 
-## Source Truth
+The default radio selection in `SecretInputField` is `preserve`, so
+editing a provider does not unintentionally clear or rebind its
+secret.
 
-- Visual/product target: `frontend-handoff/modules/models/prototype.html`.
-- Contract authority: `contracts/source/deck-api.contract.ts`,
-  `contracts/source/deck-endpoints.contract.json`, and
-  `contracts/source/deck-ui.contract.json`.
-- Production frontend: `frontend-new/src/components/panels/models/`.
-- Browser boundary: frontend code calls deck-go BFF routes and generated
-  runtime Gateway transport only; it does not call the OpenClaw Gateway
-  origin directly.
+## Out-of-scope claims
 
-## Contract Matrix
+The module deliberately does not claim:
 
-| Workflow                  | Frontend wrapper                               | Deck endpoint / transport                                       | Go / Gateway source                            | Status                | Notes                                                                                            |
-| ------------------------- | ---------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------ |
-| Config read               | `fetchModelsConfig`                            | `GET /api/models/config`                                        | Go models config BFF -> `config.get` adapter   | supported             | Returns raw Models config plus hash when available.                                              |
-| Config save               | `saveModelsConfig`                             | `PATCH /api/models/config`                                      | Go models config BFF -> `config.patch` adapter | supported             | Raw JSON remains save authority; base hash is submitted when present.                            |
-| Schema lookup             | `lookupConfigPath`                             | `POST /api/config/schema-lookup`                                | Config schema BFF                              | supported             | Used for sidecar schema hints, not required to render inventory.                                 |
-| Runtime inventory         | `fetchRuntimeConfiguredModels`                 | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc`                 | `models.configured`                            | supported             | DTO accepts `payload.models` and `payload.items`; production normalizes both.                    |
-| Auth overview             | `fetchRuntimeModelAuthOverview`                | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc`                 | `deck.auth.overview`                           | supported             | Provider auth, OAuth, cooldown, usage windows are optional.                                      |
-| Catalog providers         | `fetchRuntimeModelCatalogProviders`            | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc`                 | `models.catalog.providers`                     | supported             | Empty catalog providers are empty-valid.                                                         |
-| Auth probe                | `probeRuntimeModelAuth`                        | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc`                 | `deck.auth.probe`                              | environment-dependent | Wrapper passes `{ provider }`; no current force flag. L2 avoids real provider calls unless safe. |
-| Usage cost                | `fetchModelUsageCost`                          | `GET /api/usage/cost`                                           | Usage BFF                                      | supported             | Canonical frontend route.                                                                        |
-| Usage providers           | `fetchModelUsageProviders`                     | `GET /api/usage/providers`                                      | Usage BFF                                      | supported             | Canonical frontend route.                                                                        |
-| Models usage aliases      | none in current frontend wrappers              | `GET /api/models/usage/cost`, `GET /api/models/usage/providers` | Models BFF aliases                             | supported alias       | Verified as compatibility aliases; not the canonical frontend route.                             |
-| Provider config edits     | local structured editors -> `saveModelsConfig` | `PATCH /api/models/config`                                      | Go models config BFF                           | supported             | Mutates raw draft and saves with base hash.                                                      |
-| Catalog apply             | local catalog action -> `saveModelsConfig`     | `PATCH /api/models/config`                                      | Go models config BFF                           | supported             | Adds provider/model refs to raw draft.                                                           |
-| Fallback chain edits      | local fallback controls -> `saveModelsConfig`  | `PATCH /api/models/config`                                      | Go models config BFF                           | supported             | Preserves unavailable refs instead of silently deleting them.                                    |
-| Allowlist edits           | local allowlist controls -> `saveModelsConfig` | `PATCH /api/models/config`                                      | Go models config BFF                           | supported             | Stored under agent defaults in raw config.                                                       |
-| Bedrock discovery edits   | local provider controls -> `saveModelsConfig`  | `PATCH /api/models/config`                                      | Go models config BFF                           | supported             | Numeric/array parsing is local before raw save.                                                  |
-| Pricing snapshot          | none                                           | none                                                            | handoff projection only                        | unsupported           | Prototype data is not a guaranteed DTO.                                                          |
-| PATCH audit history       | none                                           | none                                                            | handoff projection only                        | unsupported           | Not guaranteed by current BFF.                                                                   |
-| Force probe cache refresh | none                                           | none                                                            | handoff projection only                        | unsupported           | Current wrapper has no force parameter.                                                          |
-| BFF-only browser access   | panel + real E2E request monitors              | deck-go backend origin only                                     | frontend boundary                              | supported             | Real E2E records direct Gateway request/socket arrays.                                           |
+- Audit history (`PATCH /models/config` audit projection).
+- Rollback or transactional state.
+- Secret-store CRUD (a centralized `SecretRef` registry).
+- OAuth runner UI.
+- Probe (`deck.auth.probe`) or force-probe-cache refresh.
+- Quota / rate-limit editing.
+- Pricing snapshot panel.
+- Provider/model search and filter at list level.
+- Per-model rate-limit overrides.
 
-## Deterministic Fixes
+These are tracked under `openspec/follow-ups/` and will land with their
+own contract chains.
 
-- Added a `models-control` UI metadata domain that covers config,
-  schema lookup, typed runtime RPC, canonical usage routes, compatibility
-  usage aliases, and Models actions.
-- Added mutation evidence rows for `models.config.save` and
-  `models.auth.probe`; `saveModelsConfig()` and `probeRuntimeModelAuth()` now
-  acknowledge those action contracts without changing their response DTOs.
-- Regenerated `contracts/generated/ts/deck-ui-metadata.generated.ts`
-  and `docs/deck-ui-contract-metadata.md` from
-  `contracts/source/deck-ui.contract.json`.
-- Added `test/e2e/models-real-gateway.spec.ts` for bounded L2
-  route/RPC shape and UI boundary verification.
-- Corrected `api-usage.md` route and wrapper truth:
-  `saveModelsConfig`, canonical `/usage/*` wrappers, compatibility
-  `/models/usage/*` aliases, typed runtime RPC transport, and projected
-  pricing/audit/probe-cache behavior.
+## Testing
 
-## Verification Evidence
+Component-level evidence:
 
-- Handoff prototype smoke: `prototype.html` loaded over local
-  `http.server` with HTTP 200, title `deck-go models — interactive
-prototype`, H1 `Models`, body showing the 9-model workbench, and no
-  console errors/page errors. Only React DevTools info and Babel
-  standalone warning were observed.
-- `cd deck-go && make ui-metadata-sync` passed after registering Models
-  UI metadata actions.
-- `cd deck-go && pnpm exec playwright test test/e2e/models-real-gateway.spec.ts --config playwright.config.ts`
-  passed as a compile/skip smoke with 2 skipped tests when
-  `DECK_GO_REAL_GATEWAY_E2E` is unset.
+- `frontend-new/src/data/modules/models/mutations.test.ts` — 11/11
+  covering typed mutation routing, dryRun/commit invalidation split,
+  advanced raw escape hatch isolation, conflict propagation through
+  `DataFabricError` `kind: "conflict"`, and SecretRef construction.
+- `frontend-new/src/components/panels/models/ModelsPanel.test.tsx` —
+  6/6 covering catalog header + provider list rendering, empty-state
+  CTA, AddProvider wizard typed mutation routing with SecretRef
+  construction, advanced raw editor opens without firing typed
+  mutations, delete preview surfaces references then commits with
+  `confirmText: "delete"` + `impactToken`, Chinese locale copy.
 
-- `cd deck-go/frontend-new && npm run test:deck-ui -- src/api.chat-helpers.test.ts src/components/panels/models/ModelsPanel.test.tsx`
-  passed: 2 files, 66 tests.
-- `cd deck-go/backend && GOCACHE=/tmp/deck-go-buildcache go test ./internal/server ./internal/api/http ./internal/runtime/openclaw -run 'TestGatewayFacade_ModelsConfigRoute|TestGatewayFacade_UsageCostProviderRoutes|TestMountAdminRoutes|TestGatewayQueriesLowRiskWrappersUseTypedClient|TestGatewayQueriesRepresentativeWrappersSmoke'`
-  passed.
-- `cd deck-go && pnpm exec playwright test test/e2e/models-visual.spec.ts --config playwright.config.ts`
-  passed: L1 mock/local visual coverage for ready workbench,
-  provider config, fallback, usage, and runtime inventory interaction
-  states.
-- First L2 run of `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/models-real-gateway.spec.ts --config playwright.config.ts`
-  started the real stack and passed the UI BFF boundary test, but the
-  route/RPC test failed because `models.configured` returned 502 from the
-  real Gateway path. This was classified as degraded runtime RPC
-  evidence rather than an implementation crash.
-- After updating the L2 test to record 400/404/501/502/503 runtime RPC
-  responses as degraded and to keep usage/config/UI checks strict,
-  `cd deck-go && DECK_GO_REAL_GATEWAY_E2E=1 pnpm exec playwright test test/e2e/models-real-gateway.spec.ts --config playwright.config.ts`
-  passed: 2 tests. Probe was skipped-safe to avoid real provider calls.
-- `cd deck-go && make ui-metadata-check` passed.
-- `cd deck-go && make frontend-build` passed.
-- `cd deck-go && make contract-gate` passed.
-- `openspec change validate frontend-models-real-contract-verification --strict`
-  passed.
-- `git diff --check` passed.
-- Follow-up mutation closure:
-  `cd deck-go && make mutation-evidence-contract-test && make mutation-evidence-contract-check` -> passed;
-  `cd deck-go/frontend-new && npm run test:deck-ui -- src/lib/mutation-evidence.test.ts src/api.chat-helpers.test.ts src/components/panels/models/ModelsPanel.test.tsx` -> 78 passed.
+Mechanical verification (recorded in tasks 7.1–7.4 of the source
+change):
 
-## Residual Risks
+- `openspec validate deck-go-models-config-control-plane --type change --strict`
+  → `Change 'deck-go-models-config-control-plane' is valid`.
+- `cd deck-go && make contract-gate` → green
+  (stream / live-projection / list-query / mutation-evidence /
+  dynamic-surfaces / route-governance / config-write-safety; gateway
+  typecheck 0 violations; describe-completeness 173 methods / 24
+  events; contract-chain-audit 26 rows).
+- `cd deck-go/backend && go test ./internal/server/... -run "TestModels" -count=1`
+  → `ok 0.420s`.
+- `cd deck-go/frontend-new && pnpm vitest run src/data/modules/models/ src/components/panels/models/`
+  → 17/17 passing.
+- `cd deck-go && make frontend-build` → built in 1.64s.
 
-- Real Gateway startup may be blocked by local OpenClaw dependency
-  staging or provider environment, as seen in other module L2 attempts.
-- Real provider auth/probe semantics are environment-dependent; L2 should
-  avoid real provider calls unless the test can prove safe scope.
-- Real `PATCH /models/config` automation remains deferred unless a reversible
-  config fixture and base-hash conflict cleanup are proven.
-- Pricing snapshots and PATCH audit history remain product projections
-  until Deck-facing DTOs or BFF routes formalize them.
-- `/models/usage/*` aliases are kept for compatibility, while frontend
-  wrappers currently consume canonical `/usage/*`.
+Mock E2E and bounded real Gateway smoke (tasks 7.5 / 7.6) are tracked
+separately in the source change closure.
+
+## Why the prototype line of thinking shifted
+
+The historical V2 prototype (kept on disk under `app.jsx`,
+`list-view.jsx`, `detail-view.jsx`, `dialogs.jsx`, `data.js`,
+`icons.jsx`, `styles.css`, `tokens.css`, `tweaks-panel.jsx`) modeled
+Models as a list↔detail product with Limits / Pricing / Usage / Auth /
+Audit tabs, plus a usage cost dashboard and a per-model audit history.
+After auditing OpenClaw config truth and Gateway capabilities the
+typed product surface narrowed to config authority because:
+
+- Pricing snapshots and a structured audit log are not guaranteed by
+  current Deck-facing DTOs.
+- OAuth flows, force-probe-cache refresh, and quota editing are not
+  exposed through `config.get` / `config.patch`.
+- The list↔detail product flow obscured the actual operator task —
+  inspecting and editing a config slice — by interleaving usage,
+  pricing, and audit signals that the typed Gateway path could not
+  back.
+
+The current production tree keeps those signals out of the panel and
+surfaces them only when (and if) follow-up proposals add them with a
+real contract chain.
+
+## Historical evidence (kept for archive lineage)
+
+The prior `deck-go-frontend-models-prototype-parity-remediation` and
+`frontend-models-real-contract-verification` changes recorded
+remediation evidence against the V2 prototype. Their evidence
+artifacts (`.local/models-prototype-remediation-parity-report/`,
+`.local/models-remediation-mock-visual/`,
+`.local/models-remediation-real-e2e-strengthened/`) reflect the V2
+list↔detail surface and are not parity references for the typed
+config-authority surface. They remain valid as audit lineage for the
+contract-chain hardening that they introduced (e.g. SecretRef-only
+`apiKey` writes, Models real E2E run-scope cleanup, mutation evidence
+contract rows).
+
+## Residual risks
+
+- Mock prototype parity for the typed config-authority surface is
+  intentionally `unreviewed` until the next reverse sign-off pass
+  (designer review of the new component tree against an updated active
+  prototype).
+- Bounded real Gateway smoke for reversible provider/model creates and
+  cleanup is recorded against task 7.6 of the source change; the BFF
+  enforces run-scope cleanup, but external accounts and skill
+  installations remain `skipped-safe`.
+- `models.configured` runtime degradation observed in earlier real-E2E
+  runs is bounded — the typed UI does not hard-block on it because
+  `runtime.catalog.status` projects through detail directly.
+- `deck.auth.probe` is intentionally not invoked here; probe
+  semantics (cache TTL, force refresh, rate-limit) remain out of scope
+  until a dedicated probe runner change ships.

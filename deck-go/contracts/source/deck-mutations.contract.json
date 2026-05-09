@@ -847,7 +847,92 @@
       "fixtureSafety": {
         "status": "deferred",
         "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
-        "notes": "Config save uses baseHash semantics from deck-go-config-write-safety-contracts; automated real mutation remains deferred without reversible config fixtures."
+        "notes": "Config save uses baseHash semantics from deck-go-config-write-safety-contracts; automated real mutation remains deferred without reversible config fixtures. Retained as the advanced raw escape hatch only — typed CRUD must use models.providers.upsert / models.providers.delete / models.models.upsert / models.models.delete / models.mode.set."
+      }
+    },
+    {
+      "id": "models.providers.upsert",
+      "ownerModule": "models",
+      "route": "POST /models/providers/upsert",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoModelProviderUpsertResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "providerId" },
+      "auditCoverage": { "mode": "deferred", "source": "deck-go-config-write-safety-contracts" },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "deferred",
+        "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+        "notes": "Provider upsert builds a minimal models merge patch and forwards expectedBaseHash through Gateway config.patch; SecretInput edits write SecretRef only. Real mutation remains deferred until reversible provider/config fixtures are wired."
+      }
+    },
+    {
+      "id": "models.providers.delete",
+      "ownerModule": "models",
+      "route": "POST /models/providers/delete",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoModelProviderDeleteCommitResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "providerId" },
+      "auditCoverage": { "mode": "deferred", "source": "deck-go-config-write-safety-contracts" },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "deferred",
+        "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+        "notes": "Provider delete commit re-runs modelReferenceIndex against current config, rejects stale impactToken or hash mismatch, and removes the provider via Gateway config.patch. Real mutation deferred until reversible fixtures exist."
+      }
+    },
+    {
+      "id": "models.models.upsert",
+      "ownerModule": "models",
+      "route": "POST /models/models/upsert",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoModelUpsertResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "modelId" },
+      "auditCoverage": { "mode": "deferred", "source": "deck-go-config-write-safety-contracts" },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "deferred",
+        "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+        "notes": "Model upsert preserves zod-optional omitted fields on existing models, validates id/name and optional API/inputs/cost/headers, and writes via Gateway config.patch with expectedBaseHash. Real mutation remains deferred without reversible config fixtures."
+      }
+    },
+    {
+      "id": "models.models.delete",
+      "ownerModule": "models",
+      "route": "POST /models/models/delete",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoModelDeleteCommitResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "modelId" },
+      "auditCoverage": { "mode": "deferred", "source": "deck-go-config-write-safety-contracts" },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "deferred",
+        "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+        "notes": "Model delete commit re-scans references, validates impactToken freshness, and removes the model from the provider via Gateway config.patch. Deferred until reversible fixtures exist."
+      }
+    },
+    {
+      "id": "models.mode.set",
+      "ownerModule": "models",
+      "route": "POST /models/mode/set",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoModelModeSetCommitResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "mode" },
+      "auditCoverage": { "mode": "deferred", "source": "deck-go-config-write-safety-contracts" },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "deferred",
+        "evidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+        "notes": "Mode set with dryRun=false requires a fresh impactToken from a prior dryRun=true call; commit writes models.mode through Gateway config.patch. Unavailable-provider impact derives from Gateway/BFF catalog truth, not frontend hardcoded providers. Real mutation remains deferred without reversible config fixtures."
       }
     },
     {

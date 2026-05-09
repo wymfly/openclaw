@@ -426,3 +426,15 @@ func (s *LegacyInventorySurface) DefaultAgentWorkspace(ctx context.Context, name
 	agentID := strings.ToLower(strings.Join(strings.Fields(name), "-"))
 	return filepath.Join(stateDir, "workspace-"+agentID)
 }
+
+func (s *LegacyInventorySurface) ModelsConfigured(ctx context.Context) (any, error) {
+	return s.managed.GatewayQueries().ModelsConfigured(ctx)
+}
+
+func (s *LegacyInventorySurface) ModelsCatalogProviders(ctx context.Context) (any, error) {
+	return s.managed.GatewayQueries().ModelsCatalogProviders(ctx)
+}
+
+func (s *LegacyInventorySurface) DeckAuthOverview(ctx context.Context) (any, error) {
+	return s.managed.GatewayQueries().DeckAuthOverview(ctx)
+}

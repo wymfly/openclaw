@@ -88,6 +88,7 @@ func NewRootHandlerWithRuntimeFacade(
 		registerGatewayRoutes(api, managed)
 		registerConfigRoutes(api, managed)
 		registerInventoryRoutes(api, openclawrt.NewLegacyInventorySurface(managed))
+		registerModelsControlRoutes(api, openclawrt.NewLegacyInventorySurface(managed))
 		registerAlertsRoutes(api)
 		registerBudgetRoutes(api, managed, bus)
 		registerWebhookRoutes(api)

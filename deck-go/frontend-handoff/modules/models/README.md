@@ -3,30 +3,45 @@
 **Status**: implemented (sha d7ab0bb9b612ca120ec1d1e7ced6bef92e8f2508)
 **Protocol version:** `protocol-v1`
 **Active visual target:** [`./prototype.html`](./prototype.html)
-**Reference prior art:** [`./prototype-v1-codex.html`](./prototype-v1-codex.html) (V1 Codex single-file; do not implement against it)
+**Reference prior art:**
 
-This package replaces the V1 single-file Codex prototype with a multi-file
-interactive React rebuild matching the agents v2 quality bar. Same
-list↔detail page-transition pattern as channels, with model-domain
-sections (Limits / Pricing / Usage / Auth / Audit).
+- [`./prototype-v1-codex.html`](./prototype-v1-codex.html) — V1 Codex single-file (kept as labeled reference; do not implement against it).
+- [`./prototype-v2-list-detail.html`](./prototype-v2-list-detail.html) — V2 list↔detail prototype shell that wires the historical multi-file Babel-standalone bundle. Kept as labeled reference for the earlier "Limits / Pricing / Usage / Auth / Audit" tab line of thinking; do not implement against it.
+- `./app.jsx` / `./list-view.jsx` / `./detail-view.jsx` / `./dialogs.jsx` / `./data.js` / `./icons.jsx` / `./styles.css` / `./tokens.css` / `./tweaks-panel.jsx` — V2 multi-file prototype assets loaded by `prototype-v2-list-detail.html`; kept as labeled reference. The current Models module no longer implements that line; see "Why the prototype line of thinking shifted" below.
+
+This handoff covers the Models config control plane that aligns deck-go with
+OpenClaw config truth (`src/config/types.models.ts` /
+`src/config/zod-schema.core.ts`). The production module is a typed
+config-authority workbench, not a usage/audit dashboard.
 
 ## What this module does
 
-`models/` is the model registry workbench. Operators use it to:
+`models/` is the deck-go workbench for the OpenClaw `models?: ModelsConfig`
+slice of `openclaw.json`. Operators use it to:
 
-- Inventory runtime-configured models grouped by provider
-- See per-provider auth state, OAuth/cooldown evidence, and usage
-  windows
-- Inspect default + fallback chain for each provider
-- Drill into a model: limits, pricing, 24h spend, audit history
-- Add models from the provider catalog
-- Configure provider auth (apiKey / oauth / profile / none)
-- Run a probe end-to-end through the runtime
+- Inspect runtime-configured providers/models grouped under a single source
+  of truth (`models.config.detail`).
+- Add or edit a provider — provider id/name, baseUrl, api/auth enums,
+  injectNumCtxForOpenAICompat, `apiKey` SecretInput (SecretRef-only writes),
+  provider headers, and advanced (`request`, `compat`) summaries.
+- Add or edit a model under a provider — model id/name, API inherit/override,
+  reasoning, input modalities, capacity caps (contextWindow, maxOutputTokens,
+  maxThinkingTokens, customMaxTokens), cost (`tokenCostPerKilo`,
+  `tokenCostInputPerKilo`, `tokenCostOutputPerKilo`), per-model headers, and
+  advanced compat summary.
+- Preview the impact of deleting a provider/model or switching catalog mode
+  before committing destructive intent (impact token + service-side rescan +
+  type-to-confirm).
+- Switch between catalog modes `merge | replace` with a dry-run preview before
+  the commit step.
+- Drop into the advanced raw editor as an explicit escape hatch when the
+  typed UI cannot represent a desired config shape.
 
-The design keeps runtime inventory + provider health + spend pressure on
-the first viewport. Raw `openclaw.json` config remains the save authority
-but is not the main mental model — structured controls edit a draft that
-serializes to the raw config behind the scenes.
+The design **does not** include a usage/audit dashboard, a probe runner, an
+OAuth runner, a secret-store CRUD surface, a quota/rate-limit editor, or a
+"force probe cache refresh" — those are tracked as out-of-scope follow-ups.
+Pricing snapshots and PATCH audit projections that the V2 prototype had are
+intentionally not part of the current module surface.
 
 ## Visual target
 
@@ -38,113 +53,138 @@ python3 -m http.server 8898
 
 ## Files
 
-| File                                                                             | Role                                                                                                                                                                                 |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `prototype.html`                                                                 | ~30-line shell loading the .jsx files via Babel standalone                                                                                                                           |
-| `app.jsx`                                                                        | Application shell: list↔detail routing, ⌘N + ⌘K + Esc, Tweaks panel                                                                                                                  |
-| `list-view.jsx`                                                                  | Provider-grouped model list, KPI strip, status pills, search/filter                                                                                                                  |
-| `detail-view.jsx`                                                                | Model hero + 6 tabs (Overview/Limits/Pricing/Usage/Auth/Audit)                                                                                                                       |
-| `dialogs.jsx`                                                                    | ProbeResult + AuthConfig + Catalog (add-model)                                                                                                                                       |
-| `data.js`                                                                        | Contract-shaped mock (DeckGoModelsConfigResponse, RuntimeConfiguredModel, ModelAuthOverview, CatalogProviders, ModelProbe, UsageCost, UsageProviders, pricing/audit BFF projections) |
-| `icons.jsx`                                                                      | 19 SVG icons + ProviderGlyph                                                                                                                                                         |
-| `styles.css`                                                                     | Linear-inspired full visual language; --ds-\* tokens only                                                                                                                            |
-| `tokens.css`                                                                     | Mirror of canonical tokens                                                                                                                                                           |
-| `tweaks-panel.jsx`                                                               | Reusable tweaks shell (cp from agents/channels)                                                                                                                                      |
-| `prototype-v1-codex.html`                                                        | V1 reference, retained for diff                                                                                                                                                      |
-| `README.md` / `components.md` / `states.md` / `interactions.md` / `api-usage.md` | Handoff docs                                                                                                                                                                         |
+| File                                                                                                                                         | Role                                                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `prototype.html`                                                                                                                             | Active visual target — typed config-authority workbench (self-contained).                                       |
+| `prototype-v1-codex.html`                                                                                                                    | Historical V1 reference; kept as labeled artifact.                                                              |
+| `prototype-v2-list-detail.html`                                                                                                              | Historical V2 list↔detail shell that loads the V2 multi-file bundle; kept as labeled artifact.                  |
+| `app.jsx` / `list-view.jsx` / `detail-view.jsx` / `dialogs.jsx` / `data.js` / `icons.jsx` / `styles.css` / `tokens.css` / `tweaks-panel.jsx` | Historical V2 multi-file prototype assets loaded by `prototype-v2-list-detail.html`; kept as labeled reference. |
+| `README.md` / `components.md` / `states.md` / `interactions.md` / `api-usage.md` / `implementation-notes.md`                                 | Handoff docs (this set).                                                                                        |
 
 ## Contract truth
 
-Production and mocks must use the current Deck-facing and Gateway DTOs:
+Production and mocks must use the typed Models contract chain rather than ad
+hoc raw-config shapes:
 
-- `DeckGoModelsConfigResponse`
-- `DeckGoConfigApplyResponse`
-- `DeckGoRuntimeConfiguredModel` / `DeckGoRuntimeConfiguredModelsResponse`
-- `DeckGoModelAuthProvider` / `DeckGoModelAuthOverviewResponse`
-- `DeckGoCatalogProvider` / `DeckGoModelCatalogProvidersResponse`
-- `DeckGoModelProbeResponse`
-- `DeckGoUsageCostResponse` / `DeckGoUsageProviderStatus` / `DeckGoUsageProvidersResponse`
+- Config detail: `DeckGoModelsConfigDetailResponse`
+  (`detail.providers[]`, `detail.models[]`, `detail.references[]`,
+  `detail.runtime`).
+- Provider record: `DeckGoModelProviderDetail`
+  (id, name, baseUrl, api, authMode, secretStatus, providerHeaders,
+  injectNumCtxForOpenAICompat, request, compat, advancedSummary).
+- Model record: `DeckGoModelDetail`
+  (id, name, providerId, api?, reasoning?, modalities?, capacity, cost,
+  headers, compatSummary, references).
+- Impact preview: `DeckGoModelImpactPreview`
+  (`scope`, `severity`, `references[]`, `impactToken`, `generatedAt`,
+  `baseHash`).
+- Typed mutations: `DeckGoModelProviderUpsertRequest`,
+  `DeckGoModelDeletePreviewRequest`, `DeckGoModelDeleteRequest`,
+  `DeckGoModelUpsertRequest`, `DeckGoModelDeletePreviewRequest` (model),
+  `DeckGoModelDeleteRequest` (model), `DeckGoSetModelsCatalogModeRequest`.
+- Sensitive fields are surfaced through `DeckGoModelSecretInputStatus`
+  (`missing | empty | ref | literal-redacted`); literal secret values are
+  never returned to the browser.
+- Raw config payload: `DeckGoModelsConfigResponse` /
+  `DeckGoConfigApplyResponse` — kept available **only** for the advanced
+  raw editor escape hatch.
 
-BFF projections (not raw Gateway wire):
+Runtime read surfaces still in use:
 
-- per-model pricing snapshot (vendor list)
-- audit log over `PATCH /models/config` history
+- `models.configured` (rolled up under `runtime.catalog`).
+- `models.catalog.providers` (drives Add Provider wizard).
+- `deck.auth.overview` (rolled up under `runtime.auth`).
+- `deck.auth.probe` is **not** invoked by this module — probe is out of scope
+  in the typed UI.
 
 ## Depends on canonical atoms
 
-`Badge`, `Button`, `Card`, `Chip`, `Code`, `Input`, `Select`,
-`SegmentedControl`, `Spinner`, `Tag`, `Textarea`. Local molecules:
+`Badge`, `Banner`, `Button`, `Chip`, `Drawer`, `Input`, `Modal`, `Select`,
+`Spinner`, `Tab`, `Toggle`. Toggle requires `onCheckedChange` + `aria-label`
+per atom contract; Spinner requires `aria-label`. Local molecules:
 
-- model row + provider section header
-- KPI tile + KPI strip
-- provider auth row
-- quota bar
-- pricing cell
-- fallback chain badge row
-- catalog provider card
-- audit log row
+- catalog header (mode badge + counts + runtime status).
+- provider section header + collapse control.
+- provider/model row badges.
+- secret input field (radio: preserve / set-ref / clear, ref + refTemplate inputs).
+- impact preview reference list.
+- typed-confirm dialog body.
 
 ## Depends on canonical icons
 
-Maps to `@/design-system/icons` re-exports of lucide-react:
-
-- IconSearch / IconPlus / IconArrowL / IconRefresh / IconCheck / IconX
-- IconBolt / IconCpu / IconBrain / IconLock / IconKey / IconDollar
-- IconHistory / IconShield / IconActivity / IconDownload / IconStar
-- IconChain / IconEmpty
-- ProviderGlyph (local — provider-initial avatar; do not promote)
+Icons re-exported from `@/design-system/icons` (lucide-react). The current
+module is light on bespoke icons; primary affordances are textual
+buttons + Badges to keep the config-authority surface unambiguous.
 
 ## Depends on canonical patterns
 
-Prototype uses local layout primitives that map 1:1 to canonical
-patterns at translation:
-
-- `.view` → `PageShell`
-- detail tabs → `TabsBar` (after a second module reuses, propose for
-  promotion to `@/design-system/patterns`)
-- empty/error surfaces → `EmptyState`
+The orchestrator composes existing atoms directly; no module-specific
+pattern is required. Future Add Provider wizard reuse across other config
+modules may motivate a `WizardShell` proposal but is not in scope here.
 
 ## Workflow constraints
 
-- Visual convergence is the goal of this module pass: mock + frontend
-  should become stable against the contract and design system.
-- Code truth wins over this handoff when the two disagree.
-- Raw config remains the save authority; structured controls edit the
-  draft.
-- No new Gateway endpoints in this handoff.
-- `deck.auth.probe` may be cached briefly server-side — UI should
-  expose a "force re-run" path in the dialog.
+- Code truth (`src/config/types.models.ts` + zod schema +
+  `contracts/source/deck-api.contract.ts`) wins over this handoff when the
+  two disagree.
+- Typed BFF actions are the default save path. Raw `PATCH /models/config` is
+  reserved for the advanced editor.
+- SecretInput writes never carry a literal secret value; only `SecretRef`
+  values cross the wire. Existing literals are surfaced as `literal-redacted`
+  in `secretStatus` and clearable via the `clear` action.
+- Delete and mode-replace flows MUST go through impact preview → impact
+  token → type-to-confirm. Stale preview tokens are rejected by the BFF.
+- Base-hash conflicts surface as `DataFabricError` `kind: "conflict"` and
+  refresh the underlying detail before the user retries.
+- This change does not claim audit, rollback, secret-store CRUD, OAuth
+  flows, quota, or rate-limit semantics.
 
 ## How to implement
 
-1. Open `prototype.html` (served via http.server) and walk through each
-   tab + dialog state via the Tweaks panel.
-2. Read `components.md` (component tree + props shapes).
-3. Read `states.md` (state machine + edge cases).
+1. Open the active `prototype.html` (served via `http.server`) and walk
+   through the catalog header, provider list, provider drawer, model drawer,
+   Add Provider wizard, Impact preview dialog, and type-to-confirm dialog.
+2. Read `components.md` (component tree + props shapes for the typed flow).
+3. Read `states.md` (orchestrator state machines + edge cases).
 4. Read `interactions.md` (keyboard / a11y / pointer / loading / errors).
-5. Read `api-usage.md` (endpoints, payload shapes, BFF projections).
+5. Read `api-usage.md` (typed BFF actions, request/response shapes,
+   conflict and stale-preview handling).
 6. Translate into `frontend-new/src/components/panels/models/` preserving
-   API wrappers, raw-config save/hash, schema lookup, catalog apply,
-   fallback edits, allowlist edits, probe behavior.
+   the typed mutation routing, `expectedBaseHash` flow, SecretRef-only
+   writes, impact-preview gating, and advanced-raw escape boundary.
 7. Extract literal text into `i18n/{en,zh}.json` per protocol.
-8. Add mock visual E2E with contract-shaped fixture data.
+8. Add focused component tests covering list rendering, drawers, wizard,
+   typed mutation routing, conflict propagation, SecretRef construction,
+   delete preview-then-commit, and advanced raw fallback isolation.
 
-## Open questions
+## Why the prototype line of thinking shifted
 
-- Should `models.configured` always return `payload.models` or may it
-  rely on `payload.items` in some runtimes?
-- Should provider `usage.windows` from `deck.auth.overview` be merged
-  with the `/models/usage/providers` view or shown separately?
-- Should the catalog provider's model entries become a canonical
-  `DataTable` atom after Usage / Activity / Plugins repeat the same
-  shape?
-- Should provider-tree + fallback-chain become shared design-system
-  patterns after Models converges with Settings?
-- Should raw config move behind a dedicated advanced mode after the
-  PATCH contract becomes more structured?
-- Should the model-row ListRow be promoted to a canonical molecule
-  after channels and models both ship the same shape? (Reflowback
-  signal #2 — channels was #1.)
+The historical V2 prototype (kept on disk under labeled file names) modeled
+Models as a list↔detail product with Limits/Pricing/Usage/Auth/Audit tabs,
+including a usage/cost dashboard and a per-model audit history. After
+auditing OpenClaw config truth and Gateway capabilities, the typed product
+surface narrowed to config authority because pricing snapshots, PATCH audit
+history, OAuth flows, force probe cache refresh, and quota editing are not
+guaranteed by the current Deck-facing DTOs. The current production tree
+keeps those out of the panel and surfaces them only when (and if) follow-up
+proposals add them with a real contract chain.
+
+## Out-of-scope follow-ups
+
+Tracked under `openspec/follow-ups/`:
+
+- Model-default editing UI surface (config detail currently exposes default
+  references read-only; a dedicated default editor is deferred).
+- Rate-limit / per-model schema additions (`rateLimit`, advanced cost
+  layouts).
+- OAuth runner UX (browser-driven OAuth round trip).
+- Secret-store CRUD UI (centralized `SecretRef` registry beyond SecretInput
+  field-level writes).
+- Provider/model search and filter at the list level (deferred — list
+  grouping is the primary disambiguator until provider count grows).
+- Bedrock / OpenAI-compat dynamic provider quirks beyond
+  `injectNumCtxForOpenAICompat`.
+- Force probe cache refresh / probe runner UX.
 
 ## Reverse sign-off
 
@@ -154,10 +194,14 @@ patterns at translation:
 | Reviewer                       | Codex                                                                                                                         |
 | Date                           | 2026-05-06                                                                                                                    |
 | Prototype reference            | `frontend-handoff/modules/models/prototype.html`                                                                              |
-| Production reference           | `frontend-new/src/components/panels/models/`                                                                                  |
+| Production reference           | `frontend-new/src/components/panels/models/` (orchestrator + parts/ + drawers/ + wizard/ + dialogs/ + lib/)                   |
 | Mock functional evidence       | `frontend-handoff/audit/module-evidence-manifest.json` (`models`, `mock-functional`, verdict: `recorded-by-visual-spec`)      |
 | Mock prototype parity evidence | `frontend-handoff/audit/module-evidence-manifest.json` (`models`, `mock-prototype-parity`, verdict: `unreviewed`)             |
 | Real Gateway evidence          | `frontend-handoff/audit/module-evidence-manifest.json` (`models`, `real-gateway`, status: `recorded-in-implementation-notes`) |
 | Accepted exceptions            | See `frontend-handoff/audit/module-evidence-manifest.json` and `frontend-handoff/modules/models/implementation-notes.md`.     |
 
-This reverse sign-off is a current-code evidence index. It does not upgrade `unreviewed` prototype parity verdicts to visual acceptance; those remain explicit in the manifest.
+This reverse sign-off is a current-code evidence index. The
+`mock-prototype-parity` verdict is intentionally retained as `unreviewed`
+because the typed config-authority surface materially diverges from the
+historical V2 list↔detail prototype; a fresh prototype-parity pass is part
+of the next reverse sign-off cycle.

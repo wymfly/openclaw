@@ -236,14 +236,55 @@
       "id": "models-control",
       "label": "Model operations control",
       "migrationStatus": "partial",
+      "authoritySources": {
+        "configAuthority": "GET /api/models/config/detail",
+        "runtimeInventory": "POST /api/v1/runtimes/{runtimeId}/gateway/rpc (models.configured, models.catalog.providers)",
+        "authProbe": "POST /api/v1/runtimes/{runtimeId}/gateway/rpc (deck.auth.overview, deck.auth.probe)",
+        "advancedRawFallback": "GET /api/models/config + PATCH /api/models/config (advanced editor only)"
+      },
       "dtos": [
         "DeckGoCatalogProvider",
         "DeckGoConfigApplyResponse",
         "DeckGoConfigLookupResponse",
         "DeckGoModelAuthOverviewResponse",
         "DeckGoModelAuthProvider",
+        "DeckGoModelBuiltinProviderImpact",
+        "DeckGoModelCatalogMode",
         "DeckGoModelCatalogProvidersResponse",
+        "DeckGoModelCompatFlag",
+        "DeckGoModelCompatSummary",
+        "DeckGoModelCost",
+        "DeckGoModelDeleteCommitRequest",
+        "DeckGoModelDeleteCommitResponse",
+        "DeckGoModelDeletePreviewRequest",
+        "DeckGoModelDetail",
+        "DeckGoModelEntry",
+        "DeckGoModelImpactPreview",
+        "DeckGoModelImpactPreviewResponse",
+        "DeckGoModelImpactSeverity",
+        "DeckGoModelInputModality",
+        "DeckGoModelModeSetCommitResponse",
+        "DeckGoModelModeSetDryRunResponse",
+        "DeckGoModelModeSetRequest",
         "DeckGoModelProbeResponse",
+        "DeckGoModelProviderAuthMode",
+        "DeckGoModelProviderDeleteCommitRequest",
+        "DeckGoModelProviderDeleteCommitResponse",
+        "DeckGoModelProviderDeletePreviewRequest",
+        "DeckGoModelProviderDetail",
+        "DeckGoModelProviderEntry",
+        "DeckGoModelProviderRequestSummary",
+        "DeckGoModelProviderUpsertModelInput",
+        "DeckGoModelProviderUpsertRequest",
+        "DeckGoModelProviderUpsertResponse",
+        "DeckGoModelReferenceEntry",
+        "DeckGoModelReferenceKind",
+        "DeckGoModelSecretInputStatus",
+        "DeckGoModelUpsertRequest",
+        "DeckGoModelUpsertResponse",
+        "DeckGoModelsConfigDetail",
+        "DeckGoModelsConfigDetailResponse",
+        "DeckGoModelsConfigDetailRuntime",
         "DeckGoModelsConfigResponse",
         "DeckGoRuntimeConfiguredModel",
         "DeckGoRuntimeConfiguredModelsResponse",
@@ -254,6 +295,14 @@
       "endpoints": [
         "GET /api/models/config",
         "PATCH /api/models/config",
+        "GET /api/models/config/detail",
+        "POST /api/models/providers/upsert",
+        "POST /api/models/providers/delete-preview",
+        "POST /api/models/providers/delete",
+        "POST /api/models/models/upsert",
+        "POST /api/models/models/delete-preview",
+        "POST /api/models/models/delete",
+        "POST /api/models/mode/set",
         "POST /api/config/schema-lookup",
         "POST /api/v1/runtimes/{runtimeId}/gateway/rpc",
         "GET /api/usage/cost",
@@ -263,14 +312,24 @@
       ],
       "actions": [
         "models.refresh",
+        "models.config.detail",
         "models.config.lookup",
         "models.config.save",
         "models.provider.edit",
         "models.catalog.apply",
         "models.fallbacks.save",
         "models.allowlist.save",
-        "models.auth.probe"
+        "models.auth.probe",
+        "models.providers.upsert",
+        "models.providers.delete-preview",
+        "models.providers.delete",
+        "models.models.upsert",
+        "models.models.delete-preview",
+        "models.models.delete",
+        "models.mode.set"
       ],
+      "advancedActions": ["models.config.save", "models.config.lookup"],
+      "advancedActionsNote": "models.config.save and models.config.lookup are exposed only through the advanced raw editor entry point. Normal product CRUD must use the typed models.providers.* / models.models.* / models.mode.set actions.",
       "emptyState": {
         "title": "No runtime models available",
         "description": "Keep raw config, auth, catalog, and usage states visible even when runtime inventory is empty."
@@ -278,6 +337,7 @@
       "refresh": {
         "strategy": "manual-or-after-action",
         "endpoints": [
+          "GET /api/models/config/detail",
           "GET /api/models/config",
           "POST /api/v1/runtimes/{runtimeId}/gateway/rpc",
           "GET /api/usage/cost",
@@ -1134,6 +1194,118 @@
       "resultDto": "DeckGoModelProbeResponse",
       "capabilityRequirements": ["gateway.method:deck.auth.probe"],
       "refresh": ["POST /api/v1/runtimes/{runtimeId}/gateway/rpc"]
+    },
+    {
+      "id": "models.config.detail",
+      "label": "Load Models config detail",
+      "endpoint": "GET /api/models/config/detail",
+      "safety": "read",
+      "resultDto": "DeckGoModelsConfigDetailResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "refresh": ["GET /api/models/config/detail", "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"]
+    },
+    {
+      "id": "models.providers.upsert",
+      "label": "Create or edit a model provider",
+      "endpoint": "POST /api/models/providers/upsert",
+      "safety": "mutating",
+      "resultDto": "DeckGoModelProviderUpsertResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "confirmation": {
+        "required": false,
+        "message": "Save provider with the current config base hash."
+      },
+      "refresh": [
+        "GET /api/models/config/detail",
+        "GET /api/models/config",
+        "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ]
+    },
+    {
+      "id": "models.providers.delete-preview",
+      "label": "Preview provider delete impact",
+      "endpoint": "POST /api/models/providers/delete-preview",
+      "safety": "read",
+      "resultDto": "DeckGoModelImpactPreviewResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "refresh": []
+    },
+    {
+      "id": "models.providers.delete",
+      "label": "Delete a model provider",
+      "endpoint": "POST /api/models/providers/delete",
+      "safety": "mutating",
+      "resultDto": "DeckGoModelProviderDeleteCommitResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "confirmation": {
+        "required": true,
+        "message": "Delete the provider and all its configured models. References must already be re-pointed elsewhere."
+      },
+      "refresh": [
+        "GET /api/models/config/detail",
+        "GET /api/models/config",
+        "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ]
+    },
+    {
+      "id": "models.models.upsert",
+      "label": "Create or edit a model entry",
+      "endpoint": "POST /api/models/models/upsert",
+      "safety": "mutating",
+      "resultDto": "DeckGoModelUpsertResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "confirmation": {
+        "required": false,
+        "message": "Save model with the current config base hash."
+      },
+      "refresh": [
+        "GET /api/models/config/detail",
+        "GET /api/models/config",
+        "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ]
+    },
+    {
+      "id": "models.models.delete-preview",
+      "label": "Preview model delete impact",
+      "endpoint": "POST /api/models/models/delete-preview",
+      "safety": "read",
+      "resultDto": "DeckGoModelImpactPreviewResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "refresh": []
+    },
+    {
+      "id": "models.models.delete",
+      "label": "Delete a model entry",
+      "endpoint": "POST /api/models/models/delete",
+      "safety": "mutating",
+      "resultDto": "DeckGoModelDeleteCommitResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "confirmation": {
+        "required": true,
+        "message": "Delete the model. References to this model in defaults, agents, channels, hooks, tools, or sessions must already be re-pointed."
+      },
+      "refresh": [
+        "GET /api/models/config/detail",
+        "GET /api/models/config",
+        "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ]
+    },
+    {
+      "id": "models.mode.set",
+      "label": "Set catalog mode (merge/replace)",
+      "endpoint": "POST /api/models/mode/set",
+      "safety": "mutating",
+      "resultDto": "DeckGoModelModeSetCommitResponse",
+      "capabilityRequirements": ["models.configHash"],
+      "confirmation": {
+        "required": true,
+        "message": "Switch catalog mode. dryRun must be requested first to surface unavailable-provider impact before commit."
+      },
+      "refresh": [
+        "GET /api/models/config/detail",
+        "GET /api/models/config",
+        "POST /api/v1/runtimes/{runtimeId}/gateway/rpc"
+      ]
     },
     {
       "id": "runtime.gateway.start",

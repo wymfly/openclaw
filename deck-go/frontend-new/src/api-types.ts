@@ -284,6 +284,46 @@ export type DeckGoModelAuthOverviewResponse = DeckApi.DeckGoModelAuthOverviewRes
 export type DeckGoCatalogProvider = DeckApi.DeckGoCatalogProvider;
 export type DeckGoModelCatalogProvidersResponse = DeckApi.DeckGoModelCatalogProvidersResponse;
 export type DeckGoModelProbeResponse = DeckApi.DeckGoModelProbeResponse;
+export type DeckGoModelSecretInputStatus = DeckApi.DeckGoModelSecretInputStatus;
+export type DeckGoModelCompatFlag = DeckApi.DeckGoModelCompatFlag;
+export type DeckGoModelCompatSummary = DeckApi.DeckGoModelCompatSummary;
+export type DeckGoModelProviderRequestSummary = DeckApi.DeckGoModelProviderRequestSummary;
+export type DeckGoModelInputModality = DeckApi.DeckGoModelInputModality;
+export type DeckGoModelCost = DeckApi.DeckGoModelCost;
+export type DeckGoModelEntry = DeckApi.DeckGoModelEntry;
+export type DeckGoModelDetail = DeckApi.DeckGoModelDetail;
+export type DeckGoModelProviderAuthMode = DeckApi.DeckGoModelProviderAuthMode;
+export type DeckGoModelProviderEntry = DeckApi.DeckGoModelProviderEntry;
+export type DeckGoModelProviderDetail = DeckApi.DeckGoModelProviderDetail;
+export type DeckGoModelCatalogMode = DeckApi.DeckGoModelCatalogMode;
+export type DeckGoModelsConfigDetailRuntime = DeckApi.DeckGoModelsConfigDetailRuntime;
+export type DeckGoModelsConfigDetail = DeckApi.DeckGoModelsConfigDetail;
+export type DeckGoModelsConfigDetailResponse = DeckApi.DeckGoModelsConfigDetailResponse;
+export type DeckGoModelReferenceKind = DeckApi.DeckGoModelReferenceKind;
+export type DeckGoModelReferenceEntry = DeckApi.DeckGoModelReferenceEntry;
+export type DeckGoModelBuiltinProviderImpact = DeckApi.DeckGoModelBuiltinProviderImpact;
+export type DeckGoModelImpactSeverity = DeckApi.DeckGoModelImpactSeverity;
+export type DeckGoModelImpactPreview = DeckApi.DeckGoModelImpactPreview;
+export type DeckGoModelImpactPreviewResponse = DeckApi.DeckGoModelImpactPreviewResponse;
+export type DeckGoModelProviderUpsertModelInput = DeckApi.DeckGoModelProviderUpsertModelInput;
+export type DeckGoModelProviderUpsertRequest = DeckApi.DeckGoModelProviderUpsertRequest;
+export type DeckGoModelProviderUpsertResponse = DeckApi.DeckGoModelProviderUpsertResponse;
+export type DeckGoModelProviderDeletePreviewRequest =
+  DeckApi.DeckGoModelProviderDeletePreviewRequest;
+export type DeckGoModelProviderDeleteCommitRequest = DeckApi.DeckGoModelProviderDeleteCommitRequest;
+export type DeckGoModelProviderDeleteCommitResponse =
+  DeckApi.DeckGoModelProviderDeleteCommitResponse;
+export type DeckGoModelUpsertRequest = DeckApi.DeckGoModelUpsertRequest;
+export type DeckGoModelUpsertResponse = DeckApi.DeckGoModelUpsertResponse;
+export type DeckGoModelDeletePreviewRequest = DeckApi.DeckGoModelDeletePreviewRequest;
+export type DeckGoModelDeleteCommitRequest = DeckApi.DeckGoModelDeleteCommitRequest;
+export type DeckGoModelDeleteCommitResponse = DeckApi.DeckGoModelDeleteCommitResponse;
+export type DeckGoModelModeSetRequest = DeckApi.DeckGoModelModeSetRequest;
+export type DeckGoModelModeSetDryRunResponse = DeckApi.DeckGoModelModeSetDryRunResponse;
+export type DeckGoModelModeSetCommitResponse = DeckApi.DeckGoModelModeSetCommitResponse;
+export type DeckGoModelModeSetResponse =
+  | DeckApi.DeckGoModelModeSetDryRunResponse
+  | DeckApi.DeckGoModelModeSetCommitResponse;
 export type DeckGoConfigLookupChild = DeckApi.DeckGoConfigLookupChild;
 export type DeckGoConfigLookupResponse = DeckApi.DeckGoConfigLookupResponse;
 export type DeckGoAgentStatus = DeckApi.DeckGoAgentStatus;

@@ -2,158 +2,341 @@
 
 > Endpoint truth and DTO shapes are tracked in
 > `deck-go/contracts/source/deck-api.contract.ts` and
-> `deck-go/contracts/source/deck-endpoints.contract.json`.
+> `deck-go/contracts/source/deck-endpoints.contract.json`. The frontend
+> consumes generated DTOs from `@/api-types`. This file documents the
+> typed config-authority chain that the production module uses.
 
-## Deck-facing API
+## Authority split
 
-### `GET /models/config`
+| Path                                                                                                  | Authority                        | When                                                                          |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------- |
+| `GET /models/config/detail` (typed)                                                                   | Read authority for the typed UI. | Initial load + after any typed mutation success.                              |
+| `POST /models/providers/upsert` (typed)                                                               | Provider create/edit.            | Add Provider wizard submit + `ProviderDrawer` edit submit.                    |
+| `POST /models/providers/delete-preview` + `POST /models/providers/delete` (typed)                     | Provider delete.                 | Provider delete preview + commit.                                             |
+| `POST /models/{providerId}/models/upsert` (typed)                                                     | Model create/edit.               | Add model on a provider + `ModelDrawer` edit submit.                          |
+| `POST /models/{providerId}/models/delete-preview` + `POST /models/{providerId}/models/delete` (typed) | Model delete.                    | Model delete preview + commit.                                                |
+| `POST /models/catalog/mode` (typed; supports `dryRun=true`/`commit=true`)                             | Catalog mode change.             | Mode toggle dry-run + commit.                                                 |
+| `GET /models/config` + `PATCH /models/config` (raw)                                                   | Advanced editor only.            | Raw escape hatch when the typed UI cannot represent the desired config shape. |
 
-Wrapper: `fetchModelsConfig()`. Response: `DeckGoModelsConfigResponse`
-(`raw`, `hash`).
+The typed BFF actions are the default save path. Raw `PATCH /models/config`
+is reserved and not invoked by the catalog header / drawers / wizard /
+dialogs.
 
-- `raw` = raw JSON string of the models slice of `openclaw.json`.
-- The panel parses it and exposes structured editors over the draft;
-  save serializes back to `raw`.
-- `hash` is the base hash for `PATCH /models/config`.
-
-### `PATCH /models/config`
-
-Wrapper: `saveModelsConfig(rawDraft, baseHash)`. Response:
-`DeckGoConfigApplyResponse`.
-
-- Send full updated `raw` + `baseHash`. On 409 reload + re-prompt.
-- Used for: set-default, add-model, edit-fallback-chain, edit
-  provider-allowlist, configure-auth.
-
-### `POST /config/schema-lookup`
-
-Wrapper: `lookupConfigSchema(path)` → JSON schema fragment. Optional
-in prototype.
-
-### `GET /usage/cost`
-
-Wrapper: `fetchModelUsageCost(days?)`. Response:
-`DeckGoUsageCostResponse` (`runtimeId`, `currency`, `totals`,
-`perProvider`, `perModel`).
-
-`GET /models/usage/cost` remains available as a Models-compatible BFF
-alias, but the current frontend wrapper uses canonical `/usage/cost`.
-
-### `GET /usage/providers`
-
-Wrapper: `fetchModelUsageProviders()`. Response:
-`DeckGoUsageProvidersResponse` (array of
-`DeckGoUsageProviderStatus`).
-
-`GET /models/usage/providers` remains available as a Models-compatible
-BFF alias, but the current frontend wrapper uses canonical
-`/usage/providers`.
-
-## Gateway RPC (via runtime)
-
-### `models.configured`
-
-Response includes `payload.models` or `payload.items` (array of
-`DeckGoRuntimeConfiguredModel`). Runtime emits on every models config
-change.
-
-### `deck.auth.overview`
-
-Response: `DeckGoModelAuthOverviewResponse` (`payload.providers` or
-`providers` — both shapes accepted). Refresh after PATCH success.
-
-### `models.catalog.providers`
-
-Response: `DeckGoModelCatalogProvidersResponse`. Drives
-`CatalogDialog`.
-
-### `deck.auth.probe`
-
-Response: `DeckGoModelProbeResponse`. `status` ∈ `ok | cooldown |
-error | unknown`. `reasonCode` (e.g. `rate-limit`) drives banner copy.
-
-## BFF projections
-
-### `pricing: Record<modelId, ModelPricing>` (projected)
+## Frontend wrappers (`@/api`)
 
 ```ts
-interface ModelPricing {
-  inputPer1MTokens: number;
-  outputPer1MTokens: number;
-  source: string;
+fetchModelsConfigDetail(): Promise<DeckGoModelsConfigDetailResponse>;
+upsertModelProvider(req: DeckGoModelProviderUpsertRequest): Promise<...>;
+previewProviderDelete(req: DeckGoModelDeletePreviewRequest): Promise<DeckGoModelImpactPreviewResponse>;
+deleteModelProvider(req: DeckGoModelDeleteRequest): Promise<DeckGoConfigApplyResponse>;
+upsertModel(providerId: string, req: DeckGoModelUpsertRequest): Promise<...>;
+previewModelDelete(providerId: string, req: DeckGoModelDeletePreviewRequest): Promise<DeckGoModelImpactPreviewResponse>;
+deleteModel(providerId: string, req: DeckGoModelDeleteRequest): Promise<DeckGoConfigApplyResponse>;
+setModelsCatalogMode(req: DeckGoSetModelsCatalogModeRequest): Promise<...>;
+
+// Advanced raw escape hatch
+fetchModelsConfig(): Promise<DeckGoModelsConfigResponse>;
+saveModelsConfig(rawDraft: string, baseHash: string): Promise<DeckGoConfigApplyResponse>;
+```
+
+All typed mutation requests carry `expectedBaseHash`. On `409` the BFF
+returns a `conflict` error projected through `DataFabricError` with
+`kind: "conflict"` and the underlying `configDetail` query is refetched
+by `invalidateConfigSurfaces`.
+
+## Data Fabric integration
+
+Query keys live at
+`frontend-new/src/data/modules/models/keys.ts`:
+
+```ts
+modelsKeys = {
+  all,
+  config, // raw GET /models/config
+  configDetail, // typed GET /models/config/detail
+  configured, // models.configured RPC roll-up
+  authOverview, // deck.auth.overview RPC roll-up
+  catalogProviders, // models.catalog.providers RPC
+  lookup,
+  usageCost,
+  usageProviders,
+};
+```
+
+Query options at `queries.ts`:
+
+- `modelsConfigDetailQueryOptions` — primary read; `bffSource` label
+  `config-authority`.
+- `modelCatalogProvidersQueryOptions` — wizard catalog (Gateway-backed).
+
+Mutation hooks at `mutations.ts`:
+
+- `useUpsertModelProviderMutation` (also handles wizard create via
+  `isCreate=true`).
+- `usePreviewProviderDeleteMutation`.
+- `useDeleteModelProviderMutation`.
+- `useUpsertModelMutation`.
+- `usePreviewModelDeleteMutation`.
+- `useDeleteModelMutation`.
+- `useSetModelsCatalogModeMutation` (dry-run does NOT invalidate; commit
+  invalidates `configDetail`, `config`, `configured`, `catalogProviders`).
+- `useSaveModelsConfigMutation` — advanced raw escape hatch only;
+  invalidates `modelsKeys.all()`.
+
+`invalidateConfigSurfaces` is the shared invalidation helper for typed
+mutations. Mode dry-run is the only typed action that intentionally skips
+invalidation.
+
+## Request / response shapes
+
+All shapes are generated TypeScript from
+`contracts/source/deck-api.contract.ts`. The fields below are reproduced
+for handoff orientation; consult the contract source for the
+authoritative shape.
+
+### `DeckGoModelsConfigDetailResponse`
+
+```ts
+{
+  detail: DeckGoModelsConfigDetail;
+  baseHash: string;          // forwarded into expectedBaseHash on writes
+  generatedAt: number;
+}
+
+DeckGoModelsConfigDetail = {
+  providers: DeckGoModelProviderDetail[];
+  models: DeckGoModelDetail[];
+  references: DeckGoModelReferenceIndexEntry[];
+  runtime: DeckGoModelsConfigDetailRuntime; // catalog + auth + counts
+};
+```
+
+### `DeckGoModelSecretInputStatus`
+
+```ts
+"missing" | "empty" | "ref" | "literal-redacted";
+```
+
+`literal-redacted` indicates the underlying config still has a literal
+secret value; the typed UI never returns or displays the literal — it
+exposes a Clear action to migrate to a SecretRef.
+
+### `DeckGoModelProviderUpsertRequest`
+
+```ts
+{
+  expectedBaseHash: string;
+  providerId: string;
+  isCreate: boolean;
+  patch: {
+    name?: string;
+    baseUrl?: string;
+    api?: ModelApi;
+    auth?: ModelProviderAuthMode;
+    apiKey?:
+      | { action: "preserve" }
+      | { action: "clear" }
+      | { action: "set-ref"; ref: string; refTemplate?: string };
+    providerHeaders?: Record<string, string>;
+    injectNumCtxForOpenAICompat?: boolean;
+    request?: { /* pass-through summary */ };
+    compat?: { /* pass-through summary */ };
+  };
 }
 ```
 
-This is a handoff-level projection, not a currently guaranteed
-Deck-facing DTO. Vendor invoice remains authoritative.
-
-### `audit: AuditEntry[]` (projected)
+### `DeckGoModelUpsertRequest`
 
 ```ts
-interface AuditEntry {
-  ts: number;
-  model: string;
-  actor: string;
-  action: "set-default" | "added" | "removed" | "rotate-key" | "added-fallback" | string;
-  before?: string;
-  after?: string;
-  chain?: string[];
-  note?: string;
+{
+  expectedBaseHash: string;
+  providerId: string;
+  modelId: string;
+  isCreate: boolean;
+  patch: {
+    name?: string;
+    api?: ModelApi;
+    reasoning?: boolean;
+    inputs?: Array<"text" | "image" | "audio" | "video">;
+    capacity?: {
+      contextWindow?: number;
+      maxOutputTokens?: number;
+      maxThinkingTokens?: number;
+      customMaxTokens?: number;
+    };
+    cost?: {
+      tokenCostPerKilo?: number;
+      tokenCostInputPerKilo?: number;
+      tokenCostOutputPerKilo?: number;
+    };
+    headers?: Record<string, string>;
+    compat?: { /* pass-through summary */ };
+  };
 }
 ```
 
-This is a handoff-level projection over possible `PATCH /models/config`
-history. It is not currently guaranteed by the Deck-facing DTOs.
+Numeric fields accept `undefined` for partial-config preservation. Empty
+strings in the drawer are converted to `undefined` via
+`toNumberOrUndefined`.
+
+### Delete preview / commit
+
+```ts
+DeckGoModelDeletePreviewRequest = {
+  expectedBaseHash: string;
+  providerId: string;     // or { providerId, modelId } in the model variant
+};
+
+DeckGoModelImpactPreview = {
+  scope:
+    | "provider.delete"
+    | "model.delete"
+    | "catalog.mode.merge"
+    | "catalog.mode.replace";
+  severity: "safe" | "info" | "warn" | "danger";
+  references: DeckGoModelReferenceIndexEntry[];
+  unavailableProviders?: string[];
+  defaultsAffected?: boolean;
+  impactToken: string;
+  generatedAt: number;
+  baseHash: string;
+};
+
+DeckGoModelDeleteRequest = {
+  expectedBaseHash: string;
+  impactToken: string;
+  confirmText: "delete";
+  providerId: string;     // or { providerId, modelId } in the model variant
+};
+```
+
+### Mode set
+
+```ts
+DeckGoSetModelsCatalogModeRequest = {
+  expectedBaseHash: string;
+  targetMode: "merge" | "replace";
+  dryRun?: boolean;
+  commit?: boolean;
+  impactToken?: string;            // required when commit=true
+  confirmText?: "replace";         // required when commit=true and replacing
+};
+```
+
+A single typed action handles both phases via the `dryRun`/`commit`
+flags. Dry-run returns `DeckGoModelImpactPreviewResponse`; commit
+returns `DeckGoConfigApplyResponse`.
+
+## Gateway RPC roll-up
+
+The typed BFF rolls Gateway runtime reads under `runtime` so the panel
+does not call Gateway RPC paths directly:
+
+- `models.configured` → `detail.runtime.catalog.status` +
+  total/configured counts.
+- `deck.auth.overview` → `detail.runtime.auth.status` + per-provider
+  auth summaries.
+- `models.catalog.providers` → exposed separately via
+  `useModelCatalogProvidersQuery` for the Add Provider wizard, since the
+  wizard runs in parallel with the detail query.
+
+`deck.auth.probe` is intentionally not invoked by this module; probe is
+out of scope for the typed UI.
 
 ## Endpoint summary
 
-| Endpoint                               | Method | When                                                                                         | DTO                                     |
-| -------------------------------------- | ------ | -------------------------------------------------------------------------------------------- | --------------------------------------- |
-| Endpoint / method                      | Method | When                                                                                         | DTO                                     |
-| --------------------------------       | ------ | --------------------------------------------------                                           | --------------------------------------- |
-| `/models/config`                       | GET    | Initial load + after PATCH                                                                   | `DeckGoModelsConfigResponse`            |
-| `/models/config`                       | PATCH  | Set default / add / configure auth / fallback edit                                           | `DeckGoConfigApplyResponse`             |
-| `/config/schema-lookup`                | POST   | Form schema hints (optional)                                                                 | `DeckGoConfigLookupResponse`            |
-| `/usage/cost`                          | GET    | KPI strip + Pricing tab + Usage tab                                                          | `DeckGoUsageCostResponse`               |
-| `/usage/providers`                     | GET    | Usage tab provider-health tiles                                                              | `DeckGoUsageProvidersResponse`          |
-| `/models/usage/cost`                   | GET    | Compatibility alias                                                                          | `DeckGoUsageCostResponse`               |
-| `/models/usage/providers`              | GET    | Compatibility alias                                                                          | `DeckGoUsageProvidersResponse`          |
-| `models.configured` (typed RPC)        | POST   | List rows via `/v1/runtimes/{runtimeId}/gateway/rpc`                                         | `DeckGoRuntimeConfiguredModelsResponse` |
-| `deck.auth.overview` (typed RPC)       | POST   | Provider auth row, OAuth, cooldown, usage windows via `/v1/runtimes/{runtimeId}/gateway/rpc` | `DeckGoModelAuthOverviewResponse`       |
-| `models.catalog.providers` (typed RPC) | POST   | CatalogDialog via `/v1/runtimes/{runtimeId}/gateway/rpc`                                     | `DeckGoModelCatalogProvidersResponse`   |
-| `deck.auth.probe` (typed RPC)          | POST   | Per-provider probe via `/v1/runtimes/{runtimeId}/gateway/rpc`                                | `DeckGoModelProbeResponse`              |
+| Endpoint                                     | Method | When                                                      | Request DTO                         | Response DTO                                                                        |
+| -------------------------------------------- | ------ | --------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------- |
+| `/models/config/detail`                      | GET    | Initial load + post-mutation refetch                      | —                                   | `DeckGoModelsConfigDetailResponse`                                                  |
+| `/models/providers/upsert`                   | POST   | Wizard submit + provider drawer edit                      | `DeckGoModelProviderUpsertRequest`  | `DeckGoConfigApplyResponse`                                                         |
+| `/models/providers/delete-preview`           | POST   | Provider preview-delete                                   | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
+| `/models/providers/delete`                   | POST   | Provider commit-delete                                    | `DeckGoModelDeleteRequest`          | `DeckGoConfigApplyResponse`                                                         |
+| `/models/{providerId}/models/upsert`         | POST   | Model drawer create/edit                                  | `DeckGoModelUpsertRequest`          | `DeckGoConfigApplyResponse`                                                         |
+| `/models/{providerId}/models/delete-preview` | POST   | Model preview-delete                                      | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
+| `/models/{providerId}/models/delete`         | POST   | Model commit-delete                                       | `DeckGoModelDeleteRequest`          | `DeckGoConfigApplyResponse`                                                         |
+| `/models/catalog/mode`                       | POST   | Mode dry-run + commit                                     | `DeckGoSetModelsCatalogModeRequest` | `DeckGoModelImpactPreviewResponse` (dry-run) / `DeckGoConfigApplyResponse` (commit) |
+| `/models/config`                             | GET    | Advanced raw editor only                                  | —                                   | `DeckGoModelsConfigResponse`                                                        |
+| `/models/config`                             | PATCH  | Advanced raw editor only                                  | raw JSON + base hash                | `DeckGoConfigApplyResponse`                                                         |
+| `models.catalog.providers` (typed RPC)       | POST   | Wizard catalog via `/v1/runtimes/{runtimeId}/gateway/rpc` | —                                   | `DeckGoModelCatalogProvidersResponse`                                               |
 
 ## Backend chain
 
 ```
-ModelsPanel / model helper components
-  → frontend-new/src/api.ts
-  → deck-go Go BFF routes
+ModelsPanel (orchestrator)
+  → typed mutation hooks (frontend-new/src/data/modules/models)
+  → frontend wrappers (frontend-new/src/api.ts)
+  → deck-go Go BFF (typed routes — backend/internal/server/...)
   → runtime openclaw managed adapter
-  → Gateway (only behind the BFF / runtime boundary)
+  → Gateway config.get / config.patch + relevant runtime RPC
 ```
+
+The browser never calls the OpenClaw Gateway origin directly; only the
+deck-go BFF routes are reachable from the frontend.
+
+## SecretInput safety
+
+The deck-go contract enforces that literal secrets never cross the
+browser boundary. Concretely:
+
+- The detail response surfaces only `DeckGoModelSecretInputStatus`.
+- The upsert request accepts either `{ action: "preserve" }`,
+  `{ action: "clear" }`, or `{ action: "set-ref", ref, refTemplate? }`.
+- A literal value is never accepted as input from the typed UI; the
+  advanced raw editor is the only path that can write a literal, and
+  even there the BFF normalizes it into a SecretRef on save.
+
+## Conflict handling
+
+- Typed mutations attach `expectedBaseHash` from the latest detail.
+- A `409` from the BFF returns a `DataFabricError` with
+  `kind: "conflict"`.
+- The orchestrator surfaces a Banner inside the active drawer/dialog,
+  refetches `configDetail`, and lets the user retry against the fresh
+  base hash.
+
+## Stale-preview handling
+
+- Impact preview responses include `impactToken` + `generatedAt` +
+  `baseHash`.
+- The commit request sends back `impactToken` + `expectedBaseHash`.
+- The BFF re-runs the impact analysis at commit time. If the token is
+  no longer valid (e.g. the underlying config moved), the commit fails
+  with a stale-preview error and the orchestrator returns to the
+  preview step.
 
 ## Mock requirements
 
-- 9+ models across 4 providers.
-- 5 auth providers (4 ready + 1 missing/error).
-- 5 catalog providers including one with `models: []`.
-- Probe coverage: ok / cooldown / unknown / error.
-- Usage cost: per-provider + per-model with 0-usage models.
-- 5 usage providers covering ready / cooldown / missing.
-- Pricing snapshot for 7 of 9 models (2 local should have 0 pricing).
-- Audit entries spanning set-default / added / rotate-key /
-  added-fallback.
+For component tests and visual fixtures the minimal data set is:
+
+- `detail.providers`: 2–3 providers with mixed auth modes
+  (`api-key`, `aws-sdk`, `oauth`, `token`) and at least one provider
+  in each `secretStatus`: `missing`, `empty`, `ref`,
+  `literal-redacted`.
+- `detail.models`: 4–6 models across providers with reasoning enabled
+  on at least one and partial cost configuration on at least one.
+- `detail.references`: at least one reference per source
+  (agent / channel / hook / tool / runtime / session) so the impact
+  preview list is non-empty in tests.
+- `detail.runtime.catalog`: covers `available`, `stale`, and
+  `unavailable` statuses across at least one fixture each.
+- Catalog providers query: at least one `models.catalog.providers`
+  entry plus a "custom" pathway test (catalog query degraded).
+- Impact preview fixtures: cover `safe`, `info`, `warn`, `danger`
+  severities and the `defaultsAffected: true` branch.
+
+Component tests do not exercise mode dry-run vs. commit invalidation
+beyond what `mutations.test.ts` already verifies at the data layer.
 
 ## Open contract assumptions
 
-- `DeckGoRuntimeConfiguredModel` shape (`id, provider, family,
-displayName, contextWindow, maxTokens, reasoning?, isDefault?,
-fallback?, local?, lastUsedMs?`). If runtime emits thinner DTO,
-  project these fields BFF-side.
-- Pricing snapshot shape is BFF-only; if vendor pricing is heavily
-  multi-tier (cached vs uncached input), extend with optional fields
-  and keep `inputPer1MTokens` as blended baseline.
-- Audit projection is BFF-only and may not exist server-side yet.
-- `deck.auth.probe` cache/force-refresh semantics are not guaranteed by
-  the current wrapper, which passes only `{ provider }`.
+- `DeckGoModelImpactPreview` references include enough provenance
+  (owner module + ref kind) for the dialog to render the human-readable
+  summary; the BFF currently provides `module`, `kind`, and a stable
+  `path` per entry. If the runtime exposes additional context (display
+  name, last-used timestamp), the dialog can opportunistically render
+  it without a contract change.
+- `DeckGoCatalogProvider.authType` is a permissive string from the
+  Gateway; the wizard validates it against `AUTH_MODES` and falls back
+  to `api-key` for unknown values (logged as a follow-up).
+- Pricing snapshots and PATCH audit projections are NOT part of this
+  module's contract chain.

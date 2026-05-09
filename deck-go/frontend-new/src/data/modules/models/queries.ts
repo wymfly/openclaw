@@ -3,6 +3,7 @@ import {
   fetchModelUsageCost,
   fetchModelUsageProviders,
   fetchModelsConfig,
+  fetchModelsConfigDetail,
   fetchRuntimeConfiguredModels,
   fetchRuntimeModelAuthOverview,
   fetchRuntimeModelCatalogProviders,
@@ -12,6 +13,7 @@ import type {
   DeckGoConfigLookupResponse,
   DeckGoModelAuthOverviewResponse,
   DeckGoModelCatalogProvidersResponse,
+  DeckGoModelsConfigDetailResponse,
   DeckGoModelsConfigResponse,
   DeckGoRuntimeConfiguredModelsResponse,
   DeckGoUsageCostResponse,
@@ -35,6 +37,18 @@ export function modelsConfigQueryOptions(bff: DataFabricBffTransport, scope?: De
     bff,
     bffSource("GET /models/config", () => fetchModelsConfig()),
     modelsKeys.config(scope),
+    "config-authority",
+  );
+}
+
+export function modelsConfigDetailQueryOptions(
+  bff: DataFabricBffTransport,
+  scope?: DeckQueryScope,
+) {
+  return bffQueryOptions<DeckGoModelsConfigDetailResponse>(
+    bff,
+    bffSource("GET /models/config/detail", () => fetchModelsConfigDetail()),
+    modelsKeys.configDetail(scope),
     "config-authority",
   );
 }
@@ -117,6 +131,14 @@ export function useModelsConfigQuery(options: ModuleQueryOptions = {}) {
   const { bff } = useDataFabricTransports();
   return useQuery({
     ...modelsConfigQueryOptions(bff, options.scope),
+    enabled: options.enabled ?? true,
+  });
+}
+
+export function useModelsConfigDetailQuery(options: ModuleQueryOptions = {}) {
+  const { bff } = useDataFabricTransports();
+  return useQuery({
+    ...modelsConfigDetailQueryOptions(bff, options.scope),
     enabled: options.enabled ?? true,
   });
 }

@@ -1026,6 +1026,289 @@ type DeckGoModelProbeResponse struct {
 	RequestId string `json:"requestId,omitempty"`
 }
 
+type DeckGoModelSecretInputStatus map[string]any
+
+type DeckGoModelCompatFlag string
+
+type DeckGoModelCompatSummary struct {
+	HasCompat bool `json:"hasCompat"`
+	Flags []DeckGoModelCompatFlag `json:"flags,omitempty"`
+	RawKeys []string `json:"rawKeys,omitempty"`
+}
+
+type DeckGoModelProviderRequestSummary struct {
+	HasRequest bool `json:"hasRequest"`
+	HasAuth bool `json:"hasAuth,omitempty"`
+	HasProxy bool `json:"hasProxy,omitempty"`
+	HasTls bool `json:"hasTls,omitempty"`
+	RawKeys []string `json:"rawKeys,omitempty"`
+}
+
+type DeckGoModelInputModality string
+
+type DeckGoModelCost struct {
+	Input float64 `json:"input,omitempty"`
+	Output float64 `json:"output,omitempty"`
+	CacheRead float64 `json:"cacheRead,omitempty"`
+	CacheWrite float64 `json:"cacheWrite,omitempty"`
+	Unit string `json:"unit,omitempty"`
+}
+
+type DeckGoModelEntry struct {
+	Id string `json:"id"`
+	Name string `json:"name,omitempty"`
+	Api string `json:"api,omitempty"`
+	InheritsApi bool `json:"inheritsApi"`
+	Reasoning bool `json:"reasoning,omitempty"`
+	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
+	ContextWindow float64 `json:"contextWindow,omitempty"`
+	ContextTokens float64 `json:"contextTokens,omitempty"`
+	MaxTokens float64 `json:"maxTokens,omitempty"`
+	Cost DeckGoModelCost `json:"cost,omitempty"`
+	HasHeaders bool `json:"hasHeaders"`
+	Compat DeckGoModelCompatSummary `json:"compat"`
+	IsReferenced bool `json:"isReferenced"`
+	IsDefault bool `json:"isDefault,omitempty"`
+	DefaultRoles []string `json:"defaultRoles,omitempty"`
+}
+
+type DeckGoModelDetail struct {
+	Id string `json:"id"`
+	Name string `json:"name,omitempty"`
+	Api string `json:"api,omitempty"`
+	InheritsApi bool `json:"inheritsApi"`
+	Reasoning bool `json:"reasoning,omitempty"`
+	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
+	ContextWindow float64 `json:"contextWindow,omitempty"`
+	ContextTokens float64 `json:"contextTokens,omitempty"`
+	MaxTokens float64 `json:"maxTokens,omitempty"`
+	Cost DeckGoModelCost `json:"cost,omitempty"`
+	HasHeaders bool `json:"hasHeaders"`
+	Compat DeckGoModelCompatSummary `json:"compat"`
+	IsReferenced bool `json:"isReferenced"`
+	IsDefault bool `json:"isDefault,omitempty"`
+	DefaultRoles []string `json:"defaultRoles,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+}
+
+type DeckGoModelProviderAuthMode string
+
+type DeckGoModelProviderEntry struct {
+	Id string `json:"id"`
+	Api string `json:"api,omitempty"`
+	BaseUrl string `json:"baseUrl,omitempty"`
+	Auth DeckGoModelProviderAuthMode `json:"auth,omitempty"`
+	AuthHeader bool `json:"authHeader,omitempty"`
+	InjectNumCtxForOpenAICompat bool `json:"injectNumCtxForOpenAICompat,omitempty"`
+	HasHeaders bool `json:"hasHeaders"`
+	ApiKeyStatus DeckGoModelSecretInputStatus `json:"apiKeyStatus"`
+	Request DeckGoModelProviderRequestSummary `json:"request"`
+	IsReferenced bool `json:"isReferenced"`
+	ModelCount float64 `json:"modelCount"`
+	Models []DeckGoModelEntry `json:"models"`
+}
+
+type DeckGoModelProviderDetail struct {
+	Id string `json:"id"`
+	Api string `json:"api,omitempty"`
+	BaseUrl string `json:"baseUrl,omitempty"`
+	Auth DeckGoModelProviderAuthMode `json:"auth,omitempty"`
+	AuthHeader bool `json:"authHeader,omitempty"`
+	InjectNumCtxForOpenAICompat bool `json:"injectNumCtxForOpenAICompat,omitempty"`
+	HasHeaders bool `json:"hasHeaders"`
+	ApiKeyStatus DeckGoModelSecretInputStatus `json:"apiKeyStatus"`
+	Request DeckGoModelProviderRequestSummary `json:"request"`
+	IsReferenced bool `json:"isReferenced"`
+	ModelCount float64 `json:"modelCount"`
+	Models []DeckGoModelEntry `json:"models"`
+	Headers map[string]DeckGoModelSecretInputStatus `json:"headers,omitempty"`
+}
+
+type DeckGoModelCatalogMode string
+
+type DeckGoModelsConfigDetailRuntime struct {
+	CatalogStatus string `json:"catalogStatus"`
+	CatalogProviderCount float64 `json:"catalogProviderCount,omitempty"`
+	AuthStatus string `json:"authStatus"`
+	AuthProviderCount float64 `json:"authProviderCount,omitempty"`
+	ProbeStatus string `json:"probeStatus"`
+	StaleAt float64 `json:"staleAt,omitempty"`
+}
+
+type DeckGoModelsConfigDetail struct {
+	Hash string `json:"hash"`
+	ConfigPresent bool `json:"configPresent"`
+	Mode DeckGoModelCatalogMode `json:"mode"`
+	ModeSource string `json:"modeSource"`
+	Defaults map[string]any `json:"defaults,omitempty"`
+	Providers []DeckGoModelProviderEntry `json:"providers"`
+	Runtime DeckGoModelsConfigDetailRuntime `json:"runtime"`
+}
+
+type DeckGoModelsConfigDetailResponse struct {
+	RuntimeId string `json:"runtimeId,omitempty"`
+	Detail DeckGoModelsConfigDetail `json:"detail"`
+}
+
+type DeckGoModelReferenceKind string
+
+type DeckGoModelReferenceEntry struct {
+	Kind DeckGoModelReferenceKind `json:"kind"`
+	Path string `json:"path"`
+	ProviderId string `json:"providerId,omitempty"`
+	ModelId string `json:"modelId,omitempty"`
+	Label string `json:"label,omitempty"`
+}
+
+type DeckGoModelBuiltinProviderImpact struct {
+	ProviderId string `json:"providerId"`
+	IsReferenced bool `json:"isReferenced"`
+	References []DeckGoModelReferenceEntry `json:"references"`
+}
+
+type DeckGoModelImpactSeverity string
+
+type DeckGoModelImpactPreview struct {
+	Scope string `json:"scope"`
+	Severity DeckGoModelImpactSeverity `json:"severity"`
+	References []DeckGoModelReferenceEntry `json:"references"`
+	UnavailableProviders []DeckGoModelBuiltinProviderImpact `json:"unavailableProviders,omitempty"`
+	DefaultsAffected []string `json:"defaultsAffected,omitempty"`
+	ImpactToken string `json:"impactToken"`
+	GeneratedAt float64 `json:"generatedAt"`
+	BaseHash string `json:"baseHash"`
+}
+
+type DeckGoModelImpactPreviewResponse struct {
+	RuntimeId string `json:"runtimeId,omitempty"`
+	Preview DeckGoModelImpactPreview `json:"preview"`
+}
+
+type DeckGoModelProviderUpsertModelInput struct {
+	Id string `json:"id"`
+	Name string `json:"name,omitempty"`
+	Api string `json:"api,omitempty"`
+	InheritsApi bool `json:"inheritsApi,omitempty"`
+	Reasoning bool `json:"reasoning,omitempty"`
+	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
+	ContextWindow float64 `json:"contextWindow,omitempty"`
+	ContextTokens float64 `json:"contextTokens,omitempty"`
+	MaxTokens float64 `json:"maxTokens,omitempty"`
+	Cost DeckGoModelCost `json:"cost,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+	PreserveCompat bool `json:"preserveCompat,omitempty"`
+}
+
+type DeckGoModelProviderUpsertRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+	IsCreate bool `json:"isCreate"`
+	Api string `json:"api,omitempty"`
+	BaseUrl string `json:"baseUrl,omitempty"`
+	Auth DeckGoModelProviderAuthMode `json:"auth,omitempty"`
+	AuthHeader bool `json:"authHeader,omitempty"`
+	InjectNumCtxForOpenAICompat bool `json:"injectNumCtxForOpenAICompat,omitempty"`
+	ApiKey map[string]any `json:"apiKey,omitempty"`
+	Headers map[string]map[string]any `json:"headers,omitempty"`
+	Models []DeckGoModelProviderUpsertModelInput `json:"models,omitempty"`
+	PreserveRequest bool `json:"preserveRequest,omitempty"`
+}
+
+type DeckGoModelProviderUpsertResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash,omitempty"`
+	Hash string `json:"hash"`
+	ProviderId string `json:"providerId"`
+}
+
+type DeckGoModelProviderDeletePreviewRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+}
+
+type DeckGoModelProviderDeleteCommitRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+	ImpactToken string `json:"impactToken"`
+	ConfirmText string `json:"confirmText"`
+}
+
+type DeckGoModelProviderDeleteCommitResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash,omitempty"`
+	Hash string `json:"hash"`
+	ProviderId string `json:"providerId"`
+}
+
+type DeckGoModelUpsertRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+	ModelId string `json:"modelId"`
+	IsCreate bool `json:"isCreate"`
+	Name string `json:"name,omitempty"`
+	Api string `json:"api,omitempty"`
+	InheritsApi bool `json:"inheritsApi,omitempty"`
+	Reasoning bool `json:"reasoning,omitempty"`
+	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
+	ContextWindow float64 `json:"contextWindow,omitempty"`
+	ContextTokens float64 `json:"contextTokens,omitempty"`
+	MaxTokens float64 `json:"maxTokens,omitempty"`
+	Cost DeckGoModelCost `json:"cost,omitempty"`
+	Headers map[string]string `json:"headers,omitempty"`
+	PreserveCompat bool `json:"preserveCompat,omitempty"`
+}
+
+type DeckGoModelUpsertResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash,omitempty"`
+	Hash string `json:"hash"`
+	ProviderId string `json:"providerId"`
+	ModelId string `json:"modelId"`
+}
+
+type DeckGoModelDeletePreviewRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+	ModelId string `json:"modelId"`
+}
+
+type DeckGoModelDeleteCommitRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	ProviderId string `json:"providerId"`
+	ModelId string `json:"modelId"`
+	ImpactToken string `json:"impactToken"`
+	ConfirmText string `json:"confirmText"`
+}
+
+type DeckGoModelDeleteCommitResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash,omitempty"`
+	Hash string `json:"hash"`
+	ProviderId string `json:"providerId"`
+	ModelId string `json:"modelId"`
+}
+
+type DeckGoModelModeSetRequest struct {
+	ExpectedBaseHash string `json:"expectedBaseHash"`
+	Mode DeckGoModelCatalogMode `json:"mode"`
+	DryRun bool `json:"dryRun"`
+	ImpactToken string `json:"impactToken,omitempty"`
+	ConfirmText string `json:"confirmText,omitempty"`
+}
+
+type DeckGoModelModeSetDryRunResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash"`
+	Preview DeckGoModelImpactPreview `json:"preview"`
+}
+
+type DeckGoModelModeSetCommitResponse struct {
+	Ok bool `json:"ok"`
+	BaseHash string `json:"baseHash,omitempty"`
+	Hash string `json:"hash"`
+	Mode DeckGoModelCatalogMode `json:"mode"`
+}
+
 type DeckGoConfigLookupChild struct {
 	Key string `json:"key"`
 	Path string `json:"path"`

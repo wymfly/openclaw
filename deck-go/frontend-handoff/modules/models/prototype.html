@@ -1,26 +1,736 @@
 <!doctype html>
+<!--
+  Models — typed config-authority workbench (active visual target).
+
+  This single-file HTML prototype illustrates the production component
+  tree under frontend-new/src/components/panels/models/:
+
+    ModelsPanel
+      ├── parts/CatalogHeader
+      ├── parts/ProviderListSection[]
+      │     └── parts/ModelRow[]
+      ├── drawers/ProviderDrawer       (5 tabs: overview/identity/networking/models/advanced)
+      ├── drawers/ModelDrawer          (6 tabs: overview/identity/capacity/cost/networking/advanced)
+      ├── drawers/SecretInputField     (preserve / set-ref / clear)
+      ├── wizard/AddProviderWizard     (select / configure / review)
+      ├── dialogs/ImpactPreviewDialog
+      └── dialogs/TypeToConfirmDialog
+
+  No usage / pricing / audit / probe surfaces — those are out of scope
+  for this module and tracked under openspec/follow-ups/. The advanced
+  raw editor button surfaces as an explicit escape hatch from the
+  catalog header.
+
+  Tokens reference: var(--ds-*) values are mirrored from
+  frontend-handoff/design-system/tokens.css. This prototype does not
+  load tokens.css externally because it is intentionally self-contained
+  for visual reference.
+-->
 <html lang="en" data-theme="dark" data-density="comfortable">
 <head>
   <meta charset="utf-8"/>
-  <title>deck-go models — interactive prototype</title>
+  <title>deck-go models — typed config-authority workbench</title>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"/>
-  <link rel="stylesheet" href="tokens.css"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    :root[data-theme="dark"] {
+      --ds-bg-0: #0a0c10;
+      --ds-bg-1: #11141a;
+      --ds-bg-2: #181c24;
+      --ds-bg-3: #20252f;
+      --ds-text-1: #e6e9ee;
+      --ds-text-2: #aab0bb;
+      --ds-text-3: #6f7682;
+      --ds-border-1: #1f242d;
+      --ds-border-2: #2a303b;
+      --ds-accent: #5b8cff;
+      --ds-ok: #3fb56a;
+      --ds-warn: #f0b13b;
+      --ds-err: #ef6363;
+      --ds-running: #5b8cff;
+      --ds-neutral: #6f7682;
+      --ds-radius-sm: 4px;
+      --ds-radius-md: 8px;
+      --ds-radius-lg: 12px;
+      --ds-space-1: 4px;
+      --ds-space-2: 8px;
+      --ds-space-3: 12px;
+      --ds-space-4: 16px;
+      --ds-space-5: 24px;
+      --ds-space-6: 32px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--ds-bg-0);
+      color: var(--ds-text-1);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    code, pre { font-family: 'JetBrains Mono', monospace; }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: var(--ds-space-5);
+    }
+    .page__head { margin-bottom: var(--ds-space-5); }
+    .page__head h1 { font-size: 18px; font-weight: 600; margin: 0 0 var(--ds-space-1); }
+    .page__head p { color: var(--ds-text-3); margin: 0; }
+
+    .surface-stack > * + * { margin-top: var(--ds-space-5); }
+    .surface {
+      background: var(--ds-bg-1);
+      border: 1px solid var(--ds-border-1);
+      border-radius: var(--ds-radius-lg);
+      padding: var(--ds-space-5);
+    }
+    .surface__title {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ds-text-3);
+      margin: 0 0 var(--ds-space-3);
+    }
+    .surface__sub { color: var(--ds-text-3); font-size: 12px; }
+
+    .models-catalog-header {
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-space-4);
+    }
+    .models-catalog-header__row {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-space-3);
+      flex-wrap: wrap;
+    }
+    .models-catalog-header__title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+    .models-catalog-header__counts {
+      display: flex;
+      gap: var(--ds-space-4);
+      color: var(--ds-text-2);
+      font-size: 13px;
+    }
+    .models-catalog-header__counts strong {
+      color: var(--ds-text-1);
+      font-weight: 600;
+    }
+    .models-catalog-header__actions {
+      margin-left: auto;
+      display: flex;
+      gap: var(--ds-space-2);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-space-1);
+      padding: 2px var(--ds-space-2);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .badge--ok      { background: rgba(63,181,106,0.14); color: var(--ds-ok); }
+    .badge--warn    { background: rgba(240,177,59,0.14); color: var(--ds-warn); }
+    .badge--err     { background: rgba(239,99,99,0.14);  color: var(--ds-err); }
+    .badge--neutral { background: var(--ds-bg-3);        color: var(--ds-text-2); }
+    .badge--running { background: rgba(91,140,255,0.14); color: var(--ds-running); }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-space-2);
+      padding: 4px var(--ds-space-3);
+      border: 1px solid var(--ds-border-2);
+      border-radius: 999px;
+      background: var(--ds-bg-2);
+      font-size: 12px;
+      color: var(--ds-text-2);
+    }
+    .toggle__pill {
+      width: 28px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--ds-bg-3);
+      position: relative;
+    }
+    .toggle__pill::after {
+      content: "";
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: var(--ds-text-2);
+      top: 2px;
+      left: 2px;
+    }
+    .toggle--on .toggle__pill { background: rgba(91,140,255,0.3); }
+    .toggle--on .toggle__pill::after { left: 14px; background: var(--ds-accent); }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-space-2);
+      border-radius: var(--ds-radius-md);
+      padding: 6px var(--ds-space-3);
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: 120ms ease;
+    }
+    .button--primary {
+      background: var(--ds-accent);
+      color: #fff;
+    }
+    .button--secondary {
+      background: var(--ds-bg-2);
+      color: var(--ds-text-1);
+      border-color: var(--ds-border-2);
+    }
+    .button--ghost {
+      background: transparent;
+      color: var(--ds-text-2);
+    }
+    .button--danger {
+      background: rgba(239,99,99,0.16);
+      color: var(--ds-err);
+      border-color: rgba(239,99,99,0.36);
+    }
+
+    .models-provider-section {
+      border: 1px solid var(--ds-border-1);
+      border-radius: var(--ds-radius-lg);
+      background: var(--ds-bg-1);
+      overflow: hidden;
+    }
+    .models-provider-section + .models-provider-section { margin-top: var(--ds-space-3); }
+    .models-provider-section__head {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-space-3);
+      padding: var(--ds-space-4) var(--ds-space-5);
+      background: var(--ds-bg-2);
+      border-bottom: 1px solid var(--ds-border-1);
+    }
+    .models-provider-section__head h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .models-provider-section__chips {
+      display: flex;
+      gap: var(--ds-space-2);
+      flex-wrap: wrap;
+    }
+    .models-provider-section__actions {
+      margin-left: auto;
+      display: flex;
+      gap: var(--ds-space-2);
+    }
+    .models-provider-section__body {
+      padding: var(--ds-space-3) 0;
+    }
+
+    .models-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--ds-space-3);
+      padding: var(--ds-space-3) var(--ds-space-5);
+      border-bottom: 1px solid var(--ds-border-1);
+    }
+    .models-row:last-child { border-bottom: 0; }
+    .models-row__main { display: flex; flex-direction: column; gap: var(--ds-space-1); }
+    .models-row__main code { font-size: 12px; color: var(--ds-text-2); }
+    .models-row__title { font-weight: 600; }
+    .models-row__chips {
+      display: flex;
+      gap: var(--ds-space-2);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .models-row__chips .chip {
+      font-size: 11px;
+      padding: 1px var(--ds-space-2);
+      background: var(--ds-bg-3);
+      color: var(--ds-text-2);
+      border-radius: var(--ds-radius-sm);
+    }
+    .models-row__actions {
+      display: flex;
+      gap: var(--ds-space-2);
+      align-items: center;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: var(--ds-space-4);
+    }
+    .meta-grid > dt { color: var(--ds-text-3); font-size: 12px; }
+    .meta-grid > dd { margin: 0; color: var(--ds-text-1); font-size: 13px; }
+
+    .drawer-mock {
+      border: 1px dashed var(--ds-border-2);
+      border-radius: var(--ds-radius-lg);
+      padding: var(--ds-space-4);
+      background: var(--ds-bg-1);
+    }
+    .drawer-mock h3 { margin: 0 0 var(--ds-space-2); font-size: 14px; }
+    .drawer-mock__tabs {
+      display: flex;
+      gap: var(--ds-space-2);
+      border-bottom: 1px solid var(--ds-border-1);
+      padding-bottom: var(--ds-space-2);
+      margin-bottom: var(--ds-space-3);
+      overflow-x: auto;
+    }
+    .drawer-mock__tab {
+      font-size: 12px;
+      padding: 4px var(--ds-space-2);
+      border-radius: var(--ds-radius-sm);
+      color: var(--ds-text-2);
+    }
+    .drawer-mock__tab--active {
+      background: var(--ds-bg-3);
+      color: var(--ds-text-1);
+    }
+    .drawer-mock__foot {
+      margin-top: var(--ds-space-4);
+      padding-top: var(--ds-space-3);
+      border-top: 1px solid var(--ds-border-1);
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--ds-space-2);
+    }
+
+    .secret-field {
+      border: 1px solid var(--ds-border-1);
+      border-radius: var(--ds-radius-md);
+      padding: var(--ds-space-3);
+      background: var(--ds-bg-2);
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-space-3);
+    }
+    .secret-field__radio {
+      display: flex;
+      gap: var(--ds-space-3);
+      flex-wrap: wrap;
+    }
+    .secret-field__option {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--ds-space-1);
+      font-size: 12px;
+      color: var(--ds-text-2);
+    }
+    .secret-field__option--active { color: var(--ds-text-1); font-weight: 500; }
+    .secret-field input {
+      width: 100%;
+      background: var(--ds-bg-1);
+      color: var(--ds-text-1);
+      border: 1px solid var(--ds-border-2);
+      border-radius: var(--ds-radius-sm);
+      padding: 6px var(--ds-space-2);
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .wizard-mock {
+      border: 1px dashed var(--ds-border-2);
+      border-radius: var(--ds-radius-lg);
+      padding: var(--ds-space-5);
+      background: var(--ds-bg-1);
+    }
+    .wizard-mock__steps {
+      display: flex;
+      gap: var(--ds-space-2);
+      align-items: center;
+      margin-bottom: var(--ds-space-4);
+      font-size: 12px;
+    }
+    .wizard-mock__step {
+      padding: 2px var(--ds-space-2);
+      border-radius: var(--ds-radius-sm);
+      background: var(--ds-bg-3);
+      color: var(--ds-text-2);
+    }
+    .wizard-mock__step--active {
+      background: var(--ds-accent);
+      color: #fff;
+    }
+    .wizard-mock__cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: var(--ds-space-3);
+    }
+    .wizard-mock__card {
+      border: 1px solid var(--ds-border-2);
+      border-radius: var(--ds-radius-md);
+      padding: var(--ds-space-3);
+      background: var(--ds-bg-2);
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-space-1);
+    }
+    .wizard-mock__card strong { color: var(--ds-text-1); }
+    .wizard-mock__card span { color: var(--ds-text-3); font-size: 12px; }
+
+    .dialog-mock {
+      border: 1px dashed var(--ds-border-2);
+      border-radius: var(--ds-radius-lg);
+      padding: var(--ds-space-5);
+      background: var(--ds-bg-1);
+      max-width: 520px;
+    }
+    .dialog-mock h3 { margin: 0 0 var(--ds-space-2); font-size: 14px; }
+    .dialog-mock__head {
+      display: flex;
+      align-items: center;
+      gap: var(--ds-space-3);
+      margin-bottom: var(--ds-space-3);
+    }
+    .dialog-mock__refs {
+      list-style: none;
+      padding: 0;
+      margin: var(--ds-space-3) 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--ds-space-1);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .dialog-mock__refs li {
+      font-size: 12px;
+      color: var(--ds-text-2);
+      padding: 4px var(--ds-space-2);
+      background: var(--ds-bg-2);
+      border-radius: var(--ds-radius-sm);
+    }
+    .dialog-mock__foot {
+      margin-top: var(--ds-space-4);
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--ds-space-2);
+    }
+
+    .banner {
+      padding: var(--ds-space-3);
+      border-radius: var(--ds-radius-md);
+      font-size: 12px;
+      display: flex;
+      gap: var(--ds-space-2);
+      align-items: flex-start;
+    }
+    .banner--warn { background: rgba(240,177,59,0.1); color: var(--ds-warn); border: 1px solid rgba(240,177,59,0.36); }
+    .banner--info { background: var(--ds-bg-2); color: var(--ds-text-2); border: 1px solid var(--ds-border-2); }
+  </style>
 </head>
 <body>
-  <div id="root"></div>
+  <main class="page">
+    <header class="page__head">
+      <h1>deck-go models — typed config-authority workbench</h1>
+      <p>Visual reference for the production component tree under <code>frontend-new/src/components/panels/models/</code>.</p>
+    </header>
 
-  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+    <div class="surface-stack">
+      <section class="surface" aria-label="Catalog header (parts/CatalogHeader)">
+        <h2 class="surface__title">parts/CatalogHeader</h2>
+        <div class="models-catalog-header">
+          <div class="models-catalog-header__row">
+            <span class="badge badge--neutral">mode · merge</span>
+            <span class="toggle toggle--on" aria-label="Catalog mode toggle">
+              <span>merge</span>
+              <span class="toggle__pill"></span>
+              <span>replace</span>
+            </span>
+            <h2 class="models-catalog-header__title">Models</h2>
+            <div class="models-catalog-header__actions">
+              <button class="button button--ghost">Refresh</button>
+              <button class="button button--secondary">Advanced raw editor</button>
+              <button class="button button--primary">+ Add Provider</button>
+            </div>
+          </div>
+          <div class="models-catalog-header__row">
+            <div class="models-catalog-header__counts">
+              <span><strong>3</strong> providers configured</span>
+              <span><strong>7</strong> models configured</span>
+            </div>
+            <span class="badge badge--ok" style="margin-left:auto;">runtime catalog · available</span>
+            <span class="badge badge--warn">runtime auth · stale</span>
+          </div>
+        </div>
+      </section>
 
-  <script src="data.js"></script>
-  <script type="text/babel" src="tweaks-panel.jsx"></script>
-  <script type="text/babel" src="icons.jsx"></script>
-  <script type="text/babel" src="dialogs.jsx"></script>
-  <script type="text/babel" src="list-view.jsx"></script>
-  <script type="text/babel" src="detail-view.jsx"></script>
-  <script type="text/babel" src="app.jsx"></script>
+      <section class="surface" aria-label="Provider grouped list">
+        <h2 class="surface__title">parts/ProviderListSection · parts/ModelRow</h2>
+
+        <div class="models-provider-section">
+          <header class="models-provider-section__head">
+            <h3>anthropic</h3>
+            <code style="color:var(--ds-text-3);font-size:12px;">https://api.anthropic.com</code>
+            <div class="models-provider-section__chips">
+              <span class="badge badge--neutral">auth · api-key</span>
+              <span class="badge badge--ok">secret · ref</span>
+              <span class="badge badge--neutral">referenced</span>
+            </div>
+            <div class="models-provider-section__actions">
+              <button class="button button--ghost">Edit</button>
+              <button class="button button--ghost">+ Add model</button>
+              <button class="button button--danger">Preview delete</button>
+            </div>
+          </header>
+          <div class="models-provider-section__body">
+            <div class="models-row">
+              <div class="models-row__main">
+                <span class="models-row__title">Claude Opus 4.7 <code>claude-opus-4-7</code></span>
+                <div class="models-row__chips">
+                  <span class="chip">reasoning</span>
+                  <span class="chip">inputs · text</span>
+                  <span class="chip">context · 200k</span>
+                  <span class="badge badge--ok">default</span>
+                  <span class="badge badge--neutral">referenced</span>
+                </div>
+              </div>
+              <div class="models-row__actions">
+                <button class="button button--ghost">Edit</button>
+                <button class="button button--danger">Preview delete</button>
+              </div>
+            </div>
+            <div class="models-row">
+              <div class="models-row__main">
+                <span class="models-row__title">Claude Sonnet 4.6 <code>claude-sonnet-4-6</code></span>
+                <div class="models-row__chips">
+                  <span class="chip">inputs · text · image</span>
+                  <span class="chip">context · 200k</span>
+                </div>
+              </div>
+              <div class="models-row__actions">
+                <button class="button button--ghost">Edit</button>
+                <button class="button button--danger">Preview delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="models-provider-section">
+          <header class="models-provider-section__head">
+            <h3>openai</h3>
+            <code style="color:var(--ds-text-3);font-size:12px;">https://api.openai.com/v1</code>
+            <div class="models-provider-section__chips">
+              <span class="badge badge--neutral">auth · api-key</span>
+              <span class="badge badge--err">secret · missing</span>
+            </div>
+            <div class="models-provider-section__actions">
+              <button class="button button--ghost">Edit</button>
+              <button class="button button--ghost">+ Add model</button>
+              <button class="button button--danger">Preview delete</button>
+            </div>
+          </header>
+          <div class="models-provider-section__body">
+            <div class="models-row">
+              <div class="models-row__main">
+                <span class="models-row__title">GPT-5.5 <code>gpt-5-5</code></span>
+                <div class="models-row__chips">
+                  <span class="chip">inputs · text</span>
+                  <span class="chip">context · 128k</span>
+                </div>
+              </div>
+              <div class="models-row__actions">
+                <button class="button button--ghost">Edit</button>
+                <button class="button button--danger">Preview delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="models-provider-section">
+          <header class="models-provider-section__head">
+            <h3>ollama</h3>
+            <code style="color:var(--ds-text-3);font-size:12px;">http://127.0.0.1:11434</code>
+            <div class="models-provider-section__chips">
+              <span class="badge badge--neutral">auth · token</span>
+              <span class="badge badge--neutral">inject num_ctx</span>
+            </div>
+            <div class="models-provider-section__actions">
+              <button class="button button--ghost">Edit</button>
+              <button class="button button--ghost">+ Add model</button>
+              <button class="button button--danger">Preview delete</button>
+            </div>
+          </header>
+          <div class="models-provider-section__body">
+            <div class="models-row">
+              <div class="models-row__main">
+                <span class="models-row__title">Qwen 3 Coder <code>qwen3-coder</code></span>
+                <div class="models-row__chips">
+                  <span class="chip">inputs · text</span>
+                  <span class="chip">context · 32k</span>
+                </div>
+              </div>
+              <div class="models-row__actions">
+                <button class="button button--ghost">Edit</button>
+                <button class="button button--danger">Preview delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="ProviderDrawer">
+        <h2 class="surface__title">drawers/ProviderDrawer</h2>
+        <p class="surface__sub">5 tabs. Identity tab embeds <code>SecretInputField</code>. <code>expectedBaseHash</code> threads through every submit.</p>
+        <div class="drawer-mock" role="region" aria-label="Provider drawer mock">
+          <div class="drawer-mock__tabs">
+            <span class="drawer-mock__tab">overview</span>
+            <span class="drawer-mock__tab drawer-mock__tab--active">identity</span>
+            <span class="drawer-mock__tab">networking</span>
+            <span class="drawer-mock__tab">models</span>
+            <span class="drawer-mock__tab">advanced</span>
+          </div>
+          <dl class="meta-grid">
+            <dt>provider id</dt><dd><code>anthropic</code></dd>
+            <dt>name</dt><dd>Anthropic</dd>
+            <dt>auth mode</dt><dd>api-key</dd>
+            <dt>expectedBaseHash</dt><dd><code>h7c4…2a91</code></dd>
+          </dl>
+          <div style="margin-top:var(--ds-space-4);">
+            <h3>apiKey · SecretInputField</h3>
+            <div class="secret-field">
+              <div class="secret-field__radio">
+                <span class="secret-field__option">○ Preserve existing (literal-redacted)</span>
+                <span class="secret-field__option secret-field__option--active">● Set ref</span>
+                <span class="secret-field__option">○ Clear</span>
+              </div>
+              <input value="deck.secrets.anthropic.apiKey" readonly />
+              <input value="${ENV.ANTHROPIC_API_KEY}" readonly />
+              <p class="surface__sub" style="margin:0;">Literal secret values are never written through this surface. Existing literals can be migrated with <em>Clear</em>.</p>
+            </div>
+          </div>
+          <div class="drawer-mock__foot">
+            <button class="button button--ghost">Cancel</button>
+            <button class="button button--primary">Save provider</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="ModelDrawer">
+        <h2 class="surface__title">drawers/ModelDrawer</h2>
+        <p class="surface__sub">6 tabs. Numeric capacity / cost inputs accept undefined to preserve partial config.</p>
+        <div class="drawer-mock" role="region" aria-label="Model drawer mock">
+          <div class="drawer-mock__tabs">
+            <span class="drawer-mock__tab">overview</span>
+            <span class="drawer-mock__tab">identity</span>
+            <span class="drawer-mock__tab drawer-mock__tab--active">capacity</span>
+            <span class="drawer-mock__tab">cost</span>
+            <span class="drawer-mock__tab">networking</span>
+            <span class="drawer-mock__tab">advanced</span>
+          </div>
+          <dl class="meta-grid">
+            <dt>model id</dt><dd><code>claude-opus-4-7</code></dd>
+            <dt>provider</dt><dd><code>anthropic</code></dd>
+            <dt>contextWindow</dt><dd>200000</dd>
+            <dt>maxOutputTokens</dt><dd>8192</dd>
+            <dt>maxThinkingTokens</dt><dd><span style="color:var(--ds-text-3);">— (preserved)</span></dd>
+            <dt>customMaxTokens</dt><dd><span style="color:var(--ds-text-3);">— (preserved)</span></dd>
+          </dl>
+          <div class="drawer-mock__foot">
+            <button class="button button--ghost">Cancel</button>
+            <button class="button button--primary">Save model</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="AddProviderWizard">
+        <h2 class="surface__title">wizard/AddProviderWizard</h2>
+        <p class="surface__sub">3 steps. Catalog data from <code>models.catalog.providers</code>. <em>Use custom</em> entry skips seeded defaults.</p>
+        <div class="wizard-mock">
+          <div class="wizard-mock__steps">
+            <span class="wizard-mock__step wizard-mock__step--active">1 · select</span>
+            <span style="color:var(--ds-text-3);">→</span>
+            <span class="wizard-mock__step">2 · configure</span>
+            <span style="color:var(--ds-text-3);">→</span>
+            <span class="wizard-mock__step">3 · review</span>
+          </div>
+          <div class="wizard-mock__cards">
+            <div class="wizard-mock__card">
+              <strong>Anthropic</strong>
+              <span>https://api.anthropic.com</span>
+              <span>auth · api-key</span>
+            </div>
+            <div class="wizard-mock__card">
+              <strong>OpenAI</strong>
+              <span>https://api.openai.com/v1</span>
+              <span>auth · api-key</span>
+            </div>
+            <div class="wizard-mock__card">
+              <strong>AWS Bedrock</strong>
+              <span>auth · aws-sdk</span>
+            </div>
+            <div class="wizard-mock__card">
+              <strong>Use custom provider</strong>
+              <span>Skip seeded defaults; provide id / baseUrl / auth manually.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="ImpactPreviewDialog">
+        <h2 class="surface__title">dialogs/ImpactPreviewDialog</h2>
+        <p class="surface__sub">Severity Badge · scope description · reference list · defaults-affected Banner.</p>
+        <div class="dialog-mock" role="dialog" aria-modal="true" aria-label="Impact preview mock">
+          <div class="dialog-mock__head">
+            <span class="badge badge--warn">severity · warn</span>
+            <h3>Preview: delete provider <code>openai</code></h3>
+          </div>
+          <p class="surface__sub" style="margin:0;">3 references will be affected by removing this provider. Service-side rescan will refresh the impact list before commit.</p>
+          <div class="banner banner--warn" style="margin-top:var(--ds-space-3);">
+            Defaults affected: <code>agents.main.defaultModel</code> currently points at <code>openai/gpt-5-5</code>.
+          </div>
+          <ul class="dialog-mock__refs">
+            <li><strong>agent</strong> · main · defaultModel · <code>openai/gpt-5-5</code></li>
+            <li><strong>channel</strong> · email · model · <code>openai/gpt-5-5</code></li>
+            <li><strong>tool</strong> · summarizer · fallback · <code>openai/gpt-5-5</code></li>
+          </ul>
+          <div class="dialog-mock__foot">
+            <button class="button button--ghost">Cancel</button>
+            <button class="button button--danger">Continue to confirm</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="TypeToConfirmDialog">
+        <h2 class="surface__title">dialogs/TypeToConfirmDialog</h2>
+        <p class="surface__sub">Confirm string is <code>delete</code> for delete commits and <code>replace</code> for catalog mode replace. Scrim click is disabled.</p>
+        <div class="dialog-mock" role="dialog" aria-modal="true" aria-label="Type to confirm mock">
+          <div class="dialog-mock__head">
+            <h3>Confirm delete provider <code>openai</code></h3>
+          </div>
+          <p class="surface__sub" style="margin:0;">Type <code>delete</code> to confirm. The impact token <code>tok-7c4-2a91</code> will be revalidated server-side.</p>
+          <input style="margin-top:var(--ds-space-3);width:100%;background:var(--ds-bg-2);color:var(--ds-text-1);border:1px solid var(--ds-border-2);border-radius:var(--ds-radius-sm);padding:6px var(--ds-space-2);font-family:'JetBrains Mono',monospace;" value="delete" readonly aria-label="Confirm delete input"/>
+          <div class="dialog-mock__foot">
+            <button class="button button--ghost">Cancel</button>
+            <button class="button button--danger">Confirm delete</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="surface" aria-label="Advanced raw editor">
+        <h2 class="surface__title">Advanced raw editor (escape hatch)</h2>
+        <p class="surface__sub">Raw <code>PATCH /models/config</code> is reserved for cases the typed UI cannot represent. Reachable via the catalog header button only. Operates against raw JSON + base hash.</p>
+        <div class="banner banner--info" style="margin-top:var(--ds-space-3);">
+          <span>Typed mutations are the default save path — the raw editor is a deliberate boundary, not a primary action.</span>
+        </div>
+      </section>
+    </div>
+  </main>
 </body>
 </html>

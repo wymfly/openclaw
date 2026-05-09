@@ -1,34 +1,34 @@
 {
-  "generatedAt": "2026-05-08T05:37:47.679Z",
+  "generatedAt": "2026-05-09T05:03:57.941Z",
   "summary": {
-    "apiFunctions": 171,
-    "classifiedEndpointRows": 150,
-    "contractTypes": 294,
-    "dynamicSurfaceLines": 1435,
-    "endpoints": 137,
+    "apiFunctions": 179,
+    "classifiedEndpointRows": 158,
+    "contractTypes": 329,
+    "dynamicSurfaceLines": 1554,
+    "endpoints": 145,
     "exceptionRecordsMissingFields": 0,
-    "frontendDeckGoTypes": 240,
-    "frontendEndpointCallerLines": 123,
-    "frontendGeneratedDtoAliases": 240,
+    "frontendDeckGoTypes": 276,
+    "frontendEndpointCallerLines": 131,
+    "frontendGeneratedDtoAliases": 276,
     "frontendLocalDtoDefinitions": 0,
     "gatewayUntypedExceptions": 0,
     "invalidEndpointClassifications": 0,
     "migratedBlockingIssues": 0,
-    "missingContractTypes": 0,
+    "missingContractTypes": 1,
     "duplicateDtoAuthorityIssues": 0,
     "unclassifiedEndpoints": 0,
-    "undocumentedDynamicSurfaceLines": 1435,
-    "endpointsWithFrontendCallers": 88,
-    "uiMetadataActions": 62,
-    "uiMetadataCoveredDtos": 111,
-    "uiMetadataCoveredEndpoints": 78,
+    "undocumentedDynamicSurfaceLines": 1554,
+    "endpointsWithFrontendCallers": 96,
+    "uiMetadataActions": 70,
+    "uiMetadataCoveredDtos": 146,
+    "uiMetadataCoveredEndpoints": 86,
     "uiMetadataDomains": 8,
     "uiMetadataFieldEntries": 34,
     "uiMetadataIssues": 0,
     "uiMetadataMigratedDomains": 2
   },
   "endpointCategoryCounts": {
-    "deck-go-bff": 135,
+    "deck-go-bff": 143,
     "documented-exception": 3,
     "gateway-protocol-adapter": 8,
     "stream-binary-upload": 4
@@ -112,6 +112,46 @@
         "endpoint": "POST /api/v1/runtimes/{runtimeId}/gateway/rpc",
         "id": "models.auth.probe",
         "safety": "read"
+      },
+      {
+        "endpoint": "GET /api/models/config/detail",
+        "id": "models.config.detail",
+        "safety": "read"
+      },
+      {
+        "endpoint": "POST /api/models/providers/upsert",
+        "id": "models.providers.upsert",
+        "safety": "mutating"
+      },
+      {
+        "endpoint": "POST /api/models/providers/delete-preview",
+        "id": "models.providers.delete-preview",
+        "safety": "read"
+      },
+      {
+        "endpoint": "POST /api/models/providers/delete",
+        "id": "models.providers.delete",
+        "safety": "mutating"
+      },
+      {
+        "endpoint": "POST /api/models/models/upsert",
+        "id": "models.models.upsert",
+        "safety": "mutating"
+      },
+      {
+        "endpoint": "POST /api/models/models/delete-preview",
+        "id": "models.models.delete-preview",
+        "safety": "read"
+      },
+      {
+        "endpoint": "POST /api/models/models/delete",
+        "id": "models.models.delete",
+        "safety": "mutating"
+      },
+      {
+        "endpoint": "POST /api/models/mode/set",
+        "id": "models.mode.set",
+        "safety": "mutating"
       },
       {
         "endpoint": "POST /api/runtime/gateway/start",
@@ -413,9 +453,44 @@
       "DeckGoIdentityPeer",
       "DeckGoModelAuthOverviewResponse",
       "DeckGoModelAuthProvider",
+      "DeckGoModelBuiltinProviderImpact",
+      "DeckGoModelCatalogMode",
       "DeckGoModelCatalogProvidersResponse",
+      "DeckGoModelCompatFlag",
+      "DeckGoModelCompatSummary",
+      "DeckGoModelCost",
+      "DeckGoModelDeleteCommitRequest",
+      "DeckGoModelDeleteCommitResponse",
+      "DeckGoModelDeletePreviewRequest",
+      "DeckGoModelDetail",
+      "DeckGoModelEntry",
+      "DeckGoModelImpactPreview",
+      "DeckGoModelImpactPreviewResponse",
+      "DeckGoModelImpactSeverity",
+      "DeckGoModelInputModality",
+      "DeckGoModelModeSetCommitResponse",
+      "DeckGoModelModeSetDryRunResponse",
+      "DeckGoModelModeSetRequest",
       "DeckGoModelProbeResponse",
+      "DeckGoModelProviderAuthMode",
+      "DeckGoModelProviderDeleteCommitRequest",
+      "DeckGoModelProviderDeleteCommitResponse",
+      "DeckGoModelProviderDeletePreviewRequest",
+      "DeckGoModelProviderDetail",
+      "DeckGoModelProviderEntry",
+      "DeckGoModelProviderRequestSummary",
+      "DeckGoModelProviderUpsertModelInput",
+      "DeckGoModelProviderUpsertRequest",
+      "DeckGoModelProviderUpsertResponse",
+      "DeckGoModelReferenceEntry",
+      "DeckGoModelReferenceKind",
+      "DeckGoModelsConfigDetail",
+      "DeckGoModelsConfigDetailResponse",
+      "DeckGoModelsConfigDetailRuntime",
       "DeckGoModelsConfigResponse",
+      "DeckGoModelSecretInputStatus",
+      "DeckGoModelUpsertRequest",
+      "DeckGoModelUpsertResponse",
       "DeckGoMonitorRunsResponse",
       "DeckGoMonitorStatsResponse",
       "DeckGoPairedDevice",
@@ -492,6 +567,7 @@
       "GET /api/gateway/health",
       "GET /api/gateway/status",
       "GET /api/models/config",
+      "GET /api/models/config/detail",
       "GET /api/models/usage/cost",
       "GET /api/models/usage/providers",
       "GET /api/monitor/runs",
@@ -535,6 +611,13 @@
       "POST /api/devices/remove",
       "POST /api/devices/token/revoke",
       "POST /api/devices/token/rotate",
+      "POST /api/models/mode/set",
+      "POST /api/models/models/delete",
+      "POST /api/models/models/delete-preview",
+      "POST /api/models/models/upsert",
+      "POST /api/models/providers/delete",
+      "POST /api/models/providers/delete-preview",
+      "POST /api/models/providers/upsert",
       "POST /api/runtime/endpoint:test",
       "POST /api/runtime/gateway/restart",
       "POST /api/runtime/gateway/start",
@@ -722,13 +805,21 @@
       {
         "actions": [
           "models.refresh",
+          "models.config.detail",
           "models.config.lookup",
           "models.config.save",
           "models.provider.edit",
           "models.catalog.apply",
           "models.fallbacks.save",
           "models.allowlist.save",
-          "models.auth.probe"
+          "models.auth.probe",
+          "models.providers.upsert",
+          "models.providers.delete-preview",
+          "models.providers.delete",
+          "models.models.upsert",
+          "models.models.delete-preview",
+          "models.models.delete",
+          "models.mode.set"
         ],
         "dtos": [
           "DeckGoCatalogProvider",
@@ -736,8 +827,43 @@
           "DeckGoConfigLookupResponse",
           "DeckGoModelAuthOverviewResponse",
           "DeckGoModelAuthProvider",
+          "DeckGoModelBuiltinProviderImpact",
+          "DeckGoModelCatalogMode",
           "DeckGoModelCatalogProvidersResponse",
+          "DeckGoModelCompatFlag",
+          "DeckGoModelCompatSummary",
+          "DeckGoModelCost",
+          "DeckGoModelDeleteCommitRequest",
+          "DeckGoModelDeleteCommitResponse",
+          "DeckGoModelDeletePreviewRequest",
+          "DeckGoModelDetail",
+          "DeckGoModelEntry",
+          "DeckGoModelImpactPreview",
+          "DeckGoModelImpactPreviewResponse",
+          "DeckGoModelImpactSeverity",
+          "DeckGoModelInputModality",
+          "DeckGoModelModeSetCommitResponse",
+          "DeckGoModelModeSetDryRunResponse",
+          "DeckGoModelModeSetRequest",
           "DeckGoModelProbeResponse",
+          "DeckGoModelProviderAuthMode",
+          "DeckGoModelProviderDeleteCommitRequest",
+          "DeckGoModelProviderDeleteCommitResponse",
+          "DeckGoModelProviderDeletePreviewRequest",
+          "DeckGoModelProviderDetail",
+          "DeckGoModelProviderEntry",
+          "DeckGoModelProviderRequestSummary",
+          "DeckGoModelProviderUpsertModelInput",
+          "DeckGoModelProviderUpsertRequest",
+          "DeckGoModelProviderUpsertResponse",
+          "DeckGoModelReferenceEntry",
+          "DeckGoModelReferenceKind",
+          "DeckGoModelSecretInputStatus",
+          "DeckGoModelUpsertRequest",
+          "DeckGoModelUpsertResponse",
+          "DeckGoModelsConfigDetail",
+          "DeckGoModelsConfigDetailResponse",
+          "DeckGoModelsConfigDetailRuntime",
           "DeckGoModelsConfigResponse",
           "DeckGoRuntimeConfiguredModel",
           "DeckGoRuntimeConfiguredModelsResponse",
@@ -748,6 +874,14 @@
         "endpoints": [
           "GET /api/models/config",
           "PATCH /api/models/config",
+          "GET /api/models/config/detail",
+          "POST /api/models/providers/upsert",
+          "POST /api/models/providers/delete-preview",
+          "POST /api/models/providers/delete",
+          "POST /api/models/models/upsert",
+          "POST /api/models/models/delete-preview",
+          "POST /api/models/models/delete",
+          "POST /api/models/mode/set",
           "POST /api/config/schema-lookup",
           "POST /api/v1/runtimes/{runtimeId}/gateway/rpc",
           "GET /api/usage/cost",
@@ -896,10 +1030,10 @@
       "identity-threads": 6,
       "memory": 10,
       "nodes": 18,
-      "other": 21,
+      "other": 55,
       "plugins": 8,
       "routing": 10,
-      "runtime": 29,
+      "runtime": 30,
       "sessions-chat": 46,
       "settings": 5,
       "skills": 15,
@@ -919,10 +1053,10 @@
       "identity-threads": 6,
       "memory": 10,
       "nodes": 18,
-      "other": 18,
+      "other": 53,
       "plugins": 4,
       "routing": 10,
-      "runtime": 24,
+      "runtime": 25,
       "sessions-chat": 24,
       "settings": 5,
       "skills": 11,
@@ -930,9 +1064,11 @@
       "tools": 7,
       "usage-monitor": 22
     },
-    "missing": {}
+    "missing": {
+      "other": 1
+    }
   },
-  "missingTypes": [],
+  "missingTypes": ["DeckGoModelModeSetResponse"],
   "endpoints": [
     {
       "file": "deck-go/backend/internal/server/activity_monitor.go",
@@ -1499,6 +1635,54 @@
       "path": "/api/models/config"
     },
     {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 101,
+      "method": "GET",
+      "path": "/api/models/config/detail"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 245,
+      "method": "POST",
+      "path": "/api/models/mode/set"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 223,
+      "method": "POST",
+      "path": "/api/models/models/delete"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 201,
+      "method": "POST",
+      "path": "/api/models/models/delete-preview"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 179,
+      "method": "POST",
+      "path": "/api/models/models/upsert"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 158,
+      "method": "POST",
+      "path": "/api/models/providers/delete"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 137,
+      "method": "POST",
+      "path": "/api/models/providers/delete-preview"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "line": 116,
+      "method": "POST",
+      "path": "/api/models/providers/upsert"
+    },
+    {
       "file": "deck-go/backend/internal/server/activity_monitor.go",
       "line": 33,
       "method": "GET",
@@ -1761,56 +1945,56 @@
     {
       "endpoint": "DELETE /api/chat/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2782,
+      "line": 2922,
       "literal": "/chat/sessions",
       "symbol": "deleteSession"
     },
     {
       "endpoint": "GET /api/activity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2042,
+      "line": 2072,
       "literal": "/activity",
       "symbol": "fetchActivityEvents"
     },
     {
       "endpoint": "GET /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1413,
+      "line": 1443,
       "literal": "/alerts",
       "symbol": "fetchAlertRules"
     },
     {
       "endpoint": "GET /api/approvals/pending",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1088,
+      "line": 1118,
       "literal": "/approvals/pending",
       "symbol": "fetchPendingApprovals"
     },
     {
       "endpoint": "GET /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1130,
+      "line": 1160,
       "literal": "/approvals/plugins",
       "symbol": "fetchPluginApprovals"
     },
     {
       "endpoint": "GET /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1080,
+      "line": 1110,
       "literal": "/approvals/policy",
       "symbol": "fetchApprovalsPolicy"
     },
     {
       "endpoint": "GET /api/audit/events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2050,
+      "line": 2080,
       "literal": "/audit/events",
       "symbol": "fetchControlAuditEvents"
     },
     {
       "endpoint": "GET /api/bootstrap/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 716,
+      "line": 746,
       "literal": "/bootstrap/status",
       "symbol": "fetchBootstrapStatus"
     },
@@ -1831,14 +2015,14 @@
     {
       "endpoint": "GET /api/channels",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 817,
+      "line": 847,
       "literal": "/channels",
       "symbol": "fetchChannels"
     },
     {
       "endpoint": "GET /api/chat/history",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2686,
+      "line": 2826,
       "literal": "/chat/history",
       "symbol": "fetchChatHistory"
     },
@@ -1852,147 +2036,154 @@
     {
       "endpoint": "GET /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1277,
+      "line": 1307,
       "literal": "/cron",
       "symbol": "fetchCronJobs"
     },
     {
       "endpoint": "GET /api/cron/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1294,
+      "line": 1324,
       "literal": "/cron/status",
       "symbol": "raw"
     },
     {
       "endpoint": "GET /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1812,
+      "line": 1842,
       "literal": "/deck/identity",
       "symbol": "fetchIdentityLinks"
     },
     {
       "endpoint": "GET /api/devices",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 643,
+      "line": 673,
       "literal": "/devices",
       "symbol": "fetchDevices"
     },
     {
       "endpoint": "GET /api/devices/self",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 648,
+      "line": 678,
       "literal": "/devices/self",
       "symbol": "fetchSelfDevice"
     },
     {
       "endpoint": "GET /api/docs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1364,
+      "line": 1394,
       "literal": "/docs",
       "symbol": "fetchDocs"
     },
     {
       "endpoint": "GET /api/gateway/describe",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1016,
+      "line": 1046,
       "literal": "/gateway/describe",
       "symbol": "fetchGatewayDescribe"
     },
     {
       "endpoint": "GET /api/gateway/health",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 780,
+      "line": 810,
       "literal": "/gateway/health",
       "symbol": "fetchGatewayHealth"
     },
     {
       "endpoint": "GET /api/gateway/status",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 788,
+      "line": 818,
       "literal": "/gateway/status",
       "symbol": "fetchGatewayStatus"
     },
     {
       "endpoint": "GET /api/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1008,
+      "line": 1038,
       "literal": "/logs",
       "symbol": "fetchLogsTail"
     },
     {
       "endpoint": "GET /api/logs/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 3029,
+      "line": 3169,
       "literal": "/logs/stream",
       "symbol": "streamLogEvents"
     },
     {
       "endpoint": "GET /api/logs/stream",
       "file": "deck-go/frontend-new/src/components/panels/logs/LogsPanel.tsx",
-      "line": 901,
+      "line": 897,
       "literal": "/logs/stream",
       "symbol": "tailError"
     },
     {
       "endpoint": "GET /api/memory/health",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1693,
+      "line": 1723,
       "literal": "/memory/health",
       "symbol": "fetchMemoryHealth"
     },
     {
       "endpoint": "GET /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2264,
+      "line": 2294,
       "literal": "/models/config",
       "symbol": "fetchModelsConfig"
     },
     {
+      "endpoint": "GET /api/models/config/detail",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2367,
+      "literal": "/models/config/detail",
+      "symbol": "fetchModelsConfigDetail"
+    },
+    {
       "endpoint": "GET /api/monitor/runs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2066,
+      "line": 2096,
       "literal": "/monitor/runs",
       "symbol": "fetchMonitorRuns"
     },
     {
       "endpoint": "GET /api/monitor/stats",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2074,
+      "line": 2104,
       "literal": "/monitor/stats",
       "symbol": "fetchMonitorStats"
     },
     {
       "endpoint": "GET /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1525,
+      "line": 1555,
       "literal": "/nodes",
       "symbol": "fetchNodes"
     },
     {
       "endpoint": "GET /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1530,
+      "line": 1560,
       "literal": "/nodes/pair",
       "symbol": "fetchNodePairing"
     },
     {
       "endpoint": "GET /api/runtime/capabilities",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 740,
+      "line": 770,
       "literal": "/runtime/capabilities",
       "symbol": "fetchCapabilities"
     },
     {
       "endpoint": "GET /api/runtime/endpoint",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 748,
+      "line": 778,
       "literal": "/runtime/endpoint",
       "symbol": "fetchEndpoint"
     },
     {
       "endpoint": "GET /api/runtime/gateway",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 728,
+      "line": 758,
       "literal": "/runtime/gateway",
       "symbol": "runtime"
     },
@@ -2006,21 +2197,21 @@
     {
       "endpoint": "GET /api/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2629,
+      "line": 2769,
       "literal": "/sessions",
       "symbol": "fetchSessions"
     },
     {
       "endpoint": "GET /api/settings/version",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 636,
+      "line": 666,
       "literal": "/settings/version",
       "symbol": "fetchSettingsVersion"
     },
     {
       "endpoint": "GET /api/stream",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 3025,
+      "line": 3165,
       "literal": "/stream",
       "symbol": "streamEvents"
     },
@@ -2034,588 +2225,637 @@
     {
       "endpoint": "GET /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1756,
+      "line": 1786,
       "literal": "/usage/budget",
       "symbol": "fetchBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/budget/evaluate",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1801,
+      "line": 1831,
       "literal": "/usage/budget/evaluate",
       "symbol": "evaluateBudgetRules"
     },
     {
       "endpoint": "GET /api/usage/providers",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2103,
+      "line": 2133,
       "literal": "/usage/providers",
       "symbol": "fetchModelUsageProviders"
     },
     {
       "endpoint": "GET /api/usage/sessions",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2117,
+      "line": 2147,
       "literal": "/usage/sessions",
       "symbol": "fetchUsageSessions"
     },
     {
       "endpoint": "GET /api/usage/sessions/logs",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2125,
+      "line": 2155,
       "literal": "/usage/sessions/logs",
       "symbol": "fetchUsageSessionLogs"
     },
     {
       "endpoint": "GET /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1454,
+      "line": 1484,
       "literal": "/webhooks",
       "symbol": "fetchWebhooks"
     },
     {
       "endpoint": "PATCH /api/models/config",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2321,
+      "line": 2351,
       "literal": "/models/config",
       "symbol": "saveModelsConfig"
     },
     {
       "endpoint": "POST /api/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2587,
+      "line": 2727,
       "literal": "/agents",
       "symbol": "createAgent"
     },
     {
       "endpoint": "POST /api/alerts",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1420,
+      "line": 1450,
       "literal": "/alerts",
       "symbol": "createAlertRule"
     },
     {
       "endpoint": "POST /api/approvals",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1099,
+      "line": 1129,
       "literal": "/approvals",
       "symbol": "resolveApproval"
     },
     {
       "endpoint": "POST /api/approvals/plugins",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1141,
+      "line": 1171,
       "literal": "/approvals/plugins",
       "symbol": "resolvePluginApproval"
     },
     {
       "endpoint": "POST /api/chat/abort",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2722,
+      "line": 2862,
       "literal": "/chat/abort",
       "symbol": "abortChatRun"
     },
     {
       "endpoint": "POST /api/chat/compact",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2832,
+      "line": 2972,
       "literal": "/chat/compact",
       "symbol": "compactChatSession"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2854,
+      "line": 2994,
       "literal": "/chat/compaction",
       "symbol": "fetchCompactionCheckpoints"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2871,
+      "line": 3011,
       "literal": "/chat/compaction",
       "symbol": "branchCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/compaction",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2891,
+      "line": 3031,
       "literal": "/chat/compaction",
       "symbol": "restoreCompactionCheckpoint"
     },
     {
       "endpoint": "POST /api/chat/projection",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2924,
+      "line": 3064,
       "literal": "/chat/projection",
       "symbol": "persistChatProjection"
     },
     {
       "endpoint": "POST /api/chat/send",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2707,
+      "line": 2847,
       "literal": "/chat/send",
       "symbol": "sendChatMessage"
     },
     {
       "endpoint": "POST /api/chat/session-events",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2906,
+      "line": 3046,
       "literal": "/chat/session-events",
       "symbol": "setSessionEventsSubscription"
     },
     {
       "endpoint": "POST /api/chat/sessions/clear",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2767,
+      "line": 2907,
       "literal": "/chat/sessions/clear",
       "symbol": "clearSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/create",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2694,
+      "line": 2834,
       "literal": "/chat/sessions/create",
       "symbol": "createChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2797,
+      "line": 2937,
       "literal": "/chat/sessions/patch",
       "symbol": "patchSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2811,
+      "line": 2951,
       "literal": "/chat/sessions/patch",
       "symbol": "patchChatSession"
     },
     {
       "endpoint": "POST /api/chat/sessions/preview",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2637,
+      "line": 2777,
       "literal": "/chat/sessions/preview",
       "symbol": "fetchSessionPreviews"
     },
     {
       "endpoint": "POST /api/chat/sessions/reset",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2752,
+      "line": 2892,
       "literal": "/chat/sessions/reset",
       "symbol": "resetSession"
     },
     {
       "endpoint": "POST /api/chat/steer",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2737,
+      "line": 2877,
       "literal": "/chat/steer",
       "symbol": "steerChatSession"
     },
     {
       "endpoint": "POST /api/config/apply",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2165,
+      "line": 2195,
       "literal": "/config/apply",
       "symbol": "applyDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2177,
+      "line": 2207,
       "literal": "/config/patch",
       "symbol": "patchDeckConfig"
     },
     {
       "endpoint": "POST /api/config/patch",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2249,
+      "line": 2279,
       "literal": "/config/patch",
       "symbol": "nextEntry"
     },
     {
       "endpoint": "POST /api/config/schema-lookup",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 796,
+      "line": 826,
       "literal": "/config/schema-lookup",
       "symbol": "postConfigSchemaLookup"
     },
     {
       "endpoint": "POST /api/cron",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1313,
+      "line": 1343,
       "literal": "/cron",
       "symbol": "createCronJob"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2358,
+      "line": 2498,
       "literal": "/deck/agents",
       "symbol": "fetchAgentHealthSnapshot"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2370,
+      "line": 2510,
       "literal": "/deck/agents",
       "symbol": "fetchAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2386,
+      "line": 2526,
       "literal": "/deck/agents",
       "symbol": "updateAgentEventStreams"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2401,
+      "line": 2541,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2416,
+      "line": 2556,
       "literal": "/deck/agents",
       "symbol": "updateAgentSkills"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2435,
+      "line": 2575,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2469,
+      "line": 2609,
       "literal": "/deck/agents",
       "symbol": "updateAgentSubagentConfig"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2490,
+      "line": 2630,
       "literal": "/deck/agents",
       "symbol": "fetchAgentToolPolicyPreview"
     },
     {
       "endpoint": "POST /api/deck/agents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2502,
+      "line": 2642,
       "literal": "/deck/agents",
       "symbol": "fetchAgentSystemPromptPreview"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2947,
+      "line": 3087,
       "literal": "/deck/canvas",
       "symbol": "setCanvasBridgeReady"
     },
     {
       "endpoint": "POST /api/deck/canvas",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2963,
+      "line": 3103,
       "literal": "/deck/canvas",
       "symbol": "resolveCanvasEval"
     },
     {
       "endpoint": "POST /api/deck/commands/discover",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2575,
+      "line": 2715,
       "literal": "/deck/commands/discover",
       "symbol": "fetchCommandDiscovery"
     },
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1825,
+      "line": 1855,
       "literal": "/deck/identity",
       "symbol": "linkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/identity",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1843,
+      "line": 1873,
       "literal": "/deck/identity",
       "symbol": "unlinkIdentityPeer"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1905,
+      "line": 1935,
       "literal": "/deck/routing",
       "symbol": "validateRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1923,
+      "line": 1953,
       "literal": "/deck/routing",
       "symbol": "addRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1936,
+      "line": 1966,
       "literal": "/deck/routing",
       "symbol": "removeRoutingBinding"
     },
     {
       "endpoint": "POST /api/deck/routing",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1956,
+      "line": 1986,
       "literal": "/deck/routing",
       "symbol": "simulateRouting"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2004,
+      "line": 2034,
       "literal": "/deck/subagents",
       "symbol": "fetchSubagentLineage"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2016,
+      "line": 2046,
       "literal": "/deck/subagents",
       "symbol": "killSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/subagents",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2029,
+      "line": 2059,
       "literal": "/deck/subagents",
       "symbol": "steerSubagentRun"
     },
     {
       "endpoint": "POST /api/deck/tools-effective",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2563,
+      "line": 2703,
       "literal": "/deck/tools-effective",
       "symbol": "fetchEffectiveTools"
     },
     {
       "endpoint": "POST /api/devices/approve",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 656,
+      "line": 686,
       "literal": "/devices/approve",
       "symbol": "approveDeviceRequest"
     },
     {
       "endpoint": "POST /api/devices/reject",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 668,
+      "line": 698,
       "literal": "/devices/reject",
       "symbol": "rejectDeviceRequest"
     },
     {
       "endpoint": "POST /api/devices/remove",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 680,
+      "line": 710,
       "literal": "/devices/remove",
       "symbol": "removeDevice"
     },
     {
       "endpoint": "POST /api/devices/token/revoke",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 704,
+      "line": 734,
       "literal": "/devices/token/revoke",
       "symbol": "revokeDeviceToken"
     },
     {
       "endpoint": "POST /api/devices/token/rotate",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 692,
+      "line": 722,
       "literal": "/devices/token/rotate",
       "symbol": "rotateDeviceToken"
     },
     {
       "endpoint": "POST /api/docs/extract",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1380,
+      "line": 1410,
       "literal": "/docs/extract",
       "symbol": "extractDocs"
     },
     {
       "endpoint": "POST /api/memory/dreams",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1744,
+      "line": 1774,
       "literal": "/memory/dreams",
       "symbol": "runMemoryDreams"
     },
     {
       "endpoint": "POST /api/memory/search",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1713,
+      "line": 1743,
       "literal": "/memory/search",
       "symbol": "res"
     },
     {
+      "endpoint": "POST /api/models/mode/set",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2455,
+      "literal": "/models/mode/set",
+      "symbol": "setModelsCatalogMode"
+    },
+    {
+      "endpoint": "POST /api/models/models/delete",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2438,
+      "literal": "/models/models/delete",
+      "symbol": "deleteModel"
+    },
+    {
+      "endpoint": "POST /api/models/models/delete-preview",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2426,
+      "literal": "/models/models/delete-preview",
+      "symbol": "previewModelDelete"
+    },
+    {
+      "endpoint": "POST /api/models/models/upsert",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2413,
+      "literal": "/models/models/upsert",
+      "symbol": "upsertModel"
+    },
+    {
+      "endpoint": "POST /api/models/providers/delete",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2400,
+      "literal": "/models/providers/delete",
+      "symbol": "deleteModelProvider"
+    },
+    {
+      "endpoint": "POST /api/models/providers/delete-preview",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2388,
+      "literal": "/models/providers/delete-preview",
+      "symbol": "previewProviderDelete"
+    },
+    {
+      "endpoint": "POST /api/models/providers/upsert",
+      "file": "deck-go/frontend-new/src/api.ts",
+      "line": 2375,
+      "literal": "/models/providers/upsert",
+      "symbol": "upsertModelProvider"
+    },
+    {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1538,
+      "line": 1568,
       "literal": "/nodes",
       "symbol": "describeNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1550,
+      "line": 1580,
       "literal": "/nodes",
       "symbol": "renameNode"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1585,
+      "line": 1615,
       "literal": "/nodes",
       "symbol": "invokeNodeCommand"
     },
     {
       "endpoint": "POST /api/nodes",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1603,
+      "line": 1633,
       "literal": "/nodes",
       "symbol": "enqueueNodePendingWork"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1618,
+      "line": 1648,
       "literal": "/nodes/pair",
       "symbol": "approveNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1633,
+      "line": 1663,
       "literal": "/nodes/pair",
       "symbol": "requestNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1646,
+      "line": 1676,
       "literal": "/nodes/pair",
       "symbol": "rejectNodePairing"
     },
     {
       "endpoint": "POST /api/nodes/pair",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1659,
+      "line": 1689,
       "literal": "/nodes/pair",
       "symbol": "verifyNodePairing"
     },
     {
       "endpoint": "POST /api/runtime/endpoint:test",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 768,
+      "line": 798,
       "literal": "/runtime/endpoint:test",
       "symbol": "testEndpoint"
     },
     {
       "endpoint": "POST /api/settings/test-connection",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 624,
+      "line": 654,
       "literal": "/settings/test-connection",
       "symbol": "testSettingsConnection"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1190,
+      "line": 1220,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubBins"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1202,
+      "line": 1232,
       "literal": "/skills/hub",
       "symbol": "searchSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1214,
+      "line": 1244,
       "literal": "/skills/hub",
       "symbol": "fetchSkillHubDetail"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1230,
+      "line": 1260,
       "literal": "/skills/hub",
       "symbol": "installSkillHub"
     },
     {
       "endpoint": "POST /api/skills/hub",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1247,
+      "line": 1277,
       "literal": "/skills/hub",
       "symbol": "updateSkillHub"
     },
     {
       "endpoint": "POST /api/skills/install",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1177,
+      "line": 1207,
       "literal": "/skills/install",
       "symbol": "installSkill"
     },
     {
       "endpoint": "POST /api/tools/catalog",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 2551,
+      "line": 2691,
       "literal": "/tools/catalog",
       "symbol": "fetchToolsCatalog"
     },
     {
       "endpoint": "POST /api/usage/budget",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1766,
+      "line": 1796,
       "literal": "/usage/budget",
       "symbol": "createBudgetRule"
     },
     {
       "endpoint": "POST /api/webhooks",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1465,
+      "line": 1495,
       "literal": "/webhooks",
       "symbol": "createWebhook"
     },
     {
       "endpoint": "PUT /api/approvals/policy",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 1114,
+      "line": 1144,
       "literal": "/approvals/policy",
       "symbol": "updateApprovalsPolicy"
     },
     {
       "endpoint": "PUT /api/runtime/endpoint",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 756,
+      "line": 786,
       "literal": "/runtime/endpoint",
       "symbol": "updateEndpoint"
     },
     {
       "endpoint": "PUT /api/settings",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 607,
+      "line": 637,
       "literal": "/settings",
       "symbol": "fetchSettings"
     },
     {
       "endpoint": "PUT /api/settings",
       "file": "deck-go/frontend-new/src/api.ts",
-      "line": 612,
+      "line": 642,
       "literal": "/settings",
       "symbol": "saveSettings"
     }
@@ -6289,6 +6529,702 @@
       "text": "record, _ := payload.(map[string]any)"
     },
     {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 56,
+      "text": "func buildModelReferenceIndex(configMap map[string]any) *modelReferenceIndex {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "raw-any-result",
+      "line": 176,
+      "text": "func parseModelRef(value any) modelKey {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 190,
+      "text": "func scanAgentsDefaults(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 242,
+      "text": "func scanAgentsList(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "raw-any-result",
+      "line": 247,
+      "text": "list, ok := agents[\"list\"].([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 277,
+      "text": "func scanChannels(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 302,
+      "text": "func scanHooks(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "raw-any-result",
+      "line": 307,
+      "text": "if mappings, ok := hooks[\"mappings\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 347,
+      "text": "func scanTools(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 361,
+      "text": "func scanToolGroup(idx *modelReferenceIndex, tools map[string]any, key string, basePath string) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 371,
+      "text": "func scanEmbeddingModels(idx *modelReferenceIndex, embedding map[string]any, basePath string) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 388,
+      "text": "if models, ok := embedding[\"models\"].(map[string]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "map-string-any",
+      "line": 408,
+      "text": "func scanSessions(idx *modelReferenceIndex, configMap map[string]any) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/model_reference_index.go",
+      "kind": "raw-any-result",
+      "line": 430,
+      "text": "if list, ok := sessions[\"list\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "map-string-any",
+      "line": 45,
+      "text": "func fetchConfigState(ctx context.Context, adapter modelsControlSurface) (map[string]any, string, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "raw-any-result",
+      "line": 54,
+      "text": "func extractConfigPatchHash(payload any) string {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "raw-any-result",
+      "line": 370,
+      "text": "func handleModeSet(ctx context.Context, adapter modelsControlSurface, store *modelsControlImpactStore, req deckapi.DeckGoModelModeSetRequest) (any, int, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "map-string-any",
+      "line": 441,
+      "text": "func buildModeSetPreview(ctx context.Context, adapter modelsControlSurface, configMap map[string]any, refIndex *modelReferenceIndex, mode string, baseHash string) (deckapi.DeckGoModelImpactPreview, string, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "raw-any-result",
+      "line": 511,
+      "text": "func extractCatalogProviderIDs(payload any) []string {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_handlers.go",
+      "kind": "raw-any-result",
+      "line": 533,
+      "text": "providers, ok := record[\"providers\"].([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 77,
+      "text": "func projectModelsConfigDetail(configMap map[string]any, hash string, configPresent bool, refIndex *modelReferenceIndex) deckapi.DeckGoModelsConfigDetail {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 118,
+      "text": "func projectDefaults(configMap map[string]any) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 119,
+      "text": "out := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 145,
+      "text": "if list, ok := agents[\"list\"].([]any); ok && len(list) > 0 {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 156,
+      "text": "func defaultEntry(value any) (map[string]any, bool) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 161,
+      "text": "return map[string]any{\"provider\": ref.provider, \"model\": ref.model}, true"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 167,
+      "text": "func projectProviderEntry(providerID string, providerMap map[string]any, refIndex *modelReferenceIndex) deckapi.DeckGoModelProviderEntry {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 196,
+      "text": "func projectProviderModels(providerID string, providerMap map[string]any, refIndex *modelReferenceIndex, providerAPI string) []deckapi.DeckGoModelEntry {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 200,
+      "text": "if list, ok := providerMap[\"models\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 201,
+      "text": "rawModels = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 230,
+      "text": "func projectModelEntry(providerID string, modelID string, modelMap map[string]any, providerAPI string, refIndex *modelReferenceIndex) deckapi.DeckGoModelEntry {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 262,
+      "text": "func projectInputModalities(value any) []deckapi.DeckGoModelInputModality {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 263,
+      "text": "list, ok := value.([]any)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 292,
+      "text": "func secretInputStatus(value any) deckapi.DeckGoModelSecretInputStatus {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 301,
+      "text": "case map[string]any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 334,
+      "text": "func compatSummary(compatRaw any) deckapi.DeckGoModelCompatSummary {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 364,
+      "text": "func requestSummary(requestRaw any) deckapi.DeckGoModelProviderRequestSummary {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 384,
+      "text": "func hasMeaningfulValue(value any) bool {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 390,
+      "text": "case map[string]any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 392,
+      "text": "case []any:"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 399,
+      "text": "func costSummary(costRaw any) deckapi.DeckGoModelCost {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 416,
+      "text": "func cloneConfigMap(configMap map[string]any) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 418,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 422,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 424,
+      "text": "var clone map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 426,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 429,
+      "text": "return map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 434,
+      "text": "func marshalConfig(configMap map[string]any) (string, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 442,
+      "text": "func ensureMap(parent map[string]any, key string) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 447,
+      "text": "created := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 456,
+      "text": "func applyProviderUpsert(configMap map[string]any, req deckapi.DeckGoModelProviderUpsertRequest) (map[string]any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 482,
+      "text": "target := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 537,
+      "text": "modelsMap := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 538,
+      "text": "var existingModels map[string]any"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 568,
+      "text": "func applyApiKeyAction(target map[string]any, action map[string]any) error {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 584,
+      "text": "out := map[string]any{\"ref\": ref}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 595,
+      "text": "func applyHeadersActions(target map[string]any, headers map[string]map[string]any, isCreate bool) error {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 601,
+      "text": "existing = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 603,
+      "text": "out := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 619,
+      "text": "value := map[string]any{\"ref\": ref}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 643,
+      "text": "func buildModelConfigMap(input deckapi.DeckGoModelProviderUpsertModelInput, existing map[string]any) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 644,
+      "text": "out := map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 695,
+      "text": "hdrMap := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 704,
+      "text": "func stringSliceToAnySlice(values []string) []any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "raw-any-result",
+      "line": 705,
+      "text": "out := make([]any, len(values))"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 716,
+      "text": "func costMapFromInput(c deckapi.DeckGoModelCost) map[string]any {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 717,
+      "text": "out := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 736,
+      "text": "func applyProviderDelete(configMap map[string]any, providerID string) (map[string]any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 755,
+      "text": "func applyModelUpsert(configMap map[string]any, req deckapi.DeckGoModelUpsertRequest) (map[string]any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 776,
+      "text": "providerModels = map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 786,
+      "text": "target := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 836,
+      "text": "hdrMap := map[string]any{}"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 855,
+      "text": "func applyModelDelete(configMap map[string]any, providerID string, modelID string) (map[string]any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control_helpers.go",
+      "kind": "map-string-any",
+      "line": 884,
+      "text": "func applyModeSet(configMap map[string]any, mode deckapi.DeckGoModelCatalogMode) (map[string]any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 23,
+      "text": "ConfigGet(ctx context.Context) (any, error)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 24,
+      "text": "ConfigPatch(ctx context.Context, raw string, baseHash string, note string) (any, error)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 25,
+      "text": "ModelsCatalogProviders(ctx context.Context) (any, error)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 26,
+      "text": "ModelsConfigured(ctx context.Context) (any, error)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 27,
+      "text": "DeckAuthOverview(ctx context.Context) (any, error)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 106,
+      "text": "writeJSON(w, http.StatusBadGateway, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 113,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 119,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 126,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 134,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 140,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 147,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 155,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 161,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 168,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 176,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 182,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 189,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 198,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 204,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 211,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 220,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 226,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 233,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 242,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 248,
+      "text": "writeJSON(w, http.StatusBadRequest, map[string]any{\"ok\": false, \"error\": err.Error()})"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 255,
+      "text": "writeJSON(w, status, map[string]any{"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "write-json-any",
+      "line": 263,
+      "text": "writeJSON(w, http.StatusOK, response)"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 267,
+      "text": "func decodeModelsControlBody(r *http.Request, into any) error {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 318,
+      "text": "func extractConfigMap(payload any) (map[string]any, string, bool) {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 320,
+      "text": "for _, candidate := range []any{result.Config, result.Parsed, result.Resolved, result.SourceConfig} {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 325,
+      "text": "return map[string]any{}, result.Hash, result.Exists"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 334,
+      "text": "return map[string]any{}, hash, false"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 342,
+      "text": "func projectRuntimeSummary(catalog any, catalogErr error, auth any, authErr error) deckapi.DeckGoModelsConfigDetailRuntime {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 361,
+      "text": "func extractCatalogProviderCount(payload any) int {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 369,
+      "text": "if providers, ok := record[\"providers\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 373,
+      "text": "if providers, ok := nested[\"providers\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 380,
+      "text": "func extractAuthProviderCount(payload any) int {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 388,
+      "text": "if providers, ok := record[\"providers\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "raw-any-result",
+      "line": 392,
+      "text": "if providers, ok := nested[\"providers\"].([]any); ok {"
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 399,
+      "text": "// sortedKeys returns the keys of a map[string]any in deterministic order."
+    },
+    {
+      "file": "deck-go/backend/internal/server/models_control.go",
+      "kind": "map-string-any",
+      "line": 400,
+      "text": "func sortedKeys(m map[string]any) []string {"
+    },
+    {
       "file": "deck-go/backend/internal/server/onboarding.go",
       "kind": "map-string-any",
       "line": 16,
@@ -6393,13 +7329,13 @@
     {
       "file": "deck-go/backend/internal/server/server.go",
       "kind": "map-string-any",
-      "line": 114,
+      "line": 115,
       "text": "writeJSON(w, http.StatusNotImplemented, map[string]any{"
     },
     {
       "file": "deck-go/backend/internal/server/server.go",
       "kind": "write-json-any",
-      "line": 122,
+      "line": 123,
       "text": "func writeJSON(w http.ResponseWriter, status int, payload any) {"
     },
     {
@@ -8549,6 +9485,24 @@
       "kind": "map-string-any",
       "line": 412,
       "text": "if payload, err := s.managed.GatewayQueries().ConfigGetWithParams(ctx, map[string]any{\"path\": \"agents.defaults.workspace\"}); err == nil {"
+    },
+    {
+      "file": "deck-go/backend/internal/runtime/openclaw/legacy_inventory.go",
+      "kind": "raw-any-result",
+      "line": 430,
+      "text": "func (s *LegacyInventorySurface) ModelsConfigured(ctx context.Context) (any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/runtime/openclaw/legacy_inventory.go",
+      "kind": "raw-any-result",
+      "line": 434,
+      "text": "func (s *LegacyInventorySurface) ModelsCatalogProviders(ctx context.Context) (any, error) {"
+    },
+    {
+      "file": "deck-go/backend/internal/runtime/openclaw/legacy_inventory.go",
+      "kind": "raw-any-result",
+      "line": 438,
+      "text": "func (s *LegacyInventorySurface) DeckAuthOverview(ctx context.Context) (any, error) {"
     },
     {
       "file": "deck-go/backend/internal/runtime/openclaw/managed_runtime_ws.go",

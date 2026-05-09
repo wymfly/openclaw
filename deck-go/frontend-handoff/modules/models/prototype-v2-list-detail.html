@@ -1,0 +1,44 @@
+<!doctype html>
+<!--
+  HISTORICAL REFERENCE — V2 list↔detail prototype shell.
+
+  This file preserves the multi-file V2 prototype shell that wired
+  app.jsx / list-view.jsx / detail-view.jsx / dialogs.jsx / data.js /
+  icons.jsx / styles.css / tokens.css / tweaks-panel.jsx into a single
+  Babel-standalone interactive prototype.
+
+  The V2 list↔detail product line (Limits / Pricing / Usage / Auth /
+  Audit tabs + usage cost dashboard + audit history) is no longer the
+  production target. The current Models module is a typed
+  config-authority workbench — see prototype.html for the active visual
+  target and ../README.md / ../components.md for the new component
+  tree.
+
+  This file is preserved on disk as a labeled reference only; do not
+  implement against it.
+-->
+<html lang="en" data-theme="dark" data-density="comfortable">
+<head>
+  <meta charset="utf-8"/>
+  <title>deck-go models — V2 list↔detail prototype (historical reference)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"/>
+  <link rel="stylesheet" href="tokens.css"/>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <script src="data.js"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="icons.jsx"></script>
+  <script type="text/babel" src="dialogs.jsx"></script>
+  <script type="text/babel" src="list-view.jsx"></script>
+  <script type="text/babel" src="detail-view.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

@@ -11,7 +11,7 @@
     {
       "surface": "DeckGoActivityStreamEvent.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2340,
+      "line": 2685,
       "type": "[key: string]: unknown;",
       "classification": "sse-extension-envelope",
       "owner": "activity",
@@ -21,7 +21,7 @@
     {
       "surface": "DeckGoAgentDetailResponse.<type>.sandbox",
       "kind": "unknown",
-      "line": 1266,
+      "line": 1611,
       "type": "unknown",
       "classification": "config-fragment",
       "owner": "agents",
@@ -31,7 +31,7 @@
     {
       "surface": "DeckGoAgentHealthSnapshot.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 1278,
+      "line": 1623,
       "type": "[key: string]: unknown;",
       "classification": "gateway-status-envelope",
       "owner": "agents",
@@ -41,7 +41,7 @@
     {
       "surface": "DeckGoAgentHealthSnapshot.<type>.agents",
       "kind": "array-record-unknown",
-      "line": 1277,
+      "line": 1622,
       "type": "Array<Record<string, unknown>>",
       "classification": "gateway-status-envelope",
       "owner": "agents",
@@ -51,7 +51,7 @@
     {
       "surface": "DeckGoAgentRawConfig.<type>.defaults",
       "kind": "record-unknown",
-      "line": 1283,
+      "line": 1628,
       "type": "Record<string, unknown>",
       "classification": "config-fragment",
       "owner": "agents",
@@ -61,7 +61,7 @@
     {
       "surface": "DeckGoAgentRawConfig.<type>.entry",
       "kind": "record-unknown",
-      "line": 1284,
+      "line": 1629,
       "type": "Record<string, unknown>",
       "classification": "config-fragment",
       "owner": "agents",
@@ -71,7 +71,7 @@
     {
       "surface": "DeckGoAgentRawConfig.<type>.list",
       "kind": "array-record-unknown",
-      "line": 1285,
+      "line": 1630,
       "type": "Record<string, unknown>[]",
       "classification": "config-fragment",
       "owner": "agents",
@@ -81,7 +81,7 @@
     {
       "surface": "DeckGoAgentSubagentConfigResponse.<type>.effectiveThinking",
       "kind": "unknown",
-      "line": 1340,
+      "line": 1685,
       "type": "unknown",
       "classification": "config-fragment",
       "owner": "subagents",
@@ -91,7 +91,7 @@
     {
       "surface": "DeckGoCanvasBridgeEvalRequest.result",
       "kind": "unknown",
-      "line": 2497,
+      "line": 2842,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "chat",
@@ -131,7 +131,7 @@
     {
       "surface": "DeckGoChatProjectionRequest.a2uiState",
       "kind": "record-unknown",
-      "line": 2475,
+      "line": 2820,
       "type": "Record<string, unknown>",
       "classification": "chat-runtime-envelope",
       "owner": "chat",
@@ -141,7 +141,7 @@
     {
       "surface": "DeckGoChatSessionPatchRequest.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2462,
+      "line": 2807,
       "type": "[key: string]: unknown;",
       "classification": "gateway-forward-compatible-envelope",
       "owner": "chat",
@@ -171,7 +171,7 @@
     {
       "surface": "DeckGoConfigLookupChild.<type>.hint",
       "kind": "record-unknown",
-      "line": 1158,
+      "line": 1508,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -181,7 +181,7 @@
     {
       "surface": "DeckGoConfigLookupResponse.<type>.hint",
       "kind": "record-unknown",
-      "line": 1165,
+      "line": 1515,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -191,7 +191,7 @@
     {
       "surface": "DeckGoConfigLookupResponse.<type>.schema",
       "kind": "record-unknown",
-      "line": 1164,
+      "line": 1514,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -211,7 +211,7 @@
     {
       "surface": "DeckGoContextWeightReport.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2186,
+      "line": 2531,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",
@@ -221,7 +221,7 @@
     {
       "surface": "DeckGoCronJob.<type>.delivery",
       "kind": "unknown",
-      "line": 1560,
+      "line": 1905,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "cron",
@@ -231,7 +231,7 @@
     {
       "surface": "DeckGoCronJob.<type>.payload.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 1559,
+      "line": 1904,
       "type": "[key: string]: unknown",
       "classification": "action-payload-envelope",
       "owner": "cron",
@@ -241,7 +241,7 @@
     {
       "surface": "DeckGoCronJobInput.<type>.payload.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 1576,
+      "line": 1921,
       "type": "[key: string]: unknown",
       "classification": "action-payload-envelope",
       "owner": "cron",
@@ -251,7 +251,7 @@
     {
       "surface": "DeckGoCronRunEntry.<type>.delivery",
       "kind": "unknown",
-      "line": 1589,
+      "line": 1934,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "cron",
@@ -261,7 +261,7 @@
     {
       "surface": "DeckGoDeviceTokenRotateResponse.<type>",
       "kind": "record-unknown",
-      "line": 1496,
+      "line": 1841,
       "type": "Record<string, unknown>",
       "classification": "action-result-envelope",
       "owner": "identity",
@@ -461,7 +461,7 @@
     {
       "surface": "DeckGoNodeInvokeResponse.<type>.payload",
       "kind": "unknown",
-      "line": 1844,
+      "line": 2189,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "nodes",
@@ -471,7 +471,7 @@
     {
       "surface": "DeckGoNodePendingWorkItem.<type>.payload",
       "kind": "record-unknown",
-      "line": 1860,
+      "line": 2205,
       "type": "Record<string, unknown>",
       "classification": "action-payload-envelope",
       "owner": "nodes",
@@ -631,7 +631,7 @@
     {
       "surface": "DeckGoUsageSessionsResponse.<type>.aggregates.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2271,
+      "line": 2616,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",
@@ -641,7 +641,7 @@
     {
       "surface": "DeckGoUsageTotals.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2148,
+      "line": 2493,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",

@@ -120,8 +120,23 @@ import type {
   DeckGoModelAuthOverviewResponse,
   DeckGoModelAuthProvider,
   DeckGoModelCatalogProvidersResponse,
+  DeckGoModelDeleteCommitRequest,
+  DeckGoModelDeleteCommitResponse,
+  DeckGoModelDeletePreviewRequest,
+  DeckGoModelImpactPreviewResponse,
+  DeckGoModelModeSetCommitResponse,
+  DeckGoModelModeSetDryRunResponse,
+  DeckGoModelModeSetRequest,
   DeckGoModelProbeResponse,
+  DeckGoModelProviderDeleteCommitRequest,
+  DeckGoModelProviderDeleteCommitResponse,
+  DeckGoModelProviderDeletePreviewRequest,
+  DeckGoModelProviderUpsertRequest,
+  DeckGoModelProviderUpsertResponse,
+  DeckGoModelsConfigDetailResponse,
   DeckGoModelsConfigResponse,
+  DeckGoModelUpsertRequest,
+  DeckGoModelUpsertResponse,
   DeckGoMonitorRun,
   DeckGoMonitorRunDetailResponse,
   DeckGoMonitorRunEvent,
@@ -358,8 +373,23 @@ export type {
   DeckGoModelAuthOverviewResponse,
   DeckGoModelAuthProvider,
   DeckGoModelCatalogProvidersResponse,
+  DeckGoModelDeleteCommitRequest,
+  DeckGoModelDeleteCommitResponse,
+  DeckGoModelDeletePreviewRequest,
+  DeckGoModelImpactPreviewResponse,
+  DeckGoModelModeSetCommitResponse,
+  DeckGoModelModeSetDryRunResponse,
+  DeckGoModelModeSetRequest,
   DeckGoModelProbeResponse,
+  DeckGoModelProviderDeleteCommitRequest,
+  DeckGoModelProviderDeleteCommitResponse,
+  DeckGoModelProviderDeletePreviewRequest,
+  DeckGoModelProviderUpsertRequest,
+  DeckGoModelProviderUpsertResponse,
+  DeckGoModelsConfigDetailResponse,
   DeckGoModelsConfigResponse,
+  DeckGoModelUpsertRequest,
+  DeckGoModelUpsertResponse,
   DeckGoMonitorRun,
   DeckGoMonitorRunDetailResponse,
   DeckGoMonitorRunEvent,
@@ -2327,6 +2357,116 @@ export async function saveModelsConfig(raw: string, baseHash?: string) {
     "models config save failed",
   );
   return acknowledgeMutationResponse("models.config.save", response);
+}
+
+// Typed Models BFF surface. Normal product CRUD must use these helpers.
+// `saveModelsConfig` above remains the advanced raw-editor escape hatch only.
+
+export async function fetchModelsConfigDetail() {
+  return fetchDeckJson<DeckGoModelsConfigDetailResponse>(
+    "/models/config/detail",
+    undefined,
+    "models config detail fetch failed",
+  );
+}
+
+export async function upsertModelProvider(req: DeckGoModelProviderUpsertRequest) {
+  const response = await fetchDeckJson<DeckGoModelProviderUpsertResponse>(
+    "/models/providers/upsert",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models provider upsert failed",
+  );
+  return acknowledgeMutationResponse("models.providers.upsert", response);
+}
+
+export async function previewProviderDelete(req: DeckGoModelProviderDeletePreviewRequest) {
+  return fetchDeckJson<DeckGoModelImpactPreviewResponse>(
+    "/models/providers/delete-preview",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models provider delete preview failed",
+  );
+}
+
+export async function deleteModelProvider(req: DeckGoModelProviderDeleteCommitRequest) {
+  const response = await fetchDeckJson<DeckGoModelProviderDeleteCommitResponse>(
+    "/models/providers/delete",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models provider delete failed",
+  );
+  return acknowledgeMutationResponse("models.providers.delete", response);
+}
+
+export async function upsertModel(req: DeckGoModelUpsertRequest) {
+  const response = await fetchDeckJson<DeckGoModelUpsertResponse>(
+    "/models/models/upsert",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models model upsert failed",
+  );
+  return acknowledgeMutationResponse("models.models.upsert", response);
+}
+
+export async function previewModelDelete(req: DeckGoModelDeletePreviewRequest) {
+  return fetchDeckJson<DeckGoModelImpactPreviewResponse>(
+    "/models/models/delete-preview",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models model delete preview failed",
+  );
+}
+
+export async function deleteModel(req: DeckGoModelDeleteCommitRequest) {
+  const response = await fetchDeckJson<DeckGoModelDeleteCommitResponse>(
+    "/models/models/delete",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models model delete failed",
+  );
+  return acknowledgeMutationResponse("models.models.delete", response);
+}
+
+export async function setModelsCatalogMode(
+  req: DeckGoModelModeSetRequest,
+): Promise<DeckGoModelModeSetDryRunResponse | DeckGoModelModeSetCommitResponse> {
+  const response = await fetchDeckJson<
+    DeckGoModelModeSetDryRunResponse | DeckGoModelModeSetCommitResponse
+  >(
+    "/models/mode/set",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+    },
+    "models mode set failed",
+  );
+  if (!req.dryRun) {
+    return acknowledgeMutationResponse(
+      "models.mode.set",
+      response as DeckGoModelModeSetCommitResponse,
+    );
+  }
+  return response;
 }
 
 export async function lookupConfigPath(path: string) {

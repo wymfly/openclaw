@@ -1152,6 +1152,356 @@ export type DeckGoModelProbeResponse = {
   requestId?: string;
 };
 
+// ----------------------------------------------------------------------------
+// Models config control plane DTOs
+// ----------------------------------------------------------------------------
+//
+// Source-of-truth notes for reviewers:
+// - OpenClaw model config types: src/config/types.models.ts (ModelsConfig,
+//   ModelProviderConfig, ModelDefinitionConfig, MODEL_APIS, ModelProviderAuthMode).
+// - OpenClaw zod optionality + sensitive markers: src/config/zod-schema.core.ts
+//   (ModelsConfigSchema, ModelProviderSchema, ModelDefinitionSchema).
+// - OpenClaw schema help: src/config/schema.help.ts (models.* keys including
+//   models.mode merge/replace semantics).
+// - Gateway config write: config.get + config.patch with expected base hash.
+// - Runtime read RPCs: models.configured, models.catalog.providers,
+//   deck.auth.overview, deck.auth.probe.
+//
+// SecretInput safety rule: deck-go SHALL never reveal a literal secret value
+// through these DTOs. Sensitive fields (provider apiKey, provider headers
+// values) are exposed only through DeckGoModelSecretInputStatus.
+
+export type DeckGoModelSecretInputStatus =
+  | { state: "missing" }
+  | { state: "empty" }
+  | { state: "ref"; ref: string; refTemplate?: string }
+  | { state: "literal-redacted"; redactedHint?: string };
+
+export type DeckGoModelCompatFlag =
+  | "tools"
+  | "vision"
+  | "json-mode"
+  | "structured-output"
+  | "system-prompt"
+  | "stream"
+  | "logprobs"
+  | "reasoning"
+  | "fim"
+  | "embedding"
+  | "rerank"
+  | "audio"
+  | "video";
+
+export type DeckGoModelCompatSummary = {
+  hasCompat: boolean;
+  flags?: DeckGoModelCompatFlag[];
+  rawKeys?: string[];
+};
+
+export type DeckGoModelProviderRequestSummary = {
+  hasRequest: boolean;
+  hasAuth?: boolean;
+  hasProxy?: boolean;
+  hasTls?: boolean;
+  rawKeys?: string[];
+};
+
+export type DeckGoModelInputModality = "text" | "image" | "pdf" | "audio" | "video";
+
+export type DeckGoModelCost = {
+  input?: number;
+  output?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  unit?: string;
+};
+
+export type DeckGoModelEntry = {
+  id: string;
+  name?: string;
+  api?: string;
+  inheritsApi: boolean;
+  reasoning?: boolean;
+  inputs?: DeckGoModelInputModality[];
+  contextWindow?: number;
+  contextTokens?: number;
+  maxTokens?: number;
+  cost?: DeckGoModelCost;
+  hasHeaders: boolean;
+  compat: DeckGoModelCompatSummary;
+  isReferenced: boolean;
+  isDefault?: boolean;
+  defaultRoles?: string[];
+};
+
+export type DeckGoModelDetail = {
+  id: string;
+  name?: string;
+  api?: string;
+  inheritsApi: boolean;
+  reasoning?: boolean;
+  inputs?: DeckGoModelInputModality[];
+  contextWindow?: number;
+  contextTokens?: number;
+  maxTokens?: number;
+  cost?: DeckGoModelCost;
+  hasHeaders: boolean;
+  compat: DeckGoModelCompatSummary;
+  isReferenced: boolean;
+  isDefault?: boolean;
+  defaultRoles?: string[];
+  headers?: Record<string, string>;
+};
+
+export type DeckGoModelProviderAuthMode = "api-key" | "aws-sdk" | "oauth" | "token";
+
+export type DeckGoModelProviderEntry = {
+  id: string;
+  api?: string;
+  baseUrl?: string;
+  auth?: DeckGoModelProviderAuthMode;
+  authHeader?: boolean;
+  injectNumCtxForOpenAICompat?: boolean;
+  hasHeaders: boolean;
+  apiKeyStatus: DeckGoModelSecretInputStatus;
+  request: DeckGoModelProviderRequestSummary;
+  isReferenced: boolean;
+  modelCount: number;
+  models: DeckGoModelEntry[];
+};
+
+export type DeckGoModelProviderDetail = {
+  id: string;
+  api?: string;
+  baseUrl?: string;
+  auth?: DeckGoModelProviderAuthMode;
+  authHeader?: boolean;
+  injectNumCtxForOpenAICompat?: boolean;
+  hasHeaders: boolean;
+  apiKeyStatus: DeckGoModelSecretInputStatus;
+  request: DeckGoModelProviderRequestSummary;
+  isReferenced: boolean;
+  modelCount: number;
+  models: DeckGoModelEntry[];
+  headers?: Record<string, DeckGoModelSecretInputStatus>;
+};
+
+export type DeckGoModelCatalogMode = "merge" | "replace";
+
+export type DeckGoModelsConfigDetailRuntime = {
+  catalogStatus: "available" | "stale" | "unavailable";
+  catalogProviderCount?: number;
+  authStatus: "available" | "unavailable";
+  authProviderCount?: number;
+  probeStatus: "available" | "unavailable";
+  staleAt?: number;
+};
+
+export type DeckGoModelsConfigDetail = {
+  hash: string;
+  configPresent: boolean;
+  mode: DeckGoModelCatalogMode;
+  modeSource: "config" | "default";
+  defaults?: {
+    text?: { provider?: string; model?: string };
+    image?: { provider?: string; model?: string };
+    pdf?: { provider?: string; model?: string };
+    summary?: { provider?: string; model?: string };
+    compaction?: { provider?: string; model?: string };
+    memorySearch?: { provider?: string; model?: string };
+  };
+  providers: DeckGoModelProviderEntry[];
+  runtime: DeckGoModelsConfigDetailRuntime;
+};
+
+export type DeckGoModelsConfigDetailResponse = {
+  runtimeId?: string;
+  detail: DeckGoModelsConfigDetail;
+};
+
+export type DeckGoModelReferenceKind =
+  | "agents.defaults"
+  | "agents.list"
+  | "channels"
+  | "hooks"
+  | "tools"
+  | "sessions";
+
+export type DeckGoModelReferenceEntry = {
+  kind: DeckGoModelReferenceKind;
+  path: string;
+  providerId?: string;
+  modelId?: string;
+  label?: string;
+};
+
+export type DeckGoModelBuiltinProviderImpact = {
+  providerId: string;
+  isReferenced: boolean;
+  references: DeckGoModelReferenceEntry[];
+};
+
+export type DeckGoModelImpactSeverity = "none" | "info" | "warn" | "block";
+
+export type DeckGoModelImpactPreview = {
+  scope: "provider.delete" | "model.delete" | "mode.set";
+  severity: DeckGoModelImpactSeverity;
+  references: DeckGoModelReferenceEntry[];
+  unavailableProviders?: DeckGoModelBuiltinProviderImpact[];
+  defaultsAffected?: string[];
+  impactToken: string;
+  generatedAt: number;
+  baseHash: string;
+};
+
+export type DeckGoModelImpactPreviewResponse = {
+  runtimeId?: string;
+  preview: DeckGoModelImpactPreview;
+};
+
+// --- Provider upsert ---------------------------------------------------------
+
+export type DeckGoModelProviderUpsertModelInput = {
+  id: string;
+  name?: string;
+  api?: string;
+  inheritsApi?: boolean;
+  reasoning?: boolean;
+  inputs?: DeckGoModelInputModality[];
+  contextWindow?: number;
+  contextTokens?: number;
+  maxTokens?: number;
+  cost?: DeckGoModelCost;
+  headers?: Record<string, string>;
+  preserveCompat?: boolean;
+};
+
+export type DeckGoModelProviderUpsertRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+  isCreate: boolean;
+  api?: string;
+  baseUrl?: string;
+  auth?: DeckGoModelProviderAuthMode;
+  authHeader?: boolean;
+  injectNumCtxForOpenAICompat?: boolean;
+  apiKey?:
+    | { action: "set-ref"; ref: string; refTemplate?: string }
+    | { action: "clear" }
+    | { action: "preserve" };
+  headers?: Record<
+    string,
+    | { action: "set-ref"; ref: string; refTemplate?: string }
+    | { action: "remove" }
+    | { action: "preserve" }
+  >;
+  models?: DeckGoModelProviderUpsertModelInput[];
+  preserveRequest?: boolean;
+};
+
+export type DeckGoModelProviderUpsertResponse = {
+  ok: boolean;
+  baseHash?: string;
+  hash: string;
+  providerId: string;
+};
+
+// --- Provider delete preview / commit ----------------------------------------
+
+export type DeckGoModelProviderDeletePreviewRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+};
+
+export type DeckGoModelProviderDeleteCommitRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+  impactToken: string;
+  confirmText: string;
+};
+
+export type DeckGoModelProviderDeleteCommitResponse = {
+  ok: boolean;
+  baseHash?: string;
+  hash: string;
+  providerId: string;
+};
+
+// --- Model upsert ------------------------------------------------------------
+
+export type DeckGoModelUpsertRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+  modelId: string;
+  isCreate: boolean;
+  name?: string;
+  api?: string;
+  inheritsApi?: boolean;
+  reasoning?: boolean;
+  inputs?: DeckGoModelInputModality[];
+  contextWindow?: number;
+  contextTokens?: number;
+  maxTokens?: number;
+  cost?: DeckGoModelCost;
+  headers?: Record<string, string>;
+  preserveCompat?: boolean;
+};
+
+export type DeckGoModelUpsertResponse = {
+  ok: boolean;
+  baseHash?: string;
+  hash: string;
+  providerId: string;
+  modelId: string;
+};
+
+// --- Model delete preview / commit -------------------------------------------
+
+export type DeckGoModelDeletePreviewRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+  modelId: string;
+};
+
+export type DeckGoModelDeleteCommitRequest = {
+  expectedBaseHash: string;
+  providerId: string;
+  modelId: string;
+  impactToken: string;
+  confirmText: string;
+};
+
+export type DeckGoModelDeleteCommitResponse = {
+  ok: boolean;
+  baseHash?: string;
+  hash: string;
+  providerId: string;
+  modelId: string;
+};
+
+// --- Mode set ----------------------------------------------------------------
+
+export type DeckGoModelModeSetRequest = {
+  expectedBaseHash: string;
+  mode: DeckGoModelCatalogMode;
+  dryRun: boolean;
+  impactToken?: string;
+  confirmText?: string;
+};
+
+export type DeckGoModelModeSetDryRunResponse = {
+  ok: boolean;
+  baseHash: string;
+  preview: DeckGoModelImpactPreview;
+};
+
+export type DeckGoModelModeSetCommitResponse = {
+  ok: boolean;
+  baseHash?: string;
+  hash: string;
+  mode: DeckGoModelCatalogMode;
+};
+
 export type DeckGoConfigLookupChild = {
   key: string;
   path: string;
