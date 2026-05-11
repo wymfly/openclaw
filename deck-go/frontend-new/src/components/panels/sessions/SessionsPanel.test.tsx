@@ -957,4 +957,24 @@ describe("SessionsPanel", () => {
     );
     expect(runtimeMetadataHeadings.length).toBe(0);
   });
+
+  it("inspector overview tab includes a Tab summaries row (history/lineage/usage/compaction)", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    const overview = container.querySelector("#sessions-inspector-overview");
+    expect(overview).not.toBeNull();
+    const summaryRow = overview!.querySelector(".sessions-status-row");
+    expect(summaryRow).not.toBeNull();
+    const text = summaryRow!.textContent ?? "";
+    // i18n values: history="History", inspector.lineage="Lineage",
+    // inspector.usage="Usage", inspector.compaction="Compaction"
+    expect(text).toMatch(/History/);
+    expect(text).toMatch(/Lineage/);
+    expect(text).toMatch(/Usage/);
+    expect(text).toMatch(/Compaction/);
+  });
 });

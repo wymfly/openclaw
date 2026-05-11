@@ -994,6 +994,20 @@ export function SessionsPanel() {
                         thinking: selectedSession.thinkingLevel || t("off"),
                       })}
                     </p>
+                    <div className="sessions-status-row">
+                      <Badge>
+                        {t("history")}: {history?.messages?.length ?? 0}
+                      </Badge>
+                      <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
+                        {t("inspector.lineage")}: {t(lineageState)}
+                      </Badge>
+                      <Badge>
+                        {t("inspector.usage")}: {formatCompactNumber(selectedTotalTokens)}
+                      </Badge>
+                      <Badge>
+                        {t("inspector.compaction")}: {selectedSession.compactionCount ?? 0}
+                      </Badge>
+                    </div>
                   </>
                 ) : (
                   <p className="sessions-empty">{t("noActiveSession")}</p>
