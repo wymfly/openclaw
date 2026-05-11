@@ -907,4 +907,18 @@ describe("SessionsPanel", () => {
       expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-build" }),
     );
   });
+
+  it("removes history and lineage badges from selected hero", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    const hero = container.querySelector(".sessions-hero");
+    expect(hero).not.toBeNull();
+    const statusRowText = hero!.querySelector(".sessions-status-row")?.textContent ?? "";
+    expect(statusRowText).not.toMatch(/history/i);
+    expect(statusRowText).not.toMatch(/lineage/i);
+  });
 });

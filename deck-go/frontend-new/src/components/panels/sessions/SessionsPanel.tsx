@@ -803,12 +803,9 @@ export function SessionsPanel() {
                     </p>
                   </div>
                   <div className="sessions-status-row">
-                    <Badge>{t("historyMessages", { count: history?.messages?.length ?? 0 })}</Badge>
-                    {selectedIsSubagent ? (
-                      <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
-                        {t("lineageStatus", { state: t(lineageState) })}
-                      </Badge>
-                    ) : null}
+                    <Badge variant={statusVariant(selectedSession?.status)}>
+                      {selectedSession?.status || t("unknown")}
+                    </Badge>
                     <Badge>
                       {t("runtimeValue", {
                         value:
