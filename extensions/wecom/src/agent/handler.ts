@@ -6,7 +6,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { pathToFileURL } from "node:url";
 import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
-import type { WecomAccountRuntime } from "../app/account-runtime.js";
 import { resolveWecomMediaMaxBytes, shouldRejectWecomDefaultRoute } from "../config/index.js";
 import {
   buildAgentSessionTarget,
@@ -14,7 +13,7 @@ import {
   shouldUseDynamicAgent,
   ensureDynamicAgentListed,
 } from "../dynamic-agent.js";
-import { getWecomRuntime } from "../runtime.js";
+import { chunkWecomMarkdownText } from "../markdown/render.js";
 import {
   buildWecomUnauthorizedCommandPrompt,
   resolveWecomCommandAuthorization,
@@ -47,39 +46,50 @@ const ERROR_HELP = "\n\n遇到问题？联系作者: YanHaidao (微信: YanHaida
 const RECENT_MSGID_TTL_MS = 10 * 60 * 1000;
 const recentAgentMsgIds = new Map<string, number>();
 
-// Event deduplication (e.g. for ENTER_AGENT/subscribe welcome messages)
-// We only want to send a welcome message once every 5 minutes per user
-const RECENT_EVENT_TTL_MS = 3 * 60 * 1000;
-const recentAgentEvents = new Map<string, number>();
-
-function rememberAgentEvent(key: string): boolean {
-  const now = Date.now();
-  const existing = recentAgentEvents.get(key);
-  if (existing && now - existing < RECENT_EVENT_TTL_MS) return false;
-  recentAgentEvents.set(key, now);
-  // Prune expired
-  for (const [k, ts] of recentAgentEvents) {
-    if (now - ts >= RECENT_EVENT_TTL_MS) recentAgentEvents.delete(k);
-  }
-  return true;
-}
-
 function rememberAgentMsgId(msgId: string): boolean {
   const now = Date.now();
   const existing = recentAgentMsgIds.get(msgId);
-  if (existing && now - existing < RECENT_MSGID_TTL_MS) return false;
+  if (existing && now - existing < RECENT_MSGID_TTL_MS) {
+    return false;
+  }
   recentAgentMsgIds.set(msgId, now);
   // 简单清理：只在写入时做一次线性 prune，避免无界增长
   for (const [k, ts] of recentAgentMsgIds) {
-    if (now - ts >= RECENT_MSGID_TTL_MS) recentAgentMsgIds.delete(k);
+    if (now - ts >= RECENT_MSGID_TTL_MS) {
+      recentAgentMsgIds.delete(k);
+    }
   }
   return true;
 }
 
 function previewHex(buffer: Buffer, maxBytes = 32): string {
   const n = Math.min(buffer.length, maxBytes);
-  if (n <= 0) return "";
+  if (n <= 0) {
+    return "";
+  }
   return buffer.subarray(0, n).toString("hex").replace(/(..)/g, "$1 ").trim();
+}
+
+function readString(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    return "";
+  }
+  return String(value).trim();
+}
+
+function describeUnknown(value: unknown): string {
+  if (value instanceof Error) {
+    return value.message;
+  }
+  const text = readString(value);
+  if (text) {
+    return text;
+  }
+  try {
+    return JSON.stringify(value) || "";
+  } catch {
+    return "";
+  }
 }
 
 /**
@@ -134,14 +144,10 @@ export function shouldProcessAgentInboundMessage(params: {
   fromUser: string;
   eventType?: string;
 }): AgentInboundProcessDecision {
-  const msgType = String(params.msgType ?? "")
-    .trim()
-    .toLowerCase();
-  const fromUser = String(params.fromUser ?? "").trim();
+  const msgType = params.msgType.trim().toLowerCase();
+  const fromUser = params.fromUser.trim();
   const normalizedFromUser = fromUser.toLowerCase();
-  const eventType = String(params.eventType ?? "")
-    .trim()
-    .toLowerCase();
+  const eventType = (params.eventType ?? "").trim().toLowerCase();
 
   if (msgType === "event") {
     const allowedEvents = [
@@ -198,9 +204,13 @@ export function shouldProcessAgentInboundMessage(params: {
 }
 
 function normalizeAgentId(value: unknown): number | undefined {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  const raw = String(value ?? "").trim();
-  if (!raw) return undefined;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const raw = readString(value);
+  if (!raw) {
+    return undefined;
+  }
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : undefined;
 }
@@ -256,14 +266,14 @@ async function handleMessageCallback(params: AgentWebhookParams): Promise<boolea
       inboundAgentId !== agent.agentId
     ) {
       error?.(
-        `[wecom-agent] inbound: agentId mismatch ignored expectedAgentId=${agent.agentId} actualAgentId=${String(extractAgentId(msg) ?? "")}`,
+        `[wecom-agent] inbound: agentId mismatch ignored expectedAgentId=${agent.agentId} actualAgentId=${readString(extractAgentId(msg))}`,
       );
     }
     const msgType = extractMsgType(msg);
     const fromUser = extractFromUser(msg);
     const chatId = extractChatId(msg);
     const msgId = extractMsgId(msg);
-    const eventType = String((msg as Record<string, unknown>).Event ?? "")
+    const eventType = readString((msg as Record<string, unknown>).Event)
       .trim()
       .toLowerCase();
 
@@ -301,7 +311,7 @@ async function handleMessageCallback(params: AgentWebhookParams): Promise<boolea
       res.end("success");
       return true;
     }
-    const content = String(extractContent(msg) ?? "");
+    const content = extractContent(msg) ?? "";
 
     const preview = content.length > 100 ? `${content.slice(0, 100)}…` : content;
     log?.(
@@ -395,21 +405,33 @@ async function processAgentMessage(params: {
 
   const isGroup = Boolean(chatId);
   const peerId = isGroup ? chatId! : fromUser;
-  const eventType = String(msg.Event ?? "")
-    .trim()
-    .toLowerCase();
+  const eventType = readString(msg.Event).trim().toLowerCase();
 
   const resolveInboundKind = (): WecomInboundKind => {
     if (msgType === "event") {
-      if (eventType === "subscribe" || eventType === "enter_agent") return "welcome";
+      if (eventType === "subscribe" || eventType === "enter_agent") {
+        return "welcome";
+      }
       return "event";
     }
-    if (msgType === "image") return "image";
-    if (msgType === "voice") return "voice";
-    if (msgType === "video") return "video";
-    if (msgType === "file") return "file";
-    if (msgType === "location") return "location";
-    if (msgType === "link") return "link";
+    if (msgType === "image") {
+      return "image";
+    }
+    if (msgType === "voice") {
+      return "voice";
+    }
+    if (msgType === "video") {
+      return "video";
+    }
+    if (msgType === "file") {
+      return "file";
+    }
+    if (msgType === "location") {
+      return "location";
+    }
+    if (msgType === "link") {
+      return "link";
+    }
     return "text";
   };
 
@@ -656,7 +678,9 @@ async function processAgentMessage(params: {
   // 5秒无响应自动回复进度提示
   let hasResponseSent = false;
   const processingTimer = setTimeout(async () => {
-    if (hasResponseSent) return;
+    if (hasResponseSent) {
+      return;
+    }
     try {
       await sendAgentApiText({
         agent,
@@ -679,7 +703,7 @@ async function processAgentMessage(params: {
       ctx: ctxPayload,
       cfg: config,
       replyOptions: {
-        disableBlockStreaming: false,
+        disableBlockStreaming: true,
       },
       dispatcherOptions: {
         deliver: async (payload: { text?: string }, info: { kind: string }) => {
@@ -696,11 +720,10 @@ async function processAgentMessage(params: {
           // 将本次发送任务加入队列
           // 即使 deliver 被并发调用，队列中的任务也会按入队顺序串行执行
           const currentTask = async () => {
-            const MAX_CHUNK_SIZE = 600;
+            const chunks = chunkWecomMarkdownText(text);
             // 确保分片顺序发送
-            for (let i = 0; i < text.length; i += MAX_CHUNK_SIZE) {
-              const chunk = text.slice(i, i + MAX_CHUNK_SIZE);
-
+            for (let i = 0; i < chunks.length; i += 1) {
+              const chunk = chunks[i] ?? "";
               try {
                 await sendAgentApiText({ agent, toUser: fromUser, chatId: undefined, text: chunk });
                 touchTransportSession?.({ lastOutboundAt: Date.now(), running: true });
@@ -709,13 +732,13 @@ async function processAgentMessage(params: {
                 );
 
                 // 强制延时：确保企业微信有足够时间处理顺序（优化：200ms → 50ms）
-                if (i + MAX_CHUNK_SIZE < text.length) {
+                if (i + 1 < chunks.length) {
                   await new Promise((resolve) => setTimeout(resolve, 50));
                 }
               } catch (err: unknown) {
                 const message =
                   err instanceof Error
-                    ? `${err.message}${err.cause ? ` (cause: ${String(err.cause)})` : ""}`
+                    ? `${err.message}${err.cause ? ` (cause: ${describeUnknown(err.cause)})` : ""}`
                     : String(err);
                 error?.(`[wecom-agent] reply failed: ${message}`);
                 auditSink?.({

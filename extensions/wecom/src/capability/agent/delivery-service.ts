@@ -1,4 +1,5 @@
-import { getAccountRuntime, getWecomRuntime } from "../../runtime.js";
+import { chunkWecomMarkdownText } from "../../markdown/render.js";
+import { getAccountRuntime } from "../../runtime.js";
 import { resolveScopedWecomTarget } from "../../target.js";
 import { deliverAgentApiMedia, deliverAgentApiText } from "../../transport/agent-api/delivery.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
@@ -25,7 +26,7 @@ export class WecomAgentDeliveryService {
     }
     if (scoped.accountId && scoped.accountId !== this.agent.accountId) {
       getAccountRuntime(this.agent.accountId)?.log.error?.(
-        `[wecom-agent-delivery] account mismatch current=${this.agent.accountId} targetAccount=${scoped.accountId} raw=${String(to ?? "")}`,
+        `[wecom-agent-delivery] account mismatch current=${this.agent.accountId} targetAccount=${scoped.accountId} raw=${to ?? ""}`,
       );
       throw new Error(
         `WeCom outbound account mismatch: target belongs to account=${scoped.accountId}, current account=${this.agent.accountId}.`,
@@ -49,14 +50,15 @@ export class WecomAgentDeliveryService {
     this.assertAvailable();
     const target = this.resolveTargetOrThrow(params.to);
     getAccountRuntime(this.agent.accountId)?.log.info?.(
-      `[wecom-agent-delivery] sendText account=${this.agent.accountId} to=${String(params.to ?? "")} len=${params.text.length}`,
+      `[wecom-agent-delivery] sendText account=${this.agent.accountId} to=${params.to ?? ""} len=${params.text.length}`,
     );
 
-    const runtime = getWecomRuntime();
-    const chunks = runtime.channel.text.chunkText(params.text, 2048);
+    const chunks = chunkWecomMarkdownText(params.text);
 
     for (const chunk of chunks) {
-      if (!chunk.trim()) continue;
+      if (!chunk.trim()) {
+        continue;
+      }
       await deliverAgentApiText({
         agent: this.agent,
         target,
@@ -75,7 +77,7 @@ export class WecomAgentDeliveryService {
     this.assertAvailable();
     const target = this.resolveTargetOrThrow(params.to);
     getAccountRuntime(this.agent.accountId)?.log.info?.(
-      `[wecom-agent-delivery] sendMedia account=${this.agent.accountId} to=${String(params.to ?? "")} filename=${params.filename} contentType=${params.contentType}`,
+      `[wecom-agent-delivery] sendMedia account=${this.agent.accountId} to=${params.to ?? ""} filename=${params.filename} contentType=${params.contentType}`,
     );
     await deliverAgentApiMedia({
       agent: this.agent,

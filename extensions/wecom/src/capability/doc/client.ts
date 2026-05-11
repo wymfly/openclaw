@@ -3,27 +3,58 @@ import { wecomFetch } from "../../http.js";
 import { getAccessToken } from "../../transport/agent-api/core.js";
 import { LIMITS } from "../../types/constants.js";
 import type { ResolvedAgentAccount } from "../../types/index.js";
-import { BatchUpdateDocResponse, GetDocContentResponse, Node, UpdateRequest } from "./types.js";
+import { BatchUpdateDocResponse, GetDocContentResponse, UpdateRequest } from "./types.js";
 
 function readString(value: unknown): string {
-  const trimmed = String(value ?? "").trim();
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    return "";
+  }
+  const trimmed = String(value).trim();
   return trimmed || "";
 }
 
+function describeUnknown(value: unknown): string {
+  const primitive = readString(value);
+  if (primitive) {
+    return primitive;
+  }
+  try {
+    return JSON.stringify(value) || "";
+  } catch {
+    return "";
+  }
+}
+
 function normalizeDocType(docType: unknown): 3 | 4 | 10 {
-  if (docType === 3 || docType === "3") {return 3;}
-  if (docType === 4 || docType === "4") {return 4;}
-  if (docType === 10 || docType === "10" || docType === 5 || docType === "5") {return 10;}
+  if (docType === 3 || docType === "3") {
+    return 3;
+  }
+  if (docType === 4 || docType === "4") {
+    return 4;
+  }
+  if (docType === 10 || docType === "10" || docType === 5 || docType === "5") {
+    return 10;
+  }
   const normalized = readString(docType).toLowerCase();
-  if (!normalized || normalized === "doc") {return 3;}
-  if (normalized === "spreadsheet" || normalized === "sheet" || normalized === "table") {return 4;}
-  if (normalized === "smart_table" || normalized === "smarttable") {return 10;}
-  throw new Error(`Unsupported WeCom docType: ${String(docType)}`);
+  if (!normalized || normalized === "doc") {
+    return 3;
+  }
+  if (normalized === "spreadsheet" || normalized === "sheet" || normalized === "table") {
+    return 4;
+  }
+  if (normalized === "smart_table" || normalized === "smarttable") {
+    return 10;
+  }
+  throw new Error(`Unsupported WeCom docType: ${describeUnknown(docType) || "unknown"}`);
 }
 
 function mapDocTypeLabel(docType: 3 | 4 | 10): string {
-  if (docType === 10) {return "smart_table";}
-  if (docType === 4) {return "spreadsheet";}
+  if (docType === 10) {
+    return "smart_table";
+  }
+  if (docType === 4) {
+    return "spreadsheet";
+  }
   return "doc";
 }
 
@@ -39,6 +70,61 @@ function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
 }
 
+function normalizeCollectFormQuestion(
+  value: unknown,
+  fallbackItems: unknown[] = [],
+): Record<string, unknown> {
+  const formQuestion = readObject(value);
+  const items = readArray(formQuestion.items);
+  return {
+    ...formQuestion,
+    items: items.length > 0 ? items : fallbackItems,
+  };
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  const normalized = readString(value).toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+  return fallback;
+}
+
+function readOptionalBoolean(value: unknown): boolean | null {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  const normalized = readString(value).toLowerCase();
+  if (normalized === "true") {
+    return true;
+  }
+  if (normalized === "false") {
+    return false;
+  }
+  return null;
+}
+
+function readNumber(value: unknown, fallback: number): number {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : fallback;
+}
+
+function omitUndefinedProperties(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined));
+}
+
 type SmartTableRecordKeyType = "CELL_VALUE_KEY_TYPE_FIELD_TITLE" | "CELL_VALUE_KEY_TYPE_FIELD_ID";
 
 function readSmartTableRecordKeyType(value: unknown): SmartTableRecordKeyType | undefined {
@@ -50,6 +136,259 @@ function readSmartTableRecordKeyType(value: unknown): SmartTableRecordKeyType | 
     return keyType;
   }
   throw new Error(`Unsupported WeCom smartsheet key_type: ${keyType}`);
+}
+
+function normalizeSmartTableSelectOptions(value: unknown): Array<Record<string, unknown>> {
+  return readArray(value)
+    .map((item) => {
+      if (isRecord(item)) {
+        const option = { ...item };
+        const text = readString(option.text || option.value || option.label || option.name);
+        if (!text) {
+          return null;
+        }
+        option.text = text;
+        delete option.value;
+        delete option.label;
+        delete option.name;
+        return omitUndefinedProperties(option);
+      }
+      const text = readString(item);
+      return text ? { text } : null;
+    })
+    .filter((item): item is Record<string, unknown> => item !== null);
+}
+
+function normalizeSmartTableFieldProperty(
+  field: Record<string, unknown>,
+  propertyKey: string,
+  fallback: Record<string, unknown>,
+): Record<string, unknown> {
+  return isRecord(field[propertyKey]) ? readObject(field[propertyKey]) : fallback;
+}
+
+function normalizeSmartTableField(
+  field: Record<string, unknown>,
+  current?: Record<string, unknown>,
+): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {
+    ...readObject(current),
+    ...field,
+  };
+  const fieldType = readString(normalized.field_type);
+
+  switch (fieldType) {
+    case "FIELD_TYPE_NUMBER": {
+      normalized.property_number = normalizeSmartTableFieldProperty(normalized, "property_number", {
+        decimal_places: readNumber(normalized.decimal_places, 0),
+        use_separate: readBoolean(normalized.use_separate, false),
+      });
+      break;
+    }
+    case "FIELD_TYPE_DATE_TIME": {
+      normalized.property_date_time = normalizeSmartTableFieldProperty(
+        normalized,
+        "property_date_time",
+        {
+          format: readString(normalized.format) || 'yyyy"年"m"月"d"日"',
+          auto_fill: readBoolean(normalized.auto_fill, false),
+        },
+      );
+      break;
+    }
+    case "FIELD_TYPE_SELECT": {
+      const property = normalizeSmartTableFieldProperty(normalized, "property_select", {
+        is_quick_add: readBoolean(normalized.is_quick_add, true),
+        options: normalizeSmartTableSelectOptions(normalized.options),
+      });
+      if (!Array.isArray(property.options)) {
+        property.options = normalizeSmartTableSelectOptions(normalized.options);
+      }
+      normalized.property_select = property;
+      break;
+    }
+    case "FIELD_TYPE_SINGLE_SELECT": {
+      const property = normalizeSmartTableFieldProperty(normalized, "property_single_select", {
+        is_quick_add: readBoolean(normalized.is_quick_add, true),
+        options: normalizeSmartTableSelectOptions(normalized.options),
+      });
+      if (!Array.isArray(property.options)) {
+        property.options = normalizeSmartTableSelectOptions(normalized.options);
+      }
+      normalized.property_single_select = property;
+      break;
+    }
+    case "FIELD_TYPE_PROGRESS": {
+      normalized.property_progress = normalizeSmartTableFieldProperty(
+        normalized,
+        "property_progress",
+        { decimal_places: readNumber(normalized.decimal_places, 0) },
+      );
+      break;
+    }
+    case "FIELD_TYPE_CURRENCY": {
+      normalized.property_currency = normalizeSmartTableFieldProperty(
+        normalized,
+        "property_currency",
+        {
+          currency_type: readString(normalized.currency_type) || "CURRENCY_TYPE_CNY",
+          decimal_places: readNumber(normalized.decimal_places, 2),
+          use_separate: readBoolean(normalized.use_separate, false),
+        },
+      );
+      break;
+    }
+    case "FIELD_TYPE_PERCENTAGE": {
+      normalized.property_percentage = normalizeSmartTableFieldProperty(
+        normalized,
+        "property_percentage",
+        {
+          decimal_places: readNumber(normalized.decimal_places, 2),
+          use_separate: readBoolean(normalized.use_separate, false),
+        },
+      );
+      break;
+    }
+  }
+
+  delete normalized.decimal_places;
+  delete normalized.use_separate;
+  delete normalized.format;
+  delete normalized.auto_fill;
+  delete normalized.options;
+  delete normalized.is_quick_add;
+  delete normalized.currency_type;
+  return omitUndefinedProperties(normalized);
+}
+
+function extractSmartTableFields(raw: Record<string, unknown>): Array<Record<string, unknown>> {
+  const data = readObject(raw.data);
+  const fields = readArray(raw.fields);
+  const fieldList = readArray(raw.field_list);
+  const dataFields = readArray(data.fields);
+  const dataFieldList = readArray(data.field_list);
+  return [...fields, ...fieldList, ...dataFields, ...dataFieldList].filter(isRecord);
+}
+
+function indexSmartTableFieldsById(
+  fields: Array<Record<string, unknown>>,
+): Map<string, Record<string, unknown>> {
+  const result = new Map<string, Record<string, unknown>>();
+  for (const field of fields) {
+    const fieldId = readString(field.field_id);
+    if (fieldId) {
+      result.set(fieldId, field);
+    }
+  }
+  return result;
+}
+
+function indexSmartTableFieldsByTitle(
+  fields: Array<Record<string, unknown>>,
+): Map<string, Record<string, unknown>> {
+  const result = new Map<string, Record<string, unknown>>();
+  for (const field of fields) {
+    const fieldTitle = readString(field.field_title);
+    if (fieldTitle) {
+      result.set(fieldTitle, field);
+    }
+  }
+  return result;
+}
+
+function readSmartTableFields(
+  fields: Array<Record<string, unknown>>,
+  currentById?: Map<string, Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  if (!Array.isArray(fields) || fields.length === 0) {
+    throw new Error("fields must be a non-empty array");
+  }
+  return fields.map((field, index) => {
+    if (!isRecord(field)) {
+      throw new Error(`fields[${index}] must be an object`);
+    }
+    const fieldType = readString(field.field_type);
+    const fieldId = readString(field.field_id);
+    const current = fieldId ? currentById?.get(fieldId) : undefined;
+    if (!fieldType && currentById && !current) {
+      throw new Error(`fields[${index}].field_type required when field_id cannot be resolved`);
+    }
+    return normalizeSmartTableField(field, current);
+  });
+}
+
+function normalizeSmartTableFieldGroupChildren(children: unknown): Array<{ field_id: string }> {
+  return readArray(children)
+    .map((item) => {
+      if (isRecord(item)) {
+        const fieldId = readString(item.field_id || item.fieldId || item.id);
+        return fieldId ? { field_id: fieldId } : null;
+      }
+      const fieldId = readString(item);
+      return fieldId ? { field_id: fieldId } : null;
+    })
+    .filter((item): item is { field_id: string } => item !== null);
+}
+
+function resolveCollectFormInfo(params: {
+  formInfo?: Record<string, unknown>;
+  form_info?: Record<string, unknown>;
+  request?: Record<string, unknown>;
+  docName?: string;
+  formTitle?: string;
+  form_title?: string;
+}): Record<string, unknown> {
+  const request = readObject(params.request);
+  const requestItems = readArray(request.items || request.questions);
+  const formInfo = readObject(
+    params.formInfo ||
+      params.form_info ||
+      request.formInfo ||
+      request.form_info ||
+      (request.form_title ||
+      request.formTitle ||
+      request.docName ||
+      request.form_question ||
+      requestItems.length > 0
+        ? request
+        : undefined),
+  );
+  const title = readString(
+    formInfo.form_title ||
+      formInfo.formTitle ||
+      formInfo.docName ||
+      params.form_title ||
+      params.formTitle ||
+      params.docName ||
+      request.form_title ||
+      request.formTitle ||
+      request.docName,
+  );
+  if (
+    (request.form_title || request.formTitle || request.docName || requestItems.length > 0) &&
+    !request.form_question &&
+    Object.keys(formInfo).length === 0
+  ) {
+    return omitUndefinedProperties({
+      ...request,
+      form_title: title || readString(request.form_title || request.formTitle || request.docName),
+      form_question: normalizeCollectFormQuestion(request.form_question, requestItems),
+      items: undefined,
+      questions: undefined,
+      docName: undefined,
+      formTitle: undefined,
+    });
+  }
+  if (!title && Object.keys(formInfo).length === 0) {
+    return formInfo;
+  }
+  return omitUndefinedProperties({
+    ...formInfo,
+    form_title: title || formInfo.form_title,
+    form_question: normalizeCollectFormQuestion(formInfo.form_question, requestItems),
+    docName: undefined,
+    formTitle: undefined,
+  });
 }
 
 function readSmartTableRecords(
@@ -73,6 +412,142 @@ function readSmartTableRecords(
   return records;
 }
 
+function normalizeSmartTableTextCellValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (isRecord(value)) {
+    const text = readString(value.text || value.value || value.label || value.name);
+    if (text) {
+      return [{ ...value, type: readString(value.type) || "text", text }];
+    }
+    return value;
+  }
+  const text = readString(value);
+  return text ? [{ type: "text", text }] : value;
+}
+
+function readOptionalFiniteNumber(value: unknown): number | undefined {
+  const normalized = Number(value);
+  return Number.isFinite(normalized) ? normalized : undefined;
+}
+
+function normalizeSmartTableNumberCellValue(value: unknown): unknown {
+  if (isRecord(value)) {
+    const normalized =
+      readOptionalFiniteNumber(value.number) ??
+      readOptionalFiniteNumber(value.value) ??
+      readOptionalFiniteNumber(value.text);
+    return normalized ?? value;
+  }
+  return readOptionalFiniteNumber(value) ?? value;
+}
+
+function normalizeSmartTableBooleanCellValue(value: unknown): unknown {
+  if (isRecord(value)) {
+    if (value.checked !== undefined) {
+      return readBoolean(value.checked, false);
+    }
+    if (value.value !== undefined) {
+      return readBoolean(value.value, false);
+    }
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return value;
+}
+
+function normalizeSmartTableDateTimeCellValue(value: unknown): unknown {
+  if (isRecord(value)) {
+    const candidate = readString(value.timestamp || value.value || value.number || value.text);
+    return candidate || value;
+  }
+  return value;
+}
+
+function normalizeSmartTableSelectCellValue(value: unknown): unknown {
+  const values = Array.isArray(value) ? value : [value];
+  return values.map((item) => {
+    if (isRecord(item)) {
+      const text = readString(item.text || item.value || item.label || item.name);
+      return text ? omitUndefinedProperties({ ...item, type: undefined, text }) : item;
+    }
+    return { text: readString(item) };
+  });
+}
+
+function normalizeSmartTableUserCellValue(value: unknown): unknown {
+  const values = Array.isArray(value) ? value : [value];
+  return values.map((item) => {
+    if (isRecord(item)) {
+      const userId = readString(item.user_id || item.userid || item.userId || item.id);
+      return userId ? omitUndefinedProperties({ ...item, user_id: userId }) : item;
+    }
+    return { user_id: readString(item) };
+  });
+}
+
+function normalizeSmartTableArrayCellValue(value: unknown): unknown {
+  return Array.isArray(value) ? value : [value];
+}
+
+function normalizeSmartTableRecordCellValue(value: unknown, fieldType: string): unknown {
+  switch (fieldType) {
+    case "FIELD_TYPE_TEXT":
+      return normalizeSmartTableTextCellValue(value);
+    case "FIELD_TYPE_NUMBER":
+    case "FIELD_TYPE_CURRENCY":
+    case "FIELD_TYPE_PERCENTAGE":
+    case "FIELD_TYPE_PROGRESS":
+      return normalizeSmartTableNumberCellValue(value);
+    case "FIELD_TYPE_CHECKBOX":
+      return normalizeSmartTableBooleanCellValue(value);
+    case "FIELD_TYPE_DATE_TIME":
+      return normalizeSmartTableDateTimeCellValue(value);
+    case "FIELD_TYPE_SELECT":
+    case "FIELD_TYPE_SINGLE_SELECT":
+      return normalizeSmartTableSelectCellValue(value);
+    case "FIELD_TYPE_USER":
+      return normalizeSmartTableUserCellValue(value);
+    case "FIELD_TYPE_URL":
+    case "FIELD_TYPE_IMAGE":
+    case "FIELD_TYPE_FILE":
+    case "FIELD_TYPE_LOCATION":
+      return normalizeSmartTableArrayCellValue(value);
+    default:
+      return value;
+  }
+}
+
+function normalizeSmartTableRecordsForFields(params: {
+  records: Array<Record<string, unknown>>;
+  fields: Array<Record<string, unknown>>;
+  keyType: SmartTableRecordKeyType;
+  requireRecordId?: boolean;
+}): Array<Record<string, unknown>> {
+  const records = readSmartTableRecords(params.records, {
+    requireRecordId: params.requireRecordId,
+  });
+  const fieldByKey =
+    params.keyType === "CELL_VALUE_KEY_TYPE_FIELD_ID"
+      ? indexSmartTableFieldsById(params.fields)
+      : indexSmartTableFieldsByTitle(params.fields);
+  if (fieldByKey.size === 0) {
+    return records;
+  }
+  return records.map((record) => {
+    const values = readObject(record.values);
+    const normalizedValues = Object.fromEntries(
+      Object.entries(values).map(([key, value]) => {
+        const fieldType = readString(fieldByKey.get(key)?.field_type);
+        return [key, fieldType ? normalizeSmartTableRecordCellValue(value, fieldType) : value];
+      }),
+    );
+    return { ...record, values: normalizedValues };
+  });
+}
+
 function buildSmartTableRecordsBody(params: {
   sheetId: string;
   records: Array<Record<string, unknown>>;
@@ -94,6 +569,60 @@ function buildSmartTableRecordsBody(params: {
   return body;
 }
 
+function normalizeSmartTableSheetPrivValue(value: unknown): unknown {
+  if (isRecord(value)) {
+    return normalizeSmartTableSheetPrivValue(
+      value.priv || value.value || value.type || value.auth || value.permission || value.name,
+    );
+  }
+  const numberValue = readOptionalFiniteNumber(value);
+  if (numberValue !== undefined) {
+    return numberValue;
+  }
+  const normalized = readString(value).toLowerCase().replaceAll("-", "_").replaceAll(" ", "_");
+  if (
+    ["1", "all", "full", "all_priv", "all_access", "sheet_priv_all", "全部权限"].includes(
+      normalized,
+    )
+  ) {
+    return 1;
+  }
+  if (
+    ["2", "edit", "editable", "write", "readwrite", "read_write", "can_edit", "可编辑"].includes(
+      normalized,
+    )
+  ) {
+    return 2;
+  }
+  if (
+    ["3", "view", "readonly", "read_only", "view_only", "read", "can_view", "仅浏览"].includes(
+      normalized,
+    )
+  ) {
+    return 3;
+  }
+  if (["4", "none", "no_access", "deny", "disabled", "无权限"].includes(normalized)) {
+    return 4;
+  }
+  return value;
+}
+
+function normalizeSmartTablePrivList(
+  privList: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  return privList.map((item) => ({
+    ...item,
+    priv: normalizeSmartTableSheetPrivValue(item.priv),
+  }));
+}
+
+function requireSmartTableRuleId(value: number | undefined): number {
+  if (value === undefined) {
+    throw new Error("smartsheet_create_rule response missing rule_id");
+  }
+  return value;
+}
+
 export interface DocMemberEntry {
   userid?: string;
   partyid?: string;
@@ -111,7 +640,9 @@ function normalizeDocMemberEntry(value: unknown): DocMemberEntry | null {
     const userid = readString(value);
     return userid ? { userid } : null;
   }
-  if (!isRecord(value)) {return null;}
+  if (!isRecord(value)) {
+    return null;
+  }
   const entry: DocMemberEntry = { ...value } as DocMemberEntry;
   if (!readString(entry.userid) && readString(value.userId)) {
     entry.userid = readString(value.userId);
@@ -119,10 +650,19 @@ function normalizeDocMemberEntry(value: unknown): DocMemberEntry | null {
   if (!readString(entry.userid) && !readString(entry.partyid) && !readString(entry.tagid)) {
     return null;
   }
-  if (readString(entry.userid)) {entry.userid = readString(entry.userid);}
-  if (readString(entry.partyid)) {entry.partyid = readString(entry.partyid);}
-  if (readString(entry.tagid)) {entry.tagid = readString(entry.tagid);}
-  if (entry.auth !== undefined) {entry.auth = Number(entry.auth);}
+  if (readString(entry.userid)) {
+    entry.userid = readString(entry.userid);
+  }
+  if (readString(entry.partyid)) {
+    entry.partyid = readString(entry.partyid);
+  }
+  if (readString(entry.tagid)) {
+    entry.tagid = readString(entry.tagid);
+  }
+  const auth = readOptionalFiniteNumber(value.auth);
+  if (auth !== undefined) {
+    entry.auth = auth;
+  }
   return entry;
 }
 
@@ -130,6 +670,53 @@ function normalizeDocMemberEntryList(values: unknown): DocMemberEntry[] {
   return readArray(values)
     .map(normalizeDocMemberEntry)
     .filter((v): v is DocMemberEntry => v !== null);
+}
+
+function docMemberEntryKey(entry: DocMemberEntry): string {
+  const userid = readString(entry.userid);
+  if (userid) {
+    return `userid:${userid}`;
+  }
+  const partyid = readString(entry.partyid);
+  if (partyid) {
+    return `partyid:${partyid}`;
+  }
+  const tagid = readString(entry.tagid);
+  if (tagid) {
+    return `tagid:${tagid}`;
+  }
+  return "";
+}
+
+function assertDocJoinRuleAuthValue(payload: Record<string, unknown>, key: string) {
+  if (payload[key] === undefined || payload[key] === null) {
+    return;
+  }
+  if (Number(payload[key]) !== 1) {
+    throw new Error(`${key} only supports 1 (read-only)`);
+  }
+  payload[key] = 1;
+}
+
+function assertDocJoinRuleRequest(payload: Record<string, unknown>) {
+  if (readOptionalBoolean(payload.enable_corp_internal) === false) {
+    delete payload.corp_internal_auth;
+    delete payload.corp_internal_approve_only_by_admin;
+  }
+  if (readOptionalBoolean(payload.enable_corp_external) === false) {
+    delete payload.corp_external_auth;
+    delete payload.corp_external_approve_only_by_admin;
+  }
+  assertDocJoinRuleAuthValue(payload, "corp_internal_auth");
+  assertDocJoinRuleAuthValue(payload, "corp_external_auth");
+
+  const coAuthList = readArray(payload.co_auth_list);
+  coAuthList.forEach((item, index) => {
+    const entry = readObject(item);
+    if (entry.auth !== undefined && Number(entry.auth) !== 1) {
+      throw new Error(`co_auth_list[${index}].auth only supports 1 (read-only)`);
+    }
+  });
 }
 
 function buildDocMemberAuthRequest(params: {
@@ -144,35 +731,65 @@ function buildDocMemberAuthRequest(params: {
   const payload: Record<string, unknown> = {
     docid: readString(docId),
   };
-  if (!payload.docid) {throw new Error("docId required");}
+  if (!payload.docid) {
+    throw new Error("docId required");
+  }
 
-  const normalizedViewers = normalizeDocMemberEntryList(viewers).map((v) => ({
-    ...v,
-    auth: v.auth ?? authLevel ?? 1,
-  }));
   const normalizedCollaborators = normalizeDocMemberEntryList(collaborators).map((v) => ({
     ...v,
-    auth: v.auth ?? authLevel ?? 2,
+    auth: v.auth ?? authLevel ?? 7,
   }));
+  const collaboratorKeys = new Set(normalizedCollaborators.map(docMemberEntryKey).filter(Boolean));
+  const normalizedViewers = normalizeDocMemberEntryList(viewers)
+    .filter((v) => !collaboratorKeys.has(docMemberEntryKey(v)))
+    .map((v) => ({
+      ...v,
+      auth: v.auth ?? authLevel ?? 1,
+    }));
   const normalizedRemovedViewers = normalizeDocMemberEntryList(removeViewers);
   const normalizedRemovedCollaborators = normalizeDocMemberEntryList(removeCollaborators);
+  const normalizedUpdatedMembers = [...normalizedViewers, ...normalizedCollaborators];
+  const normalizedRemovedMembers = [...normalizedRemovedViewers, ...normalizedRemovedCollaborators];
 
-  if (normalizedViewers.length > 0) {payload.update_file_member_list = normalizedViewers;}
-  if (normalizedCollaborators.length > 0) {payload.update_co_auth_list = normalizedCollaborators;}
-  if (normalizedRemovedViewers.length > 0) {payload.del_file_member_list = normalizedRemovedViewers;}
-  if (normalizedRemovedCollaborators.length > 0)
-    {payload.del_co_auth_list = normalizedRemovedCollaborators;}
+  if (normalizedUpdatedMembers.length > 0) {
+    payload.update_file_member_list = normalizedUpdatedMembers;
+  }
+  if (normalizedRemovedMembers.length > 0) {
+    payload.del_file_member_list = normalizedRemovedMembers;
+  }
 
-  if (
-    !payload.update_doc_member_list &&
-    !payload.update_co_auth_list &&
-    !payload.del_doc_member_list &&
-    !payload.del_co_auth_list
-  ) {
+  if (!payload.update_file_member_list && !payload.del_file_member_list) {
     throw new Error("at least one viewer/collaborator change is required");
   }
 
   return payload;
+}
+
+function localDayBoundsSeconds() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return {
+    startTime: Math.floor(start.getTime() / 1_000),
+    endTime: Math.floor(end.getTime() / 1_000),
+  };
+}
+
+function normalizeFormStatisticRequestDefaults(item: Record<string, unknown>) {
+  const reqType = Number(item.req_type);
+  if (reqType === 2) {
+    const { startTime, endTime } = localDayBoundsSeconds();
+    if (item.start_time === undefined || item.start_time === null) {
+      item.start_time = startTime;
+    }
+    if (item.end_time === undefined || item.end_time === null) {
+      item.end_time = endTime;
+    }
+  }
+  if ((reqType === 2 || reqType === 3) && (item.limit === undefined || item.limit === null)) {
+    item.limit = 100;
+  }
 }
 
 async function parseJsonResponse(
@@ -198,14 +815,14 @@ async function parseJsonResponse(
     const failedItem = payload.find((item) => Number(item?.errcode ?? 0) !== 0);
     if (failedItem) {
       throw new Error(
-        `WeCom ${actionLabel} failed: ${String(failedItem?.errmsg || "unknown error")} (errcode ${String(failedItem?.errcode)})`,
+        `WeCom ${actionLabel} failed: ${readString(failedItem?.errmsg) || "unknown error"} (errcode ${readString(failedItem?.errcode) || "unknown"})`,
       );
     }
     return payload;
   }
   if (Number(payload.errcode ?? 0) !== 0) {
     throw new Error(
-      `WeCom ${actionLabel} failed: ${String(payload.errmsg || "unknown error")} (errcode ${String(payload.errcode)})`,
+      `WeCom ${actionLabel} failed: ${readString(payload.errmsg) || "unknown error"} (errcode ${readString(payload.errcode) || "unknown"})`,
     );
   }
   return payload;
@@ -264,11 +881,17 @@ export class WecomDocClient {
       doc_type: normalizedDocType,
       doc_name: readString(docName),
     };
-    if (!payload.doc_name) {throw new Error("docName required");}
+    if (!payload.doc_name) {
+      throw new Error("docName required");
+    }
     const normalizedSpaceId = readString(spaceId);
     const normalizedFatherId = readString(fatherId);
-    if (normalizedSpaceId) {payload.spaceid = normalizedSpaceId;}
-    if (normalizedFatherId) {payload.fatherid = normalizedFatherId;}
+    if (normalizedSpaceId) {
+      payload.spaceid = normalizedSpaceId;
+    }
+    if (normalizedFatherId) {
+      payload.fatherid = normalizedFatherId;
+    }
     const normalizedAdminUsers = Array.isArray(adminUsers)
       ? adminUsers.map((item) => readString(item)).filter(Boolean)
       : [];
@@ -296,8 +919,12 @@ export class WecomDocClient {
       docid: readString(docId),
       new_name: readString(newName),
     };
-    if (!payload.docid) {throw new Error("docId required");}
-    if (!payload.new_name) {throw new Error("newName required");}
+    if (!payload.docid) {
+      throw new Error("docId required");
+    }
+    if (!payload.new_name) {
+      throw new Error("newName required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/rename_doc",
       actionLabel: "rename_doc",
@@ -322,10 +949,18 @@ export class WecomDocClient {
     const payload: Record<string, unknown> = {
       docid: readString(docId),
     };
-    if (!payload.docid) {throw new Error("docId required");}
-    if (newName) {payload.new_name = readString(newName);}
-    if (spaceId) {payload.spaceid = readString(spaceId);}
-    if (fatherId) {payload.fatherid = readString(fatherId);}
+    if (!payload.docid) {
+      throw new Error("docId required");
+    }
+    if (newName) {
+      payload.new_name = readString(newName);
+    }
+    if (spaceId) {
+      payload.spaceid = readString(spaceId);
+    }
+    if (fatherId) {
+      payload.fatherid = readString(fatherId);
+    }
 
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/smartsheet/copy",
@@ -343,7 +978,9 @@ export class WecomDocClient {
   async getDocBaseInfo(params: { agent: ResolvedAgentAccount; docId: string }) {
     const { agent, docId } = params;
     const normalizedDocId = readString(docId);
-    if (!normalizedDocId) {throw new Error("docId required");}
+    if (!normalizedDocId) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/get_doc_base_info",
       actionLabel: "get_doc_base_info",
@@ -359,7 +996,9 @@ export class WecomDocClient {
   async shareDoc(params: { agent: ResolvedAgentAccount; docId: string }) {
     const { agent, docId } = params;
     const normalizedDocId = readString(docId);
-    if (!normalizedDocId) {throw new Error("docId required");}
+    if (!normalizedDocId) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/doc_share",
       actionLabel: "doc_share",
@@ -375,7 +1014,9 @@ export class WecomDocClient {
   async getDocAuth(params: { agent: ResolvedAgentAccount; docId: string }) {
     const { agent, docId } = params;
     const normalizedDocId = readString(docId);
-    if (!normalizedDocId) {throw new Error("docId required");}
+    if (!normalizedDocId) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/doc_get_auth",
       actionLabel: "doc_get_auth",
@@ -397,8 +1038,12 @@ export class WecomDocClient {
     const payload: Record<string, string> = {};
     const normalizedDocId = readString(docId);
     const normalizedFormId = readString(formId);
-    if (normalizedDocId) {payload.docid = normalizedDocId;}
-    if (normalizedFormId) {payload.formid = normalizedFormId;}
+    if (normalizedDocId) {
+      payload.docid = normalizedDocId;
+    }
+    if (normalizedFormId) {
+      payload.formid = normalizedFormId;
+    }
     if (!payload.docid && !payload.formid) {
       throw new Error("docId or formId required");
     }
@@ -425,7 +1070,10 @@ export class WecomDocClient {
       ...readObject(request),
     };
     payload.docid = readString(docId || payload.docid);
-    if (!payload.docid) {throw new Error("docId required");}
+    if (!payload.docid) {
+      throw new Error("docId required");
+    }
+    assertDocJoinRuleRequest(payload);
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/mod_doc_join_rule",
       actionLabel: "mod_doc_join_rule",
@@ -448,7 +1096,9 @@ export class WecomDocClient {
       ...readObject(request),
     };
     payload.docid = readString(docId || payload.docid);
-    if (!payload.docid) {throw new Error("docId required");}
+    if (!payload.docid) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/mod_doc_member",
       actionLabel: "mod_doc_member",
@@ -473,44 +1123,15 @@ export class WecomDocClient {
     const { agent, docId, viewers, collaborators, removeViewers, removeCollaborators, authLevel } =
       params;
 
-    // Auto-detect: if adding collaborators, check if they are already viewers and need to be removed
-    // This prevents the "user is viewer but not collaborator" issue
-    let finalRemoveViewers = removeViewers;
-    if (collaborators && !removeViewers) {
-      // Need to check current auth status
-      try {
-        const currentAuth = await this.getDocAuth({ agent, docId });
-        const viewerUserIds = new Set(
-          (currentAuth.docMembers || [])
-            .filter((m: Record<string, unknown>) => m.type === 1 && m.userid)
-            .map((m: Record<string, unknown>) => m.userid),
-        );
-        const newCollaboratorUserIds = normalizeDocMemberEntryList(collaborators)
-          .map((e) => e.userid)
-          .filter(Boolean) as string[];
-
-        // Auto-add viewers who are being promoted to collaborators
-        const autoRemoveViewers = newCollaboratorUserIds
-          .filter((userid) => viewerUserIds.has(userid))
-          .map((userid) => ({ userid, type: 1 }));
-
-        if (autoRemoveViewers.length > 0) {
-          finalRemoveViewers = autoRemoveViewers;
-        }
-      } catch (err) {
-        // If we can't check auth, proceed without auto-removal
-        // The caller can explicitly pass removeViewers if needed
-      }
-    }
-
     const payload = buildDocMemberAuthRequest({
       docId,
       viewers,
       collaborators,
-      removeViewers: finalRemoveViewers,
+      removeViewers,
       removeCollaborators,
       authLevel,
     });
+    const updatedMembers = readArray(payload.update_file_member_list);
     const result = await this.setDocMemberAuth({
       agent,
       docId: payload.docid as string,
@@ -518,10 +1139,12 @@ export class WecomDocClient {
     });
     return {
       ...result,
-      addedViewerCount: (payload.update_file_member_list as unknown[])?.length ?? 0,
-      addedCollaboratorCount: (payload.update_co_auth_list as unknown[])?.length ?? 0,
-      removedViewerCount: (payload.del_file_member_list as unknown[])?.length ?? 0,
-      removedCollaboratorCount: (payload.del_co_auth_list as unknown[])?.length ?? 0,
+      addedViewerCount: updatedMembers.filter((item) => Number(readObject(item).auth) === 1).length,
+      addedCollaboratorCount: updatedMembers.filter((item) =>
+        [2, 7].includes(Number(readObject(item).auth)),
+      ).length,
+      removedViewerCount: normalizeDocMemberEntryList(removeViewers).length,
+      removedCollaboratorCount: normalizeDocMemberEntryList(removeCollaborators).length,
     };
   }
 
@@ -550,7 +1173,9 @@ export class WecomDocClient {
       ...readObject(request),
     };
     payload.docid = readString(docId || payload.docid);
-    if (!payload.docid) {throw new Error("docId required");}
+    if (!payload.docid) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/mod_doc_safty_setting",
       actionLabel: "mod_doc_safty_setting",
@@ -565,11 +1190,17 @@ export class WecomDocClient {
 
   async createCollect(params: {
     agent: ResolvedAgentAccount;
-    formInfo: Record<string, unknown>;
+    formInfo?: Record<string, unknown>;
+    form_info?: Record<string, unknown>;
+    request?: Record<string, unknown>;
+    docName?: string;
+    formTitle?: string;
+    form_title?: string;
     spaceId?: string;
     fatherId?: string;
   }) {
-    const { agent, formInfo, spaceId, fatherId } = params;
+    const { agent, spaceId, fatherId } = params;
+    const formInfo = resolveCollectFormInfo(params);
 
     // Validate form_info structure per API spec
     if (!formInfo || typeof formInfo !== "object") {
@@ -582,12 +1213,15 @@ export class WecomDocClient {
     }
 
     const formQuestion = formInfo.form_question as Record<string, unknown> | undefined;
-    if (!formQuestion || !formQuestion.items || !Array.isArray(formQuestion.items)) {
+    if (!formQuestion || !Array.isArray(formQuestion.items)) {
       throw new Error("form_question.items 必填且必须为数组");
     }
 
     // Validate questions count ≤ 200
     const questions = formQuestion.items as Array<Record<string, unknown>>;
+    if (questions.length === 0) {
+      throw new Error("form_question.items 必填且必须包含至少 1 个问题");
+    }
     if (questions.length > 200) {
       throw new Error("问题数量不能超过 200 个");
     }
@@ -662,19 +1296,23 @@ export class WecomDocClient {
 
     // Build payload
     const payload: Record<string, unknown> = {
-      form_info: {
+      form_info: omitUndefinedProperties({
         form_title: readString(formInfo.form_title),
         form_desc: formInfo.form_desc ? readString(formInfo.form_desc) : undefined,
         form_header: formInfo.form_header ? readString(formInfo.form_header) : undefined,
         form_question: formInfo.form_question,
         form_setting: formSetting,
-      },
+      }),
     };
 
     const normalizedSpaceId = readString(spaceId);
     const normalizedFatherId = readString(fatherId);
-    if (normalizedSpaceId) {payload.spaceid = normalizedSpaceId;}
-    if (normalizedFatherId) {payload.fatherid = normalizedFatherId;}
+    if (normalizedSpaceId) {
+      payload.spaceid = normalizedSpaceId;
+    }
+    if (normalizedFatherId) {
+      payload.fatherid = normalizedFatherId;
+    }
 
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/create_collect",
@@ -704,7 +1342,9 @@ export class WecomDocClient {
     }
 
     const normalizedFormId = readString(formId);
-    if (!normalizedFormId) {throw new Error("formId required");}
+    if (!normalizedFormId) {
+      throw new Error("formId required");
+    }
 
     // Build payload based on oper type
     const payload: Record<string, unknown> = {
@@ -798,7 +1438,9 @@ export class WecomDocClient {
   async getFormInfo(params: { agent: ResolvedAgentAccount; formId: string }) {
     const { agent, formId } = params;
     const normalizedFormId = readString(formId);
-    if (!normalizedFormId) {throw new Error("formId required");}
+    if (!normalizedFormId) {
+      throw new Error("formId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/get_form_info",
       actionLabel: "get_form_info",
@@ -818,16 +1460,19 @@ export class WecomDocClient {
   }) {
     const { agent, repeatedId, answerIds } = params;
     const normalizedRepeatedId = readString(repeatedId);
-    if (!normalizedRepeatedId) {throw new Error("repeatedId required");}
+    if (!normalizedRepeatedId) {
+      throw new Error("repeatedId required");
+    }
     const normalizedAnswerIds = Array.isArray(answerIds)
       ? answerIds.map((item) => Number(item)).filter((item) => Number.isFinite(item))
       : [];
+    if (normalizedAnswerIds.length === 0) {
+      throw new Error("answerIds required");
+    }
     const payload: Record<string, unknown> = {
       repeated_id: normalizedRepeatedId,
+      answer_ids: normalizedAnswerIds,
     };
-    if (normalizedAnswerIds.length > 0) {
-      payload.answer_ids = normalizedAnswerIds;
-    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/get_form_answer",
       actionLabel: "get_form_answer",
@@ -838,27 +1483,62 @@ export class WecomDocClient {
     return {
       raw: json,
       answer,
-      answerList: readArray((answer).answer_list),
+      answerList: readArray(answer.answer_list),
     };
   }
 
-  async getFormStatistic(params: { agent: ResolvedAgentAccount; requests: unknown[] }) {
-    const { agent, requests } = params;
+  async getFormStatistic(params: {
+    agent: ResolvedAgentAccount;
+    formId?: string;
+    requests: unknown[];
+  }) {
+    const { agent, formId, requests } = params;
     const payload = Array.isArray(requests)
       ? requests.map((item) => readObject(item)).filter((item) => Object.keys(item).length > 0)
       : [];
     if (payload.length === 0) {
       throw new Error("requests required");
     }
-    const json = await this.postWecomDocApi({
-      path: "/cgi-bin/wedoc/get_form_statistic",
-      actionLabel: "get_form_statistic",
-      agent,
-      body: { requests: payload },
+    const normalizedFormId = readString(formId);
+    let resolvedRepeatedId = "";
+    if (
+      normalizedFormId &&
+      payload.some((item) => {
+        const repeatedId = readString(item.repeated_id);
+        return !repeatedId || repeatedId === normalizedFormId;
+      })
+    ) {
+      const formInfo = await this.getFormInfo({ agent, formId: normalizedFormId });
+      resolvedRepeatedId = readString(
+        formInfo.formInfo.repeated_id ?? formInfo.formInfo.repeatedId,
+      );
+    }
+    payload.forEach((item, index) => {
+      const currentRepeatedId = readString(item.repeated_id);
+      if (resolvedRepeatedId && (!currentRepeatedId || currentRepeatedId === normalizedFormId)) {
+        item.repeated_id = resolvedRepeatedId;
+      }
+      if (!readString(item.repeated_id)) {
+        throw new Error(`requests[${index}].repeated_id required`);
+      }
+      if (![1, 2, 3].includes(Number(item.req_type))) {
+        throw new Error(`requests[${index}].req_type must be 1, 2, or 3`);
+      }
+      item.req_type = Number(item.req_type);
+      normalizeFormStatisticRequestDefaults(item);
     });
-    const statisticList = readArray(json.statistic_list);
+    const statisticList = [];
+    for (const item of payload) {
+      const json = await this.postWecomDocApi({
+        path: "/cgi-bin/wedoc/get_form_statistic",
+        actionLabel: "get_form_statistic",
+        agent,
+        body: item,
+      });
+      statisticList.push(json);
+    }
     return {
-      raw: json,
+      raw: statisticList,
       items: statisticList,
       successCount: statisticList.filter(
         (item: unknown) => Number((item as Record<string, unknown>)?.errcode ?? 0) === 0,
@@ -892,7 +1572,7 @@ export class WecomDocClient {
     version?: number;
     batchMode?: boolean;
   }) {
-    const { agent, docId, requests, version, batchMode } = params;
+    const { agent, docId, requests, version } = params;
 
     // Validate requests structure basic check
     const requestList = readArray(requests);
@@ -906,7 +1586,7 @@ export class WecomDocClient {
     };
     // version is optional but recommended for concurrency control
     if (version !== undefined && version !== null) {
-      body.version = Number(version);
+      body.version = version;
     }
 
     const json = (await this.postWecomDocApi({
@@ -923,7 +1603,9 @@ export class WecomDocClient {
   async getSheetProperties(params: { agent: ResolvedAgentAccount; docId: string }) {
     const { agent, docId } = params;
     const normalizedDocId = readString(docId);
-    if (!normalizedDocId) {throw new Error("docId required");}
+    if (!normalizedDocId) {
+      throw new Error("docId required");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/spreadsheet/get_sheet_properties",
       actionLabel: "get_sheet_properties",
@@ -989,7 +1671,7 @@ export class WecomDocClient {
             return cell;
           }
           // Otherwise wrap primitive as CellValue
-          return { cell_value: { text: String(cell ?? "") } };
+          return { cell_value: { text: readString(cell) } };
         }),
       };
     });
@@ -1058,7 +1740,10 @@ export class WecomDocClient {
 
     // Font properties
     if (formatData.font != null) {
-      textFormat.font = String(formatData.font);
+      const font = readString(formatData.font);
+      if (font) {
+        textFormat.font = font;
+      }
     }
     if (formatData.font_size != null) {
       textFormat.font_size = Math.min(72, Math.max(1, Number(formatData.font_size)));
@@ -1168,15 +1853,21 @@ export class WecomDocClient {
   async smartTableAddSheet(params: {
     agent: ResolvedAgentAccount;
     docId: string;
-    title: string;
+    title?: string;
     index?: number;
+    properties?: Record<string, unknown>;
   }) {
-    const { agent, docId, title, index } = params;
+    const { agent, docId, title, index, properties } = params;
+    const sheetProperties = omitUndefinedProperties({
+      ...readObject(properties),
+      title: readString(title || readObject(properties).title) || undefined,
+      index: Number.isInteger(index) ? index : readObject(properties).index,
+    });
     return this.smartTableOperate({
       agent,
       docId,
       operation: "add_sheet",
-      bodyData: { properties: { title, index } },
+      bodyData: Object.keys(sheetProperties).length > 0 ? { properties: sheetProperties } : {},
     });
   }
 
@@ -1197,15 +1888,28 @@ export class WecomDocClient {
   async smartTableUpdateSheet(params: {
     agent: ResolvedAgentAccount;
     docId: string;
-    sheetId: string;
-    title: string;
+    sheetId?: string;
+    title?: string;
+    properties?: Record<string, unknown>;
   }) {
-    const { agent, docId, sheetId, title } = params;
+    const { agent, docId, sheetId, title, properties } = params;
+    const inputProperties = readObject(properties);
+    const normalizedProperties = omitUndefinedProperties({
+      ...inputProperties,
+      sheet_id: readString(sheetId || inputProperties.sheet_id) || undefined,
+      title: readString(title || inputProperties.title) || undefined,
+    });
+    if (!readString(normalizedProperties.sheet_id)) {
+      throw new Error("smartsheet_update_sheet properties.sheet_id required");
+    }
+    if (!readString(normalizedProperties.title)) {
+      throw new Error("smartsheet_update_sheet properties.title required");
+    }
     return this.smartTableOperate({
       agent,
       docId,
       operation: "update_sheet",
-      bodyData: { properties: { sheet_id: sheetId, title } },
+      bodyData: { properties: normalizedProperties },
     });
   }
   async smartTableAddView(params: {
@@ -1233,16 +1937,40 @@ export class WecomDocClient {
     sheetId: string;
     view_id: string;
     view_title?: string;
+    property?: Record<string, unknown>;
     property_gantt?: Record<string, unknown>;
     property_calendar?: Record<string, unknown>;
   }) {
-    const { agent, docId, sheetId, view_id, view_title, property_gantt, property_calendar } =
-      params;
+    const {
+      agent,
+      docId,
+      sheetId,
+      view_id,
+      view_title,
+      property,
+      property_gantt,
+      property_calendar,
+    } = params;
+    if (
+      !readString(view_title) &&
+      !isRecord(property) &&
+      !isRecord(property_gantt) &&
+      !isRecord(property_calendar)
+    ) {
+      throw new Error("view update requires view_title or property");
+    }
     return this.smartTableOperate({
       agent,
       docId,
       operation: "update_view",
-      bodyData: { sheet_id: sheetId, view_id, view_title, property_gantt, property_calendar },
+      bodyData: omitUndefinedProperties({
+        sheet_id: sheetId,
+        view_id,
+        view_title: readString(view_title) || undefined,
+        property,
+        property_gantt,
+        property_calendar,
+      }),
     });
   }
 
@@ -1272,7 +2000,7 @@ export class WecomDocClient {
       agent,
       docId,
       operation: "add_fields",
-      bodyData: { sheet_id: sheetId, fields },
+      bodyData: { sheet_id: sheetId, fields: readSmartTableFields(fields) },
     });
   }
 
@@ -1298,11 +2026,26 @@ export class WecomDocClient {
     fields: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, sheetId, fields } = params;
+    const needsCurrentFields = fields.some((field) => !readString(field.field_type));
+    const currentById = needsCurrentFields
+      ? indexSmartTableFieldsById(
+          extractSmartTableFields(
+            (
+              await this.smartTableOperate({
+                agent,
+                docId,
+                operation: "get_fields",
+                bodyData: { sheet_id: sheetId },
+              })
+            ).raw,
+          ),
+        )
+      : undefined;
     return this.smartTableOperate({
       agent,
       docId,
       operation: "update_fields",
-      bodyData: { sheet_id: sheetId, fields },
+      bodyData: { sheet_id: sheetId, fields: readSmartTableFields(fields, currentById) },
     });
   }
 
@@ -1311,14 +2054,18 @@ export class WecomDocClient {
     docId: string;
     sheetId: string;
     name: string;
-    children?: string[];
+    children?: unknown[];
   }) {
     const { agent, docId, sheetId, name, children } = params;
+    const normalizedChildren = normalizeSmartTableFieldGroupChildren(children);
+    if (normalizedChildren.length === 0) {
+      throw new Error("children must be a non-empty array of field ids");
+    }
     return this.smartTableOperate({
       agent,
       docId,
       operation: "add_field_group",
-      bodyData: { sheet_id: sheetId, name, children },
+      bodyData: { sheet_id: sheetId, name, children: normalizedChildren },
     });
   }
 
@@ -1343,14 +2090,22 @@ export class WecomDocClient {
     sheetId: string;
     field_group_id: string;
     name?: string;
-    children?: string[];
+    children?: unknown[];
   }) {
     const { agent, docId, sheetId, field_group_id, name, children } = params;
+    const bodyData: Record<string, unknown> = { sheet_id: sheetId, field_group_id, name };
+    if (children !== undefined) {
+      const normalizedChildren = normalizeSmartTableFieldGroupChildren(children);
+      if (normalizedChildren.length === 0) {
+        throw new Error("children must be a non-empty array of field ids");
+      }
+      bodyData.children = normalizedChildren;
+    }
     return this.smartTableOperate({
       agent,
       docId,
       operation: "update_field_group",
-      bodyData: { sheet_id: sheetId, field_group_id, name, children },
+      bodyData: omitUndefinedProperties(bodyData),
     });
   }
 
@@ -1374,13 +2129,13 @@ export class WecomDocClient {
     sheetId: string;
     records: Array<Record<string, unknown>>;
   }) {
-    const { agent, docId, sheetId, records } = params;
-    return this.smartTableOperate({
-      agent,
-      docId,
-      operation: "add_external_records",
-      bodyData: { sheet_id: sheetId, records },
-    });
+    const { docId, sheetId, records } = params;
+    void docId;
+    void sheetId;
+    void records;
+    throw new Error(
+      "smartsheet_add_external_records is not a WeCom Wedoc API endpoint; use smartsheet_add_records or the SmartSheet external-data webhook.",
+    );
   }
 
   async smartTableUpdateExternalRecords(params: {
@@ -1389,13 +2144,13 @@ export class WecomDocClient {
     sheetId: string;
     records: Array<Record<string, unknown>>;
   }) {
-    const { agent, docId, sheetId, records } = params;
-    return this.smartTableOperate({
-      agent,
-      docId,
-      operation: "update_external_records",
-      bodyData: { sheet_id: sheetId, records },
-    });
+    const { docId, sheetId, records } = params;
+    void docId;
+    void sheetId;
+    void records;
+    throw new Error(
+      "smartsheet_update_external_records is not a WeCom Wedoc API endpoint; use smartsheet_update_records or the SmartSheet external-data webhook.",
+    );
   }
 
   async smartTableAddRecords(params: {
@@ -1406,11 +2161,31 @@ export class WecomDocClient {
     keyType?: string;
   }) {
     const { agent, docId, sheetId, records, keyType } = params;
+    const effectiveKeyType =
+      readSmartTableRecordKeyType(keyType) ?? "CELL_VALUE_KEY_TYPE_FIELD_TITLE";
+    const fields = extractSmartTableFields(
+      (
+        await this.smartTableOperate({
+          agent,
+          docId,
+          operation: "get_fields",
+          bodyData: { sheet_id: sheetId },
+        })
+      ).raw,
+    );
     return this.smartTableOperate({
       agent,
       docId,
       operation: "add_records",
-      bodyData: buildSmartTableRecordsBody({ sheetId, records, keyType }),
+      bodyData: buildSmartTableRecordsBody({
+        sheetId,
+        records: normalizeSmartTableRecordsForFields({
+          records,
+          fields,
+          keyType: effectiveKeyType,
+        }),
+        keyType,
+      }),
     });
   }
 
@@ -1422,13 +2197,30 @@ export class WecomDocClient {
     keyType?: string;
   }) {
     const { agent, docId, sheetId, records, keyType } = params;
+    const effectiveKeyType =
+      readSmartTableRecordKeyType(keyType) ?? "CELL_VALUE_KEY_TYPE_FIELD_TITLE";
+    const fields = extractSmartTableFields(
+      (
+        await this.smartTableOperate({
+          agent,
+          docId,
+          operation: "get_fields",
+          bodyData: { sheet_id: sheetId },
+        })
+      ).raw,
+    );
     return this.smartTableOperate({
       agent,
       docId,
       operation: "update_records",
       bodyData: buildSmartTableRecordsBody({
         sheetId,
-        records,
+        records: normalizeSmartTableRecordsForFields({
+          records,
+          fields,
+          keyType: effectiveKeyType,
+          requireRecordId: true,
+        }),
         keyType,
         requireRecordId: true,
       }),
@@ -1454,22 +2246,51 @@ export class WecomDocClient {
     agent: ResolvedAgentAccount;
     docId: string;
     sheetId: string;
+    view_id?: string;
     record_ids?: string[];
+    field_titles?: string[];
+    field_ids?: string[];
+    sort?: unknown[];
+    filter_spec?: Record<string, unknown>;
     keyType?: string;
     offset?: number;
     limit?: number;
+    ver?: number;
   }) {
-    const { agent, docId, sheetId, record_ids, keyType, offset, limit } = params;
-    const bodyData: Record<string, unknown> = { sheet_id: sheetId, record_ids, offset, limit };
-    const normalizedKeyType = readSmartTableRecordKeyType(keyType);
-    if (normalizedKeyType) {
-      bodyData.key_type = normalizedKeyType;
-    }
+    const {
+      agent,
+      docId,
+      sheetId,
+      view_id,
+      record_ids,
+      field_titles,
+      field_ids,
+      sort,
+      filter_spec,
+      keyType,
+      offset,
+      limit,
+      ver,
+    } = params;
+    const bodyData: Record<string, unknown> = {
+      sheet_id: sheetId,
+      view_id: readString(view_id) || undefined,
+      key_type: readSmartTableRecordKeyType(keyType) ?? undefined,
+      record_ids: Array.isArray(record_ids) && record_ids.length > 0 ? record_ids : undefined,
+      field_titles:
+        Array.isArray(field_titles) && field_titles.length > 0 ? field_titles : undefined,
+      field_ids: Array.isArray(field_ids) && field_ids.length > 0 ? field_ids : undefined,
+      sort: Array.isArray(sort) && sort.length > 0 ? sort : undefined,
+      offset: Number.isInteger(offset) ? offset : undefined,
+      limit: Number.isInteger(limit) ? limit : undefined,
+      ver: Number.isInteger(ver) ? ver : undefined,
+      filter_spec: isRecord(filter_spec) ? filter_spec : undefined,
+    };
     return this.smartTableOperate({
       agent,
       docId,
       operation: "get_records",
-      bodyData,
+      bodyData: omitUndefinedProperties(bodyData),
     });
   }
 
@@ -1478,17 +2299,26 @@ export class WecomDocClient {
   async smartTableGetSheetPriv(params: {
     agent: ResolvedAgentAccount;
     docId: string;
-    type: number;
+    type?: number;
     rule_id_list?: number[];
   }) {
     const { agent, docId, type, rule_id_list } = params;
+    const normalizedType = Number.isInteger(type) ? type : 1;
+    if (normalizedType === 2 && (!Array.isArray(rule_id_list) || rule_id_list.length === 0)) {
+      throw new Error("smartsheet_get_sheet_priv type=2 requires non-empty rule_id_list");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/smartsheet/content_priv/get_sheet_priv",
       actionLabel: "smartsheet_get_sheet_priv",
       agent,
-      body: { docid: readString(docId), type, rule_id_list },
+      body: omitUndefinedProperties({
+        docid: readString(docId),
+        type: normalizedType,
+        rule_id_list:
+          Array.isArray(rule_id_list) && rule_id_list.length > 0 ? rule_id_list : undefined,
+      }),
     });
-    return { raw: json };
+    return { raw: json, ruleList: readArray(json.rule_list) };
   }
 
   async smartTableUpdateSheetPriv(params: {
@@ -1500,9 +2330,17 @@ export class WecomDocClient {
     priv_list: Array<Record<string, unknown>>;
   }) {
     const { agent, docId, type, rule_id, name, priv_list } = params;
-    const body: Record<string, unknown> = { docid: readString(docId), type, priv_list };
-    if (rule_id !== undefined) {body.rule_id = rule_id;}
-    if (name !== undefined) {body.name = name;}
+    const body: Record<string, unknown> = {
+      docid: readString(docId),
+      type,
+      priv_list: normalizeSmartTablePrivList(priv_list),
+    };
+    if (rule_id !== undefined) {
+      body.rule_id = rule_id;
+    }
+    if (name !== undefined) {
+      body.name = name;
+    }
 
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/smartsheet/content_priv/update_sheet_priv",
@@ -1513,15 +2351,63 @@ export class WecomDocClient {
     return { raw: json };
   }
 
-  async smartTableCreateRule(params: { agent: ResolvedAgentAccount; docId: string; name: string }) {
-    const { agent, docId, name } = params;
+  async smartTableCreateRule(params: {
+    agent: ResolvedAgentAccount;
+    docId: string;
+    name?: string;
+    rule_name?: string;
+    ruleName?: string;
+    type?: number;
+    priv_list?: Array<Record<string, unknown>>;
+    member_range?: Record<string, unknown>;
+    add_member_range?: Record<string, unknown>;
+    del_member_range?: Record<string, unknown>;
+  }) {
+    const { agent, docId } = params;
+    const name = readString(params.name || params.rule_name || params.ruleName);
+    if (!name) {
+      throw new Error("name required");
+    }
+    if (Array.from(name).length > 4) {
+      throw new Error("name length must be 4 characters or fewer");
+    }
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/smartsheet/content_priv/create_rule",
       actionLabel: "smartsheet_create_rule",
       agent,
       body: { docid: readString(docId), name },
     });
-    return { raw: json, rule_id: json.rule_id };
+    const ruleId = readOptionalFiniteNumber(json.rule_id);
+    const addMemberRange = params.add_member_range || params.member_range;
+    const needsRuleId =
+      (Array.isArray(params.priv_list) && params.priv_list.length > 0) ||
+      Boolean(addMemberRange || params.del_member_range);
+    const followUpRuleId = needsRuleId ? requireSmartTableRuleId(ruleId) : undefined;
+    const raw: Record<string, unknown> = { create_rule: json };
+    if (Array.isArray(params.priv_list) && params.priv_list.length > 0) {
+      const sheetPriv = await this.smartTableUpdateSheetPriv({
+        agent,
+        docId,
+        type: Number.isInteger(params.type) ? Number(params.type) : 2,
+        rule_id: requireSmartTableRuleId(followUpRuleId),
+        priv_list: params.priv_list,
+      });
+      raw.update_sheet_priv = sheetPriv.raw;
+    }
+    if (addMemberRange || params.del_member_range) {
+      const member = await this.smartTableModRuleMember({
+        agent,
+        docId,
+        rule_id: requireSmartTableRuleId(followUpRuleId),
+        add_member_range: addMemberRange,
+        del_member_range: params.del_member_range,
+      });
+      raw.mod_rule_member = member.raw;
+    }
+    return {
+      raw: Object.keys(raw).length === 1 ? json : raw,
+      rule_id: ruleId ?? json.rule_id,
+    };
   }
 
   async smartTableModRuleMember(params: {
@@ -1533,8 +2419,12 @@ export class WecomDocClient {
   }) {
     const { agent, docId, rule_id, add_member_range, del_member_range } = params;
     const body: Record<string, unknown> = { docid: readString(docId), rule_id };
-    if (add_member_range) {body.add_member_range = add_member_range;}
-    if (del_member_range) {body.del_member_range = del_member_range;}
+    if (add_member_range) {
+      body.add_member_range = add_member_range;
+    }
+    if (del_member_range) {
+      body.del_member_range = del_member_range;
+    }
 
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/smartsheet/content_priv/mod_rule_member",
@@ -1605,7 +2495,9 @@ export class WecomDocClient {
   }) {
     const { agent, docId, base64_content } = params;
     const normalizedDocId = readString(docId);
-    if (!normalizedDocId) {throw new Error("docId required");}
+    if (!normalizedDocId) {
+      throw new Error("docId required");
+    }
 
     const json = await this.postWecomDocApi({
       path: "/cgi-bin/wedoc/image_upload",

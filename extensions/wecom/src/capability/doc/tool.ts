@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/wecom";
 import { getAccountRuntime } from "../../runtime.js";
-import type { ResolvedAgentAccount } from "../../types/index.js";
 import { resolveAgentAccountOrUndefined } from "../bot/fallback-delivery.js";
 import {
   buildToolError,
@@ -13,12 +12,29 @@ import { wecomDocToolSchema } from "./schema.js";
 import { UpdateRequest } from "./types.js";
 
 function readString(value: unknown): string {
-  const trimmed = String(value ?? "").trim();
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    return "";
+  }
+  const trimmed = String(value).trim();
   return trimmed || "";
 }
 
+function readFiniteNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const text = readString(value);
+  if (!text) {
+    return undefined;
+  }
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
 function mapDocTypeLabel(docType: number): string {
-  if (docType === 10) {return "智能表格";}
+  if (docType === 10) {
+    return "智能表格";
+  }
   return docType === 4 ? "表格" : "文档";
 }
 
@@ -29,9 +45,17 @@ function summarizeDocInfo(info: Record<string, unknown> = {}) {
 }
 
 function summarizeDocAuth(result: Record<string, unknown> = {}) {
-  const docMembers = Array.isArray(result.docMembers) ? result.docMembers : [];
-  const coAuthList = Array.isArray(result.coAuthList) ? result.coAuthList : [];
-  return `权限信息已获取：通知成员 ${docMembers.length}，协作者 ${coAuthList.length}`;
+  const collaborators = uniqueRefs([
+    ...mapDocMemberList(result.docMembers, (auth) => auth === 2 || auth === 7),
+    ...mapDocMemberList(result.coAuthList),
+  ]);
+  const collaboratorRefs = new Set(collaborators);
+  const viewers = uniqueRefs(
+    mapDocMemberList(result.docMembers, (auth) => auth === null || auth === 1).filter(
+      (ref) => !collaboratorRefs.has(ref),
+    ),
+  );
+  return `权限信息已获取：通知成员 ${viewers.length}，协作者 ${collaborators.length}`;
 }
 
 function readBooleanFlag(value: unknown): boolean | null {
@@ -39,19 +63,51 @@ function readBooleanFlag(value: unknown): boolean | null {
 }
 
 function formatDocMemberRef(value: Record<string, unknown>) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {return "";}
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return "";
+  }
   const userid = readString(value.userid ?? value.userId);
-  if (userid) {return `userid:${userid}`;}
+  if (userid) {
+    return `userid:${userid}`;
+  }
+  const tmpExternalUserid = readString(value.tmp_external_userid ?? value.tmpExternalUserid);
+  if (tmpExternalUserid) {
+    return `tmp_external_userid:${tmpExternalUserid}`;
+  }
   const partyid = readString(value.partyid);
-  if (partyid) {return `partyid:${partyid}`;}
+  if (partyid) {
+    return `partyid:${partyid}`;
+  }
   const tagid = readString(value.tagid);
-  if (tagid) {return `tagid:${tagid}`;}
+  if (tagid) {
+    return `tagid:${tagid}`;
+  }
   return "";
 }
 
-function mapDocMemberList(values: unknown) {
+function readMemberAuth(value: Record<string, unknown>) {
+  const normalized = Number(value.auth);
+  return Number.isFinite(normalized) ? normalized : null;
+}
+
+function uniqueRefs(values: string[]) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function mapDocMemberList(values: unknown, acceptAuth?: (auth: number | null) => boolean) {
   return Array.isArray(values)
-    ? values.map((item: Record<string, unknown>) => formatDocMemberRef(item)).filter(Boolean)
+    ? values
+        .map((item: Record<string, unknown>) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) {
+            return "";
+          }
+          const auth = readMemberAuth(item);
+          if (acceptAuth && !acceptAuth(auth)) {
+            return "";
+          }
+          return formatDocMemberRef(item);
+        })
+        .filter(Boolean)
     : [];
 }
 
@@ -61,8 +117,12 @@ function describeFlagState(
   disabledLabel: string,
   unknownLabel = "未知",
 ) {
-  if (value === true) {return enabledLabel;}
-  if (value === false) {return disabledLabel;}
+  if (value === true) {
+    return enabledLabel;
+  }
+  if (value === false) {
+    return disabledLabel;
+  }
   return unknownLabel;
 }
 
@@ -71,8 +131,16 @@ function buildDocAuthDiagnosis(result: Record<string, unknown> = {}, requesterSe
     result.accessRule && typeof result.accessRule === "object"
       ? (result.accessRule as Record<string, unknown>)
       : ({} as Record<string, unknown>);
-  const viewers = mapDocMemberList(result.docMembers);
-  const collaborators = mapDocMemberList(result.coAuthList);
+  const collaborators = uniqueRefs([
+    ...mapDocMemberList(result.docMembers, (auth) => auth === 2 || auth === 7),
+    ...mapDocMemberList(result.coAuthList),
+  ]);
+  const collaboratorRefs = new Set(collaborators);
+  const viewers = uniqueRefs(
+    mapDocMemberList(result.docMembers, (auth) => auth === null || auth === 1).filter(
+      (ref) => !collaboratorRefs.has(ref),
+    ),
+  );
   const requester = readString(requesterSenderId);
   const requesterViewerRef = requester ? `userid:${requester}` : "";
   const requesterIsViewer = requesterViewerRef ? viewers.includes(requesterViewerRef) : false;
@@ -136,7 +204,9 @@ function summarizeDocAuthDiagnosis(diagnosis: Record<string, unknown> = {}) {
 
 function buildDocIdUsageHint(docId?: string) {
   const normalizedDocId = readString(docId);
-  if (!normalizedDocId) {return "";}
+  if (!normalizedDocId) {
+    return "";
+  }
   return `后续权限、分享和诊断操作请使用真实 docId：${normalizedDocId}；不要直接使用分享链接路径中的片段。`;
 }
 
@@ -149,14 +219,20 @@ function safeParseJson(text: string) {
 }
 
 function extractEmbeddedJson(html: string, variableName: string) {
-  const source = String(html ?? "");
-  if (!source) {return null;}
+  const source = html;
+  if (!source) {
+    return null;
+  }
   const marker = `window.${variableName}=`;
   const start = source.indexOf(marker);
-  if (start < 0) {return null;}
+  if (start < 0) {
+    return null;
+  }
   const valueStart = start + marker.length;
   const end = source.indexOf(";</script>", valueStart);
-  if (end < 0) {return null;}
+  if (end < 0) {
+    return null;
+  }
   return safeParseJson(source.slice(valueStart, end));
 }
 
@@ -255,7 +331,9 @@ function buildShareLinkDiagnosis(params: {
 async function inspectWecomShareLink(params: { shareUrl: string }) {
   const { shareUrl } = params;
   const normalizedUrl = readString(shareUrl);
-  if (!normalizedUrl) {throw new Error("shareUrl required");}
+  if (!normalizedUrl) {
+    throw new Error("shareUrl required");
+  }
   let parsed;
   try {
     parsed = new URL(normalizedUrl);
@@ -304,10 +382,22 @@ function summarizeSheetProperties(result: Record<string, unknown> = {}) {
 
 function summarizeDocAccess(result: Record<string, unknown> = {}) {
   const parts = [];
-  if (result.addedViewerCount) {parts.push(`新增查看成员 ${result.addedViewerCount}`);}
-  if (result.addedCollaboratorCount) {parts.push(`新增协作者 ${result.addedCollaboratorCount}`);}
-  if (result.removedViewerCount) {parts.push(`移除查看成员 ${result.removedViewerCount}`);}
-  if (result.removedCollaboratorCount) {parts.push(`移除协作者 ${result.removedCollaboratorCount}`);}
+  const addedViewerCount = readFiniteNumber(result.addedViewerCount);
+  const addedCollaboratorCount = readFiniteNumber(result.addedCollaboratorCount);
+  const removedViewerCount = readFiniteNumber(result.removedViewerCount);
+  const removedCollaboratorCount = readFiniteNumber(result.removedCollaboratorCount);
+  if (addedViewerCount) {
+    parts.push(`新增查看成员 ${addedViewerCount}`);
+  }
+  if (addedCollaboratorCount) {
+    parts.push(`新增协作者 ${addedCollaboratorCount}`);
+  }
+  if (removedViewerCount) {
+    parts.push(`移除查看成员 ${removedViewerCount}`);
+  }
+  if (removedCollaboratorCount) {
+    parts.push(`移除协作者 ${removedCollaboratorCount}`);
+  }
   return parts.length > 0 ? `文档权限已更新：${parts.join("，")}` : "文档权限已更新";
 }
 
@@ -324,62 +414,43 @@ function summarizeFormAnswer(result: Record<string, unknown> = {}) {
 
 function summarizeFormStatistic(result: Record<string, unknown> = {}) {
   const items = Array.isArray(result.items) ? result.items : [];
-  return `收集表统计已获取：请求 ${items.length}，成功 ${result.successCount ?? 0}`;
+  return `收集表统计已获取：请求 ${items.length}，成功 ${readFiniteNumber(result.successCount) ?? 0}`;
 }
 
 function summarizeAdvancedAccount(result: Record<string, unknown> = {}, action: string) {
-  if (action === "assign") {return `高级功能账号分配任务已提交，jobid: ${result.jobid || "未知"}`;}
-  if (action === "cancel") {return `高级功能账号取消任务已提交，jobid: ${result.jobid || "未知"}`;}
+  const jobId = readString(result.jobid) || "未知";
+  if (action === "assign") {
+    return `高级功能账号分配任务已提交，jobid: ${jobId}`;
+  }
+  if (action === "cancel") {
+    return `高级功能账号取消任务已提交，jobid: ${jobId}`;
+  }
   const userList = Array.isArray(result.userList) ? result.userList : [];
   return `高级功能账号列表已获取：${userList.length} 个`;
 }
 
-function readMemberUserId(value: unknown) {
-  if (typeof value === "string" || typeof value === "number") {
-    return readString(value);
-  }
-  if (!value || typeof value !== "object" || Array.isArray(value)) {return "";}
-  const obj = value as Record<string, unknown>;
-  return readString(obj.userid ?? obj.userId);
-}
-
-function hasMemberUserId(values: unknown, requesterSenderId: string) {
-  const normalizedRequesterSenderId = readString(requesterSenderId);
-  if (!normalizedRequesterSenderId) {return false;}
-  return (
-    Array.isArray(values) &&
-    values.some((item) => readMemberUserId(item) === normalizedRequesterSenderId)
-  );
-}
-
-function resolveCreateCollaborators(params: {
-  toolContext: WecomToolContext;
-  requestParams: Record<string, unknown>;
-}) {
-  const { toolContext, requestParams } = params;
-  const explicitCollaborators = Array.isArray(requestParams?.collaborators)
-    ? [...requestParams.collaborators]
-    : [];
-  const requesterSenderId = readString(toolContext?.senderId || toolContext?.requesterSenderId); // align with OpenClaw standard `senderId`
-  if (!requesterSenderId) {return explicitCollaborators;}
-  // By default, let's always auto-grant requester
-  if (hasMemberUserId(explicitCollaborators, requesterSenderId)) {return explicitCollaborators;}
-  if (hasMemberUserId(requestParams?.viewers, requesterSenderId)) {return explicitCollaborators;}
-  explicitCollaborators.push(requesterSenderId);
-  return explicitCollaborators;
-}
-
 function buildDocToolResult(payload: Record<string, unknown>) {
   // To avoid formatting issues with URLs having underscores rendering as markdown Italics
-  if (payload.url) {payload.url = `<${payload.url}>`;}
+  const url = readString(payload.url);
+  if (url) {
+    payload.url = `<${url}>`;
+  }
   const diagnosis = payload.diagnosis as Record<string, unknown> | undefined;
-  if (diagnosis?.finalUrl) {diagnosis.finalUrl = `<${diagnosis.finalUrl}>`;}
-  if (diagnosis?.shareUrl) {diagnosis.shareUrl = `<${diagnosis.shareUrl}>`;}
+  const finalUrl = readString(diagnosis?.finalUrl);
+  if (finalUrl && diagnosis) {
+    diagnosis.finalUrl = `<${finalUrl}>`;
+  }
+  const shareUrl = readString(diagnosis?.shareUrl);
+  if (shareUrl && diagnosis) {
+    diagnosis.shareUrl = `<${shareUrl}>`;
+  }
   return buildBaseToolResult(payload);
 }
 
 export function registerWecomDocTools(api: OpenClawPluginApi) {
-  if (typeof api?.registerTool !== "function") {return;}
+  if (typeof api?.registerTool !== "function") {
+    return;
+  }
   const docClient = new WecomDocClient();
 
   api.registerTool((toolContext: WecomToolContext) => ({
@@ -411,19 +482,19 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               adminUsers: params.adminUsers as string[] | undefined,
             });
 
-            // Auto-set security rules for better default permissions (internal users can edit)
+            // Auto-set security rules for a reachable default. WeCom join-rule auth only accepts read-only.
             try {
               await docClient.setDocJoinRule({
                 agent: account,
                 docId: result.docId,
                 request: {
                   enable_corp_internal: true,
-                  corp_internal_auth: 2, // 2 = edit permission
+                  corp_internal_auth: 1,
                   enable_corp_external: false,
                   ban_share_external: false,
                 },
               });
-            } catch (err) {
+            } catch {
               // Non-fatal: document created, just default permissions may be read-only
             }
 
@@ -457,9 +528,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                 const getImageUrl = (item: unknown): string => {
                   if (typeof item === "object" && item !== null) {
                     const obj = item as Record<string, unknown>;
-                    return String(obj.url || obj.content || "");
+                    return readString(obj.url) || readString(obj.content);
                   }
-                  return String(item);
+                  return readString(item);
                 };
 
                 // Helper: download image and convert to base64
@@ -476,67 +547,31 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                 const getText = (item: unknown): string => {
                   if (typeof item === "object" && item !== null) {
                     const obj = item as Record<string, unknown>;
-                    return String(obj.content || obj.text || "");
+                    return readString(obj.content) || readString(obj.text);
                   }
-                  return String(item);
+                  return readString(item);
                 };
 
-                // Step 1: Insert first paragraph (title) at index 0
-                if (params.init_content[0]) {
-                  const firstItem = params.init_content[0];
-                  if (isImageItem(firstItem)) {
-                    // First item is image - upload first, then insert at index 0
-                    const imgUrl = getImageUrl(firstItem);
-
-                    try {
-                      // Upload image to WeCom to get proper image_id
-                      const base64 = await downloadImageAsBase64(imgUrl);
-                      const uploadResult = await docClient.uploadDocImage({
-                        agent: account,
-                        docId: result.docId,
-                        base64_content: base64,
-                      });
-
-                      // Insert image using uploaded URL
-                      // Note: version is optional, API handles concurrency
-                      await docClient.updateDocContent({
-                        agent: account,
-                        docId: result.docId,
-                        requests: [
-                          {
-                            insert_image: {
-                              image_id: uploadResult.url,
-                              location: { index: 0 },
-                              width: uploadResult.width as number | undefined,
-                              height: uploadResult.height as number | undefined,
-                            },
-                          },
-                        ],
-                      });
-                    } catch (uploadErr) {
-                      getAccountRuntime(account.accountId)?.log.error?.(
-                        `Failed to upload first image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
-                      );
-                      throw new Error(
-                        `First image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`, { cause: uploadErr },
-                      );
-                    }
-                  } else {
-                    const titleText = getText(firstItem);
+                if (params.init_content.every((item) => !isImageItem(item))) {
+                  const textItems = params.init_content
+                    .map(getText)
+                    .filter((text) => text.length > 0);
+                  const fullText = textItems.join("\n");
+                  if (fullText) {
                     await docClient.updateDocContent({
                       agent: account,
                       docId: result.docId,
                       requests: [
                         {
                           insert_text: {
-                            text: titleText,
+                            text: fullText,
                             location: { index: 0 },
                           },
                         },
                       ],
                     });
 
-                    // Apply Title Styling (Bold)
+                    const titleText = textItems[0] || "";
                     if (titleText.length > 0) {
                       await docClient.updateDocContent({
                         agent: account,
@@ -552,41 +587,153 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                       });
                     }
                   }
-                }
+                } else {
+                  // Step 1: Insert first paragraph (title) at index 0
+                  if (params.init_content[0]) {
+                    const firstItem = params.init_content[0];
+                    if (isImageItem(firstItem)) {
+                      // First item is image - upload first, then insert at index 0
+                      const imgUrl = getImageUrl(firstItem);
 
-                // Step 2: For subsequent items, append with proper paragraph handling
-                // Per API spec: must get latest version and index before each batch_update
-                for (let i = 1; i < params.init_content.length; i++) {
-                  const item = params.init_content[i];
+                      try {
+                        // Upload image to WeCom to get proper image_id
+                        const base64 = await downloadImageAsBase64(imgUrl);
+                        const uploadResult = await docClient.uploadDocImage({
+                          agent: account,
+                          docId: result.docId,
+                          base64_content: base64,
+                        });
 
-                  // Refresh content to get latest document structure and version
-                  // API requires: version difference ≤ 100 from latest
-                  const currentContent = await docClient.getDocContent({
-                    agent: account,
-                    docId: result.docId,
-                  });
-
-                  // Get the end index of the document
-                  const docEndIndex = currentContent.document.end;
-                  const currentVersion = currentContent.version;
-
-                  if (isImageItem(item)) {
-                    // Insert image: upload first, then create paragraph, then insert image
-                    const imgUrl = getImageUrl(item);
-
-                    try {
-                      // Step 1: Download and upload image to WeCom
-                      const base64 = await downloadImageAsBase64(imgUrl);
-                      const uploadResult = await docClient.uploadDocImage({
+                        // Insert image using uploaded URL
+                        // Note: version is optional, API handles concurrency
+                        await docClient.updateDocContent({
+                          agent: account,
+                          docId: result.docId,
+                          requests: [
+                            {
+                              insert_image: {
+                                image_id: uploadResult.url,
+                                location: { index: 0 },
+                                width: uploadResult.width as number | undefined,
+                                height: uploadResult.height as number | undefined,
+                              },
+                            },
+                          ],
+                        });
+                      } catch (uploadErr) {
+                        getAccountRuntime(account.accountId)?.log.error?.(
+                          `Failed to upload first image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                        );
+                        throw new Error(
+                          `First image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                          { cause: uploadErr },
+                        );
+                      }
+                    } else {
+                      const titleText = getText(firstItem);
+                      await docClient.updateDocContent({
                         agent: account,
                         docId: result.docId,
-                        base64_content: base64,
+                        requests: [
+                          {
+                            insert_text: {
+                              text: titleText,
+                              location: { index: 0 },
+                            },
+                          },
+                        ],
                       });
 
-                      // Step 2: Create new paragraph and insert image in one batch (2 operations ≤ 30)
+                      // Apply Title Styling (Bold)
+                      if (titleText.length > 0) {
+                        await docClient.updateDocContent({
+                          agent: account,
+                          docId: result.docId,
+                          requests: [
+                            {
+                              update_text_property: {
+                                text_property: { bold: true },
+                                ranges: [{ start_index: 0, length: titleText.length }],
+                              },
+                            },
+                          ],
+                        });
+                      }
+                    }
+                  }
+
+                  // Step 2: For subsequent items, append with proper paragraph handling
+                  // Per API spec: must get latest version and index before each batch_update
+                  for (let i = 1; i < params.init_content.length; i++) {
+                    const item = params.init_content[i];
+
+                    // Refresh content to get latest document structure and version
+                    // API requires: version difference ≤ 100 from latest
+                    const currentContent = await docClient.getDocContent({
+                      agent: account,
+                      docId: result.docId,
+                    });
+
+                    // Get the end index of the document
+                    const docEndIndex = currentContent.document.end;
+                    const currentVersion = currentContent.version;
+
+                    if (isImageItem(item)) {
+                      // Insert image: upload first, then create paragraph, then insert image
+                      const imgUrl = getImageUrl(item);
+
+                      try {
+                        // Step 1: Download and upload image to WeCom
+                        const base64 = await downloadImageAsBase64(imgUrl);
+                        const uploadResult = await docClient.uploadDocImage({
+                          agent: account,
+                          docId: result.docId,
+                          base64_content: base64,
+                        });
+
+                        // Step 2: Create new paragraph and insert image in one batch (2 operations ≤ 30)
+                        // Per API spec: all indices are based on the same document snapshot
+                        // insert_paragraph at docEndIndex creates a new paragraph
+                        // insert_image at docEndIndex + 1 inserts into the newly created paragraph
+                        await docClient.updateDocContent({
+                          agent: account,
+                          docId: result.docId,
+                          version: currentVersion, // Pass version for concurrency control
+                          requests: [
+                            {
+                              insert_paragraph: {
+                                location: { index: docEndIndex },
+                              },
+                            },
+                            {
+                              insert_image: {
+                                image_id: uploadResult.url,
+                                location: { index: docEndIndex + 1 },
+                                width: uploadResult.width as number | undefined,
+                                height: uploadResult.height as number | undefined,
+                              },
+                            },
+                          ],
+                        });
+                      } catch (uploadErr) {
+                        getAccountRuntime(account.accountId)?.log.error?.(
+                          `Failed to upload image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                        );
+                        throw new Error(
+                          `Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
+                          { cause: uploadErr },
+                        );
+                      }
+                    } else {
+                      const text = getText(item);
+                      if (!text) {
+                        continue;
+                      }
+
+                      // Insert text: create paragraph and insert text in one batch (2 operations ≤ 30)
                       // Per API spec: all indices are based on the same document snapshot
                       // insert_paragraph at docEndIndex creates a new paragraph
-                      // insert_image at docEndIndex + 1 inserts into the newly created paragraph
+                      // insert_text at docEndIndex + 1 inserts into the newly created paragraph
                       await docClient.updateDocContent({
                         agent: account,
                         docId: result.docId,
@@ -598,49 +745,14 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
                             },
                           },
                           {
-                            insert_image: {
-                              image_id: uploadResult.url,
+                            insert_text: {
+                              text: text,
                               location: { index: docEndIndex + 1 },
-                              width: uploadResult.width as number | undefined,
-                              height: uploadResult.height as number | undefined,
                             },
                           },
                         ],
                       });
-                    } catch (uploadErr) {
-                      getAccountRuntime(account.accountId)?.log.error?.(
-                        `Failed to upload image ${imgUrl}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`,
-                      );
-                      throw new Error(
-                        `Image upload failed: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`, { cause: uploadErr },
-                      );
                     }
-                  } else {
-                    const text = getText(item);
-                    if (!text) {continue;}
-
-                    // Insert text: create paragraph and insert text in one batch (2 operations ≤ 30)
-                    // Per API spec: all indices are based on the same document snapshot
-                    // insert_paragraph at docEndIndex creates a new paragraph
-                    // insert_text at docEndIndex + 1 inserts into the newly created paragraph
-                    await docClient.updateDocContent({
-                      agent: account,
-                      docId: result.docId,
-                      version: currentVersion, // Pass version for concurrency control
-                      requests: [
-                        {
-                          insert_paragraph: {
-                            location: { index: docEndIndex },
-                          },
-                        },
-                        {
-                          insert_text: {
-                            text: text,
-                            location: { index: docEndIndex + 1 },
-                          },
-                        },
-                      ],
-                    });
                   }
                 }
                 contentResult = "init_content_populated";
@@ -765,8 +877,8 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId,
               url: result.shareUrl || undefined,
               summary: result.shareUrl
-                ? `文档分享链接已获取（docId: ${params.docId}）`
-                : `文档分享接口调用成功（docId: ${params.docId}）`,
+                ? `文档分享链接已获取（docId: ${readString(params.docId)}）`
+                : `文档分享接口调用成功（docId: ${readString(params.docId)}）`,
               usageHint: buildDocIdUsageHint(params.docId as string | undefined) || undefined,
               raw: result.raw,
             });
@@ -1004,7 +1116,9 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             try {
               const result = await docClient.createCollect({
                 agent: account,
-                formInfo: params.formInfo as Record<string, unknown>,
+                formInfo: params.formInfo as Record<string, unknown> | undefined,
+                form_info: params.form_info as Record<string, unknown> | undefined,
+                request: params.request as Record<string, unknown> | undefined,
                 spaceId: params.spaceId as string | undefined,
                 fatherId: params.fatherId as string | undefined,
               });
@@ -1026,7 +1140,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               const hint = `
 创建收集表失败。请检查以下必填项：
 - form_title: 收集表标题（必填）
-- form_question.items: 问题数组（必填，≤200 个）
+- form_question.items: 问题数组（必填且至少 1 个，≤200 个）；不支持仅传 docName 创建收集表
 - 每个问题必须包含：question_id, title, pos, reply_type, must_reply
 - 单选/多选/下拉列表必须提供 option_item 数组
 - reply_type 对照表：1 文本，2 单选，3 多选，5 位置，9 图片，10 文件，11 日期，14 时间，15 下拉列表，16 体温，17 签名，18 部门，19 成员，22 时长
@@ -1096,6 +1210,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
           case "get_form_statistic": {
             const result = await docClient.getFormStatistic({
               agent: account,
+              formId: params.formId as string | undefined,
               requests: params.requests as unknown[],
             });
             return buildDocToolResult({
@@ -1176,6 +1291,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId as string,
               title: params.title as string,
               index: params.index as number | undefined,
+              properties: params.properties as Record<string, unknown> | undefined,
             });
             return buildDocToolResult({
               ok: true,
@@ -1207,6 +1323,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId as string,
               sheetId: params.sheetId as string,
               title: params.title as string,
+              properties: params.properties as Record<string, unknown> | undefined,
             });
             return buildDocToolResult({
               ok: true,
@@ -1323,6 +1440,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               sheetId: params.sheetId as string,
               view_id: params.view_id as string,
               view_title: params.view_title as string | undefined,
+              property: params.property as Record<string, unknown> | undefined,
               property_gantt: params.property_gantt as Record<string, unknown> | undefined,
               property_calendar: params.property_calendar as Record<string, unknown> | undefined,
             });
@@ -1357,7 +1475,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId as string,
               sheetId: params.sheetId as string,
               name: params.name as string,
-              children: params.children as string[] | undefined,
+              children: params.children as unknown[] | undefined,
             });
             return buildDocToolResult({
               ok: true,
@@ -1391,7 +1509,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               sheetId: params.sheetId as string,
               field_group_id: params.field_group_id as string,
               name: params.name as string | undefined,
-              children: params.children as string[] | undefined,
+              children: params.children as unknown[] | undefined,
             });
             return buildDocToolResult({
               ok: true,
@@ -1418,7 +1536,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             });
           }
           case "smartsheet_add_external_records": {
-            const result = await docClient.smartTableAddExternalRecords({
+            await docClient.smartTableAddExternalRecords({
               agent: account,
               docId: params.docId as string,
               sheetId: params.sheetId as string,
@@ -1430,11 +1548,11 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               accountId: account.accountId,
               docId: params.docId,
               summary: "智能表格外部记录已添加",
-              raw: result.raw,
+              raw: {},
             });
           }
           case "smartsheet_update_external_records": {
-            const result = await docClient.smartTableUpdateExternalRecords({
+            await docClient.smartTableUpdateExternalRecords({
               agent: account,
               docId: params.docId as string,
               sheetId: params.sheetId as string,
@@ -1446,7 +1564,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               accountId: account.accountId,
               docId: params.docId,
               summary: "智能表格外部记录已更新",
-              raw: result.raw,
+              raw: {},
             });
           }
           case "smartsheet_add_records": {
@@ -1504,10 +1622,16 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               agent: account,
               docId: params.docId as string,
               sheetId: params.sheetId as string,
+              view_id: params.view_id as string | undefined,
               record_ids: params.record_ids as string[] | undefined,
+              field_titles: params.field_titles as string[] | undefined,
+              field_ids: params.field_ids as string[] | undefined,
+              sort: params.sort as unknown[] | undefined,
+              filter_spec: params.filter_spec as Record<string, unknown> | undefined,
               keyType: params.key_type as string | undefined,
               offset: params.offset as number | undefined,
               limit: params.limit as number | undefined,
+              ver: params.ver as number | undefined,
             });
             return buildDocToolResult({
               ok: true,
@@ -1536,7 +1660,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             const result = await docClient.smartTableGetSheetPriv({
               agent: account,
               docId: params.docId as string,
-              type: params.type as number,
+              type: params.type as number | undefined,
               rule_id_list: params.rule_id_list as number[] | undefined,
             });
             return buildDocToolResult({
@@ -1546,6 +1670,7 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
               docId: params.docId,
               summary: "智能表格子表权限已获取",
               raw: result.raw,
+              ruleList: result.ruleList,
             });
           }
           case "smartsheet_update_sheet_priv": {
@@ -1570,14 +1695,21 @@ export function registerWecomDocTools(api: OpenClawPluginApi) {
             const result = await docClient.smartTableCreateRule({
               agent: account,
               docId: params.docId as string,
-              name: params.name as string,
+              name: params.name as string | undefined,
+              rule_name: params.rule_name as string | undefined,
+              ruleName: params.ruleName as string | undefined,
+              type: params.type as number | undefined,
+              priv_list: params.priv_list as Array<Record<string, unknown>> | undefined,
+              member_range: params.member_range as Record<string, unknown> | undefined,
+              add_member_range: params.add_member_range as Record<string, unknown> | undefined,
+              del_member_range: params.del_member_range as Record<string, unknown> | undefined,
             });
             return buildDocToolResult({
               ok: true,
               action,
               accountId: account.accountId,
               docId: params.docId,
-              summary: `智能表格成员额外权限规则已创建 (rule_id: ${result.rule_id})`,
+              summary: `智能表格成员额外权限规则已创建 (rule_id: ${readString(result.rule_id) || "unknown"})`,
               raw: result.raw,
             });
           }
