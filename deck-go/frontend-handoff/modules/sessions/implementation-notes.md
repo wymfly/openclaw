@@ -269,3 +269,37 @@ Accepted exceptions:
 - `POST /chat/projection` currently validates `sessionKey` and returns `{ok:
 true}`; it is contracted as product-local/no-op behavior until a future
   proposal implements real projection persistence.
+
+## Visual parity — 2026-05-11
+
+OpenSpec / spec reference: `docs/superpowers/specs/2026-05-11-sessions-visual-parity-design.md`
+Implementation plan: `docs/superpowers/plans/2026-05-11-sessions-visual-parity-plan.md`
+
+| Field                | Value                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Module               | sessions                                                                                                                  |
+| Evidence level       | `mock-prototype-parity`                                                                                                   |
+| Command              | `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual-parity.spec.ts --config playwright.config.ts`           |
+| Artifact path        | `test-results/sessions-visual-parity-*/` (contains `prototype.png` / `mock-current.png` / `sheet.png` / `verdict.json`)   |
+| Machine status       | `verdict.json.status` (`pass` if all DOM/token assertions pass and no console/4xx error)                                  |
+| Machine DOM score    | `verdict.json.domScore` (DOM/token assertion pass rate; not a visual percentage)                                          |
+| Visual review status | `verdict.json.visualReview.status` (human side-by-side fills: `accepted` / `accepted-with-exceptions` / `needs-revision`) |
+| Run id               | n/a (this task does not create a real seed)                                                                               |
+| Accepted exceptions  | shell chrome diff / live fixture timestamp diff / Policy→Thinking Level text swap (no `policy` key in i18n scope)         |
+
+Deterministic fixes shipped in this batch:
+
+- Hero: removed history / lineage badges; added Hero stat-grid with 4 stats (`tokensIn` / `tokensOut` / `model` / `thinkingLevel` i18n keys; prototype's "Policy" was substituted by "Thinking Level" since the sessions i18n namespace has no `policy` key — see accepted exception below).
+- Deleted the standalone Runtime metadata surface (duplicate of Hero stat-grid).
+- Inspector Overview tab: added Tab summaries row (`history` / `inspector.lineage` / `inspector.usage` / `inspector.compaction` pills).
+- Transcript: selected match Code is hidden by default (only shown when `transcriptSearchQuery` is non-empty); ExportPreview details no longer default to `open`; transcript list gets CSS `max-height ≈ 96px` + `overflow-y: auto` while keeping DOM `slice(0, 8)` data.
+- Inventory rows trimmed from 5 fields to 4 (removed redundant `previewText` meta).
+- Compactions metric tile: when `compactionCount === 0`, hint now reuses `t("compaction.noCheckpoints")` instead of `t("runtimeMetadata")`.
+- `sessions-panel.css` scoped CSS variable override: cross-theme spacing / radius / fs / line; colors / shadow only inside `[data-theme="dark"] .sessions-panel` so light theme keeps canonical readable colors (no white-on-white).
+- New `test/e2e/sessions-visual-parity.spec.ts`: fixed 1440x900 / dark / en / Overview tab; token computed-value assertions, DOM region assertions, dual screenshots (`prototype.png` / `mock-current.png`), parity sheet composition, `verdict.json` output (with `domScore` + `visualReview`); includes a separate `@light` smoke test that asserts the spacing overrides still apply under light theme while colors stay canonical.
+
+Accepted exceptions:
+
+- `prototype.html` is a standalone single page, whereas the sessions panel runs inside the Deck shell (NavRail / TopBar occupy the left / top area). The viewport-internal sessions content is therefore slightly narrower than the prototype's 1440 baseline. This is an inherent prototype-vs-production-shell difference and out of scope for this spec.
+- Live mock fixture timestamps and numeric values (tokens / cost) differ from the prototype's hardcoded content. This is a data difference, not a visual difference.
+- Hero stat-grid's 4th stat label is "Thinking Level" (`sessions.thinkingLevel`) instead of the prototype's "Policy". Reason: the sessions i18n namespace has no `policy` key and this plan does not expand i18n scope. Semantically `thinkingLevel` + `fastMode` _is_ a session policy, and the wording delta does not affect layout. If product later decides to revert to "Policy", that needs its own OpenSpec change to add the i18n key — it does not block this visual parity work.
