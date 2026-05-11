@@ -256,6 +256,36 @@ Accepted exceptions:
   viewport, so the action column is slightly tighter than the standalone
   1440px prototype.
 
+## Cockpit pattern extraction - 2026-05-11
+
+OpenSpec change: `deck-go-panel-cockpit-design-system`.
+
+Promoted shared structures:
+
+- Sessions now consumes `PanelRoot`, `PanelSectionHeader`, and `PanelStatusRow`
+  for the page cockpit header and selected-session status rows.
+- The top Sessions metric strip and selected-session hero stat strip now
+  consume `KpiStrip` and `PanelMetric` instead of the local `MetricTile` /
+  `StatTile` classes.
+- The promoted CSS lives in
+  `frontend-new/src/design-system/patterns/panel-cockpit.css` and uses existing
+  canonical `--ds-*` tokens only.
+
+Still module-local:
+
+- Inventory rows, transcript rows, inspector tab layout, compaction controls,
+  lineage content, action forms, and mutation confirmation flows remain
+  Sessions-owned molecules because their behavior is session-specific.
+
+Promotion answer after implementation:
+
+- Sessions and Usage validated a shared cockpit pattern set for root/header,
+  KPI/stat, status-row, and pill/surface structures.
+- This does not justify global token-value changes. Existing canonical tokens
+  were sufficient; the repeated issue was local structure and local stale alias
+  consumption.
+- A third module should be sampled before enforcing repo-wide migration rules.
+
 ## Residual Risks
 
 - Real Gateway can expose zero sessions, usage rows, compaction checkpoints, or

@@ -13,4 +13,25 @@ export { NavRail, type NavRailItem, type NavRailProps } from "./NavRail";
 export { TopBar, type TopBarProps } from "./TopBar";
 export { EmptyState, type EmptyStateProps, type EmptyStateTone } from "./EmptyState";
 export { KbdHint, type KbdHintProps } from "./KbdHint";
+export {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type KpiStripProps,
+  type PanelMetricProps,
+  type PanelMetricTone,
+  type PanelPillProps,
+  type PanelPillTone,
+  type PanelRootDensity,
+  type PanelRootProps,
+  type PanelSectionHeaderProps,
+  type PanelStatusRowAlign,
+  type PanelStatusRowProps,
+  type PanelSurfaceProps,
+  type PanelSurfaceTone,
+} from "./PanelCockpit";
 export { SectionHeader, type SectionHeaderProps } from "./SectionHeader";

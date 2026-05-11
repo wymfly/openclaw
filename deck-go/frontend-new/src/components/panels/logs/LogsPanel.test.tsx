@@ -113,6 +113,11 @@ describe("LogsPanel", () => {
     expect(container.textContent).toContain("2 of 2 loaded");
     expect(container.textContent).toContain("boot line");
     expect(container.textContent).toContain("json line");
+    expect(container.querySelector(".logs-panel .ds-panel-root")).not.toBeNull();
+    expect(container.querySelector(".logs-panel .ds-panel-section-header")).not.toBeNull();
+    expect(container.querySelector(".logs-panel .ds-panel-status-row")).not.toBeNull();
+    expect(container.querySelector(".logs-panel .ds-kpi-strip")).not.toBeNull();
+    expect(container.querySelectorAll(".logs-panel .ds-panel-metric")).toHaveLength(6);
     expect(window.localStorage.getItem("deckGoLogsCursor")).toBe("12");
   });
 

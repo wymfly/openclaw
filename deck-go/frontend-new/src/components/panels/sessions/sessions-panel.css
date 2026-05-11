@@ -30,6 +30,11 @@
   letter-spacing: 0;
 }
 
+.sessions-panel > .ds-panel-root {
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: inherit;
+}
+
 .sessions-panel *,
 .sessions-panel *::before,
 .sessions-panel *::after {
@@ -238,6 +243,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--ds-sp-3);
+}
+
+.sessions-hero .sessions-stat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .sessions-stat {

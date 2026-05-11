@@ -27,7 +27,9 @@ test.describe("logs mock visual handoff alignment", () => {
     await expect(page.locator('[data-testid="logs-panel"]')).toBeVisible();
     await expect(page.getByText("Tail ready")).toBeVisible();
     await expect(
-      page.locator(".logs-panel__header").getByText(/Stream (connected|connecting|reconnecting)/),
+      page
+        .locator(".logs-panel .ds-panel-section-header")
+        .getByText(/Stream (connected|connecting|reconnecting)/),
     ).toBeVisible();
     await expect(page.getByText("gateway ready").first()).toBeVisible();
     await expect(page.getByText("tool retry scheduled").first()).toBeVisible();

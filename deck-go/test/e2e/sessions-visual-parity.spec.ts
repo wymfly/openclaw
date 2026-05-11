@@ -128,7 +128,7 @@ test.describe("sessions visual parity vs prototype", () => {
     // 4) Hero status-row 不再有 history/lineage badge
     const hero = page.locator(".sessions-hero");
     await expect(hero).toBeVisible();
-    const heroStatusRowText = (await hero.locator(".sessions-status-row").textContent()) ?? "";
+    const heroStatusRowText = (await hero.locator(".ds-panel-status-row").textContent()) ?? "";
     expect(heroStatusRowText.toLowerCase(), "hero history").not.toContain("history");
     expect(heroStatusRowText.toLowerCase(), "hero lineage").not.toContain("lineage");
     verdict.assertions.push({
@@ -139,9 +139,24 @@ test.describe("sessions visual parity vs prototype", () => {
     });
 
     // 5) Hero stat-grid 4 个 stat
-    const heroStats = hero.locator(".sessions-stat-grid .sessions-stat");
+    const heroStatGrid = hero.locator(".ds-kpi-strip").first();
+    const heroStats = hero.locator(".ds-kpi-strip .ds-panel-metric");
     await expect(heroStats).toHaveCount(4);
     verdict.assertions.push({ name: "hero stat count", expected: "4", actual: "4", ok: true });
+    const heroStatColumns = await heroStatGrid.evaluate((element) => {
+      const value = window.getComputedStyle(element).gridTemplateColumns.trim();
+      return {
+        value,
+        count: value === "" || value === "none" ? 0 : value.split(/\s+/).length,
+      };
+    });
+    verdict.assertions.push({
+      name: "hero stat grid columns",
+      expected: "4",
+      actual: `${heroStatColumns.count} (${heroStatColumns.value})`,
+      ok: heroStatColumns.count === 4,
+    });
+    expect(heroStatColumns.count, `hero stat grid columns: ${heroStatColumns.value}`).toBe(4);
 
     // 6) 不存在独立 Runtime metadata surface
     const runtimeMetadataHeading = page.locator(".sessions-surface h3", {
@@ -156,7 +171,7 @@ test.describe("sessions visual parity vs prototype", () => {
     });
 
     // 7) Inspector Overview Tab summaries row
-    const overviewSummaryRow = page.locator("#sessions-inspector-overview .sessions-status-row");
+    const overviewSummaryRow = page.locator("#sessions-inspector-overview .ds-panel-status-row");
     await expect(overviewSummaryRow).toBeVisible();
     const summaryText = (await overviewSummaryRow.textContent()) ?? "";
     expect(summaryText.toLowerCase()).toContain("history");
@@ -220,7 +235,7 @@ test.describe("sessions visual parity vs prototype", () => {
     });
 
     // 11) Compactions metric hint
-    const compactionsTile = page.locator(".sessions-metric", { hasText: /compactions/i });
+    const compactionsTile = page.locator(".ds-panel-metric", { hasText: /compactions/i });
     const compactionsText = ((await compactionsTile.textContent()) ?? "").toLowerCase();
     expect(compactionsText).not.toContain("runtime metadata");
     verdict.assertions.push({

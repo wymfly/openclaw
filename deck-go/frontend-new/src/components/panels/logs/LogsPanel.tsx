@@ -22,6 +22,13 @@ import {
   IconStream,
   IconX,
 } from "../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { parseLogEvent, summarizeLogEvent } from "../../../stream-contract";
 import "./logs-panel.css";
@@ -265,17 +272,13 @@ function levelVariant(level: LogLevel) {
 }
 
 function MetricTile(props: {
-  className?: string;
   hint?: string;
   label: string;
+  tone?: "default" | "warning" | "danger";
   value: string | number;
 }) {
   return (
-    <article className={["logs-metric", props.className].filter(Boolean).join(" ")}>
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-      {props.hint ? <small>{props.hint}</small> : null}
-    </article>
+    <PanelMetric hint={props.hint} label={props.label} tone={props.tone} value={props.value} />
   );
 }
 
@@ -482,431 +485,433 @@ export function LogsPanel() {
 
   return (
     <section className="logs-panel" data-testid="logs-panel">
-      <header className="logs-panel__header">
-        <div>
-          <p className="logs-panel__eyebrow">{t("eyebrow")}</p>
-          <h2>{t("title")}</h2>
-          <p>{t("tailDescription")}</p>
-        </div>
-        <div className="logs-panel__header-actions">
-          <Badge variant={tailStateVariant(tailState)}>
-            {t("tailStatus", { state: t(tailState) })}
-          </Badge>
-          <Badge variant={streamStateVariant(streamState)}>
-            {t("streamStatus", { state: t(streamState) })}
-          </Badge>
-          {tailState === "loading" ? <Spinner aria-label={t("loading")} size="sm" /> : null}
-          <label className="logs-toggle">
-            <Toggle
-              aria-label={streamingEnabled ? t("pauseStream") : t("resumeStream")}
-              checked={streamingEnabled}
-              onCheckedChange={setStreamingEnabled}
-            />
-            <span>{streamingEnabled ? t("streamLive") : t("streamPaused")}</span>
+      <PanelRoot as="div">
+        <PanelSectionHeader
+          eyebrow={t("eyebrow")}
+          title={t("title")}
+          description={t("tailDescription")}
+          actions={
+            <PanelStatusRow>
+              <Badge variant={tailStateVariant(tailState)}>
+                {t("tailStatus", { state: t(tailState) })}
+              </Badge>
+              <Badge variant={streamStateVariant(streamState)}>
+                {t("streamStatus", { state: t(streamState) })}
+              </Badge>
+              {tailState === "loading" ? <Spinner aria-label={t("loading")} size="sm" /> : null}
+              <label className="logs-toggle">
+                <Toggle
+                  aria-label={streamingEnabled ? t("pauseStream") : t("resumeStream")}
+                  checked={streamingEnabled}
+                  onCheckedChange={setStreamingEnabled}
+                />
+                <span>{streamingEnabled ? t("streamLive") : t("streamPaused")}</span>
+              </label>
+              <Button size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
+                <span className="logs-button-content">
+                  <IconRefresh size={14} />
+                  {t("refreshTail")}
+                </span>
+              </Button>
+            </PanelStatusRow>
+          }
+        />
+
+        {error ? (
+          <div className="logs-panel__banner" role="status">
+            <Badge variant="err">{t("error")}</Badge>
+            <span>{error}</span>
+          </div>
+        ) : null}
+
+        <section className="logs-filter-bar" aria-label={t("filters")}>
+          <label className="logs-field logs-field--search">
+            <span>{t("freeText")}</span>
+            <span className="logs-input-wrap">
+              <IconSearch size={14} />
+              <Input
+                aria-label={t("freeTextFilter")}
+                inputSize="sm"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("freeTextPlaceholder")}
+                type="search"
+                value={query}
+              />
+            </span>
           </label>
-          <Button size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
+          <label className="logs-field logs-field--correlation">
+            <span>{t("correlationId")}</span>
+            <span className="logs-input-wrap">
+              <IconFilter size={14} />
+              <Input
+                aria-label={t("correlationFilter")}
+                inputSize="sm"
+                onChange={(event) => setCorrelationFilter(event.target.value)}
+                placeholder={t("correlationPlaceholder")}
+                value={correlationFilter}
+              />
+            </span>
+          </label>
+          <fieldset className="logs-levels">
+            <legend>{t("level")}</legend>
+            <span className="logs-level-row">
+              {ALL_LOG_LEVELS.map((level) => (
+                <label className={`logs-level-pill logs-level-pill--${level}`} key={level}>
+                  <input
+                    checked={selectedLevels.includes(level)}
+                    onChange={() => toggleLevelFilter(level)}
+                    type="checkbox"
+                  />
+                  {labelForLevel(level)}
+                </label>
+              ))}
+            </span>
+          </fieldset>
+          <label className="logs-field logs-field--select">
+            <span>{t("source")}</span>
+            <Select
+              aria-label={t("sourceFilter")}
+              onChange={(event) => setSourceFilter(event.target.value)}
+              selectSize="sm"
+              value={sourceFilter}
+            >
+              <option value={ALL_VALUE}>{t("allSources")}</option>
+              {sourceOptions.map((source) => (
+                <option key={source} value={source}>
+                  {labelForSource(source)}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <label className="logs-field logs-field--select">
+            <span>{t("session")}</span>
+            <Select
+              aria-label={t("sessionFilter")}
+              onChange={(event) => setSessionFilter(event.target.value)}
+              selectSize="sm"
+              value={sessionFilter}
+            >
+              <option value={ALL_VALUE}>{t("allSessions")}</option>
+              {sessionOptions.map((sessionKey) => (
+                <option key={sessionKey} value={sessionKey}>
+                  {sessionKey}
+                </option>
+              ))}
+            </Select>
+          </label>
+          <Button size="sm" onClick={clearFilters}>
             <span className="logs-button-content">
-              <IconRefresh size={14} />
-              {t("refreshTail")}
+              <IconX size={14} />
+              {t("clearAll")}
             </span>
           </Button>
-        </div>
-      </header>
-
-      {error ? (
-        <div className="logs-panel__banner" role="status">
-          <Badge variant="err">{t("error")}</Badge>
-          <span>{error}</span>
-        </div>
-      ) : null}
-
-      <section className="logs-filter-bar" aria-label={t("filters")}>
-        <label className="logs-field logs-field--search">
-          <span>{t("freeText")}</span>
-          <span className="logs-input-wrap">
-            <IconSearch size={14} />
-            <Input
-              aria-label={t("freeTextFilter")}
-              inputSize="sm"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("freeTextPlaceholder")}
-              type="search"
-              value={query}
-            />
-          </span>
-        </label>
-        <label className="logs-field logs-field--correlation">
-          <span>{t("correlationId")}</span>
-          <span className="logs-input-wrap">
-            <IconFilter size={14} />
-            <Input
-              aria-label={t("correlationFilter")}
-              inputSize="sm"
-              onChange={(event) => setCorrelationFilter(event.target.value)}
-              placeholder={t("correlationPlaceholder")}
-              value={correlationFilter}
-            />
-          </span>
-        </label>
-        <fieldset className="logs-levels">
-          <legend>{t("level")}</legend>
-          <span className="logs-level-row">
-            {ALL_LOG_LEVELS.map((level) => (
-              <label className={`logs-level-pill logs-level-pill--${level}`} key={level}>
-                <input
-                  checked={selectedLevels.includes(level)}
-                  onChange={() => toggleLevelFilter(level)}
-                  type="checkbox"
-                />
-                {labelForLevel(level)}
-              </label>
-            ))}
-          </span>
-        </fieldset>
-        <label className="logs-field logs-field--select">
-          <span>{t("source")}</span>
-          <Select
-            aria-label={t("sourceFilter")}
-            onChange={(event) => setSourceFilter(event.target.value)}
-            selectSize="sm"
-            value={sourceFilter}
-          >
-            <option value={ALL_VALUE}>{t("allSources")}</option>
-            {sourceOptions.map((source) => (
-              <option key={source} value={source}>
-                {labelForSource(source)}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <label className="logs-field logs-field--select">
-          <span>{t("session")}</span>
-          <Select
-            aria-label={t("sessionFilter")}
-            onChange={(event) => setSessionFilter(event.target.value)}
-            selectSize="sm"
-            value={sessionFilter}
-          >
-            <option value={ALL_VALUE}>{t("allSessions")}</option>
-            {sessionOptions.map((sessionKey) => (
-              <option key={sessionKey} value={sessionKey}>
-                {sessionKey}
-              </option>
-            ))}
-          </Select>
-        </label>
-        <Button size="sm" onClick={clearFilters}>
-          <span className="logs-button-content">
-            <IconX size={14} />
-            {t("clearAll")}
-          </span>
-        </Button>
-      </section>
-
-      <div className="logs-workbench">
-        <section className="log-stream" aria-label={t("tailTitle")}>
-          <div className="log-stream__metrics">
-            <MetricTile
-              hint={t("cursorValue", { cursor: tail?.cursor ?? 0 })}
-              label={t("cursor")}
-              value={tail?.cursor ?? 0}
-            />
-            <MetricTile
-              hint={t("afterLocalFilters")}
-              label={t("visibleRows")}
-              value={filteredLogEntries.length}
-            />
-            <MetricTile
-              hint={t("tailLimitHint")}
-              label={t("loadedRows")}
-              value={parsedLogEntries.length}
-            />
-            <MetricTile
-              className="logs-metric--warn"
-              hint={t("visibleWindow")}
-              label={t("warningRows")}
-              value={warnCount}
-            />
-            <MetricTile
-              className="logs-metric--error"
-              hint={t("visibleWindow")}
-              label={t("errorRows")}
-              value={errorCount}
-            />
-            <MetricTile
-              hint={t("localBufferCap")}
-              label={t("buffer")}
-              value={LOG_BUFFER_LIMIT.toLocaleString()}
-            />
-          </div>
-
-          <div className="log-stream__action-row">
-            <Button variant="primary" size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
-              <span className="logs-button-content">
-                <IconRefresh size={14} />
-                {t("refreshTail")}
-              </span>
-            </Button>
-            <Button
-              aria-pressed={!streamingEnabled}
-              size="sm"
-              onClick={() => setStreamingEnabled((current) => !current)}
-            >
-              <span className="logs-button-content">
-                <IconStream size={14} />
-                {streamingEnabled ? t("pauseStream") : t("resumeStream")}
-              </span>
-            </Button>
-            <Button size="sm" onClick={clearLocalLogs}>
-              <span className="logs-button-content">
-                <IconX size={14} />
-                {t("clearLocalLogs")}
-              </span>
-            </Button>
-            <Button size="sm" onClick={prepareExport}>
-              <span className="logs-button-content">
-                <IconCopy size={14} />
-                {t("prepareExport")}
-              </span>
-            </Button>
-            <span className="log-stream__live">
-              <span
-                className={`logs-live-dot${streamingEnabled ? "" : " logs-live-dot--paused"}`}
-              />
-              {streamingEnabled ? t("streamingHint") : t("streamPausedHint")}
-            </span>
-          </div>
-
-          <Card className="logs-card logs-tail-card" padded={false}>
-            <div className="logs-card__header">
-              <div>
-                <h3>{t("tailTitle")}</h3>
-                <p>
-                  {t("visibleOfLoaded", {
-                    visible: filteredLogEntries.length,
-                    loaded: parsedLogEntries.length,
-                  })}
-                </p>
-              </div>
-              <Badge variant={tailStateVariant(tailState)}>{t(tailState)}</Badge>
-            </div>
-            {filteredLogEntries.length === 0 ? (
-              <div className="log-stream__empty">
-                <IconInfo size={22} />
-                <h4>{t("noLinesMatch")}</h4>
-                <p>{parsedLogEntries.length === 0 ? t("noLogLines") : t("loosenFilters")}</p>
-              </div>
-            ) : (
-              <ul className="log-row-list" role="list">
-                <li className="log-row log-row--header" aria-hidden="true">
-                  <span>{t("time")}</span>
-                  <span>{t("level")}</span>
-                  <span>{t("source")}</span>
-                  <span>{t("sessionTrace")}</span>
-                  <span>{t("message")}</span>
-                  <span>{t("cursor")}</span>
-                </li>
-                {filteredLogEntries.slice(0, 200).map((entry) => (
-                  <li key={entry.id}>
-                    <button
-                      className={`log-row${entry.id === selectedEntryId ? " log-row--selected" : ""}`}
-                      onClick={() => setSelectedEntryId(entry.id)}
-                      type="button"
-                    >
-                      <span className="log-row__ts">{entry.timestamp}</span>
-                      <span>
-                        <Badge variant={levelVariant(entry.level)}>
-                          {labelForLevel(entry.level)}
-                        </Badge>
-                      </span>
-                      <span className="log-row__source">{labelForSource(entry.source)}</span>
-                      <span className="log-row__session">
-                        {entry.sessionKey ?? t("unavailable")}
-                        {entry.correlationId ? <small>{entry.correlationId}</small> : null}
-                      </span>
-                      <span className="log-row__message">{entry.message}</span>
-                      <span className="log-row__cursor">{entry.cursor ?? t("unavailable")}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-
-          {exportPreview !== null ? (
-            <Card className="logs-card logs-export-card" padded={false}>
-              <div className="logs-card__header">
-                <div>
-                  <h3>{t("preparedLogExport")}</h3>
-                  <p>{t("visibleCount", { count: filteredLogEntries.length })}</p>
-                </div>
-                <Badge>{t("previewOnly")}</Badge>
-              </div>
-              <Code
-                aria-label={t("preparedLogExport")}
-                className="logs-code logs-code--export"
-                content={exportPreview || t("noLogLines")}
-                language="log"
-              />
-            </Card>
-          ) : null}
         </section>
 
-        <aside className="details-pane" aria-label={t("selectedLine")}>
-          <Card className="logs-card details-card" padded={false}>
-            {selectedEntry ? (
-              <>
-                <div className={`details-pane__hero details-pane__hero--${selectedEntry.level}`}>
-                  <div className="details-pane__hero-top">
-                    <Badge variant={levelVariant(selectedEntry.level)}>
-                      {labelForLevel(selectedEntry.level)}
-                    </Badge>
-                    <Badge>{labelForSource(selectedEntry.source)}</Badge>
-                    <span>#{selectedEntry.cursor ?? t("unavailable")}</span>
-                  </div>
-                  <h3>{selectedEntry.message}</h3>
+        <div className="logs-workbench">
+          <section className="log-stream" aria-label={t("tailTitle")}>
+            <KpiStrip aria-label={t("tailTitle")} columns={6}>
+              <MetricTile
+                hint={t("cursorValue", { cursor: tail?.cursor ?? 0 })}
+                label={t("cursor")}
+                value={tail?.cursor ?? 0}
+              />
+              <MetricTile
+                hint={t("afterLocalFilters")}
+                label={t("visibleRows")}
+                value={filteredLogEntries.length}
+              />
+              <MetricTile
+                hint={t("tailLimitHint")}
+                label={t("loadedRows")}
+                value={parsedLogEntries.length}
+              />
+              <MetricTile
+                hint={t("visibleWindow")}
+                label={t("warningRows")}
+                tone="warning"
+                value={warnCount}
+              />
+              <MetricTile
+                hint={t("visibleWindow")}
+                label={t("errorRows")}
+                tone="danger"
+                value={errorCount}
+              />
+              <MetricTile
+                hint={t("localBufferCap")}
+                label={t("buffer")}
+                value={LOG_BUFFER_LIMIT.toLocaleString()}
+              />
+            </KpiStrip>
+
+            <div className="log-stream__action-row">
+              <Button variant="primary" size="sm" onClick={() => refreshLogsTail(tail?.cursor)}>
+                <span className="logs-button-content">
+                  <IconRefresh size={14} />
+                  {t("refreshTail")}
+                </span>
+              </Button>
+              <Button
+                aria-pressed={!streamingEnabled}
+                size="sm"
+                onClick={() => setStreamingEnabled((current) => !current)}
+              >
+                <span className="logs-button-content">
+                  <IconStream size={14} />
+                  {streamingEnabled ? t("pauseStream") : t("resumeStream")}
+                </span>
+              </Button>
+              <Button size="sm" onClick={clearLocalLogs}>
+                <span className="logs-button-content">
+                  <IconX size={14} />
+                  {t("clearLocalLogs")}
+                </span>
+              </Button>
+              <Button size="sm" onClick={prepareExport}>
+                <span className="logs-button-content">
+                  <IconCopy size={14} />
+                  {t("prepareExport")}
+                </span>
+              </Button>
+              <span className="log-stream__live">
+                <span
+                  className={`logs-live-dot${streamingEnabled ? "" : " logs-live-dot--paused"}`}
+                />
+                {streamingEnabled ? t("streamingHint") : t("streamPausedHint")}
+              </span>
+            </div>
+
+            <Card className="logs-card logs-tail-card" padded={false}>
+              <div className="logs-card__header">
+                <div>
+                  <h3>{t("tailTitle")}</h3>
                   <p>
-                    <span>{selectedEntry.timestamp}</span>
-                    <span>{selectedEntry.sessionKey ?? t("unavailable")}</span>
-                    {selectedEntry.correlationId ? (
-                      <span>{selectedEntry.correlationId}</span>
-                    ) : null}
+                    {t("visibleOfLoaded", {
+                      visible: filteredLogEntries.length,
+                      loaded: parsedLogEntries.length,
+                    })}
                   </p>
-                  <div className="details-pane__actions">
-                    <Button size="sm" onClick={() => void copySelectedLine()}>
-                      <span className="logs-button-content">
-                        <IconCopy size={14} />
-                        {copyState === "copied" ? t("copied") : t("copyLine")}
-                      </span>
-                    </Button>
-                    {selectedEntry.correlationId ? (
-                      <Button
-                        size="sm"
-                        onClick={() => setCorrelationFilter(selectedEntry.correlationId ?? "")}
+                </div>
+                <Badge variant={tailStateVariant(tailState)}>{t(tailState)}</Badge>
+              </div>
+              {filteredLogEntries.length === 0 ? (
+                <div className="log-stream__empty">
+                  <IconInfo size={22} />
+                  <h4>{t("noLinesMatch")}</h4>
+                  <p>{parsedLogEntries.length === 0 ? t("noLogLines") : t("loosenFilters")}</p>
+                </div>
+              ) : (
+                <ul className="log-row-list" role="list">
+                  <li className="log-row log-row--header" aria-hidden="true">
+                    <span>{t("time")}</span>
+                    <span>{t("level")}</span>
+                    <span>{t("source")}</span>
+                    <span>{t("sessionTrace")}</span>
+                    <span>{t("message")}</span>
+                    <span>{t("cursor")}</span>
+                  </li>
+                  {filteredLogEntries.slice(0, 200).map((entry) => (
+                    <li key={entry.id}>
+                      <button
+                        className={`log-row${entry.id === selectedEntryId ? " log-row--selected" : ""}`}
+                        onClick={() => setSelectedEntryId(entry.id)}
+                        type="button"
                       >
+                        <span className="log-row__ts">{entry.timestamp}</span>
+                        <span>
+                          <Badge variant={levelVariant(entry.level)}>
+                            {labelForLevel(entry.level)}
+                          </Badge>
+                        </span>
+                        <span className="log-row__source">{labelForSource(entry.source)}</span>
+                        <span className="log-row__session">
+                          {entry.sessionKey ?? t("unavailable")}
+                          {entry.correlationId ? <small>{entry.correlationId}</small> : null}
+                        </span>
+                        <span className="log-row__message">{entry.message}</span>
+                        <span className="log-row__cursor">{entry.cursor ?? t("unavailable")}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            {exportPreview !== null ? (
+              <Card className="logs-card logs-export-card" padded={false}>
+                <div className="logs-card__header">
+                  <div>
+                    <h3>{t("preparedLogExport")}</h3>
+                    <p>{t("visibleCount", { count: filteredLogEntries.length })}</p>
+                  </div>
+                  <Badge>{t("previewOnly")}</Badge>
+                </div>
+                <Code
+                  aria-label={t("preparedLogExport")}
+                  className="logs-code logs-code--export"
+                  content={exportPreview || t("noLogLines")}
+                  language="log"
+                />
+              </Card>
+            ) : null}
+          </section>
+
+          <aside className="details-pane" aria-label={t("selectedLine")}>
+            <Card className="logs-card details-card" padded={false}>
+              {selectedEntry ? (
+                <>
+                  <div className={`details-pane__hero details-pane__hero--${selectedEntry.level}`}>
+                    <div className="details-pane__hero-top">
+                      <Badge variant={levelVariant(selectedEntry.level)}>
+                        {labelForLevel(selectedEntry.level)}
+                      </Badge>
+                      <Badge>{labelForSource(selectedEntry.source)}</Badge>
+                      <span>#{selectedEntry.cursor ?? t("unavailable")}</span>
+                    </div>
+                    <h3>{selectedEntry.message}</h3>
+                    <p>
+                      <span>{selectedEntry.timestamp}</span>
+                      <span>{selectedEntry.sessionKey ?? t("unavailable")}</span>
+                      {selectedEntry.correlationId ? (
+                        <span>{selectedEntry.correlationId}</span>
+                      ) : null}
+                    </p>
+                    <div className="details-pane__actions">
+                      <Button size="sm" onClick={() => void copySelectedLine()}>
                         <span className="logs-button-content">
-                          <IconFilter size={14} />
-                          {t("filterByCorrelation")}
+                          <IconCopy size={14} />
+                          {copyState === "copied" ? t("copied") : t("copyLine")}
                         </span>
                       </Button>
-                    ) : null}
+                      {selectedEntry.correlationId ? (
+                        <Button
+                          size="sm"
+                          onClick={() => setCorrelationFilter(selectedEntry.correlationId ?? "")}
+                        >
+                          <span className="logs-button-content">
+                            <IconFilter size={14} />
+                            {t("filterByCorrelation")}
+                          </span>
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
 
-                <section className="details-pane__section">
-                  <div className="details-pane__section-head">
-                    <h3>{t("structuredFields")}</h3>
-                    <span>
-                      {t("fieldCount", { count: Object.keys(selectedEntry.fields ?? {}).length })}
-                    </span>
-                  </div>
-                  {selectedEntry.fields && Object.keys(selectedEntry.fields).length > 0 ? (
-                    <dl className="details-pane__kv">
-                      {Object.entries(selectedEntry.fields).map(([key, value]) => (
-                        <div key={key}>
-                          <dt>{key}</dt>
-                          <dd>{String(value)}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  ) : (
-                    <p className="details-pane__muted">{t("noStructuredFields")}</p>
-                  )}
-                </section>
-
-                <section className="details-pane__section">
-                  <div className="details-pane__section-head">
-                    <h3>{t("correlationContext")}</h3>
-                  </div>
-                  {selectedEntry.correlationId ? (
-                    <p>
-                      {t("correlationContextDescription", {
-                        correlationId: selectedEntry.correlationId,
-                      })}
-                    </p>
-                  ) : (
-                    <p className="details-pane__muted">{t("noCorrelationId")}</p>
-                  )}
-                </section>
-
-                {selectedEntry.stack ? (
                   <section className="details-pane__section">
                     <div className="details-pane__section-head">
-                      <h3>{t("stackTrace")}</h3>
-                      <span>{t("attachedOnError")}</span>
+                      <h3>{t("structuredFields")}</h3>
+                      <span>
+                        {t("fieldCount", { count: Object.keys(selectedEntry.fields ?? {}).length })}
+                      </span>
                     </div>
-                    <pre className="details-pane__stack">{selectedEntry.stack}</pre>
+                    {selectedEntry.fields && Object.keys(selectedEntry.fields).length > 0 ? (
+                      <dl className="details-pane__kv">
+                        {Object.entries(selectedEntry.fields).map(([key, value]) => (
+                          <div key={key}>
+                            <dt>{key}</dt>
+                            <dd>{String(value)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    ) : (
+                      <p className="details-pane__muted">{t("noStructuredFields")}</p>
+                    )}
                   </section>
-                ) : null}
 
-                <section className="details-pane__section">
-                  <div className="details-pane__section-head">
-                    <h3>{t("rawLine")}</h3>
-                    <span>DeckGoLogsTailResponse.lines[i]</span>
-                  </div>
-                  <Code
-                    aria-label={t("rawLine")}
-                    className="logs-code"
-                    content={formatLogLine(selectedEntry.raw)}
-                    language="json"
-                  />
-                </section>
-              </>
-            ) : (
-              <div className="details-pane__empty">
-                <IconEye size={28} />
-                <h3>{t("noLineSelected")}</h3>
-                <p>{t("noLineSelectedDescription")}</p>
-              </div>
-            )}
-          </Card>
+                  <section className="details-pane__section">
+                    <div className="details-pane__section-head">
+                      <h3>{t("correlationContext")}</h3>
+                    </div>
+                    {selectedEntry.correlationId ? (
+                      <p>
+                        {t("correlationContextDescription", {
+                          correlationId: selectedEntry.correlationId,
+                        })}
+                      </p>
+                    ) : (
+                      <p className="details-pane__muted">{t("noCorrelationId")}</p>
+                    )}
+                  </section>
 
-          <Card className="logs-card logs-live-tape" padded={false}>
-            <div className="logs-card__header">
-              <div>
-                <h3>{t("liveEventTape")}</h3>
-                <p>{t("streamStatus", { state: t(streamState) })}</p>
-              </div>
-              <Badge variant={streamStateVariant(streamState)}>{t(streamState)}</Badge>
-            </div>
-            {logEvents.length === 0 ? (
-              <p className="logs-panel__empty">{t("noLiveEvents")}</p>
-            ) : (
-              <ul className="logs-tape-list">
-                {logEvents.slice(0, 8).map((event, index) => (
-                  <li key={`${event.id ?? "event"}-${index}`}>
-                    <button
-                      className="logs-tape-row"
-                      onClick={() => setSelectedRawEvent(event)}
-                      type="button"
-                    >
-                      <span>{event.id ?? t("unavailable")}</span>
-                      <strong>{event.event ?? "unknown"}</strong>
-                      <small>{summarizeLogEvent(event)}</small>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+                  {selectedEntry.stack ? (
+                    <section className="details-pane__section">
+                      <div className="details-pane__section-head">
+                        <h3>{t("stackTrace")}</h3>
+                        <span>{t("attachedOnError")}</span>
+                      </div>
+                      <pre className="details-pane__stack">{selectedEntry.stack}</pre>
+                    </section>
+                  ) : null}
 
-          <Card className="logs-card logs-raw-card" padded={false}>
-            <div className="logs-card__header">
-              <div>
-                <h3>{selectedRawEvent ? t("rawStreamEvent") : t("tailPayload")}</h3>
-                <p>{selectedRawEvent ? "/logs/stream" : "GET /logs"}</p>
+                  <section className="details-pane__section">
+                    <div className="details-pane__section-head">
+                      <h3>{t("rawLine")}</h3>
+                      <span>DeckGoLogsTailResponse.lines[i]</span>
+                    </div>
+                    <Code
+                      aria-label={t("rawLine")}
+                      className="logs-code"
+                      content={formatLogLine(selectedEntry.raw)}
+                      language="json"
+                    />
+                  </section>
+                </>
+              ) : (
+                <div className="details-pane__empty">
+                  <IconEye size={28} />
+                  <h3>{t("noLineSelected")}</h3>
+                  <p>{t("noLineSelectedDescription")}</p>
+                </div>
+              )}
+            </Card>
+
+            <Card className="logs-card logs-live-tape" padded={false}>
+              <div className="logs-card__header">
+                <div>
+                  <h3>{t("liveEventTape")}</h3>
+                  <p>{t("streamStatus", { state: t(streamState) })}</p>
+                </div>
+                <Badge variant={streamStateVariant(streamState)}>{t(streamState)}</Badge>
               </div>
-              <Badge>{selectedRawEvent?.event ?? t("tailTitle")}</Badge>
-            </div>
-            <Code
-              aria-label={selectedRawEvent ? t("rawStreamEvent") : t("tailPayload")}
-              className="logs-code logs-code--raw"
-              content={formatLogLine(selectedRawEvent ?? tail ?? {})}
-              language="json"
-            />
-          </Card>
-        </aside>
-      </div>
+              {logEvents.length === 0 ? (
+                <p className="logs-panel__empty">{t("noLiveEvents")}</p>
+              ) : (
+                <ul className="logs-tape-list">
+                  {logEvents.slice(0, 8).map((event, index) => (
+                    <li key={`${event.id ?? "event"}-${index}`}>
+                      <button
+                        className="logs-tape-row"
+                        onClick={() => setSelectedRawEvent(event)}
+                        type="button"
+                      >
+                        <span>{event.id ?? t("unavailable")}</span>
+                        <strong>{event.event ?? "unknown"}</strong>
+                        <small>{summarizeLogEvent(event)}</small>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+
+            <Card className="logs-card logs-raw-card" padded={false}>
+              <div className="logs-card__header">
+                <div>
+                  <h3>{selectedRawEvent ? t("rawStreamEvent") : t("tailPayload")}</h3>
+                  <p>{selectedRawEvent ? "/logs/stream" : "GET /logs"}</p>
+                </div>
+                <Badge>{selectedRawEvent?.event ?? t("tailTitle")}</Badge>
+              </div>
+              <Code
+                aria-label={selectedRawEvent ? t("rawStreamEvent") : t("tailPayload")}
+                className="logs-code logs-code--raw"
+                content={formatLogLine(selectedRawEvent ?? tail ?? {})}
+                language="json"
+              />
+            </Card>
+          </aside>
+        </div>
+      </PanelRoot>
     </section>
   );
 }

@@ -78,6 +78,42 @@ validate frontend-logs-real-contract-verification --strict`, and `git diff
 - Durable export/download and server-side filters are product/API follow-up, not
   current production claims.
 
+## Cockpit pattern validation - 2026-05-11
+
+OpenSpec change: `deck-go-logs-cockpit-pattern-validation`.
+
+Purpose:
+
+- Validate the cockpit pattern set with Logs as the third module after Sessions
+  and Usage.
+- Prove the pattern API can cover another operational workbench without changing
+  the Logs contract chain or global design-system tokens.
+
+Promoted shared structures:
+
+- Logs now consumes `PanelRoot`, `PanelSectionHeader`, and `PanelStatusRow` for
+  the page cockpit header and tail/stream status controls.
+- The Logs KPI strip now consumes `KpiStrip` and `PanelMetric` instead of the
+  local `MetricTile` / `.log-stream__metrics` / `.logs-metric` markup.
+- The promoted CSS remains in
+  `frontend-new/src/design-system/patterns/panel-cockpit.css`; Logs only adds
+  scoped compatibility for its 64px metric height and panel grid.
+
+Still module-local:
+
+- Filter bar, level toggles, log rows, live event tape, selected-line details,
+  stack trace, raw payload cards, parser compatibility, and export preview stay
+  Logs-owned because they depend on observability-specific contracts and
+  interactions.
+
+Promotion answer after third sample:
+
+- The cockpit primitives are validated across Sessions, Usage, and Logs.
+- Future modules with matching root/header/KPI/status anatomy may consume the
+  pattern set module-by-module.
+- This still does not justify global token-value changes or automatic migration
+  of every module.
+
 ## Codex contract completion closeout - 2026-05-05
 
 - Reconciled the stale matrix blocker: `logs.tail` is no longer an untyped

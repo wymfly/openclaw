@@ -44,6 +44,13 @@ import {
   Toggle,
 } from "../../../design-system/atoms";
 import type { BadgeVariant } from "../../../design-system/atoms";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { SessionCompactionHistory } from "./SessionCompactionHistory";
 import { SessionSubagentDetails, type SessionRelationshipMeta } from "./SessionSubagentDetails";
@@ -215,22 +222,11 @@ function statusVariant(status: string | undefined): BadgeVariant {
 }
 
 function MetricTile(props: { hint?: string; label: string; value: string | number }) {
-  return (
-    <article className="sessions-metric">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-      {props.hint ? <small>{props.hint}</small> : null}
-    </article>
-  );
+  return <PanelMetric hint={props.hint} label={props.label} value={props.value} />;
 }
 
 function StatTile(props: { label: string; value: string | number }) {
-  return (
-    <div className="sessions-stat">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
+  return <PanelMetric label={props.label} value={props.value} />;
 }
 
 export function SessionsPanel() {
@@ -543,689 +539,695 @@ export function SessionsPanel() {
 
   return (
     <section className="sessions-panel" data-testid="sessions-panel">
-      <header className="sessions-panel__header">
-        <div>
-          <p className="sessions-eyebrow">{t("eyebrow")}</p>
-          <h2>{t("pageTitle")}</h2>
-          <p className="sessions-note">{t("inventoryDescription")}</p>
-        </div>
-        <div className="sessions-panel__header-actions">
-          <Badge variant={inventoryState === "ready" ? "ok" : "neutral"}>
-            {t("inventoryStatus", { state: t(inventoryState) })}
-          </Badge>
-          <Badge variant={detailState === "ready" ? "ok" : "neutral"}>
-            {t("detailStatus", { state: t(detailState) })}
-          </Badge>
-          <Badge>{t("visibleCount", { count: filteredSessions.length })}</Badge>
-          <Button
-            size="sm"
-            onClick={() =>
-              void refreshSessionsInventory({
-                preferredSessionKey: selectedSessionKey,
-                preserveSelection: true,
-                currentSessionKey: selectedSessionKey,
-              })
-            }
-          >
-            {t("refreshSessions")}
-          </Button>
-        </div>
-      </header>
-
-      <section className="sessions-metrics" aria-label="Sessions metrics">
-        <MetricTile
-          label={t("selectedMetric")}
-          value={selectedSession?.title || selectedSessionKey || t("na")}
-          hint={selectedSession?.key}
-        />
-        <MetricTile
-          label={t("contextMetric")}
-          value={selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")}
-          hint={`${formatCompactNumber(selectedTotalTokens)} / ${formatCompactNumber(selectedContextTokens)}`}
-        />
-        <MetricTile
-          label={t("usageMetric")}
-          value={formatCost(selectedSession?.estimatedCostUsd)}
-          hint={t("totalTokens")}
-        />
-        <MetricTile
-          label={t("compactions")}
-          value={selectedSession?.compactionCount ?? 0}
-          hint={
-            (selectedSession?.compactionCount ?? 0) > 0
-              ? t("checkpointAvailable")
-              : t("compaction.noCheckpoints")
-          }
-        />
-        <MetricTile
-          label={t("lineageMetric")}
-          value={selectedLineageValue}
-          hint={
-            lineageLinkCount > 0
-              ? t("relationshipLinks", { count: lineageLinkCount })
-              : t("noLineageLinks")
-          }
-        />
-      </section>
-
-      <section className="sessions-workbench">
-        <aside className="sessions-column">
-          <Card className="sessions-card" padded={false}>
-            <div className="sessions-card__header">
-              <div>
-                <h3>{t("inventoryTitle")}</h3>
-                <p>{t("detailDescription")}</p>
-              </div>
-            </div>
-            <div className="sessions-card__body">
-              <label className="sessions-field">
-                <span>{t("searchSessions")}</span>
-                <Input
-                  className="sessions-input"
-                  inputSize="sm"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder={t("searchSessionsPlaceholder")}
-                />
-              </label>
-              <div className="sessions-controls">
-                <label className="sessions-field">
-                  <span>{t("sessionType")}</span>
-                  <Select
-                    aria-label={t("sessionTypeFilter")}
-                    className="sessions-select"
-                    selectSize="sm"
-                    value={sessionKindFilter}
-                    onChange={(event) =>
-                      setSessionKindFilter(event.target.value as SessionKindFilter)
-                    }
-                  >
-                    <option value="">{t("allTypes")}</option>
-                    <option value="direct">{t("directValue")}</option>
-                    <option value="group">{t("groupValue")}</option>
-                    <option value="global">{t("globalValue")}</option>
-                    <option value="subagent">{t("subagentValue")}</option>
-                  </Select>
-                </label>
-                <label className="sessions-field">
-                  <span>{t("activeWindow")}</span>
-                  <Select
-                    aria-label={t("activeMinutesFilter")}
-                    className="sessions-select"
-                    selectSize="sm"
-                    value={activeMinutesFilter}
-                    onChange={(event) => setActiveMinutesFilter(event.target.value)}
-                  >
-                    <option value="">{t("allTime")}</option>
-                    <option value="5">{t("last5m")}</option>
-                    <option value="60">{t("last1h")}</option>
-                    <option value="1440">{t("last24h")}</option>
-                  </Select>
-                </label>
-              </div>
-              <div className="sessions-actions">
-                <Button
-                  size="sm"
-                  onClick={() =>
-                    void refreshSessionsInventory({
-                      preferredSessionKey: selectedSessionKey,
-                      preserveSelection: true,
-                      currentSessionKey: selectedSessionKey,
-                    })
-                  }
-                >
-                  {t("refreshSessions")}
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => void refreshSelectedSession(selectedSessionKey)}
-                  disabled={!selectedSessionKey.trim()}
-                >
-                  {t("refreshDetail")}
-                </Button>
-              </div>
-              <ul className="sessions-list sessions-inventory-list">
-                {pagedSessions.length === 0 ? (
-                  <li className="sessions-empty">{t("noActiveSession")}</li>
-                ) : (
-                  pagedSessions.map((session) => {
-                    const selected = session.key === selectedSessionKey;
-                    return (
-                      <li key={session.key}>
-                        <button
-                          className={`sessions-inventory-row${selected ? " is-selected" : ""}`}
-                          type="button"
-                          onClick={() => onSelectSession(session)}
-                        >
-                          <span className="sessions-row-top">
-                            <strong>{session.title || session.label || session.key}</strong>
-                            <Badge variant={statusVariant(session.status)}>{session.status}</Badge>
-                          </span>
-                          <span className="sessions-meta">
-                            {session.agentId || t("na")} | {session.modelProvider || t("na")}/
-                            {session.model || t("na")} | {inferSessionKind(session)}
-                          </span>
-                          <span className="sessions-note">
-                            {session.lastMessagePreview || "n/a"}
-                          </span>
-                          <span className="sessions-meta">
-                            {formatTimestamp(session.updatedAt)}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })
-                )}
-              </ul>
-              <div className="sessions-actions sessions-pagination">
-                <Button
-                  size="sm"
-                  disabled={sessionPage <= 1}
-                  onClick={() => setSessionPage((current) => Math.max(1, current - 1))}
-                >
-                  {t("previousPage")}
-                </Button>
-                <span className="sessions-note">
-                  {t("pageOf", { page: sessionPage, total: totalSessionPages })}
-                </span>
-                <Button
-                  size="sm"
-                  disabled={sessionPage >= totalSessionPages}
-                  onClick={() =>
-                    setSessionPage((current) => Math.min(totalSessionPages, current + 1))
-                  }
-                >
-                  {t("nextPage")}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </aside>
-
-        <section className="sessions-column sessions-column--detail">
-          <Card className="sessions-card" padded={false}>
-            <div className="sessions-card__header">
-              <div>
-                <h3>{t("detailTitle")}</h3>
-                <p>{t("detailDescription")}</p>
-              </div>
+      <PanelRoot as="div" density="compact">
+        <PanelSectionHeader
+          eyebrow={t("eyebrow")}
+          title={t("pageTitle")}
+          description={t("inventoryDescription")}
+          actions={
+            <PanelStatusRow>
+              <Badge variant={inventoryState === "ready" ? "ok" : "neutral"}>
+                {t("inventoryStatus", { state: t(inventoryState) })}
+              </Badge>
               <Badge variant={detailState === "ready" ? "ok" : "neutral"}>
                 {t("detailStatus", { state: t(detailState) })}
               </Badge>
-            </div>
-            <div className="sessions-card__body">
-              <section className="sessions-surface sessions-hero">
-                <div className="sessions-section-heading">
-                  <div>
-                    <p className="sessions-eyebrow">{t("selectedSession")}</p>
-                    <h3>{selectedSession?.title || selectedSessionKey || t("noActiveSession")}</h3>
-                    <p className="sessions-note">
-                      {t("agentStatusLine", {
-                        agent: selectedSession?.agentId || t("na"),
-                        status: selectedSession?.status || t("unknown"),
-                      })}
-                    </p>
-                  </div>
-                  <div className="sessions-status-row">
-                    <Badge variant={statusVariant(selectedSession?.status)}>
-                      {selectedSession?.status || t("unknown")}
-                    </Badge>
-                    <Badge>
-                      {t("runtimeValue", {
-                        value:
-                          selectedSession?.runtimeMs != null
-                            ? t("milliseconds", { value: selectedSession.runtimeMs })
-                            : t("na"),
-                      })}
-                    </Badge>
-                    {selectedContextPressure != null ? (
-                      <Badge>{t("contextPercent", { percent: selectedContextPressure })}</Badge>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="sessions-stat-grid">
-                  <StatTile
-                    label={t("tokensIn")}
-                    value={formatCompactNumber(
-                      positiveNumber(selectedSession?.inputTokens ?? undefined),
-                    )}
-                  />
-                  <StatTile
-                    label={t("tokensOut")}
-                    value={formatCompactNumber(
-                      positiveNumber(selectedSession?.outputTokens ?? undefined),
-                    )}
-                  />
-                  <StatTile label={t("model")} value={selectedSession?.model || t("na")} />
-                  <StatTile
-                    label={t("thinkingLevel")}
-                    value={t("thinkingFastMode", {
-                      thinking: selectedSession?.thinkingLevel || t("off"),
-                      fastMode: selectedSession?.fastMode ? t("on") : t("off"),
-                    })}
-                  />
-                </div>
-              </section>
+              <Badge>{t("visibleCount", { count: filteredSessions.length })}</Badge>
+              <Button
+                size="sm"
+                onClick={() =>
+                  void refreshSessionsInventory({
+                    preferredSessionKey: selectedSessionKey,
+                    preserveSelection: true,
+                    currentSessionKey: selectedSessionKey,
+                  })
+                }
+              >
+                {t("refreshSessions")}
+              </Button>
+            </PanelStatusRow>
+          }
+        />
 
-              <section className="sessions-surface">
-                <div className="sessions-section-heading">
-                  <h3>{t("transcriptSearchExport")}</h3>
-                  <Badge>
-                    {transcriptSearchQuery.trim() && transcriptMatchIndices.length > 0
-                      ? t("matchOf", {
-                          current: currentTranscriptMatch + 1,
-                          total: transcriptMatchIndices.length,
-                        })
-                      : t("historyMessages", { count: transcriptMessages.length })}
-                  </Badge>
-                </div>
-                <Input
-                  className="sessions-input"
-                  inputSize="sm"
-                  value={transcriptSearchQuery}
-                  onChange={(event) => setTranscriptSearchQuery(event.target.value)}
-                  placeholder={t("searchTranscriptPlaceholder")}
-                />
-                <div className="sessions-actions">
-                  <Button
-                    size="sm"
-                    onClick={() => moveTranscriptMatch(-1)}
-                    disabled={transcriptMatchIndices.length === 0}
-                  >
-                    {t("previousMatch")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => moveTranscriptMatch(1)}
-                    disabled={transcriptMatchIndices.length === 0}
-                  >
-                    {t("nextMatch")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => prepareExport("json")}
-                    disabled={!selectedSession || transcriptMessages.length === 0}
-                  >
-                    {t("exportJson")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => prepareExport("markdown")}
-                    disabled={!selectedSession || transcriptMessages.length === 0}
-                  >
-                    {t("exportMarkdown")}
-                  </Button>
-                </div>
-                <p className="sessions-note">
-                  {transcriptSearchQuery.trim()
-                    ? transcriptMatchIndices.length > 0
-                      ? t("matchOf", {
-                          current: currentTranscriptMatch + 1,
-                          total: transcriptMatchIndices.length,
-                        })
-                      : t("noTranscriptMatches")
-                    : t("searchPrompt")}
-                </p>
-                {selectedTranscriptMatch && transcriptSearchQuery.trim() !== "" ? (
-                  <Code
-                    aria-label="Selected transcript match"
-                    className="sessions-code"
-                    content={transcriptMessageToPlainText(selectedTranscriptMatch)}
-                  />
-                ) : null}
-                {exportPreview ? (
-                  <details className="sessions-export-preview">
-                    <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
-                    <Code
-                      aria-label={t("preparedExport", { format: exportPreview.format })}
-                      className="sessions-code"
-                      content={exportPreview.text}
-                      language={exportPreview.format}
-                    />
-                  </details>
-                ) : null}
-                {transcriptMessages.length > 0 ? (
-                  <ul className="sessions-list sessions-transcript-list">
-                    {transcriptMessages.slice(0, 8).map((message, index) => (
-                      <li
-                        className={
-                          index === selectedTranscriptMatchIndex
-                            ? "sessions-transcript-row is-selected"
-                            : "sessions-transcript-row"
-                        }
-                        key={message.id ?? index}
-                      >
-                        <strong>{message.role ?? t("message")}</strong>
-                        <p className="sessions-note">{transcriptMessageToPlainText(message)}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="sessions-empty">{t("noSessionUsageLogs")}</p>
-                )}
-              </section>
-            </div>
-          </Card>
-        </section>
+        <KpiStrip aria-label="Sessions metrics" columns={5}>
+          <MetricTile
+            label={t("selectedMetric")}
+            value={selectedSession?.title || selectedSessionKey || t("na")}
+            hint={selectedSession?.key}
+          />
+          <MetricTile
+            label={t("contextMetric")}
+            value={selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")}
+            hint={`${formatCompactNumber(selectedTotalTokens)} / ${formatCompactNumber(selectedContextTokens)}`}
+          />
+          <MetricTile
+            label={t("usageMetric")}
+            value={formatCost(selectedSession?.estimatedCostUsd)}
+            hint={t("totalTokens")}
+          />
+          <MetricTile
+            label={t("compactions")}
+            value={selectedSession?.compactionCount ?? 0}
+            hint={
+              (selectedSession?.compactionCount ?? 0) > 0
+                ? t("checkpointAvailable")
+                : t("compaction.noCheckpoints")
+            }
+          />
+          <MetricTile
+            label={t("lineageMetric")}
+            value={selectedLineageValue}
+            hint={
+              lineageLinkCount > 0
+                ? t("relationshipLinks", { count: lineageLinkCount })
+                : t("noLineageLinks")
+            }
+          />
+        </KpiStrip>
 
-        <aside className="sessions-column sessions-column--inspector">
-          <Card className="sessions-card sessions-inspector-card" padded={false}>
-            <div className="sessions-card__header">
-              <div>
-                <h3>{t("inspectorTitle")}</h3>
-                <p>{t("inspectorDescription")}</p>
+        <section className="sessions-workbench">
+          <aside className="sessions-column">
+            <Card className="sessions-card" padded={false}>
+              <div className="sessions-card__header">
+                <div>
+                  <h3>{t("inventoryTitle")}</h3>
+                  <p>{t("detailDescription")}</p>
+                </div>
               </div>
-              <Badge>{t("defaultOpen")}</Badge>
-            </div>
-            <div className="sessions-card__body">
-              <SegmentedControl<SessionInspectorTab>
-                aria-label={t("inspectorTabs")}
-                className="sessions-inspector-tabs"
-                controlSize="xs"
-                items={inspectorItems}
-                value={activeInspectorTab}
-                onChange={setActiveInspectorTab}
-              />
-              {error ? <p className="sessions-error">{error}</p> : null}
-
-              <section
-                className="sessions-surface"
-                hidden={activeInspectorTab !== "overview"}
-                id="sessions-inspector-overview"
-                role="tabpanel"
-              >
-                <div className="sessions-section-heading">
-                  <h3>{t("metadata")}</h3>
-                  {selectedSession ? (
-                    <Badge variant={statusVariant(selectedSession.status)}>
-                      {selectedSession.status || t("unknown")}
-                    </Badge>
-                  ) : null}
-                </div>
-                {selectedSession ? (
-                  <>
-                    <strong>{selectedSession.key}</strong>
-                    <p className="sessions-note">
-                      {t("providerModelLine", {
-                        model: selectedSession.model || t("na"),
-                        provider: selectedSession.modelProvider || t("na"),
-                      })}
-                    </p>
-                    <p className="sessions-note">
-                      {t("thinkingFastMode", {
-                        fastMode: selectedSession.fastMode ? t("on") : t("off"),
-                        thinking: selectedSession.thinkingLevel || t("off"),
-                      })}
-                    </p>
-                    <div className="sessions-status-row">
-                      <Badge>
-                        {t("history")}: {history?.messages?.length ?? 0}
-                      </Badge>
-                      <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
-                        {t("inspector.lineage")}: {t(lineageState)}
-                      </Badge>
-                      <Badge>
-                        {t("inspector.usage")}: {formatCompactNumber(selectedTotalTokens)}
-                      </Badge>
-                      <Badge>
-                        {t("inspector.compaction")}: {selectedSession.compactionCount ?? 0}
-                      </Badge>
-                    </div>
-                  </>
-                ) : (
-                  <p className="sessions-empty">{t("noActiveSession")}</p>
-                )}
-              </section>
-
-              <section
-                hidden={activeInspectorTab !== "usage"}
-                id="sessions-inspector-usage"
-                role="tabpanel"
-              >
-                {selectedSessionKey ? (
-                  <SessionUsageDetails
-                    compactionCount={selectedSession?.compactionCount}
-                    sessionKey={selectedSessionKey}
-                  />
-                ) : (
-                  <p className="sessions-empty">{t("noActiveSession")}</p>
-                )}
-              </section>
-
-              <section
-                hidden={activeInspectorTab !== "compaction"}
-                id="sessions-inspector-compaction"
-                role="tabpanel"
-              >
-                {selectedSessionKey ? (
-                  <SessionCompactionHistory
-                    compactionCount={selectedSession?.compactionCount}
-                    sessionKey={selectedSessionKey}
-                  />
-                ) : (
-                  <p className="sessions-empty">{t("noActiveSession")}</p>
-                )}
-              </section>
-
-              <section
-                hidden={activeInspectorTab !== "lineage"}
-                id="sessions-inspector-lineage"
-                role="tabpanel"
-              >
-                <SessionSubagentDetails
-                  childSessionKeys={childSessionKeys}
-                  isSubagent={selectedIsSubagent}
-                  lineage={lineage}
-                  lineageState={lineageState}
-                  onOpenSubagents={() => navigateToPanel(ui, "subagents")}
-                  onSelectSessionKey={setSelectedSessionKey}
-                  parentSessionKey={parentSessionKey}
-                  relationships={selectedSessionRelationships}
-                />
-              </section>
-
-              <section
-                className="sessions-actions-panel"
-                hidden={activeInspectorTab !== "actions"}
-                id="sessions-inspector-actions"
-                role="tabpanel"
-              >
-                <div className="sessions-section-heading">
-                  <div>
-                    <h3>{t("actionsTitle")}</h3>
-                    <p>{t("actionsDescription")}</p>
-                  </div>
-                </div>
+              <div className="sessions-card__body">
                 <label className="sessions-field">
-                  <span>{t("modelOverride")}</span>
+                  <span>{t("searchSessions")}</span>
                   <Input
                     className="sessions-input"
                     inputSize="sm"
-                    value={modelOverride}
-                    onChange={(event) => setModelOverride(event.target.value)}
-                    placeholder={t("modelPlaceholder")}
-                  />
-                </label>
-                <label className="sessions-field">
-                  <span>{t("sessionLabel")}</span>
-                  <Input
-                    className="sessions-input"
-                    inputSize="sm"
-                    value={labelOverride}
-                    onChange={(event) => setLabelOverride(event.target.value)}
-                    placeholder={t("labelPlaceholder")}
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder={t("searchSessionsPlaceholder")}
                   />
                 </label>
                 <div className="sessions-controls">
                   <label className="sessions-field">
-                    <span>{t("thinkingLevel")}</span>
+                    <span>{t("sessionType")}</span>
                     <Select
-                      aria-label={t("sessionThinkingLevel")}
+                      aria-label={t("sessionTypeFilter")}
                       className="sessions-select"
                       selectSize="sm"
-                      value={thinkingOverride}
-                      onChange={(event) => setThinkingOverride(event.target.value)}
+                      value={sessionKindFilter}
+                      onChange={(event) =>
+                        setSessionKindFilter(event.target.value as SessionKindFilter)
+                      }
                     >
-                      {THINKING_LEVELS.map((level) => (
-                        <option key={level} value={level}>
-                          {level}
-                        </option>
-                      ))}
+                      <option value="">{t("allTypes")}</option>
+                      <option value="direct">{t("directValue")}</option>
+                      <option value="group">{t("groupValue")}</option>
+                      <option value="global">{t("globalValue")}</option>
+                      <option value="subagent">{t("subagentValue")}</option>
                     </Select>
                   </label>
                   <label className="sessions-field">
-                    <span>{t("fastMode")}</span>
-                    <span className="sessions-toggle-field">
-                      <Toggle
-                        aria-label={t("sessionFastMode")}
-                        checked={fastModeOverride}
-                        onCheckedChange={setFastModeOverride}
-                      />
-                      <strong>{fastModeOverride ? t("on") : t("off")}</strong>
-                    </span>
+                    <span>{t("activeWindow")}</span>
+                    <Select
+                      aria-label={t("activeMinutesFilter")}
+                      className="sessions-select"
+                      selectSize="sm"
+                      value={activeMinutesFilter}
+                      onChange={(event) => setActiveMinutesFilter(event.target.value)}
+                    >
+                      <option value="">{t("allTime")}</option>
+                      <option value="5">{t("last5m")}</option>
+                      <option value="60">{t("last1h")}</option>
+                      <option value="1440">{t("last24h")}</option>
+                    </Select>
                   </label>
                 </div>
                 <div className="sessions-actions">
                   <Button
                     size="sm"
-                    onClick={() => {
-                      clearActionConfirmations();
-                      void runAction(() =>
-                        patchSessionMutation.mutateAsync({
-                          sessionKey: selectedSessionKey,
-                          model: modelOverride.trim(),
-                        }),
-                      );
-                    }}
-                    variant="primary"
-                    disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
+                    onClick={() =>
+                      void refreshSessionsInventory({
+                        preferredSessionKey: selectedSessionKey,
+                        preserveSelection: true,
+                        currentSessionKey: selectedSessionKey,
+                      })
+                    }
                   >
-                    {t("patchModel")}
+                    {t("refreshSessions")}
                   </Button>
                   <Button
                     size="sm"
-                    onClick={() => {
-                      clearActionConfirmations();
-                      void runAction(() =>
-                        patchSessionMutation.mutateAsync({
-                          sessionKey: selectedSessionKey,
-                          label: labelOverride.trim() || null,
-                          thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
-                          fastMode: fastModeOverride,
-                        }),
-                      );
-                    }}
+                    onClick={() => void refreshSelectedSession(selectedSessionKey)}
                     disabled={!selectedSessionKey.trim()}
                   >
-                    {t("patchDirectives")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (!resetConfirming) {
-                        clearActionConfirmations("reset");
-                        setResetConfirming(true);
-                        return;
-                      }
-                      setResetConfirming(false);
-                      void runAction(() =>
-                        resetSessionMutation.mutateAsync({
-                          sessionKey: selectedSessionKey,
-                          reason: "reset",
-                        }),
-                      );
-                    }}
-                    disabled={!selectedSessionKey.trim()}
-                  >
-                    {resetConfirming ? t("confirmReset") : t("resetSession")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (!clearConfirming) {
-                        clearActionConfirmations("clear");
-                        setClearConfirming(true);
-                        return;
-                      }
-                      setClearConfirming(false);
-                      void runAction(() =>
-                        clearSessionMutation.mutateAsync({ sessionKey: selectedSessionKey }),
-                      );
-                    }}
-                    disabled={!selectedSessionKey.trim()}
-                  >
-                    {clearConfirming ? t("confirmClear") : t("clearSession")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (!compactConfirming) {
-                        clearActionConfirmations("compact");
-                        setCompactConfirming(true);
-                        return;
-                      }
-                      setCompactConfirming(false);
-                      void runAction(async () => {
-                        const response =
-                          await compactSessionMutation.mutateAsync(selectedSessionKey);
-                        return {
-                          ok: response.ok,
-                          status: response.status,
-                          key: selectedSessionKey,
-                          action: "compact",
-                        };
-                      });
-                    }}
-                    disabled={!selectedSessionKey.trim()}
-                  >
-                    {compactConfirming ? t("confirmCompact") : t("compactSession")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => {
-                      if (!deleteConfirming) {
-                        clearActionConfirmations("delete");
-                        setDeleteConfirming(true);
-                        return;
-                      }
-                      setDeleteConfirming(false);
-                      void runAction(
-                        () =>
-                          deleteSessionMutation.mutateAsync({
-                            sessionKey: selectedSessionKey,
-                            agentId: selectedSession?.agentId ?? null,
-                          }),
-                        { preserveSelectedSession: false },
-                      );
-                    }}
-                    disabled={!selectedSessionKey.trim()}
-                  >
-                    {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
+                    {t("refreshDetail")}
                   </Button>
                 </div>
-                {actionResult ? (
-                  <section className="sessions-surface sessions-action-result">
-                    <div className="sessions-section-heading">
-                      <div>
-                        <h3>{t("latestAction")}</h3>
-                        <p>{t("actionResultTitle")}</p>
-                      </div>
+                <ul className="sessions-list sessions-inventory-list">
+                  {pagedSessions.length === 0 ? (
+                    <li className="sessions-empty">{t("noActiveSession")}</li>
+                  ) : (
+                    pagedSessions.map((session) => {
+                      const selected = session.key === selectedSessionKey;
+                      return (
+                        <li key={session.key}>
+                          <button
+                            className={`sessions-inventory-row${selected ? " is-selected" : ""}`}
+                            type="button"
+                            onClick={() => onSelectSession(session)}
+                          >
+                            <span className="sessions-row-top">
+                              <strong>{session.title || session.label || session.key}</strong>
+                              <Badge variant={statusVariant(session.status)}>
+                                {session.status}
+                              </Badge>
+                            </span>
+                            <span className="sessions-meta">
+                              {session.agentId || t("na")} | {session.modelProvider || t("na")}/
+                              {session.model || t("na")} | {inferSessionKind(session)}
+                            </span>
+                            <span className="sessions-note">
+                              {session.lastMessagePreview || "n/a"}
+                            </span>
+                            <span className="sessions-meta">
+                              {formatTimestamp(session.updatedAt)}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })
+                  )}
+                </ul>
+                <div className="sessions-actions sessions-pagination">
+                  <Button
+                    size="sm"
+                    disabled={sessionPage <= 1}
+                    onClick={() => setSessionPage((current) => Math.max(1, current - 1))}
+                  >
+                    {t("previousPage")}
+                  </Button>
+                  <span className="sessions-note">
+                    {t("pageOf", { page: sessionPage, total: totalSessionPages })}
+                  </span>
+                  <Button
+                    size="sm"
+                    disabled={sessionPage >= totalSessionPages}
+                    onClick={() =>
+                      setSessionPage((current) => Math.min(totalSessionPages, current + 1))
+                    }
+                  >
+                    {t("nextPage")}
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </aside>
+
+          <section className="sessions-column sessions-column--detail">
+            <Card className="sessions-card" padded={false}>
+              <div className="sessions-card__header">
+                <div>
+                  <h3>{t("detailTitle")}</h3>
+                  <p>{t("detailDescription")}</p>
+                </div>
+                <Badge variant={detailState === "ready" ? "ok" : "neutral"}>
+                  {t("detailStatus", { state: t(detailState) })}
+                </Badge>
+              </div>
+              <div className="sessions-card__body">
+                <section className="sessions-surface sessions-hero">
+                  <div className="sessions-section-heading">
+                    <div>
+                      <p className="sessions-eyebrow">{t("selectedSession")}</p>
+                      <h3>
+                        {selectedSession?.title || selectedSessionKey || t("noActiveSession")}
+                      </h3>
+                      <p className="sessions-note">
+                        {t("agentStatusLine", {
+                          agent: selectedSession?.agentId || t("na"),
+                          status: selectedSession?.status || t("unknown"),
+                        })}
+                      </p>
                     </div>
-                    <Code
-                      aria-label={t("actionResultTitle")}
-                      className="sessions-code"
-                      content={formatJson(actionResult)}
-                      language="json"
+                    <PanelStatusRow>
+                      <Badge variant={statusVariant(selectedSession?.status)}>
+                        {selectedSession?.status || t("unknown")}
+                      </Badge>
+                      <Badge>
+                        {t("runtimeValue", {
+                          value:
+                            selectedSession?.runtimeMs != null
+                              ? t("milliseconds", { value: selectedSession.runtimeMs })
+                              : t("na"),
+                        })}
+                      </Badge>
+                      {selectedContextPressure != null ? (
+                        <Badge>{t("contextPercent", { percent: selectedContextPressure })}</Badge>
+                      ) : null}
+                    </PanelStatusRow>
+                  </div>
+                  <KpiStrip aria-label={t("selectedSession")} columns={4}>
+                    <StatTile
+                      label={t("tokensIn")}
+                      value={formatCompactNumber(
+                        positiveNumber(selectedSession?.inputTokens ?? undefined),
+                      )}
                     />
-                  </section>
-                ) : null}
-              </section>
-            </div>
-          </Card>
-        </aside>
-      </section>
+                    <StatTile
+                      label={t("tokensOut")}
+                      value={formatCompactNumber(
+                        positiveNumber(selectedSession?.outputTokens ?? undefined),
+                      )}
+                    />
+                    <StatTile label={t("model")} value={selectedSession?.model || t("na")} />
+                    <StatTile
+                      label={t("thinkingLevel")}
+                      value={t("thinkingFastMode", {
+                        thinking: selectedSession?.thinkingLevel || t("off"),
+                        fastMode: selectedSession?.fastMode ? t("on") : t("off"),
+                      })}
+                    />
+                  </KpiStrip>
+                </section>
+
+                <section className="sessions-surface">
+                  <div className="sessions-section-heading">
+                    <h3>{t("transcriptSearchExport")}</h3>
+                    <Badge>
+                      {transcriptSearchQuery.trim() && transcriptMatchIndices.length > 0
+                        ? t("matchOf", {
+                            current: currentTranscriptMatch + 1,
+                            total: transcriptMatchIndices.length,
+                          })
+                        : t("historyMessages", { count: transcriptMessages.length })}
+                    </Badge>
+                  </div>
+                  <Input
+                    className="sessions-input"
+                    inputSize="sm"
+                    value={transcriptSearchQuery}
+                    onChange={(event) => setTranscriptSearchQuery(event.target.value)}
+                    placeholder={t("searchTranscriptPlaceholder")}
+                  />
+                  <div className="sessions-actions">
+                    <Button
+                      size="sm"
+                      onClick={() => moveTranscriptMatch(-1)}
+                      disabled={transcriptMatchIndices.length === 0}
+                    >
+                      {t("previousMatch")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => moveTranscriptMatch(1)}
+                      disabled={transcriptMatchIndices.length === 0}
+                    >
+                      {t("nextMatch")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => prepareExport("json")}
+                      disabled={!selectedSession || transcriptMessages.length === 0}
+                    >
+                      {t("exportJson")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => prepareExport("markdown")}
+                      disabled={!selectedSession || transcriptMessages.length === 0}
+                    >
+                      {t("exportMarkdown")}
+                    </Button>
+                  </div>
+                  <p className="sessions-note">
+                    {transcriptSearchQuery.trim()
+                      ? transcriptMatchIndices.length > 0
+                        ? t("matchOf", {
+                            current: currentTranscriptMatch + 1,
+                            total: transcriptMatchIndices.length,
+                          })
+                        : t("noTranscriptMatches")
+                      : t("searchPrompt")}
+                  </p>
+                  {selectedTranscriptMatch && transcriptSearchQuery.trim() !== "" ? (
+                    <Code
+                      aria-label="Selected transcript match"
+                      className="sessions-code"
+                      content={transcriptMessageToPlainText(selectedTranscriptMatch)}
+                    />
+                  ) : null}
+                  {exportPreview ? (
+                    <details className="sessions-export-preview">
+                      <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
+                      <Code
+                        aria-label={t("preparedExport", { format: exportPreview.format })}
+                        className="sessions-code"
+                        content={exportPreview.text}
+                        language={exportPreview.format}
+                      />
+                    </details>
+                  ) : null}
+                  {transcriptMessages.length > 0 ? (
+                    <ul className="sessions-list sessions-transcript-list">
+                      {transcriptMessages.slice(0, 8).map((message, index) => (
+                        <li
+                          className={
+                            index === selectedTranscriptMatchIndex
+                              ? "sessions-transcript-row is-selected"
+                              : "sessions-transcript-row"
+                          }
+                          key={message.id ?? index}
+                        >
+                          <strong>{message.role ?? t("message")}</strong>
+                          <p className="sessions-note">{transcriptMessageToPlainText(message)}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="sessions-empty">{t("noSessionUsageLogs")}</p>
+                  )}
+                </section>
+              </div>
+            </Card>
+          </section>
+
+          <aside className="sessions-column sessions-column--inspector">
+            <Card className="sessions-card sessions-inspector-card" padded={false}>
+              <div className="sessions-card__header">
+                <div>
+                  <h3>{t("inspectorTitle")}</h3>
+                  <p>{t("inspectorDescription")}</p>
+                </div>
+                <Badge>{t("defaultOpen")}</Badge>
+              </div>
+              <div className="sessions-card__body">
+                <SegmentedControl<SessionInspectorTab>
+                  aria-label={t("inspectorTabs")}
+                  className="sessions-inspector-tabs"
+                  controlSize="xs"
+                  items={inspectorItems}
+                  value={activeInspectorTab}
+                  onChange={setActiveInspectorTab}
+                />
+                {error ? <p className="sessions-error">{error}</p> : null}
+
+                <section
+                  className="sessions-surface"
+                  hidden={activeInspectorTab !== "overview"}
+                  id="sessions-inspector-overview"
+                  role="tabpanel"
+                >
+                  <div className="sessions-section-heading">
+                    <h3>{t("metadata")}</h3>
+                    {selectedSession ? (
+                      <Badge variant={statusVariant(selectedSession.status)}>
+                        {selectedSession.status || t("unknown")}
+                      </Badge>
+                    ) : null}
+                  </div>
+                  {selectedSession ? (
+                    <>
+                      <strong>{selectedSession.key}</strong>
+                      <p className="sessions-note">
+                        {t("providerModelLine", {
+                          model: selectedSession.model || t("na"),
+                          provider: selectedSession.modelProvider || t("na"),
+                        })}
+                      </p>
+                      <p className="sessions-note">
+                        {t("thinkingFastMode", {
+                          fastMode: selectedSession.fastMode ? t("on") : t("off"),
+                          thinking: selectedSession.thinkingLevel || t("off"),
+                        })}
+                      </p>
+                      <PanelStatusRow>
+                        <Badge>
+                          {t("history")}: {history?.messages?.length ?? 0}
+                        </Badge>
+                        <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
+                          {t("inspector.lineage")}: {t(lineageState)}
+                        </Badge>
+                        <Badge>
+                          {t("inspector.usage")}: {formatCompactNumber(selectedTotalTokens)}
+                        </Badge>
+                        <Badge>
+                          {t("inspector.compaction")}: {selectedSession.compactionCount ?? 0}
+                        </Badge>
+                      </PanelStatusRow>
+                    </>
+                  ) : (
+                    <p className="sessions-empty">{t("noActiveSession")}</p>
+                  )}
+                </section>
+
+                <section
+                  hidden={activeInspectorTab !== "usage"}
+                  id="sessions-inspector-usage"
+                  role="tabpanel"
+                >
+                  {selectedSessionKey ? (
+                    <SessionUsageDetails
+                      compactionCount={selectedSession?.compactionCount}
+                      sessionKey={selectedSessionKey}
+                    />
+                  ) : (
+                    <p className="sessions-empty">{t("noActiveSession")}</p>
+                  )}
+                </section>
+
+                <section
+                  hidden={activeInspectorTab !== "compaction"}
+                  id="sessions-inspector-compaction"
+                  role="tabpanel"
+                >
+                  {selectedSessionKey ? (
+                    <SessionCompactionHistory
+                      compactionCount={selectedSession?.compactionCount}
+                      sessionKey={selectedSessionKey}
+                    />
+                  ) : (
+                    <p className="sessions-empty">{t("noActiveSession")}</p>
+                  )}
+                </section>
+
+                <section
+                  hidden={activeInspectorTab !== "lineage"}
+                  id="sessions-inspector-lineage"
+                  role="tabpanel"
+                >
+                  <SessionSubagentDetails
+                    childSessionKeys={childSessionKeys}
+                    isSubagent={selectedIsSubagent}
+                    lineage={lineage}
+                    lineageState={lineageState}
+                    onOpenSubagents={() => navigateToPanel(ui, "subagents")}
+                    onSelectSessionKey={setSelectedSessionKey}
+                    parentSessionKey={parentSessionKey}
+                    relationships={selectedSessionRelationships}
+                  />
+                </section>
+
+                <section
+                  className="sessions-actions-panel"
+                  hidden={activeInspectorTab !== "actions"}
+                  id="sessions-inspector-actions"
+                  role="tabpanel"
+                >
+                  <div className="sessions-section-heading">
+                    <div>
+                      <h3>{t("actionsTitle")}</h3>
+                      <p>{t("actionsDescription")}</p>
+                    </div>
+                  </div>
+                  <label className="sessions-field">
+                    <span>{t("modelOverride")}</span>
+                    <Input
+                      className="sessions-input"
+                      inputSize="sm"
+                      value={modelOverride}
+                      onChange={(event) => setModelOverride(event.target.value)}
+                      placeholder={t("modelPlaceholder")}
+                    />
+                  </label>
+                  <label className="sessions-field">
+                    <span>{t("sessionLabel")}</span>
+                    <Input
+                      className="sessions-input"
+                      inputSize="sm"
+                      value={labelOverride}
+                      onChange={(event) => setLabelOverride(event.target.value)}
+                      placeholder={t("labelPlaceholder")}
+                    />
+                  </label>
+                  <div className="sessions-controls">
+                    <label className="sessions-field">
+                      <span>{t("thinkingLevel")}</span>
+                      <Select
+                        aria-label={t("sessionThinkingLevel")}
+                        className="sessions-select"
+                        selectSize="sm"
+                        value={thinkingOverride}
+                        onChange={(event) => setThinkingOverride(event.target.value)}
+                      >
+                        {THINKING_LEVELS.map((level) => (
+                          <option key={level} value={level}>
+                            {level}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
+                    <label className="sessions-field">
+                      <span>{t("fastMode")}</span>
+                      <span className="sessions-toggle-field">
+                        <Toggle
+                          aria-label={t("sessionFastMode")}
+                          checked={fastModeOverride}
+                          onCheckedChange={setFastModeOverride}
+                        />
+                        <strong>{fastModeOverride ? t("on") : t("off")}</strong>
+                      </span>
+                    </label>
+                  </div>
+                  <div className="sessions-actions">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        clearActionConfirmations();
+                        void runAction(() =>
+                          patchSessionMutation.mutateAsync({
+                            sessionKey: selectedSessionKey,
+                            model: modelOverride.trim(),
+                          }),
+                        );
+                      }}
+                      variant="primary"
+                      disabled={!selectedSessionKey.trim() || !modelOverride.trim()}
+                    >
+                      {t("patchModel")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        clearActionConfirmations();
+                        void runAction(() =>
+                          patchSessionMutation.mutateAsync({
+                            sessionKey: selectedSessionKey,
+                            label: labelOverride.trim() || null,
+                            thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
+                            fastMode: fastModeOverride,
+                          }),
+                        );
+                      }}
+                      disabled={!selectedSessionKey.trim()}
+                    >
+                      {t("patchDirectives")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!resetConfirming) {
+                          clearActionConfirmations("reset");
+                          setResetConfirming(true);
+                          return;
+                        }
+                        setResetConfirming(false);
+                        void runAction(() =>
+                          resetSessionMutation.mutateAsync({
+                            sessionKey: selectedSessionKey,
+                            reason: "reset",
+                          }),
+                        );
+                      }}
+                      disabled={!selectedSessionKey.trim()}
+                    >
+                      {resetConfirming ? t("confirmReset") : t("resetSession")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!clearConfirming) {
+                          clearActionConfirmations("clear");
+                          setClearConfirming(true);
+                          return;
+                        }
+                        setClearConfirming(false);
+                        void runAction(() =>
+                          clearSessionMutation.mutateAsync({ sessionKey: selectedSessionKey }),
+                        );
+                      }}
+                      disabled={!selectedSessionKey.trim()}
+                    >
+                      {clearConfirming ? t("confirmClear") : t("clearSession")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!compactConfirming) {
+                          clearActionConfirmations("compact");
+                          setCompactConfirming(true);
+                          return;
+                        }
+                        setCompactConfirming(false);
+                        void runAction(async () => {
+                          const response =
+                            await compactSessionMutation.mutateAsync(selectedSessionKey);
+                          return {
+                            ok: response.ok,
+                            status: response.status,
+                            key: selectedSessionKey,
+                            action: "compact",
+                          };
+                        });
+                      }}
+                      disabled={!selectedSessionKey.trim()}
+                    >
+                      {compactConfirming ? t("confirmCompact") : t("compactSession")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() => {
+                        if (!deleteConfirming) {
+                          clearActionConfirmations("delete");
+                          setDeleteConfirming(true);
+                          return;
+                        }
+                        setDeleteConfirming(false);
+                        void runAction(
+                          () =>
+                            deleteSessionMutation.mutateAsync({
+                              sessionKey: selectedSessionKey,
+                              agentId: selectedSession?.agentId ?? null,
+                            }),
+                          { preserveSelectedSession: false },
+                        );
+                      }}
+                      disabled={!selectedSessionKey.trim()}
+                    >
+                      {deleteConfirming ? t("confirmDeleteShort") : t("deleteSession")}
+                    </Button>
+                  </div>
+                  {actionResult ? (
+                    <section className="sessions-surface sessions-action-result">
+                      <div className="sessions-section-heading">
+                        <div>
+                          <h3>{t("latestAction")}</h3>
+                          <p>{t("actionResultTitle")}</p>
+                        </div>
+                      </div>
+                      <Code
+                        aria-label={t("actionResultTitle")}
+                        className="sessions-code"
+                        content={formatJson(actionResult)}
+                        language="json"
+                      />
+                    </section>
+                  ) : null}
+                </section>
+              </div>
+            </Card>
+          </aside>
+        </section>
+      </PanelRoot>
     </section>
   );
 }

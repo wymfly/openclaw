@@ -267,9 +267,12 @@ describe("UsagePanel", () => {
     });
     expect(container.textContent).toContain("Usage ready");
     expect(container.querySelector(".usage-panel")).not.toBeNull();
-    expect(container.querySelector(".usage-panel__header")).not.toBeNull();
+    expect(container.querySelector(".ds-panel-root")).not.toBeNull();
+    expect(container.querySelector(".ds-panel-section-header")).not.toBeNull();
     expect(container.querySelector(".usage-panel__workbench")).not.toBeNull();
-    expect(container.querySelectorAll(".usage-panel__metric")).toHaveLength(6);
+    expect(container.querySelector(".ds-kpi-strip")).not.toBeNull();
+    expect(container.querySelectorAll(".ds-panel-metric")).toHaveLength(6);
+    expect(container.querySelectorAll(".ds-panel-pill").length).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".usage-panel__card").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-usage-surface").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".deck-ui-usage-input")).toHaveLength(4);
@@ -312,6 +315,27 @@ describe("UsagePanel", () => {
     expect(container.textContent).toContain("gpt-5.4");
     expect(container.textContent).toContain("gpt-5.4-mini");
     expect(container.textContent).toContain("1 runs | $4.00");
+  });
+
+  it("keeps usage visual structure ready for prototype parity", async () => {
+    await act(async () => {
+      renderUsagePanel();
+    });
+
+    await waitFor(() => expect(apiMocks.fetchUsageSessions).toHaveBeenCalledTimes(1));
+
+    const panel = container.querySelector(".usage-panel");
+    expect(panel).not.toBeNull();
+    expect(panel!.className).toContain("deck-ui-usage");
+    expect(panel!.querySelector(".ds-panel-root")).not.toBeNull();
+    expect(panel!.querySelector(".ds-panel-section-header")).not.toBeNull();
+    expect(panel!.querySelector(".ds-kpi-strip")).not.toBeNull();
+    expect(panel!.querySelectorAll(".ds-panel-metric")).toHaveLength(6);
+    expect(panel!.querySelector(".usage-panel__workbench")).not.toBeNull();
+    expect(panel!.querySelector(".usage-panel__trend")).not.toBeNull();
+    expect(panel!.querySelector(".usage-panel__provider")).not.toBeNull();
+    expect(panel!.querySelector(".usage-panel__sessions")).not.toBeNull();
+    expect(panel!.querySelector(".usage-panel__evidence-grid")).not.toBeNull();
   });
 
   it("refreshes with the requested day range and preserves a valid provider selection", async () => {

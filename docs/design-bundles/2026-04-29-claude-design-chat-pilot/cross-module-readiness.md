@@ -38,6 +38,47 @@ Per the **no-breaking-change promise** spec requirement, `extend` cells SHALL be
 
 **Shared shell footprint** (used across target panels before migration): `deckgo-card` (58 refs in theme.css), `deckgo-selectable-card` (86 refs), `deckgo-shell-list` (12 refs), `deckgo-panel-workspace`, `deckgo-panel-hero-strip`, `deckgo-actions`, `deckgo-pill-row`, `deckgo-form-grid`, `deckgo-grid`, `deckgo-grid-2`, `deckgo-grid-3`, `deckgo-meta`, `deckgo-note`, `deckgo-kicker`, `deckgo-label`, `deckgo-input`, `deckgo-textarea`, `deckgo-button`, `deckgo-pill`, `deckgo-surface-label`, `deckgo-surface-tile`, `deckgo-checkbox-row`, `deckgo-dividerless`.
 
+## Applied Cockpit Patterns - 2026-05-11
+
+OpenSpec changes: `deck-go-panel-cockpit-design-system`,
+`deck-go-logs-cockpit-pattern-validation`.
+
+Sessions and Usage are the reference consumers for a promoted cockpit pattern
+set in `deck-go/frontend-new/src/design-system/patterns/PanelCockpit.tsx`.
+Logs is the third validation consumer:
+
+- `PanelRoot`
+- `PanelSurface`
+- `KpiStrip`
+- `PanelMetric`
+- `PanelSectionHeader`
+- `PanelStatusRow`
+- `PanelPill`
+
+Promotion decision:
+
+- Canonical token values did not change. The cockpit CSS consumes existing
+  `--ds-*` tokens and does not introduce global overrides.
+- The repeated issue was shared panel structure plus stale local alias
+  consumption, not incorrect design-system token values.
+- Sessions and Usage were enough evidence to promote cockpit root/header/KPI/
+  status-row/pill primitives.
+- Logs validated the same API as the third module sample by consuming
+  `PanelRoot`, `PanelSectionHeader`, `PanelStatusRow`, `KpiStrip`, and
+  `PanelMetric` for matching structures.
+- Broad rollout can now proceed module-by-module when a panel has matching
+  cockpit anatomy. This still does not justify global token-value rewrites or
+  automatic migration of every remaining module.
+
+Still local after promotion:
+
+- Sessions: inventory rows, transcript rows, inspector tab layout, compaction
+  controls, lineage content, and mutation confirmation flows.
+- Usage: range controls, trend charts, provider quota progress rows, session
+  detail tabs, aggregate rows, latency/tool cards, and context-pressure detail.
+- Logs: filter bar, log rows, live tape, selected-line details, stack/raw
+  payload rendering, parser compatibility, and export preview.
+
 ---
 
 ## Worklist (cross-cutting blockers)
@@ -176,9 +217,9 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Usage panel
 
-**Migration readiness:** Completed under OpenSpec change `frontend-usage-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it kept usage KPI, trend, quota, session detail, aggregate, behavior, and context-pressure surfaces as module-local molecules while preserving the no-breaking-change promise.
+**Migration readiness:** Completed under OpenSpec change `frontend-usage-hifi-contract-redesign`. The later `deck-go-panel-cockpit-design-system` pass promoted usage root/header/status and summary KPI structures to cockpit patterns while keeping usage trend, quota, session detail, aggregate, behavior, and context-pressure surfaces as module-local molecules.
 
-**Footnote — deprecated patterns:** The old `deck-ui-usage` global block has been removed. Usage now uses `usage-panel.css` with `--ds-*` tokens. Cost trend rows, provider quota cards, session drilldown rows, aggregate rows, and context-pressure summaries remain promotion candidates for a dedicated design-system proposal rather than being silently canonicalized in the Usage rewrite.
+**Footnote — deprecated patterns:** The old `deck-ui-usage` global block has been removed. Usage now uses `usage-panel.css` with `--ds-*` tokens plus the cockpit pattern set for shared panel primitives. Cost trend rows, provider quota cards, session drilldown rows, aggregate rows, and context-pressure summaries remain module-local until another module repeats the same anatomy.
 
 ### Memory panel
 
@@ -194,15 +235,15 @@ These items SHALL be resolved before the corresponding panel migration begins. E
 
 ### Sessions panel
 
-**Migration readiness:** Completed under OpenSpec change `frontend-sessions-hifi-contract-redesign`. The production pass did not add canonical atoms or tokens; it used local sessions/list/detail/timeline molecules on top of the settled DS atom set.
+**Migration readiness:** Completed under OpenSpec change `frontend-sessions-hifi-contract-redesign`. The later `deck-go-panel-cockpit-design-system` pass promoted sessions root/header/status, top metric, and selected-session stat structures to cockpit patterns while keeping session-specific list/detail/timeline molecules local.
 
-**Footnote — deprecated patterns:** The old `deck-ui-sessions` global block has been removed. Sessions now uses module-local `sessions-*` classes and `--ds-*` tokens. Subagent rendering still overlaps conceptually with chat's SubagentTree, but the sessions-specific lineage row stays local until a dedicated promotion proposal defines a stable shared API.
+**Footnote — deprecated patterns:** The old `deck-ui-sessions` global block has been removed. Sessions now uses module-local `sessions-*` classes, `--ds-*` tokens, and the cockpit pattern set for shared panel primitives. Subagent rendering still overlaps conceptually with chat's SubagentTree, but the sessions-specific lineage row stays local until a dedicated promotion proposal defines a stable shared API.
 
 ### Logs panel
 
-**Migration readiness:** High — smallest footprint (41 lines) and mostly applies/extends. Needs `Code language` extension + `KpiCard` + `EmptyState` + `PaginationBar`. No new core atoms required if `DataTable` lands.
+**Migration readiness:** Completed under OpenSpec changes `frontend-logs-hifi-contract-redesign` and `deck-go-logs-cockpit-pattern-validation`. The later cockpit validation pass promoted Logs root/header/status and KPI structures to cockpit patterns while keeping observability-specific rows, filters, tape, details, and raw payload seams local.
 
-**Footnote — deprecated patterns:** `deck-ui-logs-tape` + `deck-ui-logs-stream-events` use a custom event-stream visual that may stay panel-local rather than promoting to an atom.
+**Footnote — deprecated patterns:** `deck-ui-logs-tape` + `deck-ui-logs-stream-events` use a custom event-stream visual that stays panel-local. Logs is now the third cockpit pattern validation sample and did not require canonical token value changes.
 
 ---
 
@@ -254,15 +295,15 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ### Logs panel
 
-**Status:** in progress under OpenSpec change `frontend-logs-hifi-contract-redesign`.
+**Status:** implemented; cockpit validation completed under OpenSpec change `deck-go-logs-cockpit-pattern-validation`.
 
-**Readiness verdict:** High. The logs high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge, button, input, select, toggle, spinner, code, and card atoms/tokens. No canonical atom or token was introduced.
+**Readiness verdict:** High. The logs high-fidelity pass reused canonical typography, color, spacing, radius, status, form, badge, button, input, select, toggle, spinner, code, and card atoms/tokens. The cockpit validation pass reused `PanelRoot`, `PanelSectionHeader`, `PanelStatusRow`, `KpiStrip`, and `PanelMetric`. No canonical token value changed.
 
-**Local molecules retained:** logs metric tile, level filter toggle row, log line row, live tape row, stream event summary strip, and raw payload seam.
+**Local molecules retained:** level filter toggle row, log line row, live tape row, stream event summary strip, selected-line details, stack/raw payload rendering, parser compatibility, and export preview.
 
-**Repeated from agents/routing/subagents:** metric tile, compact workbench header, section heading, and two-column workbench rhythm. Logs also validates a code-heavy observability sidecar, but log rows and event tape rows remain local because no second observability module has confirmed their API.
+**Repeated from Sessions/Usage:** panel root, compact workbench header, status row, and KPI metric strip now use the cockpit pattern set. Logs also validates a code-heavy observability sidecar, but log rows and event tape rows remain local because no second observability module has confirmed their API.
 
-**Promotion candidates after this pass:** `MetricTile`, `WorkbenchHeader`, and `SectionHeading` now have four module data points and should move to a separate design-system proposal when the rollout pauses for pattern consolidation. `LogLineRow`, `LiveTapeRow`, and `PayloadSeam` stay local/follow-up.
+**Promotion candidates after this pass:** cockpit primitives are validated across three modules and may be used in later modules with matching anatomy. `LogLineRow`, `LiveTapeRow`, and `PayloadSeam` stay local/follow-up.
 
 ### Settings panel
 

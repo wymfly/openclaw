@@ -360,6 +360,10 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Inventory ready");
     expect(container.textContent).toContain("Detail ready");
     expect(container.querySelector(".sessions-panel")).not.toBeNull();
+    expect(container.querySelector(".ds-panel-root")).not.toBeNull();
+    expect(container.querySelector(".ds-kpi-strip")).not.toBeNull();
+    expect(container.querySelectorAll(".ds-panel-metric").length).toBeGreaterThanOrEqual(9);
+    expect(container.querySelectorAll(".ds-panel-status-row").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".sessions-card").length).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".sessions-surface").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelectorAll(".sessions-input").length).toBeGreaterThanOrEqual(4);
@@ -895,7 +899,7 @@ describe("SessionsPanel", () => {
     );
     const hero = container.querySelector(".sessions-hero");
     expect(hero).not.toBeNull();
-    const statusRowText = hero!.querySelector(".sessions-status-row")?.textContent ?? "";
+    const statusRowText = hero!.querySelector(".ds-panel-status-row")?.textContent ?? "";
     expect(statusRowText).not.toMatch(/history/i);
     expect(statusRowText).not.toMatch(/lineage/i);
   });
@@ -909,9 +913,9 @@ describe("SessionsPanel", () => {
     );
     const hero = container.querySelector(".sessions-hero");
     expect(hero).not.toBeNull();
-    const heroStatGrid = hero!.querySelector(".sessions-stat-grid");
+    const heroStatGrid = hero!.querySelector(".ds-kpi-strip");
     expect(heroStatGrid).not.toBeNull();
-    const stats = heroStatGrid!.querySelectorAll(".sessions-stat");
+    const stats = heroStatGrid!.querySelectorAll(".ds-panel-metric");
     expect(stats.length).toBe(4);
     const text = heroStatGrid!.textContent ?? "";
     // i18n values（sessions namespace）：tokensIn="Input", tokensOut="Output", model="Model", thinkingLevel="Thinking Level"
@@ -946,7 +950,7 @@ describe("SessionsPanel", () => {
     );
     const overview = container.querySelector("#sessions-inspector-overview");
     expect(overview).not.toBeNull();
-    const summaryRow = overview!.querySelector(".sessions-status-row");
+    const summaryRow = overview!.querySelector(".ds-panel-status-row");
     expect(summaryRow).not.toBeNull();
     const text = summaryRow!.textContent ?? "";
     // i18n values: history="History", inspector.lineage="Lineage",
@@ -1012,7 +1016,7 @@ describe("SessionsPanel", () => {
       expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
     );
 
-    const tiles = container.querySelectorAll(".sessions-metric");
+    const tiles = container.querySelectorAll(".ds-panel-metric");
     const compactionsTile = Array.from(tiles).find((tile) =>
       tile.textContent?.toLowerCase().includes("compactions"),
     );
@@ -1032,7 +1036,7 @@ describe("SessionsPanel", () => {
       expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
     );
 
-    const tiles = container.querySelectorAll(".sessions-metric");
+    const tiles = container.querySelectorAll(".ds-panel-metric");
     const compactionsTile = Array.from(tiles).find((tile) =>
       tile.textContent?.toLowerCase().includes("compactions"),
     );

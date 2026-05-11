@@ -19,6 +19,12 @@ import {
 } from "../../../data/modules/usage";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import {
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { BreakdownTable } from "./BreakdownTable";
 import { DateRangePicker } from "./DateRangePicker";
@@ -272,92 +278,92 @@ export function UsagePanel() {
 
   return (
     <section className="usage-panel deck-ui-usage" data-testid="usage-panel">
-      <header className="usage-panel__header">
-        <div className="usage-panel__title-stack">
-          <p className="usage-panel__eyebrow">{t("panel.eyebrow")}</p>
-          <h2 className="usage-panel__title">{t("panel.workbenchTitle")}</h2>
-          <p className="usage-panel__description">{t("panel.workbenchDescription")}</p>
-        </div>
-        <div className="usage-panel__header-actions">
-          <span className={`usage-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
-            {t("status", { state: t(loadState) })}
-          </span>
-          <span className={`usage-panel__pill ${ui.bootstrap?.ok ? "is-positive" : ""}`}>
-            {ui.bootstrap?.ok ? t("bootstrapReady") : t("bootstrapUnavailable")}
-          </span>
-          <span className="usage-panel__pill">
-            {t("daysCount", { count: parseUsageDays(days) ?? 14 })}
-          </span>
-          <button
-            className="usage-panel__button is-primary"
-            type="button"
-            onClick={() => refreshUsageRange(days)}
-          >
-            {t("refresh")}
-          </button>
-        </div>
-      </header>
+      <PanelRoot as="div">
+        <PanelSectionHeader
+          eyebrow={t("panel.eyebrow")}
+          title={t("panel.workbenchTitle")}
+          description={t("panel.workbenchDescription")}
+          actions={
+            <PanelStatusRow>
+              <PanelPill tone={loadState === "ready" ? "positive" : "default"}>
+                {t("status", { state: t(loadState) })}
+              </PanelPill>
+              <PanelPill tone={ui.bootstrap?.ok ? "positive" : "default"}>
+                {ui.bootstrap?.ok ? t("bootstrapReady") : t("bootstrapUnavailable")}
+              </PanelPill>
+              <PanelPill>{t("daysCount", { count: parseUsageDays(days) ?? 14 })}</PanelPill>
+              <button
+                className="usage-panel__button is-primary"
+                type="button"
+                onClick={() => refreshUsageRange(days)}
+              >
+                {t("refresh")}
+              </button>
+            </PanelStatusRow>
+          }
+        />
 
-      {error ? (
-        <div className="usage-panel__banner deck-ui-usage-error" role="status">
-          {error}
-        </div>
-      ) : null}
-
-      <SummaryCards
-        costEntries={costEntries}
-        providers={providers}
-        sessionsUsage={sessionsUsage}
-        totalCost={totalCost}
-      />
-
-      <section className="usage-panel__workbench">
-        <div className="usage-panel__main">
-          <DateRangePicker days={days} onDaysChange={setDays} onRefresh={refreshUsageRange} />
-          <UsageTrendChart dailyRows={trendRows} modelRows={modelTrendRows} />
-          <SessionUsageList
-            agentFilter={agentFilter}
-            agentOptions={agentOptions}
-            channelFilter={channelFilter}
-            channelOptions={channelOptions}
-            entries={sessionEntries}
-            expandedSessionKey={expandedSessionKey}
-            filteredEntries={filteredSessionEntries}
-            loading={sessionLogsLoading}
-            onAgentFilterChange={setAgentFilter}
-            onChannelFilterChange={setChannelFilter}
-            onOpenAgent={(agentId) => navigateToAgent(ui, agentId)}
-            onOpenSession={(sessionKey) => navigateToSession(ui, sessionKey)}
-            onSearchChange={setSessionSearch}
-            onSortChange={setSessionSort}
-            onToggleSession={(entry) => void toggleSessionLogs(entry)}
-            search={sessionSearch}
-            sessionContextWeights={sessionContextWeights}
-            sessionLogs={sessionLogs}
-            sessionTimeseries={sessionTimeseries}
-            sort={sessionSort}
-            totalSessionCost={totalSessionCost}
-            totalSessionTokens={totalSessionTokens}
-          />
-          <div className="usage-panel__evidence-grid">
-            <BreakdownTable rows={sessionAggregateRows} />
-            <LatencyCard
-              dailySignals={dailySignals}
-              sessionsUsage={sessionsUsage}
-              topTools={topTools}
-            />
+        {error ? (
+          <div className="usage-panel__banner deck-ui-usage-error" role="status">
+            {error}
           </div>
-        </div>
+        ) : null}
 
-        <aside className="usage-panel__sidecar">
-          <ProviderQuotaPanel
-            hottestWindow={hottestWindow}
-            providers={providers}
-            selectedProvider={selectedProvider}
-            onSelectProvider={setSelectedProviderId}
-          />
-        </aside>
-      </section>
+        <SummaryCards
+          costEntries={costEntries}
+          providers={providers}
+          sessionsUsage={sessionsUsage}
+          totalCost={totalCost}
+        />
+
+        <section className="usage-panel__workbench">
+          <div className="usage-panel__main">
+            <DateRangePicker days={days} onDaysChange={setDays} onRefresh={refreshUsageRange} />
+            <UsageTrendChart dailyRows={trendRows} modelRows={modelTrendRows} />
+            <SessionUsageList
+              agentFilter={agentFilter}
+              agentOptions={agentOptions}
+              channelFilter={channelFilter}
+              channelOptions={channelOptions}
+              entries={sessionEntries}
+              expandedSessionKey={expandedSessionKey}
+              filteredEntries={filteredSessionEntries}
+              loading={sessionLogsLoading}
+              onAgentFilterChange={setAgentFilter}
+              onChannelFilterChange={setChannelFilter}
+              onOpenAgent={(agentId) => navigateToAgent(ui, agentId)}
+              onOpenSession={(sessionKey) => navigateToSession(ui, sessionKey)}
+              onSearchChange={setSessionSearch}
+              onSortChange={setSessionSort}
+              onToggleSession={(entry) => void toggleSessionLogs(entry)}
+              search={sessionSearch}
+              sessionContextWeights={sessionContextWeights}
+              sessionLogs={sessionLogs}
+              sessionTimeseries={sessionTimeseries}
+              sort={sessionSort}
+              totalSessionCost={totalSessionCost}
+              totalSessionTokens={totalSessionTokens}
+            />
+            <div className="usage-panel__evidence-grid">
+              <BreakdownTable rows={sessionAggregateRows} />
+              <LatencyCard
+                dailySignals={dailySignals}
+                sessionsUsage={sessionsUsage}
+                topTools={topTools}
+              />
+            </div>
+          </div>
+
+          <aside className="usage-panel__sidecar">
+            <ProviderQuotaPanel
+              hottestWindow={hottestWindow}
+              providers={providers}
+              selectedProvider={selectedProvider}
+              onSelectProvider={setSelectedProviderId}
+            />
+          </aside>
+        </section>
+      </PanelRoot>
     </section>
   );
 }

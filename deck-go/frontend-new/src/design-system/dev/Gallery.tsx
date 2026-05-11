@@ -38,7 +38,21 @@ import {
   WaitingDots,
 } from "../atoms";
 import * as icons from "../icons";
-import { EmptyState, KbdHint, NavRail, PageShell, SectionHeader, TopBar } from "../patterns";
+import {
+  EmptyState,
+  KbdHint,
+  KpiStrip,
+  NavRail,
+  PageShell,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  SectionHeader,
+  TopBar,
+} from "../patterns";
 
 /**
  * Dev-only smoke gallery — renders one sample of every atom against the
@@ -299,6 +313,36 @@ export function DesignSystemGallery() {
         </div>
         <div style={{ width: "100%" }}>
           <SectionHeader title="Skills" hint="whitelist · 3 of 8 enabled" />
+        </div>
+      </Section>
+
+      <Section label="PanelCockpit">
+        <div style={{ width: "100%" }}>
+          <PanelRoot aria-label="Panel cockpit sample" density="compact">
+            <PanelSectionHeader
+              eyebrow="Usage"
+              title="Model usage"
+              description="Reusable cockpit header, metric strip, surface, status row, and pills."
+              actions={
+                <PanelStatusRow aria-label="Panel state">
+                  <PanelPill tone="positive">ready</PanelPill>
+                  <PanelPill>14d</PanelPill>
+                </PanelStatusRow>
+              }
+            />
+            <KpiStrip aria-label="Panel metrics" columns={3}>
+              <PanelMetric label="Cost" value="$4.75" hint="latest $3.25" />
+              <PanelMetric label="Tokens" value="150" hint="input / output" />
+              <PanelMetric label="Pressure" value="90%" hint="OpenAI hourly" tone="warning" />
+            </KpiStrip>
+            <PanelSurface aria-label="Panel surface" tone="elevated">
+              <PanelSectionHeader
+                headingLevel={3}
+                title="Session drilldown"
+                meta={<PanelPill tone="accent">2 visible</PanelPill>}
+              />
+            </PanelSurface>
+          </PanelRoot>
         </div>
       </Section>
 
