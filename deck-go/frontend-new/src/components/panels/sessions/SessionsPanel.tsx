@@ -594,7 +594,7 @@ export function SessionsPanel() {
           hint={
             (selectedSession?.compactionCount ?? 0) > 0
               ? t("checkpointAvailable")
-              : t("runtimeMetadata")
+              : t("compaction.noCheckpoints")
           }
         />
         <MetricTile

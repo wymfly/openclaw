@@ -995,4 +995,51 @@ describe("SessionsPanel", () => {
     expect(directSpans.length).toBe(3);
     expect(firstRow!.querySelector(":scope > .sessions-row-top")).not.toBeNull();
   });
+
+  it("Compactions metric hint uses compaction.noCheckpoints when count is zero", async () => {
+    // 覆盖默认 fetchSessions，把第一个 session 的 compactionCount 改成 0
+    const base = sessionsPayload();
+    apiMocks.fetchSessions.mockResolvedValueOnce({
+      sessions: base.sessions.map((session, index) =>
+        index === 0 ? { ...session, compactionCount: 0 } : session,
+      ),
+    });
+
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+
+    const tiles = container.querySelectorAll(".sessions-metric");
+    const compactionsTile = Array.from(tiles).find((tile) =>
+      tile.textContent?.toLowerCase().includes("compactions"),
+    );
+    expect(compactionsTile).not.toBeUndefined();
+    const tileText = compactionsTile!.textContent ?? "";
+    // i18n: sessions.compaction.noCheckpoints = "No compaction checkpoints found"
+    expect(tileText).toContain("No compaction checkpoints found");
+    expect(tileText.toLowerCase()).not.toContain("runtime metadata");
+  });
+
+  it("Compactions metric hint uses checkpointAvailable when count > 0", async () => {
+    // 默认 fixture compactionCount=2，无需覆盖
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+
+    const tiles = container.querySelectorAll(".sessions-metric");
+    const compactionsTile = Array.from(tiles).find((tile) =>
+      tile.textContent?.toLowerCase().includes("compactions"),
+    );
+    expect(compactionsTile).not.toBeUndefined();
+    const tileText = compactionsTile!.textContent ?? "";
+    // i18n: sessions.checkpointAvailable = "checkpoint available"
+    expect(tileText.toLowerCase()).toContain("checkpoint available");
+    expect(tileText.toLowerCase()).not.toContain("runtime metadata");
+  });
 });
