@@ -1,7 +1,5 @@
 import type { ChannelOutboundAdapter } from "openclaw/plugin-sdk/channel-send-result";
-import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/infra-runtime";
-
-type WecomOutboundContext = Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0];
+import { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/outbound-media";
 import { WecomAgentDeliveryService } from "./capability/agent/index.js";
 import {
   resolveWecomAccount,
@@ -10,8 +8,11 @@ import {
 } from "./config/index.js";
 import type { PendingReplyManager } from "./enhanced/pending-reply.js";
 import type { QuotaTracker } from "./enhanced/quota-tracker.js";
-import { getAccountRuntime, getBotWsPushHandle, getWecomRuntime } from "./runtime.js";
+import { chunkWecomMarkdownText, renderWecomMarkdownText } from "./markdown/render.js";
+import { getAccountRuntime, getBotWsPushHandle } from "./runtime.js";
 import { resolveScopedWecomTarget } from "./target.js";
+
+type WecomOutboundContext = Parameters<NonNullable<ChannelOutboundAdapter["sendText"]>>[0];
 
 // [enhanced] Pending-reply manager singleton; set via setPendingReplyManager()
 let pendingReplyManager: PendingReplyManager | null = null;
@@ -25,6 +26,139 @@ let quotaTracker: QuotaTracker | null = null;
 
 export function setQuotaTracker(tracker: QuotaTracker): void {
   quotaTracker = tracker;
+}
+
+const WECOM_OUTBOUND_MEDIA_MAX_BYTES = 20 * 1024 * 1024;
+const WECOM_IMAGE_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
+const WECOM_VIDEO_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
+const WECOM_VOICE_MEDIA_MAX_BYTES = 2 * 1024 * 1024;
+
+const CONTENT_TYPE_BY_EXTENSION: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  amr: "audio/amr",
+  mp4: "video/mp4",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  txt: "text/plain",
+  csv: "text/csv",
+  tsv: "text/tab-separated-values",
+  md: "text/markdown",
+  json: "application/json",
+  xml: "application/xml",
+  yaml: "application/yaml",
+  yml: "application/yaml",
+  zip: "application/zip",
+  rar: "application/vnd.rar",
+  "7z": "application/x-7z-compressed",
+  tar: "application/x-tar",
+  gz: "application/gzip",
+  tgz: "application/gzip",
+  rtf: "application/rtf",
+  odt: "application/vnd.oasis.opendocument.text",
+};
+
+function inferFileName(mediaUrl: string, provided?: string): string {
+  if (provided?.trim()) {
+    return provided.trim();
+  }
+  const stripped = mediaUrl.replace(/^\s*MEDIA\s*:\s*/i, "").trim();
+  const findLastPathSegment = (value: string, separator: RegExp | string): string | undefined => {
+    let last: string | undefined;
+    for (const part of value.split(separator)) {
+      if (part) {
+        last = part;
+      }
+    }
+    return last;
+  };
+  if (/^https?:\/\//i.test(stripped)) {
+    try {
+      const last = findLastPathSegment(new URL(stripped).pathname, "/");
+      if (last) {
+        return decodeURIComponent(last);
+      }
+    } catch {
+      // Fall through to path-style parsing.
+    }
+  }
+  return findLastPathSegment(stripped, /[\\/]/) || "media";
+}
+
+function inferContentType(params: { contentType?: string; filename: string }): string {
+  const contentType = params.contentType?.trim();
+  if (contentType) {
+    return contentType;
+  }
+  const ext = params.filename.split(".").at(-1)?.toLowerCase();
+  return ext
+    ? (CONTENT_TYPE_BY_EXTENSION[ext] ?? "application/octet-stream")
+    : "application/octet-stream";
+}
+
+function resolveWecomDeliveryContentType(params: {
+  contentType: string;
+  byteLength: number;
+}): string {
+  const contentType = params.contentType.toLowerCase();
+  if (contentType.startsWith("image/") && params.byteLength > WECOM_IMAGE_MEDIA_MAX_BYTES) {
+    return "application/octet-stream";
+  }
+  if (contentType.startsWith("video/") && params.byteLength > WECOM_VIDEO_MEDIA_MAX_BYTES) {
+    return "application/octet-stream";
+  }
+  if (contentType.startsWith("audio/")) {
+    if (contentType !== "audio/amr" || params.byteLength > WECOM_VOICE_MEDIA_MAX_BYTES) {
+      return "application/octet-stream";
+    }
+  }
+  return params.contentType;
+}
+
+async function loadWecomOutboundMedia(params: {
+  mediaUrl: string;
+  mediaAccess?: WecomOutboundContext["mediaAccess"];
+  mediaLocalRoots?: WecomOutboundContext["mediaLocalRoots"];
+}) {
+  const mediaAccess = params.mediaAccess
+    ? {
+        ...(params.mediaAccess.localRoots?.length
+          ? { localRoots: params.mediaAccess.localRoots }
+          : {}),
+        ...(params.mediaAccess.workspaceDir
+          ? { workspaceDir: params.mediaAccess.workspaceDir }
+          : {}),
+      }
+    : undefined;
+  const media = await loadOutboundMediaFromUrl(params.mediaUrl, {
+    maxBytes: WECOM_OUTBOUND_MEDIA_MAX_BYTES,
+    mediaAccess,
+    mediaLocalRoots: mediaAccess?.localRoots ? undefined : params.mediaLocalRoots,
+  });
+  const filename = inferFileName(params.mediaUrl, media.fileName);
+  const contentType = inferContentType({
+    contentType: media.contentType,
+    filename,
+  });
+  return {
+    buffer: media.buffer,
+    filename,
+    contentType: resolveWecomDeliveryContentType({
+      contentType,
+      byteLength: media.buffer.length,
+    }),
+  };
 }
 
 function resolveOutboundAccountOrThrow(params: {
@@ -78,7 +212,7 @@ function resolveAgentConfigOrThrow(params: {
 }
 
 function isExplicitAgentTarget(raw: string | undefined): boolean {
-  return /^wecom-agent:/i.test(String(raw ?? "").trim());
+  return /^wecom-agent:/i.test((raw ?? "").trim());
 }
 
 function resolveBotWsChatTarget(params: {
@@ -153,9 +287,9 @@ async function sendTextViaBotWs(params: {
     );
   }
   getAccountRuntime(accountId)?.log.info?.(
-    `[wecom-outbound] Sending Bot WS active message to target=${String(params.to ?? "")} chatId=${chatId} (len=${params.text.length})`,
+    `[wecom-outbound] Sending Bot WS active message to target=${params.to ?? ""} chatId=${chatId} (len=${params.text.length})`,
   );
-  await handle.sendMarkdown(chatId, params.text);
+  await handle.sendMarkdown(chatId, renderWecomMarkdownText(params.text));
   getAccountRuntime(accountId)?.log.info?.(
     `[wecom-outbound] Successfully sent Bot WS active message to ${chatId}`,
   );
@@ -164,15 +298,9 @@ async function sendTextViaBotWs(params: {
 
 export const wecomOutbound: ChannelOutboundAdapter = {
   deliveryMode: "direct",
-  chunkerMode: "text",
-  textChunkLimit: 20480,
-  chunker: (text, limit) => {
-    try {
-      return getWecomRuntime().channel.text.chunkText(text, limit);
-    } catch {
-      return [text];
-    }
-  },
+  chunkerMode: "markdown",
+  textChunkLimit: 1900,
+  chunker: (text, limit) => chunkWecomMarkdownText(text, { maxBytes: limit }),
   sendText: async ({ cfg, to, text, accountId }: WecomOutboundContext) => {
     // signal removed - not supported in current SDK
     // Defer Agent resolution until the Agent fallback path
@@ -260,7 +388,15 @@ export const wecomOutbound: ChannelOutboundAdapter = {
       timestamp: Date.now(),
     };
   },
-  sendMedia: async ({ cfg, to, text, mediaUrl, accountId }: WecomOutboundContext) => {
+  sendMedia: async ({
+    cfg,
+    to,
+    text,
+    mediaUrl,
+    accountId,
+    mediaAccess,
+    mediaLocalRoots,
+  }: WecomOutboundContext) => {
     // signal removed - not supported in current SDK
 
     const { preferred } = shouldPreferBotWsOutbound({ cfg, accountId, to });
@@ -275,96 +411,11 @@ export const wecomOutbound: ChannelOutboundAdapter = {
       throw new Error("WeCom outbound requires mediaUrl.");
     }
 
-    let buffer: Buffer;
-    let contentType: string;
-    let filename: string;
-
-    // 判断是 URL 还是本地文件路径
-    const isRemoteUrl = /^https?:\/\//i.test(mediaUrl);
-
-    if (isRemoteUrl) {
-      const { response: guardedRes, release } = await fetchWithSsrFGuard({
-        url: mediaUrl,
-        timeoutMs: 30_000,
-        mode: "strict",
-        auditContext: "wecom-outbound-media-download",
-      });
-      try {
-        if (!guardedRes.ok) {
-          throw new Error(`Failed to download media: ${guardedRes.status}`);
-        }
-        buffer = Buffer.from(await guardedRes.arrayBuffer());
-        contentType = guardedRes.headers.get("content-type") || "application/octet-stream";
-        const urlPath = new URL(mediaUrl).pathname;
-        filename = urlPath.split("/").pop() || "media";
-      } finally {
-        await release();
-      }
-    } else {
-      // 本地文件路径
-      const fs = await import("node:fs/promises");
-      const nodePath = await import("node:path");
-      const os = await import("node:os");
-
-      const resolved = nodePath.resolve(mediaUrl);
-      const allowedPrefixes = [
-        nodePath.resolve(os.tmpdir()),
-        nodePath.resolve(os.homedir(), ".openclaw"),
-      ];
-      const isAllowed = allowedPrefixes.some(
-        (prefix) => resolved.startsWith(prefix + nodePath.sep) || resolved === prefix,
-      );
-      if (!isAllowed) {
-        throw new Error(
-          `WeCom outbound media: local file path must be under ${allowedPrefixes.join(" or ")}. Got: ${resolved}`,
-        );
-      }
-
-      buffer = await fs.readFile(resolved);
-      filename = nodePath.basename(resolved);
-
-      // 根据扩展名推断 content-type
-      const ext = nodePath.extname(resolved).slice(1).toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        jpg: "image/jpeg",
-        jpeg: "image/jpeg",
-        png: "image/png",
-        gif: "image/gif",
-        webp: "image/webp",
-        bmp: "image/bmp",
-        mp3: "audio/mpeg",
-        wav: "audio/wav",
-        amr: "audio/amr",
-        mp4: "video/mp4",
-        pdf: "application/pdf",
-        doc: "application/msword",
-        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        xls: "application/vnd.ms-excel",
-        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ppt: "application/vnd.ms-powerpoint",
-        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        txt: "text/plain",
-        csv: "text/csv",
-        tsv: "text/tab-separated-values",
-        md: "text/markdown",
-        json: "application/json",
-        xml: "application/xml",
-        yaml: "application/yaml",
-        yml: "application/yaml",
-        zip: "application/zip",
-        rar: "application/vnd.rar",
-        "7z": "application/x-7z-compressed",
-        tar: "application/x-tar",
-        gz: "application/gzip",
-        tgz: "application/gzip",
-        rtf: "application/rtf",
-        odt: "application/vnd.oasis.opendocument.text",
-      };
-      contentType = mimeTypes[ext] || "application/octet-stream";
-      getAccountRuntime(agent.accountId)?.log.info?.(
-        `[wecom-outbound] Reading local file: ${resolved}, ext=${ext}, contentType=${contentType}`,
-      );
-    }
+    const { buffer, filename, contentType } = await loadWecomOutboundMedia({
+      mediaUrl,
+      mediaAccess,
+      mediaLocalRoots,
+    });
 
     getAccountRuntime(agent.accountId)?.log.info?.(
       `[wecom-outbound] Sending media to ${String(to ?? "")} (filename=${filename}, contentType=${contentType})`,

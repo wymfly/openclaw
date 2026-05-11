@@ -38,18 +38,12 @@ describe("agent api sendText", () => {
     });
   });
 
-  it("falls back to legacy markdown when markdown_v2 is rejected", async () => {
+  it("sends application messages as markdown by default", async () => {
     state.wecomFetch
       .mockResolvedValueOnce(
         jsonResponse({
           access_token: "token-1",
           expires_in: 7200,
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          errcode: 40001,
-          errmsg: "unsupported markdown_v2 msgtype",
         }),
       )
       .mockResolvedValueOnce(
@@ -70,16 +64,8 @@ describe("agent api sendText", () => {
       text: "hello",
     });
 
-    expect(state.wecomFetch).toHaveBeenCalledTimes(3);
+    expect(state.wecomFetch).toHaveBeenCalledTimes(2);
     expect(JSON.parse(state.wecomFetch.mock.calls[1]?.[1]?.body as string)).toEqual({
-      touser: "alice",
-      toparty: undefined,
-      totag: undefined,
-      msgtype: "markdown_v2",
-      agentid: 10001,
-      markdown_v2: { content: "hello" },
-    });
-    expect(JSON.parse(state.wecomFetch.mock.calls[2]?.[1]?.body as string)).toEqual({
       touser: "alice",
       toparty: undefined,
       totag: undefined,
@@ -89,19 +75,12 @@ describe("agent api sendText", () => {
     });
   });
 
-  it("falls back to legacy markdown when WeCom returns generic invalid message type", async () => {
+  it("sends appchat messages as markdown by default", async () => {
     state.wecomFetch
       .mockResolvedValueOnce(
         jsonResponse({
           access_token: "token-2",
           expires_in: 7200,
-        }),
-      )
-      .mockResolvedValueOnce(
-        jsonResponse({
-          errcode: 40008,
-          errmsg:
-            "invalid message type, hint: [1778149113022873125205048], from ip: 60.204.148.217",
         }),
       )
       .mockResolvedValueOnce(
@@ -118,25 +97,14 @@ describe("agent api sendText", () => {
         corpSecret: "secret-2",
         agentId: 10002,
       } as any,
-      toUser: "bob",
+      chatId: "chat-1",
       text: "hello",
     });
 
-    expect(state.wecomFetch).toHaveBeenCalledTimes(3);
+    expect(state.wecomFetch).toHaveBeenCalledTimes(2);
     expect(JSON.parse(state.wecomFetch.mock.calls[1]?.[1]?.body as string)).toEqual({
-      touser: "bob",
-      toparty: undefined,
-      totag: undefined,
-      msgtype: "markdown_v2",
-      agentid: 10002,
-      markdown_v2: { content: "hello" },
-    });
-    expect(JSON.parse(state.wecomFetch.mock.calls[2]?.[1]?.body as string)).toEqual({
-      touser: "bob",
-      toparty: undefined,
-      totag: undefined,
+      chatid: "chat-1",
       msgtype: "markdown",
-      agentid: 10002,
       markdown: { content: "hello" },
     });
   });

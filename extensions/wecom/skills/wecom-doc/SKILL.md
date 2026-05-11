@@ -26,6 +26,18 @@ metadata:
 
 通过 mcporter 调用 wecom-doc MCP server 操作企业微信文档和智能表格。
 
+## 工具契约边界
+
+当前 WeCom 文档能力有两个表面：
+
+- `wecom_mcp`：企业微信会话内的 MCP 工具，优先用于渠道对话。
+- `wecom_doc`：应用凭据直连工具，仅使用当前工具 schema 中列出的 action 和参数。
+
+不要把两个表面的 action/参数混用。未出现在当前工具 schema 或本 skill 中的 action
+不要猜测调用。`smartsheet_add_external_records` 和 `smartsheet_update_external_records`
+不是 Wedoc direct endpoint，不要作为工具调用；需要外部数据写入时只能按 Webhook
+兜底流程单独处理。
+
 ## 意图处理
 
 当用户说"创建文档"、"新建文档"、"帮我写个文档"等**不指定平台**的请求时，默认使用企业微信文档，无需询问用户使用什么平台。
@@ -141,16 +153,16 @@ docid **只能**通过 `create_doc` 的返回结果获取。创建成功后需�
 3. 查询已有子表 → `smartsheet_get_sheet` → 获取 `sheet_id`
 4. 如需新建子表 → `smartsheet_add_sheet` → 获取新的 `sheet_id`
 5. 查询已有字段 → `smartsheet_get_fields` → 获取 `field_id`、`field_title`、`field_type`
-6. 如需添加字段 → `wedoc_smartsheet_add_fields`
-7. 如需更新字段 → `wedoc_smartsheet_update_fields`（**不能改变字段类型**）
-8. 添加数据记录 → `smartsheet_add_records`（默认 `key_type` 为字段标题；如需用字段 ID，显式传 `CELL_VALUE_KEY_TYPE_FIELD_ID`）
+6. 如需添加字段 → `smartsheet_add_fields`
+7. 如需更新字段 → `smartsheet_update_fields`（**不能改变字段类型**）
+8. 添加数据记录 → `smartsheet_add_records`。默认使用字段标题作为 key；只有当前工具 schema 明确提供 `key_type` 时才使用字段 ID。
 
 ### 从零创建智能表完整流程
 
 ```
 create_doc(doc_type=10) → docid
   └→ smartsheet_add_sheet(docid) → sheet_id
-      └→ wedoc_smartsheet_add_fields(docid, sheet_id, fields) → field_ids
+      └→ smartsheet_add_fields(docid, sheet_id, fields) → field_ids
           └→ smartsheet_add_records(docid, sheet_id, records)
 ```
 
@@ -164,9 +176,57 @@ smartsheet_get_sheet(docid) → sheet_id
 
 > **重要**：添加记录前**必须**先通过 `smartsheet_get_fields` 获取字段信息，确保 `values` 中的 key 和 value 格式正确。
 
-## 业务知识（MCP Schema 中缺失的上下文）
+### 智能表格内容权限流程
 
-以下信息是 MCP tool 的 inputSchema 中没有的，Agent 构造参数时必须参考。
+企业微信把智能表格内容权限拆成多个接口，不要把它们混成一个请求：
+
+1. 查询全员权限：`smartsheet_get_sheet_priv` 只传 `docId`，或传 `type: 1`。
+2. 创建额外权限规则：`smartsheet_create_rule` 只传 `docId` 和 `name`，返回 `rule_id`。
+3. 设置额外权限规则的子表权限：`smartsheet_update_sheet_priv` 传 `type: 2`、`rule_id`、`priv_list`。
+4. 绑定额外权限规则成员：`smartsheet_mod_rule_member` 传 `rule_id` 和成员范围。
+5. 查询额外权限规则详情：`smartsheet_get_sheet_priv` 传 `type: 2` 和非空 `rule_id_list`。
+
+`smartsheet_get_sheet_priv` 是按规则类型查询，不是按 `sheet_id` 查询；子表权限在返回的 `priv_list` 里。
+`priv_list[].priv` 必须使用整数：`1` 全部权限、`2` 可编辑、`3` 仅浏览、`4` 无权限。不要使用 `{ "value": "VIEW" }` 等别名对象。
+创建/修改/删除权限规则会影响真实文档权限。执行前必须先确认 docId、rule_id、成员范围和目标子表。
+
+普通文档查看规则 `set_join_rule` 只使用只读权限值：`corp_internal_auth: 1`、`corp_external_auth: 1`、`co_auth_list[].auth: 1`。不要传 `2` 表示读写；企业微信接口会拒绝该权限值。
+
+### 收集表创建流程
+
+`create_collect` 推荐传完整 `form_info`。最小可填写结构：
+
+```json
+{
+  "form_info": {
+    "form_title": "收集表标题",
+    "form_question": {
+      "items": [
+        {
+          "question_id": 1,
+          "title": "姓名",
+          "pos": 1,
+          "reply_type": 1,
+          "must_reply": true
+        }
+      ]
+    }
+  }
+}
+```
+
+插件也兼容 `request.form_title + request.items` 的扁平输入，但最终会按企业微信 `form_info.form_question.items` 结构提交。
+当前企业微信后端不接受仅标题的空收集表；不要只传 `docName`、`formTitle` 或顶层 `form_title`。最小可用请求必须包含至少一个完整问题。
+
+### 收集表查询流程
+
+1. 先用 `get_form_info` 传 `formId`，读取返回的 `form_info.repeated_id` 数组。
+2. `get_form_statistic` 的工具输入仍使用 `requests` 数组，每项形如 `{ "repeated_id": "REPEATED_ID", "req_type": 1 }`；插件会逐项调用企业微信接口。`formId` 只能作为上下文保留，不能替代 `requests`，不要传 `{ "question_id": 1 }`。
+3. 如需读取答案，先用 `get_form_statistic` 的 `req_type: 2` 获取 `submit_users[].answer_id`，再调用 `get_form_answer`，同时传 `repeatedId` 和非空 `answerIds`；`formId` 不能替代 `answerIds`。
+
+## 参数构造参考
+
+以下信息用于构造字段、记录和单元格值参数。
 
 ### FieldType 枚举（16 种）
 

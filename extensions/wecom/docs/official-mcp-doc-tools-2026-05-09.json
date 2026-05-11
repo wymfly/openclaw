@@ -1,0 +1,1488 @@
+{
+  "capturedAt": "2026-05-09T16:49:57.1265066+08:00",
+  "source": "wecom bot-ws official doc MCP tools/list",
+  "accountId": "default",
+  "transport": "streamable-http",
+  "isAuthed": false,
+  "toolCount": 20,
+  "tools": [
+    {
+      "name": "create_doc",
+      "description": "新建文档或智能表格。新建成功后返回文档访问链接和 docid（docid 仅在新建时返回，需妥善保存）。注意：新建智能表格（doc_type=10）时，文档会默认包含一个子表，可通过 smartsheet_get_sheet 查询其 sheet_id，无需额外调用 smartsheet_add_sheet。\n\nWARNING: 新建智能表格后，默认子表自带一个默认字段（标题\"文本\"）。你在添加字段前，必须按以下步骤处理：\n1. 调用 smartsheet_get_fields 获取默认字段的 field_id\n2. 调用 smartsheet_update_fields 将默认字段重命名为你需要的第一个字段\n3. 调用 smartsheet_add_fields 只添加剩余字段\n如果跳过步骤1-2直接add_fields，表格会多出一个无用的默认列。",
+      "inputSchema": {
+        "properties": {
+          "doc_type": {
+            "description": "文档类型：3-文档，10-智能表格",
+            "enum": [3, 10],
+            "title": "Doc Type",
+            "type": "integer"
+          },
+          "doc_name": {
+            "description": "文档名字，最多 255 个字符，超过会被截断",
+            "title": "Doc Name",
+            "type": "string"
+          }
+        },
+        "required": ["doc_type", "doc_name"],
+        "title": "create_docArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "edit_doc_content",
+      "description": "编辑文档内容。content 参数直接传入 Markdown 原文，例如 \"# 标题\\n正文内容\"，不要将 Markdown 文本再用引号包成 JSON 字符串。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "content": {
+            "description": "覆写的文档内容，直接传入原始 Markdown 文本，不要对内容做额外的 JSON 转义或用引号包裹",
+            "title": "Content",
+            "type": "string"
+          },
+          "content_type": {
+            "description": "内容类型格式。1:markdown",
+            "enum": [1],
+            "title": "Content Type",
+            "type": "integer"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["content", "content_type"],
+        "title": "edit_doc_contentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartpage_create",
+      "description": "创建智能文档（原\"智能主页\"）。用于创建一个智能文档（也称智能主页），支持同时创建多个子页面，并可指定子页面内容（纯文本或 Markdown 格式）。返回结果包含 docid（文档ID）和 url（访问链接）。",
+      "inputSchema": {
+        "properties": {
+          "title": {
+            "description": "智能文档（智能主页）的标题",
+            "title": "Title",
+            "type": "string"
+          },
+          "pages": {
+            "description": "子页面列表，必填",
+            "items": {
+              "properties": {
+                "page_title": {
+                  "description": "子页面标题，必填",
+                  "type": "string"
+                },
+                "content_type": {
+                  "default": 0,
+                  "description": "子页面内容类型。0：纯文本（默认）；1：Markdown 格式",
+                  "enum": [0, 1],
+                  "type": "integer"
+                },
+                "page_content": {
+                  "description": "子页面内容，格式需与 content_type 对应",
+                  "type": "string"
+                }
+              },
+              "required": ["page_title"],
+              "type": "object"
+            },
+            "title": "Pages",
+            "type": "array"
+          }
+        },
+        "required": ["title", "pages"],
+        "title": "smartpage_createArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "upload_doc_image",
+      "description": "上传图片到企业微信文档。\n        \n        该接口用于向企业微信在线文档（如智能表格、文档等）上传图片，上传成功后返回图片 URL 及尺寸信息。\n        上传的图片可用于填充智能表格的图片类型字段，或插入文档正文中。\n        \n        支持通过 docid 或文档 URL 定位文档，二者传入其一即可。\n        图片需要以 base64 编码格式传入。\n        \n        返回信息包括：\n        - url: 图片访问链接\n        - width: 图片宽度（像素）\n        - height: 图片高度（像素）\n        - size: 图片大小（字节）\n        \n        使用示例：\n        1. 读取本地图片文件\n        2. 将图片内容进行 base64 编码\n        3. 调用本接口上传\n        4. 使用返回的 image_url 填充到智能表格的图片字段或文档中\n        ",
+      "inputSchema": {
+        "properties": {
+          "base64_content": {
+            "description": "base64 编码后的图片内容。支持常见图片格式（如 JPG、PNG 等）。图片文件需先读取为二进制数据，然后进行 base64 编码。原始图片大小上限为 30MB",
+            "title": "Base64 Content",
+            "type": "string"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["base64_content"],
+        "title": "upload_doc_imageArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "upload_doc_file",
+      "description": "上传文件到企业微信文档。\n\n        将本地文件以 base64 编码方式上传，上传成功后返回 fileid，可用于后续在文档中引用该文件。\n        文件大小上限为 10MB，文件名最多 255 个字符（英文算 1 个，汉字算 2 个）。\n\n        返回信息包括：\n        - fileid: 上传后的文件 ID，可用于smartsheet_add_records在智能表插入记录\n        ",
+      "inputSchema": {
+        "properties": {
+          "file_name": {
+            "description": "文件名字。文件名最多 255 个字符，英文算 1 个，汉字算 2 个",
+            "title": "File Name",
+            "type": "string"
+          },
+          "file_base64_content": {
+            "description": "文件内容的 base64 编码。只需填入文件内容的 Base64，不需要添加任何数据类型描述（如 'data:application/x-javascript;base64'）。原始文件大小上限为 10MB",
+            "title": "File Base64 Content",
+            "type": "string"
+          }
+        },
+        "required": ["file_name", "file_base64_content"],
+        "title": "upload_doc_fileArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_doc_content",
+      "description": "获取企业微信文档的完整内容数据，以 Markdown 格式返回。该接口采用异步轮询机制：首次调用无需传 task_id，接口会返回 task_id；若 task_done 为 false，需携带该 task_id 再次调用，直到 task_done 为 true 时返回完整内容。",
+      "inputSchema": {
+        "properties": {
+          "type": {
+            "description": "内容返回格式。2: Markdown 格式",
+            "enum": [2],
+            "title": "Type",
+            "type": "integer"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "任务 ID，用于异步轮询。初次调用时不填，后续轮询时填写上次返回的 task_id",
+            "title": "Task Id"
+          }
+        },
+        "required": ["type"],
+        "title": "get_doc_contentArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartpage_export_task",
+      "description": "提交导出智能文档（原\"智能主页\"）内容的异步任务。支持导出为 Markdown 格式。该接口仅返回任务 ID，实际内容需通过 smartpage_get_export_result 接口轮询获取。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "content_type": {
+            "description": "期望返回的内容格式类型。1: Markdown 格式。目前仅支持1",
+            "enum": [1],
+            "title": "Content Type",
+            "type": "integer"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "智能文档（智能主页）的文档 ID，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "智能文档（智能主页）的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["content_type"],
+        "title": "smartpage_export_taskArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartpage_get_export_result",
+      "description": "查询智能文档（原\"智能主页\"）导出任务的状态和结果。该接口采用异步轮询机制：使用 smartpage_export_task 返回的 task_id 进行查询。若 task_done 为 false，需继续轮询；若 task_done 为 true，则返回完整内容",
+      "inputSchema": {
+        "properties": {
+          "task_id": {
+            "description": "异步任务 ID，由 smartpage_export_task 接口返回",
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": ["task_id"],
+        "title": "smartpage_get_export_resultArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_add_sheet",
+      "description": "在指定文档中添加一个空的智能表（子表）。注意：新建的智能表格文档默认已包含一个子表，仅在需要多个子表时才需调用此接口。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。\n\nWARNING: 新建的子表自带一个默认字段（标题\"文本\"）。你在添加字段前，必须按以下步骤处理：\n1. 调用 smartsheet_get_fields 获取默认字段的 field_id\n2. 调用 smartsheet_update_fields 将默认字段重命名为你需要的第一个字段\n3. 调用 smartsheet_add_fields 只添加剩余字段\n如果跳过步骤1-2直接add_fields，表格会多出一个无用的默认列。",
+      "inputSchema": {
+        "$defs": {
+          "SheetProperties": {
+            "description": "智能表属性",
+            "properties": {
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "智能表标题",
+                "title": "Title"
+              }
+            },
+            "title": "SheetProperties",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "properties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SheetProperties"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "智能表属性"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "title": "smartsheet_add_sheetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_get_sheet",
+      "description": "查询指定文档中的智能表（子表）信息，返回 sheet_id 列表。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。\n\nIMPORTANT: 获取 sheet_id 后，下一步必须调用 smartsheet_get_fields 查看该子表的现有字段。子表默认自带一个文本字段，你需要先用 smartsheet_update_fields 重命名该默认字段，再用 smartsheet_add_fields 添加其余字段。",
+      "inputSchema": {
+        "properties": {
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "title": "smartsheet_get_sheetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_add_fields",
+      "description": "向企业微信智能表格的子表中添加一个或多个新字段（列）。单个子表最多支持150个字段。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。\n\nPREREQUISITE: 调用本接口前，你必须确认已完成以下操作，否则会多出一个无用的默认列：\n1. 已调用 smartsheet_get_fields 查看子表现有字段（新子表会自带一个默认文本字段）\n2. 已调用 smartsheet_update_fields 将该默认字段重命名为你需要的第一个字段名\n然后在本接口中只传入剩余的字段（不包含第一个字段）。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet ID",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "fields": {
+            "description": "要添加的字段列表",
+            "items": {
+              "properties": {
+                "field_title": {
+                  "description": "字段标题",
+                  "type": "string"
+                },
+                "field_type": {
+                  "description": "字段类型。FIELD_TYPE_TEXT: 文本（适用于名称、标题、描述、负责人姓名等自由文本）, FIELD_TYPE_NUMBER: 数字（适用于金额、工时、数量等数值）, FIELD_TYPE_CHECKBOX: 复选框, FIELD_TYPE_DATE_TIME: 日期时间, FIELD_TYPE_IMAGE: 图片, FIELD_TYPE_ATTACHMENT: 文件, FIELD_TYPE_USER: 用户/成员（需要传入 user_id，仅在明确知道成员ID时使用；如果用户只提供了姓名，应使用 TEXT 类型代替）, FIELD_TYPE_URL: 链接, FIELD_TYPE_SELECT: 多选, FIELD_TYPE_PROGRESS: 进度（适用于完成进度、完成百分比，值为 0-100 的整数）, FIELD_TYPE_PHONE_NUMBER: 手机号, FIELD_TYPE_EMAIL: 邮箱, FIELD_TYPE_SINGLE_SELECT: 单选（适用于状态、优先级、严重程度、分类等有固定选项的字段）, FIELD_TYPE_LOCATION: 位置, FIELD_TYPE_CURRENCY: 货币, FIELD_TYPE_PERCENTAGE: 百分比（适用于比率类数值，如完成率、转化率）, FIELD_TYPE_BARCODE: 条码",
+                  "enum": [
+                    "FIELD_TYPE_TEXT",
+                    "FIELD_TYPE_NUMBER",
+                    "FIELD_TYPE_CHECKBOX",
+                    "FIELD_TYPE_DATE_TIME",
+                    "FIELD_TYPE_IMAGE",
+                    "FIELD_TYPE_ATTACHMENT",
+                    "FIELD_TYPE_USER",
+                    "FIELD_TYPE_URL",
+                    "FIELD_TYPE_SELECT",
+                    "FIELD_TYPE_PROGRESS",
+                    "FIELD_TYPE_PHONE_NUMBER",
+                    "FIELD_TYPE_EMAIL",
+                    "FIELD_TYPE_SINGLE_SELECT",
+                    "FIELD_TYPE_LOCATION",
+                    "FIELD_TYPE_CURRENCY",
+                    "FIELD_TYPE_PERCENTAGE",
+                    "FIELD_TYPE_BARCODE"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": ["field_title", "field_type"],
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "fields"],
+        "title": "smartsheet_add_fieldsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_update_fields",
+      "description": "更新企业微信智能表格子表中一个或多个字段的标题。注意：该接口只能更新字段名，不能更新字段类型（field_type 必须为字段当前的原始类型）。field_title 不能被更新为原值。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet ID",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "fields": {
+            "description": "要更新的字段列表",
+            "items": {
+              "properties": {
+                "field_id": {
+                  "description": "字段 ID，用于标识要更新的字段，不可更改",
+                  "type": "string"
+                },
+                "field_title": {
+                  "description": "需要更新为的字段标题，不能更新为原值。",
+                  "type": "string"
+                },
+                "field_type": {
+                  "description": "字段类型，必须传该字段当前的原始类型，不能更改。FIELD_TYPE_TEXT: 文本, FIELD_TYPE_NUMBER: 数字, FIELD_TYPE_CHECKBOX: 复选框, FIELD_TYPE_DATE_TIME: 日期时间, FIELD_TYPE_IMAGE: 图片, FIELD_TYPE_ATTACHMENT: 文件, FIELD_TYPE_USER: 用户/成员（需要传入 user_id）, FIELD_TYPE_URL: 链接, FIELD_TYPE_SELECT: 多选, FIELD_TYPE_PROGRESS: 进度, FIELD_TYPE_PHONE_NUMBER: 手机号, FIELD_TYPE_EMAIL: 邮箱, FIELD_TYPE_SINGLE_SELECT: 单选, FIELD_TYPE_LOCATION: 位置, FIELD_TYPE_CURRENCY: 货币, FIELD_TYPE_PERCENTAGE: 百分比, FIELD_TYPE_BARCODE: 条码",
+                  "enum": [
+                    "FIELD_TYPE_TEXT",
+                    "FIELD_TYPE_NUMBER",
+                    "FIELD_TYPE_CHECKBOX",
+                    "FIELD_TYPE_DATE_TIME",
+                    "FIELD_TYPE_IMAGE",
+                    "FIELD_TYPE_ATTACHMENT",
+                    "FIELD_TYPE_USER",
+                    "FIELD_TYPE_URL",
+                    "FIELD_TYPE_SELECT",
+                    "FIELD_TYPE_PROGRESS",
+                    "FIELD_TYPE_PHONE_NUMBER",
+                    "FIELD_TYPE_EMAIL",
+                    "FIELD_TYPE_SINGLE_SELECT",
+                    "FIELD_TYPE_LOCATION",
+                    "FIELD_TYPE_CURRENCY",
+                    "FIELD_TYPE_PERCENTAGE",
+                    "FIELD_TYPE_BARCODE"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": ["field_id", "field_type"],
+              "type": "object"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "fields"],
+        "title": "smartsheet_update_fieldsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_get_fields",
+      "description": "获取企业微信智能表格中某个子表下的所有字段信息。返回值包含每个字段的 field_id、field_title、field_type。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。\n\n注意：新创建的子表会返回一个默认文本字段（create_doc 创建的默认标题为\"文本\"，smartsheet_add_sheet 创建的默认标题为\"智能表列\"）。你应使用 smartsheet_update_fields 将其重命名为所需的第一个字段，避免多出无用列。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet ID",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id"],
+        "title": "smartsheet_get_fieldsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_add_records",
+      "description": "在企业微信智能表格的某个子表里添加一行或多行新记录。在调用该工具前，你要先通过 smartsheet_get_fields 了解目标表的各列的字段标题（field_title）和类型（field_type）。【关键】records 中每条记录的 key 必须使用字段标题（field_title），不能使用字段ID（field_id）。对于单选/多选字段，选项值内部可以使用 smartsheet_get_fields 返回的选项 id 来精确匹配已有选项。单次添加记录建议在 500 行内。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "$defs": {
+          "AddRecord": {
+            "description": "单条待添加的记录（AddRecord）",
+            "properties": {
+              "values": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellTextValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellImageValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellAttachmentValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellUserValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellUrlValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/Option"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellLocationValue"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "description": "记录的具体内容。【关键规则】本字典的 key 必须是字段标题（field_title），绝对不能使用字段ID（field_id）。正确示例：{\"姓名\": [...], \"年龄\": 25}。错误示例：{\"fld_xxx123\": [...]}——使用 field_id 作为 key 会导致报错。各字段类型的 value 格式说明：1. 文本(TEXT)：必须使用数组格式 [{\"type\": \"text\", \"text\": \"内容\"}]，注意外层方括号不可省略，不能传单个对象 {\"type\":\"text\",\"text\":\"内容\"}；2. 数字(NUMBER)/货币(CURRENCY)/百分比(PERCENTAGE)/进度(PROGRESS)：直接传数字，例如 100、0.6；3. 复选框(CHECKBOX)：直接传 true/false；4. 单选(SINGLE_SELECT)/多选(SELECT)：必须使用数组格式 [{\"text\": \"选项内容\"}]，不能直接传字符串。如果 smartsheet_get_fields 返回的选项中包含 id，也可以用 [{\"id\": \"选项id\"}] 来精确匹配已有选项（注意这里的 id 是选项值内部的 id，不是字段 field_id）；5. 日期时间(DATE_TIME)：传日期时间字符串，支持格式：\"YYYY-MM-DD HH:MM:SS\"（精确到秒）、\"YYYY-MM-DD HH:MM\"（精确到分）、\"YYYY-MM-DD\"（精确到天），例如 \"2026-01-15 14:30:00\" 或 \"2026-01-15\"。系统会自动按东八区转换为时间戳，无需手动计算；6. 手机号(PHONE_NUMBER)/邮箱(EMAIL)/条码(BARCODE)：直接传字符串，例如 \"13800138000\"；7. 成员(USER)：数组格式 [{\"user_id\": \"成员ID\"}]；8. 超链接(URL)：数组格式 [{\"type\": \"url\", \"text\": \"显示文本\", \"link\": \"https://...\"}]；9. 图片(IMAGE)：数组格式 [{\"image_url\": \"图片链接\", \"title\": \"图片标题\"}]；10. 地理位置(LOCATION)：数组格式 [{\"source_type\": 1, \"id\": \"地点ID\", \"latitude\": \"纬度\", \"longitude\": \"经度\", \"title\": \"地点名\"}]；11. 附件(ATTACHMENT)：数组格式 [{\"file_id\": \"文件ID（必填，通过 upload_doc_file 获取）\"}]",
+                "title": "Values",
+                "type": "object"
+              }
+            },
+            "required": ["values"],
+            "title": "AddRecord",
+            "type": "object"
+          },
+          "CellAttachmentValue": {
+            "description": "附件类型字段的单元值",
+            "properties": {
+              "file_id": {
+                "description": "文件 ID，通过上传文件接口（upload_doc_file）获取，必填",
+                "title": "File Id",
+                "type": "string"
+              }
+            },
+            "required": ["file_id"],
+            "title": "CellAttachmentValue",
+            "type": "object"
+          },
+          "CellImageValue": {
+            "description": "图片类型字段的单元值",
+            "properties": {
+              "image_url": {
+                "description": "图片链接，通过上传图片接口（upload_doc_image）获取，必填",
+                "title": "Image Url",
+                "type": "string"
+              },
+              "title": {
+                "description": "图片标题，必填",
+                "title": "Title",
+                "type": "string"
+              }
+            },
+            "required": ["image_url", "title"],
+            "title": "CellImageValue",
+            "type": "object"
+          },
+          "CellLocationValue": {
+            "description": "地理位置类型字段的单元值",
+            "properties": {
+              "source_type": {
+                "const": 1,
+                "description": "来源类型，填 1 表示来源为腾讯地图，目前只支持腾讯地图来源",
+                "title": "Source Type",
+                "type": "integer"
+              },
+              "id": {
+                "description": "地点 ID",
+                "title": "Id",
+                "type": "string"
+              },
+              "latitude": {
+                "description": "纬度",
+                "title": "Latitude",
+                "type": "string"
+              },
+              "longitude": {
+                "description": "经度",
+                "title": "Longitude",
+                "type": "string"
+              },
+              "title": {
+                "description": "地点名称",
+                "title": "Title",
+                "type": "string"
+              }
+            },
+            "required": ["source_type", "id", "latitude", "longitude", "title"],
+            "title": "CellLocationValue",
+            "type": "object"
+          },
+          "CellTextValue": {
+            "description": "文本类型字段的单元值",
+            "properties": {
+              "type": {
+                "description": "内容类型，text 为文本，url 为链接",
+                "enum": ["text", "url"],
+                "title": "Type",
+                "type": "string"
+              },
+              "text": {
+                "description": "单元格文本内容",
+                "title": "Text",
+                "type": "string"
+              },
+              "link": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "当 type 为 url 时，表示链接跳转 URL",
+                "title": "Link"
+              }
+            },
+            "required": ["type", "text"],
+            "title": "CellTextValue",
+            "type": "object"
+          },
+          "CellUrlValue": {
+            "description": "超链接类型字段的单元值。数组类型为预留能力，目前只支持展示一个链接，建议只传入一个链接",
+            "properties": {
+              "type": {
+                "const": "url",
+                "description": "固定填 url",
+                "title": "Type",
+                "type": "string"
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "链接显示文本",
+                "title": "Text"
+              },
+              "link": {
+                "description": "链接跳转 URL",
+                "title": "Link",
+                "type": "string"
+              }
+            },
+            "required": ["type", "link"],
+            "title": "CellUrlValue",
+            "type": "object"
+          },
+          "CellUserValue": {
+            "description": "成员类型字段的单元值",
+            "properties": {
+              "user_id": {
+                "description": "成员 ID",
+                "title": "User Id",
+                "type": "string"
+              }
+            },
+            "required": ["user_id"],
+            "title": "CellUserValue",
+            "type": "object"
+          },
+          "Option": {
+            "description": "选项",
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "选项 ID，当选项存在时通过 ID 识别选项；需要新增选项时不填写此字段",
+                "title": "Id"
+              },
+              "style": {
+                "anyOf": [
+                  {
+                    "maximum": 27,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "选项颜色，取值 1-27 对应不同颜色，分别为浅红1, 浅橙1, 浅天蓝1, 浅绿1, 浅紫1, 浅粉红1, 浅灰1, 白, 灰, 浅蓝1, 浅蓝2, 蓝, 浅天蓝2, 天蓝, 浅绿2, 绿, 浅红2, 红, 浅橙2, 橙, 浅黄1, 浅黄2, 黄, 浅紫2, 紫, 浅粉红2, 粉红",
+                "title": "Style"
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "要填写的选项内容。新增选项时填写，已经存在时优先匹配已存在的选项，否则会新增选项",
+                "title": "Text"
+              }
+            },
+            "title": "Option",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "sheet_id": {
+            "description": "Smartsheet 子表 ID",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "records": {
+            "description": "需要添加的记录的具体内容组成的 JSON 数组",
+            "items": {
+              "$ref": "#/$defs/AddRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "records"],
+        "title": "smartsheet_add_recordsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_update_sheet",
+      "description": "修改企业微信智能表格中某个子表的标题。通过 docid 和 sheet_id 定位目标子表，更新其 title 属性。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "properties": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "子表属性对象，包含 sheet_id 和要更新的 title",
+            "required": ["sheet_id", "title"],
+            "properties": {
+              "sheet_id": {
+                "description": "子表的唯一标识 ID，可通过查询子表接口获取",
+                "type": "string"
+              },
+              "title": {
+                "description": "子表的新标题",
+                "type": "string"
+              }
+            },
+            "title": "Properties"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["properties"],
+        "title": "smartsheet_update_sheetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_delete_sheet",
+      "description": "删除企业微信智能表格中的某个子表。通过 docid 和 sheet_id 定位并永久删除目标子表，操作不可逆。sheet_id 可通过查询子表接口获取。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "要删除的子表 ID，可通过查询子表接口获取",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id"],
+        "title": "smartsheet_delete_sheetArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_get_records",
+      "description": "查询智能表格中指定子表的记录信息。只支持获取全部记录。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet_id，用于指定要查询的智能表格中的哪个子表",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id"],
+        "title": "smartsheet_get_recordsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_delete_fields",
+      "description": "删除智能表格中指定子表的一列或多列字段。需要提供文档 docid、子表 sheet_id 以及要删除的字段 ID 列表。注意：删除操作不可逆，请确认字段 ID 无误后再调用。字段 ID 可通过 smartsheet_get_fields 接口查询获取。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet_id，用于指定要操作的智能表格中的哪个子表",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "field_ids": {
+            "description": "需要删除的字段 ID 列表，支持一次删除多个字段",
+            "items": {
+              "type": "string"
+            },
+            "title": "Field Ids",
+            "type": "array"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "field_ids"],
+        "title": "smartsheet_delete_fieldsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_update_records",
+      "description": "更新智能表格中指定子表的一行或多行记录。单次更新建议在 500 行以内。注意：创建时间、最后编辑时间、创建人和最后编辑人四种类型的字段不支持通过此接口更新。记录 ID 可通过 smartsheet_get_records 查询获取。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "$defs": {
+          "CellAttachmentValue": {
+            "description": "附件类型字段的单元值",
+            "properties": {
+              "file_id": {
+                "description": "文件 ID，通过上传文件接口（upload_doc_file）获取，必填",
+                "title": "File Id",
+                "type": "string"
+              }
+            },
+            "required": ["file_id"],
+            "title": "CellAttachmentValue",
+            "type": "object"
+          },
+          "CellImageValue": {
+            "description": "图片类型字段的单元值",
+            "properties": {
+              "image_url": {
+                "description": "图片链接，通过上传图片接口（upload_doc_image）获取，必填",
+                "title": "Image Url",
+                "type": "string"
+              },
+              "title": {
+                "description": "图片标题，必填",
+                "title": "Title",
+                "type": "string"
+              }
+            },
+            "required": ["image_url", "title"],
+            "title": "CellImageValue",
+            "type": "object"
+          },
+          "CellLocationValue": {
+            "description": "地理位置类型字段的单元值",
+            "properties": {
+              "source_type": {
+                "const": 1,
+                "description": "来源类型，填 1 表示来源为腾讯地图，目前只支持腾讯地图来源",
+                "title": "Source Type",
+                "type": "integer"
+              },
+              "id": {
+                "description": "地点 ID",
+                "title": "Id",
+                "type": "string"
+              },
+              "latitude": {
+                "description": "纬度",
+                "title": "Latitude",
+                "type": "string"
+              },
+              "longitude": {
+                "description": "经度",
+                "title": "Longitude",
+                "type": "string"
+              },
+              "title": {
+                "description": "地点名称",
+                "title": "Title",
+                "type": "string"
+              }
+            },
+            "required": ["source_type", "id", "latitude", "longitude", "title"],
+            "title": "CellLocationValue",
+            "type": "object"
+          },
+          "CellTextValue": {
+            "description": "文本类型字段的单元值",
+            "properties": {
+              "type": {
+                "description": "内容类型，text 为文本，url 为链接",
+                "enum": ["text", "url"],
+                "title": "Type",
+                "type": "string"
+              },
+              "text": {
+                "description": "单元格文本内容",
+                "title": "Text",
+                "type": "string"
+              },
+              "link": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "当 type 为 url 时，表示链接跳转 URL",
+                "title": "Link"
+              }
+            },
+            "required": ["type", "text"],
+            "title": "CellTextValue",
+            "type": "object"
+          },
+          "CellUrlValue": {
+            "description": "超链接类型字段的单元值。数组类型为预留能力，目前只支持展示一个链接，建议只传入一个链接",
+            "properties": {
+              "type": {
+                "const": "url",
+                "description": "固定填 url",
+                "title": "Type",
+                "type": "string"
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "链接显示文本",
+                "title": "Text"
+              },
+              "link": {
+                "description": "链接跳转 URL",
+                "title": "Link",
+                "type": "string"
+              }
+            },
+            "required": ["type", "link"],
+            "title": "CellUrlValue",
+            "type": "object"
+          },
+          "CellUserValue": {
+            "description": "成员类型字段的单元值",
+            "properties": {
+              "user_id": {
+                "description": "成员 ID",
+                "title": "User Id",
+                "type": "string"
+              }
+            },
+            "required": ["user_id"],
+            "title": "CellUserValue",
+            "type": "object"
+          },
+          "Option": {
+            "description": "选项",
+            "properties": {
+              "id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "选项 ID，当选项存在时通过 ID 识别选项；需要新增选项时不填写此字段",
+                "title": "Id"
+              },
+              "style": {
+                "anyOf": [
+                  {
+                    "maximum": 27,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "选项颜色，取值 1-27 对应不同颜色，分别为浅红1, 浅橙1, 浅天蓝1, 浅绿1, 浅紫1, 浅粉红1, 浅灰1, 白, 灰, 浅蓝1, 浅蓝2, 蓝, 浅天蓝2, 天蓝, 浅绿2, 绿, 浅红2, 红, 浅橙2, 橙, 浅黄1, 浅黄2, 黄, 浅紫2, 紫, 浅粉红2, 粉红",
+                "title": "Style"
+              },
+              "text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "要填写的选项内容。新增选项时填写，已经存在时优先匹配已存在的选项，否则会新增选项",
+                "title": "Text"
+              }
+            },
+            "title": "Option",
+            "type": "object"
+          },
+          "UpdateRecord": {
+            "description": "单条待修改的记录（UpdateRecord）",
+            "properties": {
+              "record_id": {
+                "description": "记录 ID，可通过 smartsheet_get_records 查询获取",
+                "title": "Record Id",
+                "type": "string"
+              },
+              "values": {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellTextValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellImageValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellAttachmentValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellUserValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellUrlValue"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/Option"
+                      },
+                      "type": "array"
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/$defs/CellLocationValue"
+                      },
+                      "type": "array"
+                    }
+                  ]
+                },
+                "description": "记录的具体内容。【关键规则】本字典的 key 必须是字段标题（field_title），绝对不能使用字段ID（field_id）。正确示例：{\"姓名\": [...], \"年龄\": 25}。错误示例：{\"fld_xxx123\": [...]}——使用 field_id 作为 key 会导致报错。各字段类型的 value 格式说明：1. 文本(TEXT)：必须使用数组格式 [{\"type\": \"text\", \"text\": \"内容\"}]，注意外层方括号不可省略，不能传单个对象 {\"type\":\"text\",\"text\":\"内容\"}；2. 数字(NUMBER)/货币(CURRENCY)/百分比(PERCENTAGE)/进度(PROGRESS)：直接传数字，例如 100、0.6；3. 复选框(CHECKBOX)：直接传 true/false；4. 单选(SINGLE_SELECT)/多选(SELECT)：必须使用数组格式 [{\"text\": \"选项内容\"}]，不能直接传字符串。如果 smartsheet_get_fields 返回的选项中包含 id，也可以用 [{\"id\": \"选项id\"}] 来精确匹配已有选项（注意这里的 id 是选项值内部的 id，不是字段 field_id）；5. 日期时间(DATE_TIME)：传日期时间字符串，支持格式：\"YYYY-MM-DD HH:MM:SS\"（精确到秒）、\"YYYY-MM-DD HH:MM\"（精确到分）、\"YYYY-MM-DD\"（精确到天），例如 \"2026-01-15 14:30:00\" 或 \"2026-01-15\"。系统会自动按东八区转换为时间戳，无需手动计算；6. 手机号(PHONE_NUMBER)/邮箱(EMAIL)/条码(BARCODE)：直接传字符串，例如 \"13800138000\"；7. 成员(USER)：数组格式 [{\"user_id\": \"成员ID\"}]；8. 超链接(URL)：数组格式 [{\"type\": \"url\", \"text\": \"显示文本\", \"link\": \"https://...\"}]；9. 图片(IMAGE)：数组格式 [{\"image_url\": \"图片链接\", \"title\": \"图片标题\"}]；10. 地理位置(LOCATION)：数组格式 [{\"source_type\": 1, \"id\": \"地点ID\", \"latitude\": \"纬度\", \"longitude\": \"经度\", \"title\": \"地点名\"}]；11. 附件(ATTACHMENT)：数组格式 [{\"file_id\": \"文件ID（必填，通过 upload_doc_file 获取）\"}]",
+                "title": "Values",
+                "type": "object"
+              }
+            },
+            "required": ["record_id", "values"],
+            "title": "UpdateRecord",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet_id，用于指定要操作的智能表格中的哪个子表",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "records": {
+            "description": "需要更新的记录列表，每条记录需包含 record_id 和 values",
+            "items": {
+              "$ref": "#/$defs/UpdateRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "key_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "记录中单元格 key 的类型。CELL_VALUE_KEY_TYPE_FIELD_TITLE 表示 key 用字段标题（默认推荐），CELL_VALUE_KEY_TYPE_FIELD_ID 表示 key 用字段 ID",
+            "enum": ["CELL_VALUE_KEY_TYPE_FIELD_TITLE", "CELL_VALUE_KEY_TYPE_FIELD_ID"],
+            "title": "Key Type"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "records"],
+        "title": "smartsheet_update_recordsArguments",
+        "type": "object"
+      }
+    },
+    {
+      "name": "smartsheet_delete_records",
+      "description": "删除智能表格中指定子表的一行或多行记录。单次删除建议在 500 行以内。注意：删除操作不可逆，请确认记录 ID 无误后再调用。记录 ID 可通过 smartsheet_get_records 查询获取。支持通过 docid 或文档 URL 定位文档，二者传入其一即可。",
+      "inputSchema": {
+        "properties": {
+          "sheet_id": {
+            "description": "子表的 sheet_id，用于指定要操作的智能表格中的哪个子表",
+            "title": "Sheet Id",
+            "type": "string"
+          },
+          "record_ids": {
+            "description": "需要删除的记录 ID 列表，支持一次删除多条记录",
+            "items": {
+              "type": "string"
+            },
+            "title": "Record Ids",
+            "type": "array"
+          },
+          "docid": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的 docid，与 url 二选一传入",
+            "title": "Docid"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "文档的访问链接，与 docid 二选一传入",
+            "title": "Url"
+          }
+        },
+        "required": ["sheet_id", "record_ids"],
+        "title": "smartsheet_delete_recordsArguments",
+        "type": "object"
+      }
+    }
+  ]
+}

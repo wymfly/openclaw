@@ -1,6 +1,7 @@
 import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk/wecom";
 import { resolveWecomAccount } from "../../config/index.js";
 import { wecomFetch } from "../../http.js";
+import { chunkWecomMarkdownText } from "../../markdown/render.js";
 import { LIMITS } from "../../monitor/state.js";
 import {
   sendMedia as sendAgentMedia,
@@ -112,10 +113,12 @@ export async function sendAgentDmText(params: {
   text: string;
   core: PluginRuntime;
 }): Promise<void> {
-  const chunks = params.core.channel.text.chunkText(params.text, 2048);
+  const chunks = chunkWecomMarkdownText(params.text);
   for (const chunk of chunks) {
     const trimmed = chunk.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      continue;
+    }
     await sendAgentText({ agent: params.agent, toUser: params.userId, text: trimmed });
   }
 }
@@ -132,7 +135,9 @@ export async function sendAgentDmMedia(params: {
   const looksLikeUrl = /^https?:\/\//i.test(params.mediaUrlOrPath);
   if (looksLikeUrl) {
     const res = await fetch(params.mediaUrlOrPath, { signal: AbortSignal.timeout(30_000) });
-    if (!res.ok) throw new Error(`media download failed: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`media download failed: ${res.status}`);
+    }
     buffer = Buffer.from(await res.arrayBuffer());
     inferredContentType =
       inferredContentType || res.headers.get("content-type") || "application/octet-stream";
@@ -143,9 +148,13 @@ export async function sendAgentDmMedia(params: {
 
   let mediaType: "image" | "voice" | "video" | "file" = "file";
   const ct = (inferredContentType || "").toLowerCase();
-  if (ct.startsWith("image/")) mediaType = "image";
-  else if (ct.startsWith("audio/")) mediaType = "voice";
-  else if (ct.startsWith("video/")) mediaType = "video";
+  if (ct.startsWith("image/")) {
+    mediaType = "image";
+  } else if (ct.startsWith("audio/")) {
+    mediaType = "voice";
+  } else if (ct.startsWith("video/")) {
+    mediaType = "video";
+  }
 
   const mediaId = await uploadMedia({
     agent: params.agent,
@@ -167,28 +176,38 @@ export function extractLocalImagePathsFromText(params: {
 }): string[] {
   const text = params.text;
   const mustAlsoAppearIn = params.mustAlsoAppearIn;
-  if (!text.trim()) return [];
+  if (!text.trim()) {
+    return [];
+  }
   const exts = "(png|jpg|jpeg|gif|webp|bmp)";
   const re = new RegExp(String.raw`(\/(?:Users|tmp|root|home)\/[^\s"'<>]+?\.${exts})`, "gi");
   const found = new Set<string>();
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const p = m[1];
-    if (!p) continue;
-    if (!mustAlsoAppearIn.includes(p)) continue;
+    if (!p) {
+      continue;
+    }
+    if (!mustAlsoAppearIn.includes(p)) {
+      continue;
+    }
     found.add(p);
   }
   return Array.from(found);
 }
 
 export function extractLocalFilePathsFromText(text: string): string[] {
-  if (!text.trim()) return [];
+  if (!text.trim()) {
+    return [];
+  }
   const re = /\/(?:Users|tmp|root|home)\/[^\s"'<>]+/g;
   const found = new Set<string>();
   let m: RegExpExecArray | null;
   while ((m = re.exec(text))) {
     const p = m[0]?.trim();
-    if (p) found.add(p);
+    if (p) {
+      found.add(p);
+    }
   }
   return Array.from(found);
 }

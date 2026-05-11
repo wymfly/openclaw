@@ -40,6 +40,10 @@ const mcpSessionCache = new Map<string, McpSession>();
 const statelessKeys = new Set<string>();
 const inflightInitRequests = new Map<string, Promise<McpSession>>();
 
+export interface SendJsonRpcOptions {
+  timeoutMs?: number;
+}
+
 function cacheKey(accountId: string, category: string): string {
   return `${accountId}::${category}`;
 }
@@ -50,7 +54,9 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
     timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
   });
   return Promise.race([promise, timeoutPromise]).finally(() => {
-    if (timeoutId) clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   });
 }
 
@@ -103,15 +109,20 @@ async function fetchMcpConfig(
     `MCP config fetch timed out after ${MCP_CONFIG_FETCH_TIMEOUT_MS}ms`,
   );
 
-  const errcode = Number((response as { errcode?: number }).errcode ?? 0);
+  const responseBody = response as {
+    errcode?: number;
+    errmsg?: string;
+    body?: { url?: string };
+  };
+  const errcode = responseBody.errcode ?? 0;
   if (errcode !== 0) {
     throw new Error(
-      `MCP 配置请求失败: errcode=${String((response as { errcode?: number }).errcode)} errmsg=${String((response as { errmsg?: string }).errmsg ?? "unknown")}`,
+      `MCP 配置请求失败: errcode=${String(responseBody.errcode)} errmsg=${responseBody.errmsg ?? "unknown"}`,
     );
   }
 
-  const body = (response as { body?: { url?: string } }).body;
-  if (!body?.url) {
+  const body = responseBody.body;
+  if (typeof body?.url !== "string" || !body.url) {
     throw new Error(`MCP 配置响应缺少 url 字段 (account=${accountId}, category=${category})`);
   }
 
@@ -124,8 +135,8 @@ async function fetchMcpConfig(
 async function getMcpUrl(accountId: string, category: string): Promise<string> {
   const key = cacheKey(accountId, category);
   const cached = mcpConfigCache.get(key);
-  if (cached?.url) {
-    return String(cached.url);
+  if (typeof cached?.url === "string" && cached.url) {
+    return cached.url;
   }
   const body = await fetchMcpConfig(accountId, category);
   mcpConfigCache.set(key, body);
@@ -137,6 +148,7 @@ async function sendRawJsonRpc(
   session: McpSession,
   body: JsonRpcRequest,
   proxyUrl?: string,
+  options?: SendJsonRpcOptions,
 ): Promise<{ rpcResult: unknown; newSessionId: string | null }> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -153,7 +165,7 @@ async function sendRawJsonRpc(
       headers,
       body: JSON.stringify(body),
     },
-    { proxyUrl, timeoutMs: HTTP_REQUEST_TIMEOUT_MS },
+    { proxyUrl, timeoutMs: options?.timeoutMs ?? HTTP_REQUEST_TIMEOUT_MS },
   );
   const newSessionId = response.headers.get("mcp-session-id");
 
@@ -251,7 +263,9 @@ async function getOrCreateSession(
   const key = cacheKey(accountId, category);
   if (statelessKeys.has(key)) {
     const cached = mcpSessionCache.get(key);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
   }
 
   const cached = mcpSessionCache.get(key);
@@ -279,7 +293,9 @@ async function rebuildSession(
 ): Promise<McpSession> {
   const key = cacheKey(accountId, category);
   const inflight = inflightInitRequests.get(key);
-  if (inflight) return inflight;
+  if (inflight) {
+    return inflight;
+  }
   const proxyUrl = resolveProxyUrlForAccount(accountId);
   const promise = initializeSession(accountId, category, url, proxyUrl).finally(() => {
     inflightInitRequests.delete(key);
@@ -339,17 +355,25 @@ export function clearWecomMcpCategoryCache(accountId: string, category: string):
 
 export function clearWecomMcpAccountCache(accountId: string): void {
   const prefix = `${accountId}::`;
-  for (const key of [...mcpConfigCache.keys()]) {
-    if (key.startsWith(prefix)) mcpConfigCache.delete(key);
+  for (const key of Array.from(mcpConfigCache.keys())) {
+    if (key.startsWith(prefix)) {
+      mcpConfigCache.delete(key);
+    }
   }
-  for (const key of [...mcpSessionCache.keys()]) {
-    if (key.startsWith(prefix)) mcpSessionCache.delete(key);
+  for (const key of Array.from(mcpSessionCache.keys())) {
+    if (key.startsWith(prefix)) {
+      mcpSessionCache.delete(key);
+    }
   }
-  for (const key of [...statelessKeys]) {
-    if (key.startsWith(prefix)) statelessKeys.delete(key);
+  for (const key of Array.from(statelessKeys)) {
+    if (key.startsWith(prefix)) {
+      statelessKeys.delete(key);
+    }
   }
-  for (const key of [...inflightInitRequests.keys()]) {
-    if (key.startsWith(prefix)) inflightInitRequests.delete(key);
+  for (const key of Array.from(inflightInitRequests.keys())) {
+    if (key.startsWith(prefix)) {
+      inflightInitRequests.delete(key);
+    }
   }
 }
 
@@ -364,6 +388,7 @@ export async function sendJsonRpc(
   category: string,
   method: string,
   params?: Record<string, unknown>,
+  options?: SendJsonRpcOptions,
 ): Promise<unknown> {
   const url = await getMcpUrl(accountId, category);
   const proxyUrl = resolveProxyUrlForAccount(accountId);
@@ -377,7 +402,7 @@ export async function sendJsonRpc(
   let session = await getOrCreateSession(accountId, category, url);
 
   try {
-    const result = await sendRawJsonRpc(url, session, body, proxyUrl);
+    const result = await sendRawJsonRpc(url, session, body, proxyUrl, options);
     if (result.newSessionId) {
       session.sessionId = result.newSessionId;
     }
@@ -392,7 +417,7 @@ export async function sendJsonRpc(
     if (error instanceof McpHttpError && error.statusCode === 404) {
       mcpSessionCache.delete(cacheKey(accountId, category));
       session = await rebuildSession(accountId, category, url);
-      const result = await sendRawJsonRpc(url, session, body, proxyUrl);
+      const result = await sendRawJsonRpc(url, session, body, proxyUrl, options);
       if (result.newSessionId) {
         session.sessionId = result.newSessionId;
       }

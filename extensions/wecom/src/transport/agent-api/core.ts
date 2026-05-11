@@ -91,24 +91,6 @@ function requireAgentId(agent: ResolvedAgentAccount): number {
   );
 }
 
-function isMarkdownCompatErrcode(params: { errcode?: number; errmsg?: string }): boolean {
-  const text = (params.errmsg ?? "").toLowerCase();
-  if (text.includes("markdown_v2")) {
-    return true;
-  }
-  if (params.errcode === 40008 && text.includes("invalid message type")) {
-    return true;
-  }
-  const mentionsMarkdown = text.includes("markdown");
-  const mentionsCompat =
-    text.includes("unsupported") ||
-    text.includes("not support") ||
-    text.includes("invalid") ||
-    text.includes("msgtype") ||
-    text.includes("message type");
-  return mentionsMarkdown && mentionsCompat && (params.errcode ?? 0) !== 0;
-}
-
 function buildSendTextBody(params: {
   useChat: boolean;
   chatId?: string;
@@ -117,30 +99,18 @@ function buildSendTextBody(params: {
   toParty?: string;
   toTag?: string;
   agent: ResolvedAgentAccount;
-  legacyMarkdown?: boolean;
 }) {
   if (params.useChat) {
-    return params.legacyMarkdown
-      ? { chatid: params.chatId, msgtype: "markdown", markdown: { content: params.text } }
-      : { chatid: params.chatId, msgtype: "markdown_v2", markdown_v2: { content: params.text } };
+    return { chatid: params.chatId, msgtype: "markdown", markdown: { content: params.text } };
   }
-  return params.legacyMarkdown
-    ? {
-        touser: params.toUser,
-        toparty: params.toParty,
-        totag: params.toTag,
-        msgtype: "markdown",
-        agentid: requireAgentId(params.agent),
-        markdown: { content: params.text },
-      }
-    : {
-        touser: params.toUser,
-        toparty: params.toParty,
-        totag: params.toTag,
-        msgtype: "markdown_v2",
-        agentid: requireAgentId(params.agent),
-        markdown_v2: { content: params.text },
-      };
+  return {
+    touser: params.toUser,
+    toparty: params.toParty,
+    totag: params.toTag,
+    msgtype: "markdown",
+    agentid: requireAgentId(params.agent),
+    markdown: { content: params.text },
+  };
 }
 
 export async function getAccessToken(agent: ResolvedAgentAccount): Promise<string> {
@@ -245,24 +215,6 @@ export async function sendText(params: {
       agent,
     }),
   );
-  if (json?.errcode !== 0 && isMarkdownCompatErrcode(json)) {
-    getAccountRuntime(agent.accountId)?.log.warn?.(
-      `[wecom-agent-api] markdown_v2 rejected for account=${agent.accountId}; retrying with legacy markdown`,
-    );
-    json = await sendBody(
-      buildSendTextBody({
-        useChat,
-        chatId,
-        text,
-        toUser,
-        toParty,
-        toTag,
-        agent,
-        legacyMarkdown: true,
-      }),
-    );
-  }
-
   getAccountRuntime(agent.accountId)?.log.info?.(
     `[wecom-agent-api] sendText response account=${agent.accountId} agentId=${String(agent.agentId ?? "N/A")} ` +
       `toUser=${toUser ?? ""} toParty=${toParty ?? ""} toTag=${toTag ?? ""} chatId=${chatId ?? ""} ` +

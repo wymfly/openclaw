@@ -3,6 +3,7 @@ import type {
   OpenClawPluginToolFactory,
 } from "openclaw/plugin-sdk/core";
 import { getBotWsPushHandle } from "../../runtime.js";
+import { resolveMcpBeforeCall, runMcpAfterCall } from "./interceptors.js";
 import { cleanSchemaForGemini } from "./schema.js";
 import { clearWecomMcpCategoryCache, sendJsonRpc, type McpToolInfo } from "./transport.js";
 
@@ -13,7 +14,7 @@ type WecomMcpParams = {
   args?: string | Record<string, unknown>;
 };
 
-const BIZ_CACHE_CLEAR_ERROR_CODES = new Set([850002]);
+const BIZ_CACHE_CLEAR_ERROR_CODES = new Set([850001, 850002, 851014]);
 
 function textResult<TDetails>(data: TDetails) {
   return {
@@ -104,12 +105,33 @@ async function handleCall(
   method: string,
   args: Record<string, unknown>,
 ): Promise<unknown> {
-  const result = await sendJsonRpc(accountId, category, "tools/call", {
-    name: method,
-    arguments: args,
+  const beforeCall = await resolveMcpBeforeCall({
+    accountId,
+    category,
+    method,
+    args,
   });
+  const callArgs = beforeCall.args ?? args;
+  const result = await sendJsonRpc(
+    accountId,
+    category,
+    "tools/call",
+    {
+      name: method,
+      arguments: callArgs,
+    },
+    beforeCall.options,
+  );
   checkBizErrorAndClearCache(result, accountId, category);
-  return result;
+  return runMcpAfterCall(
+    {
+      accountId,
+      category,
+      method,
+      args: callArgs,
+    },
+    result,
+  );
 }
 
 export function createWeComMcpToolFactory(): OpenClawPluginToolFactory {

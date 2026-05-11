@@ -29,7 +29,17 @@ const cellValueKeyTypeProperty = {
   type: "string",
   enum: ["CELL_VALUE_KEY_TYPE_FIELD_TITLE", "CELL_VALUE_KEY_TYPE_FIELD_ID"],
   description:
-    "values 的 key 类型：FIELD_TITLE 表示字段标题，FIELD_ID 表示字段 ID；默认 FIELD_TITLE",
+    "values key 类型：FIELD_TITLE 表示字段标题，FIELD_ID 表示字段 ID；不传时按字段标题处理。不要把此参数套用到 wecom_mcp，按当前工具 schema 调用。",
+};
+
+const smartsheetSheetPropertiesSchema = {
+  type: "object",
+  additionalProperties: true,
+  properties: {
+    sheet_id: { type: "string", minLength: 1, description: "子表 ID；更新子表时必填" },
+    title: { type: "string", minLength: 1, description: "子表标题" },
+  },
+  description: "官方 MCP/企业微信智能表子表 properties 对象",
 };
 
 const docIdProperty = {
@@ -60,6 +70,78 @@ const nonEmptyObjectProperty = {
   minProperties: 1,
 };
 
+const collectQuestionSchema = {
+  type: "object",
+  additionalProperties: true,
+  required: ["question_id", "title", "pos", "reply_type", "must_reply"],
+  properties: {
+    question_id: { type: "integer", minimum: 1, description: "问题 ID，从 1 开始" },
+    title: { type: "string", minLength: 1, description: "问题标题" },
+    pos: { type: "integer", minimum: 1, description: "问题排序位置，从 1 开始" },
+    status: { type: "integer", description: "可选：问题状态" },
+    reply_type: {
+      type: "integer",
+      description:
+        "问题类型：1 文本，2 单选，3 多选，5 位置，9 图片，10 文件，11 日期，14 时间，15 下拉列表等",
+    },
+    must_reply: { type: "boolean", description: "是否必填" },
+    option_item: {
+      type: "array",
+      items: genericObjectProperty,
+      description: "单选/多选/下拉列表的问题选项",
+    },
+  },
+};
+
+const collectQuestionItemsSchema = {
+  type: "array",
+  minItems: 1,
+  maxItems: 200,
+  items: collectQuestionSchema,
+  description: "收集表问题数组；企业微信当前后端不接受空数组",
+};
+
+const collectFormQuestionSchema = {
+  type: "object",
+  additionalProperties: true,
+  required: ["items"],
+  properties: {
+    items: collectQuestionItemsSchema,
+  },
+};
+
+const collectFormInfoSchema = {
+  type: "object",
+  additionalProperties: true,
+  required: ["form_title", "form_question"],
+  properties: {
+    form_title: { type: "string", minLength: 1, description: "收集表标题" },
+    form_desc: { type: "string", description: "可选：收集表描述" },
+    form_header: { type: "string", description: "可选：收集表头图" },
+    form_question: collectFormQuestionSchema,
+    form_setting: { ...genericObjectProperty, description: "可选：收集表设置" },
+  },
+};
+
+const collectRequestSchema = {
+  type: "object",
+  additionalProperties: true,
+  anyOf: [
+    { required: ["form_info"] },
+    { required: ["formInfo"] },
+    { required: ["form_title", "items"] },
+    { required: ["form_title", "questions"] },
+  ],
+  properties: {
+    form_info: collectFormInfoSchema,
+    formInfo: collectFormInfoSchema,
+    form_title: { type: "string", minLength: 1, description: "收集表标题" },
+    items: collectQuestionItemsSchema,
+    questions: collectQuestionItemsSchema,
+    form_setting: { ...genericObjectProperty, description: "可选：收集表设置" },
+  },
+};
+
 // --- Doc Permission Schemas ---
 
 const coAuthListProperty = {
@@ -69,9 +151,42 @@ const coAuthListProperty = {
     required: ["departmentid", "auth", "type"],
     properties: {
       departmentid: { type: "integer", description: "特定部门id" },
-      auth: { type: "integer", enum: [1, 2], description: "1:只读, 2:读写" },
+      auth: { type: "integer", enum: [1], description: "1:只读；企业微信当前仅支持只读" },
       type: { type: "integer", const: 2, description: "2:部门" },
     },
+  },
+};
+
+const collectFormStatisticRequestSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["repeated_id", "req_type"],
+  properties: {
+    repeated_id: {
+      type: "string",
+      minLength: 1,
+      description:
+        "收集表周期 ID，来自 get_form_info 返回的 repeated_id；若误填为同一请求的 formId，插件会用 formId 解析真实 repeated_id",
+    },
+    req_type: {
+      type: "integer",
+      enum: [1, 2, 3],
+      description: "1-统计结果；2-已提交列表；3-未提交列表",
+    },
+    start_time: {
+      type: "integer",
+      description: "req_type=2 已提交列表的开始时间戳；省略时默认当天 00:00:00",
+    },
+    end_time: {
+      type: "integer",
+      description: "req_type=2 已提交列表的结束时间戳；省略时默认当天 23:59:59",
+    },
+    limit: {
+      type: "integer",
+      minimum: 1,
+      description: "req_type=2/3 列表查询每页数量；省略时默认 100",
+    },
+    cursor: { type: "integer", minimum: 0, description: "可选：分页游标" },
   },
 };
 
@@ -177,6 +292,12 @@ const recordPrivSchema = {
   },
 };
 
+const sheetPrivValueSchema = {
+  type: "integer",
+  enum: [1, 2, 3, 4],
+  description: "1-全部权限；2-可编辑；3-仅浏览；4-无权限。正式工具契约只暴露整数枚举。",
+};
+
 const privListSchema = {
   type: "array",
   items: {
@@ -184,10 +305,7 @@ const privListSchema = {
     required: ["sheet_id", "priv"],
     properties: {
       sheet_id: { type: "string" },
-      priv: {
-        oneOf: [{ type: "string" }, { type: "integer" }],
-        description: "1-全部权限；2-可编辑；3-仅浏览；4-无权限",
-      },
+      priv: sheetPrivValueSchema,
       can_insert_record: { type: "boolean" },
       can_delete_record: { type: "boolean" },
       can_create_modify_delete_view: { type: "boolean" },
@@ -203,6 +321,19 @@ const memberRangeSchema = {
   properties: {
     userid_list: { type: "array", items: { type: "string" } },
   },
+};
+
+const fieldGroupChildProperty = {
+  oneOf: [
+    { type: "string" },
+    {
+      type: "object",
+      required: ["field_id"],
+      properties: {
+        field_id: { type: "string" },
+      },
+    },
+  ],
 };
 
 // --- Doc Content Update Schemas ---
@@ -312,119 +443,6 @@ const insertParagraphRequest = {
   required: ["location"],
   properties: {
     location: locationProperty,
-  },
-};
-
-// --- Spreadsheet Update Schemas ---
-
-const addSheetRequest = {
-  type: "object",
-  required: ["title"],
-  properties: {
-    title: { type: "string", minLength: 1 },
-    row_count: { type: "integer", minimum: 1 },
-    column_count: { type: "integer", minimum: 1 },
-  },
-};
-
-const deleteSheetRequest = {
-  type: "object",
-  required: ["sheet_id"],
-  properties: {
-    sheet_id: { type: "string", minLength: 1 },
-  },
-};
-
-const deleteDimensionRequest = {
-  type: "object",
-  required: ["sheet_id", "dimension", "start_index", "end_index"],
-  properties: {
-    sheet_id: { type: "string" },
-    dimension: { type: "string", enum: ["ROW", "COLUMN"] },
-    start_index: { type: "integer", minimum: 1 },
-    end_index: { type: "integer", minimum: 2 },
-  },
-};
-
-const cellValueSchema = {
-  type: "object",
-  properties: {
-    text: { type: "string" },
-    link: {
-      type: "object",
-      required: ["text", "url"],
-      properties: {
-        text: { type: "string" },
-        url: { type: "string" },
-      },
-    },
-  },
-};
-
-const cellFormatSchema = {
-  type: "object",
-  properties: {
-    text_format: {
-      type: "object",
-      properties: {
-        bold: { type: "boolean" },
-        italic: { type: "boolean" },
-        strikethrough: { type: "boolean" },
-        underline: { type: "boolean" },
-        color: {
-          type: "object",
-          required: ["red", "green", "blue"],
-          properties: {
-            red: { type: "integer", minimum: 0, maximum: 255 },
-            green: { type: "integer", minimum: 0, maximum: 255 },
-            blue: { type: "integer", minimum: 0, maximum: 255 },
-            alpha: { type: "integer", minimum: 0, maximum: 255 },
-          },
-        },
-        font_size: { type: "integer" },
-      },
-    },
-  },
-};
-
-const cellDataSchema = {
-  type: "object",
-  properties: {
-    cell_value: cellValueSchema,
-    cell_format: cellFormatSchema,
-  },
-};
-
-const rowDataSchema = {
-  type: "object",
-  required: ["values"],
-  properties: {
-    values: {
-      type: "array",
-      items: cellDataSchema,
-    },
-  },
-};
-
-const gridDataSchema = {
-  type: "object",
-  required: ["rows"],
-  properties: {
-    start_row: { type: "integer", default: 0 },
-    start_column: { type: "integer", default: 0 },
-    rows: {
-      type: "array",
-      items: rowDataSchema,
-    },
-  },
-};
-
-const updateRangeRequest = {
-  type: "object",
-  required: ["sheet_id", "grid_data"],
-  properties: {
-    sheet_id: { type: "string" },
-    grid_data: gridDataSchema,
   },
 };
 
@@ -554,31 +572,6 @@ export const wecomDocToolSchema = {
       additionalProperties: false,
       required: ["action", "docId"],
       properties: {
-        action: { const: "copy" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        newName: {
-          type: "string",
-          minLength: 1,
-          description: "可选：复制后的新文档名",
-        },
-        spaceId: {
-          type: "string",
-          minLength: 1,
-          description: "可选：目标空间 ID",
-        },
-        fatherId: {
-          type: "string",
-          minLength: 1,
-          description: "可选：目标父目录 fileid",
-        },
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId"],
-      properties: {
         action: { const: "get_info" },
         accountId: accountIdProperty,
         docId: docIdProperty,
@@ -602,25 +595,6 @@ export const wecomDocToolSchema = {
         action: { const: "get_auth" },
         accountId: accountIdProperty,
         docId: docIdProperty,
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "notified_scope_type"],
-      properties: {
-        action: { const: "mod_doc_member_notified_scope" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        notified_scope_type: {
-          type: "integer",
-          description: "通知范围类型：0-不通知，1-仅协作者，2-所有人",
-        },
-        notified_member_list: {
-          type: "array",
-          items: nonEmptyObjectProperty,
-          description: "指定成员列表",
-        },
       },
     },
     {
@@ -669,9 +643,17 @@ export const wecomDocToolSchema = {
           additionalProperties: false,
           properties: {
             enable_corp_internal: { type: "boolean" },
-            corp_internal_auth: { type: "integer", description: "1:只读 2:读写" },
+            corp_internal_auth: {
+              type: "integer",
+              enum: [1],
+              description: "1:只读；企业微信当前不支持 2:读写",
+            },
             enable_corp_external: { type: "boolean" },
-            corp_external_auth: { type: "integer", description: "1:只读 2:读写" },
+            corp_external_auth: {
+              type: "integer",
+              enum: [1],
+              description: "1:只读；企业微信当前不支持 2:读写",
+            },
             corp_internal_approve_only_by_admin: { type: "boolean" },
             corp_external_approve_only_by_admin: { type: "boolean" },
             ban_share_external: { type: "boolean" },
@@ -698,7 +680,7 @@ export const wecomDocToolSchema = {
         auth: {
           type: "integer",
           enum: [1, 2, 7],
-          description: "权限位：1-查看，2-编辑，7-管理",
+          description: "权限位：1-查看，2-编辑，7-管理；协作者默认使用官方示例中的 7",
         },
         viewers: {
           ...docMemberEntryArrayProperty,
@@ -706,7 +688,7 @@ export const wecomDocToolSchema = {
         },
         collaborators: {
           ...docMemberEntryArrayProperty,
-          description: "新增协作者列表",
+          description: "新增协作者列表；插件通过官方 update_file_member_list 写入，默认 auth=7",
         },
         removeViewers: {
           ...docMemberEntryArrayProperty,
@@ -833,13 +815,23 @@ export const wecomDocToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "formInfo"],
+      required: ["action"],
+      anyOf: [{ required: ["formInfo"] }, { required: ["form_info"] }, { required: ["request"] }],
       properties: {
         action: { const: "create_collect" },
         accountId: accountIdProperty,
         formInfo: {
-          ...nonEmptyObjectProperty,
-          description: "收集表 form_info 对象，至少应包含 form_title 等官方字段",
+          ...collectFormInfoSchema,
+          description: "收集表 form_info 对象；必须包含非空 form_question.items",
+        },
+        form_info: {
+          ...collectFormInfoSchema,
+          description: "收集表 form_info 对象；字段名按企业微信接口填写",
+        },
+        request: {
+          ...collectRequestSchema,
+          description:
+            "create_collect 请求对象；可直接包含 form_info，或用 form_title + items/questions 扁平输入",
         },
         spaceId: {
           type: "string",
@@ -863,7 +855,7 @@ export const wecomDocToolSchema = {
         oper: {
           type: "string",
           minLength: 1,
-          description: "修改操作类型，按企业微信官方 modify_collect 定义填写",
+          description: "修改操作类型，按企业微信 modify_collect 接口定义填写",
         },
         formId: formIdProperty,
         formInfo: {
@@ -885,18 +877,26 @@ export const wecomDocToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "repeatedId"],
+      required: ["action", "repeatedId", "answerIds"],
       properties: {
         action: { const: "get_form_answer" },
         accountId: accountIdProperty,
+        formId: {
+          ...formIdProperty,
+          description:
+            "可选上下文；企业微信 get_form_answer 实际使用 repeatedId 和 answerIds，不会提交 formId",
+        },
         repeatedId: {
           type: "string",
           minLength: 1,
-          description: "收集表提交记录 repeated_id",
+          description:
+            "收集表周期 repeated_id；来自 get_form_info 返回的 form_info.repeated_id，不是 formId",
         },
         answerIds: {
           type: "array",
-          description: "可选：答案 ID 列表",
+          minItems: 1,
+          description:
+            "答案 ID 列表；可从 get_form_statistic(req_type=2) 的 submit_users[].answer_id 获取",
           items: {
             type: "integer",
           },
@@ -910,11 +910,17 @@ export const wecomDocToolSchema = {
       properties: {
         action: { const: "get_form_statistic" },
         accountId: accountIdProperty,
+        formId: {
+          ...formIdProperty,
+          description:
+            "可选上下文；用于把误填为 formId 的 repeated_id 解析成 get_form_info 返回的真实 repeated_id",
+        },
         requests: {
           type: "array",
           minItems: 1,
-          description: "统计请求列表；每项按企业微信 get_form_statistic 官方结构填写",
-          items: nonEmptyObjectProperty,
+          description:
+            "统计请求数组；每项必须传 repeated_id 和 req_type。插件会按企业微信当前接口逐项提交单个请求对象。req_type=2 省略时间窗口时默认查询当天。",
+          items: collectFormStatisticRequestSchema,
         },
       },
     },
@@ -1145,12 +1151,17 @@ export const wecomDocToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "docId", "title"],
+      required: ["action", "docId"],
       properties: {
         action: { const: "smartsheet_add_sheet" },
         accountId: accountIdProperty,
         docId: docIdProperty,
-        title: { type: "string", description: "子表标题" },
+        properties: {
+          ...smartsheetSheetPropertiesSchema,
+          description:
+            "可选：官方 MCP 形状的子表属性对象；创建时通常只需 title，不传则由企业微信使用默认标题",
+        },
+        title: { type: "string", description: "兼容扁平参数：子表标题；等价于 properties.title" },
         index: { type: "integer", description: "可选：子表位置索引" },
       },
     },
@@ -1168,13 +1179,26 @@ export const wecomDocToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "docId", "sheetId"],
+      required: ["action", "docId"],
+      anyOf: [{ required: ["properties"] }, { required: ["sheetId", "title"] }],
       properties: {
         action: { const: "smartsheet_update_sheet" },
         accountId: accountIdProperty,
         docId: docIdProperty,
-        sheetId: sheetIdProperty,
-        title: { type: "string", description: "新标题" },
+        properties: {
+          ...smartsheetSheetPropertiesSchema,
+          required: ["sheet_id", "title"],
+          description: "官方 MCP 形状：必须包含 sheet_id 和新 title",
+        },
+        sheetId: {
+          ...sheetIdProperty,
+          description: "兼容扁平参数：子表 ID；等价于 properties.sheet_id",
+        },
+        title: {
+          type: "string",
+          minLength: 1,
+          description: "兼容扁平参数：新标题；等价于 properties.title",
+        },
       },
     },
     {
@@ -1213,6 +1237,10 @@ export const wecomDocToolSchema = {
         sheetId: sheetIdProperty,
         view_id: { type: "string", description: "视图 ID" },
         view_title: { type: "string", description: "视图标题" },
+        property: {
+          ...genericObjectProperty,
+          description: "可选：视图属性对象；更新视图时 view_title/property 至少提供一项",
+        },
         property_gantt: genericObjectProperty,
         property_calendar: genericObjectProperty,
       },
@@ -1241,7 +1269,8 @@ export const wecomDocToolSchema = {
         fields: {
           type: "array",
           items: nonEmptyObjectProperty,
-          description: "要添加的字段列表，每项包含 field_title, field_type 等",
+          description:
+            "要添加的字段列表，每项包含 field_title, field_type 等；数字/日期/选择等字段可传 property_*，未传时插件会按企业微信 API 补默认属性",
         },
       },
     },
@@ -1269,21 +1298,28 @@ export const wecomDocToolSchema = {
         fields: {
           type: "array",
           items: nonEmptyObjectProperty,
-          description: "要更新的字段列表，每项需包含 field_id",
+          description:
+            "要更新的字段列表，每项需包含 field_id；field_type 必须保持原类型，未传时插件会先查询字段并补回原类型",
         },
       },
     },
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "docId", "sheetId", "name"],
+      required: ["action", "docId", "sheetId", "name", "children"],
       properties: {
         action: { const: "smartsheet_add_group" },
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: sheetIdProperty,
         name: { type: "string", description: "编组名称" },
-        children: { type: "array", items: { type: "string" }, description: "字段 ID 列表" },
+        children: {
+          type: "array",
+          minItems: 1,
+          items: fieldGroupChildProperty,
+          description:
+            "字段 ID 列表；可传字符串数组，插件会按企业微信 API 转成 {field_id} 对象数组",
+        },
       },
     },
     {
@@ -1309,7 +1345,11 @@ export const wecomDocToolSchema = {
         sheetId: sheetIdProperty,
         field_group_id: { type: "string", description: "编组 ID" },
         name: { type: "string" },
-        children: { type: "array", items: { type: "string" } },
+        children: {
+          type: "array",
+          items: fieldGroupChildProperty,
+          description: "字段 ID 列表；插件会按企业微信 API 转成 {field_id} 对象数组",
+        },
       },
     },
     {
@@ -1321,30 +1361,6 @@ export const wecomDocToolSchema = {
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: sheetIdProperty,
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId", "records"],
-      properties: {
-        action: { const: "smartsheet_add_external_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: sheetIdProperty,
-        records: { type: "array", items: nonEmptyObjectProperty, description: "记录列表" },
-      },
-    },
-    {
-      type: "object",
-      additionalProperties: false,
-      required: ["action", "docId", "sheetId", "records"],
-      properties: {
-        action: { const: "smartsheet_update_external_records" },
-        accountId: accountIdProperty,
-        docId: docIdProperty,
-        sheetId: sheetIdProperty,
-        records: { type: "array", items: nonEmptyObjectProperty, description: "记录列表" },
       },
     },
     {
@@ -1404,26 +1420,61 @@ export const wecomDocToolSchema = {
         accountId: accountIdProperty,
         docId: docIdProperty,
         sheetId: { type: "string", description: "子表 ID" },
+        view_id: { type: "string", description: "可选：按视图上下文查询记录" },
         key_type: cellValueKeyTypeProperty,
         record_ids: {
           type: "array",
           items: { type: "string" },
           description: "可选：指定记录 ID 列表",
         },
+        field_titles: {
+          type: "array",
+          items: { type: "string" },
+          description: "可选：按字段标题筛选返回字段；不筛选时不要传空数组",
+        },
+        field_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "可选：按字段 ID 筛选返回字段；不筛选时不要传空数组",
+        },
+        sort: {
+          type: "array",
+          items: genericObjectProperty,
+          description: "可选：排序条件；不排序时不要传空数组",
+        },
         offset: { type: "integer" },
         limit: { type: "integer" },
+        ver: { type: "integer", description: "可选：数据版本号" },
+        filter_spec: {
+          ...genericObjectProperty,
+          description: "可选：筛选条件；企业微信要求 filter_spec 与 sort 不同时使用",
+        },
       },
     },
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "docId", "type"],
+      required: ["action", "docId"],
       properties: {
         action: { const: "smartsheet_get_sheet_priv" },
         accountId: accountIdProperty,
         docId: docIdProperty,
-        type: { type: "integer", enum: [1, 2], description: "规则类型：1-全员权限，2-额外权限" },
-        rule_id_list: { type: "array", items: { type: "integer" }, description: "规则 ID 列表" },
+        sheetId: {
+          type: "string",
+          description:
+            "可选：用于提示调用者关注的子表；企业微信 get_sheet_priv API 本身不按 sheet_id 查询",
+        },
+        type: {
+          type: "integer",
+          enum: [1, 2],
+          default: 1,
+          description: "规则类型：1-全员权限（默认），2-额外权限；type=2 需要 rule_id_list",
+        },
+        rule_id_list: {
+          type: "array",
+          items: { type: "integer" },
+          description: "额外权限规则 ID 列表；type=2 时必填且非空",
+        },
       },
     },
     {
@@ -1438,9 +1489,8 @@ export const wecomDocToolSchema = {
         type: {
           type: "integer",
           enum: [1, 2],
-          const: 2,
           description:
-            "必须为2 (额外权限) ? 或支持1? 文档update_sheet_priv支持更新全员(type=1)或额外(type=2)",
+            "规则类型：1-全员权限，2-额外权限；type=2 通常需要 rule_id，按企业微信 content_priv/update_sheet_priv 协议填写",
         },
         rule_id: { type: "integer" },
         name: { type: "string" },
@@ -1450,12 +1500,47 @@ export const wecomDocToolSchema = {
     {
       type: "object",
       additionalProperties: false,
-      required: ["action", "docId", "name"],
+      required: ["action", "docId"],
+      anyOf: [{ required: ["name"] }, { required: ["rule_name"] }, { required: ["ruleName"] }],
       properties: {
         action: { const: "smartsheet_create_rule" },
         accountId: accountIdProperty,
         docId: docIdProperty,
-        name: { type: "string", description: "权限规则名称" },
+        name: {
+          type: "string",
+          minLength: 1,
+          maxLength: 4,
+          description: "权限规则名称；使用 4 个字符以内的短名称",
+        },
+        rule_name: {
+          type: "string",
+          minLength: 1,
+          maxLength: 4,
+          description: "权限规则名称；兼容常见别名，建议 4 个字符以内",
+        },
+        ruleName: {
+          type: "string",
+          minLength: 1,
+          maxLength: 4,
+          description: "权限规则名称；兼容常见别名，建议 4 个字符以内",
+        },
+        type: {
+          type: "integer",
+          enum: [2],
+          default: 2,
+          description: "可选：携带 priv_list 时用于初始化额外权限规则，固定为2",
+        },
+        priv_list: {
+          ...privListSchema,
+          description:
+            "可选：创建规则后立即调用 update_sheet_priv 初始化子表权限；create_rule 本身只创建规则名",
+        },
+        member_range: {
+          ...memberRangeSchema,
+          description: "可选：创建规则后立即添加成员范围；等价于 add_member_range",
+        },
+        add_member_range: memberRangeSchema,
+        del_member_range: memberRangeSchema,
       },
     },
     {

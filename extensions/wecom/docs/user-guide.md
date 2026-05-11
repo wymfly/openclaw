@@ -324,3 +324,9 @@ openclaw plugins update wecom
 | 推理展示   | `enhanced.reasoningMode`       | separate/append/hidden  | 默认不启用            |
 | 占位提示   | `bot.streamPlaceholderContent` | string                  | 如"正在思考..."       |
 | 欢迎语     | `bot.welcomeText`              | string                  | 首次对话时发送        |
+
+---
+
+## 十、维护说明
+
+本插件有官方上游 `@wecom/wecom-openclaw-plugin`，但当前目录是增强 fork。合并官方代码前先阅读 `docs/upstream-porting.md`，不要整包覆盖本地 `src/`。

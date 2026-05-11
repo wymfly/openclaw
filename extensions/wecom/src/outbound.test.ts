@@ -1,13 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { BotWsPushHandle } from "./app/index.js";
 
-const { fetchWithSsrFGuardMock } = vi.hoisted(() => ({
-  fetchWithSsrFGuardMock: vi.fn(),
+const { loadOutboundMediaFromUrlMock } = vi.hoisted(() => ({
+  loadOutboundMediaFromUrlMock: vi.fn(),
 }));
 
-vi.mock("openclaw/plugin-sdk/infra-runtime", async (importOriginal) => {
-  const actual = await importOriginal<Record<string, unknown>>();
-  return { ...actual, fetchWithSsrFGuard: fetchWithSsrFGuardMock };
+vi.mock("openclaw/plugin-sdk/outbound-media", () => {
+  return { loadOutboundMediaFromUrl: loadOutboundMediaFromUrlMock };
 });
 
 vi.mock("./transport/agent-api/core.js", () => ({
@@ -29,6 +27,13 @@ async function getOutboundFns() {
 
 describe("wecomOutbound", () => {
   beforeEach(async () => {
+    loadOutboundMediaFromUrlMock.mockReset();
+    loadOutboundMediaFromUrlMock.mockResolvedValue({
+      buffer: Buffer.from([1, 2, 3]),
+      contentType: "image/png",
+      fileName: "media.png",
+      kind: "image",
+    });
     const runtime = await import("./runtime.js");
     runtime.setWecomRuntime({
       channel: {
@@ -315,14 +320,6 @@ describe("wecomOutbound", () => {
     (api.uploadMedia as any).mockResolvedValue("media-1");
     (api.sendMedia as any).mockResolvedValue(undefined);
     (api.sendMedia as any).mockClear();
-    const release = vi.fn(async () => {});
-    fetchWithSsrFGuardMock.mockResolvedValue({
-      response: new Response(new Uint8Array([1, 2, 3]).buffer, {
-        status: 200,
-        headers: { "content-type": "image/png" },
-      }),
-      release,
-    });
 
     const cfg = {
       channels: {
@@ -354,7 +351,143 @@ describe("wecomOutbound", () => {
     } as any);
 
     expect(api.sendMedia).toHaveBeenCalledTimes(1);
+    expect(api.uploadMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "image",
+        filename: "media.png",
+      }),
+    );
+    expect(loadOutboundMediaFromUrlMock).toHaveBeenCalledWith(
+      "https://example.com/media.png",
+      expect.objectContaining({
+        maxBytes: 20 * 1024 * 1024,
+      }),
+    );
     expect(sendMarkdown).not.toHaveBeenCalled();
+  });
+
+  it("loads local workspace media through shared outbound media roots", async () => {
+    const { sendMedia } = await getOutboundFns();
+    const api = await import("./transport/agent-api/core.js");
+    const mediaBuffer = Buffer.from("a,b\n1,2\n");
+    const readFile = vi.fn(async () => mediaBuffer);
+    const workspace = "D:\\openclaw\\data\\.openclaw\\workspace";
+    const mediaUrl = `${workspace}\\wecom_doc_test_report_2026-05-07.csv`;
+    loadOutboundMediaFromUrlMock.mockResolvedValueOnce({
+      buffer: mediaBuffer,
+      contentType: undefined,
+      fileName: "wecom_doc_test_report_2026-05-07.csv",
+      kind: "document",
+    });
+    (api.uploadMedia as any).mockResolvedValue("media-csv");
+    (api.sendMedia as any).mockResolvedValue(undefined);
+    (api.uploadMedia as any).mockClear();
+    (api.sendMedia as any).mockClear();
+
+    const cfg = {
+      channels: {
+        wecom: {
+          enabled: true,
+          agent: {
+            corpId: "corp",
+            corpSecret: "secret",
+            agentId: 1000002,
+            token: "token",
+            encodingAESKey: "aes",
+          },
+        },
+      },
+    };
+
+    await sendMedia({
+      cfg,
+      to: "user:zhangsan",
+      text: "csv report",
+      mediaUrl,
+      mediaAccess: {
+        localRoots: [workspace],
+        readFile,
+        workspaceDir: workspace,
+      },
+      mediaLocalRoots: ["D:\\fallback-root"],
+      mediaReadFile: readFile,
+    } as any);
+
+    expect(loadOutboundMediaFromUrlMock).toHaveBeenCalledWith(mediaUrl, {
+      maxBytes: 20 * 1024 * 1024,
+      mediaAccess: {
+        localRoots: [workspace],
+        workspaceDir: workspace,
+      },
+      mediaLocalRoots: undefined,
+    });
+    expect(api.uploadMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "file",
+        buffer: mediaBuffer,
+        filename: "wecom_doc_test_report_2026-05-07.csv",
+      }),
+    );
+    expect(api.sendMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaId: "media-csv",
+        mediaType: "file",
+        toUser: "zhangsan",
+      }),
+    );
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  it("downgrades oversized image uploads to file media", async () => {
+    const { sendMedia } = await getOutboundFns();
+    const api = await import("./transport/agent-api/core.js");
+    const oversizedImage = Buffer.alloc(10 * 1024 * 1024 + 1);
+    loadOutboundMediaFromUrlMock.mockResolvedValueOnce({
+      buffer: oversizedImage,
+      contentType: "image/png",
+      fileName: "large.png",
+      kind: "image",
+    });
+    (api.uploadMedia as any).mockResolvedValue("media-large");
+    (api.sendMedia as any).mockResolvedValue(undefined);
+    (api.uploadMedia as any).mockClear();
+    (api.sendMedia as any).mockClear();
+
+    const cfg = {
+      channels: {
+        wecom: {
+          enabled: true,
+          agent: {
+            corpId: "corp",
+            corpSecret: "secret",
+            agentId: 1000002,
+            token: "token",
+            encodingAESKey: "aes",
+          },
+        },
+      },
+    };
+
+    await sendMedia({
+      cfg,
+      to: "user:zhangsan",
+      text: "large image",
+      mediaUrl: "https://example.com/large.png",
+    } as any);
+
+    expect(api.uploadMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "file",
+        buffer: oversizedImage,
+        filename: "large.png",
+      }),
+    );
+    expect(api.sendMedia).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mediaId: "media-large",
+        mediaType: "file",
+      }),
+    );
   });
 
   it("uses account-scoped agent config in matrix mode", async () => {
