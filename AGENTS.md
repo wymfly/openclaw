@@ -107,6 +107,22 @@ Workflow hygiene:
 
 如果头脑风暴尚未回答足以防止“实现者建错东西”的问题，不要进入实施。应先补头脑风暴或修正 OpenSpec，而不是在 implementation 阶段临场发明产品设计。
 
+### OpenSpec 到实施计划的条件性环节
+
+OpenSpec 的定位仍然是固化产品、契约、架构边界和验收原则，不应膨胀成逐行实施手册。不是所有 OpenSpec change 都需要额外 plan；小型、局部、事实清楚、验收命令明确的 change 可以直接按 `$openspec-apply-change` 实施。
+
+当 change 具备以下任一特征时，进入实施前应先把 OpenSpec 转成具体 implementation plan，可使用 `$superpowers:writing-plans` 或 `$ralplan --deliberate`：
+
+- 需要大量代码真相验证，例如 Gateway/API/RPC/schema/config/DTO/generated artifacts 之间存在多层转译。
+- 涉及 `openclaw.json`、数据库、文件格式、外部 API payload 或其他源头契约的写入。
+- 产品 DTO 与源头持久化/API shape 明显不同，需要明确转换层和禁止泄漏的中间态。
+- 任务横跨前端、BFF、contracts、mock、real E2E，且任一层假数据都可能制造“假绿”。
+- 失败后返工成本高，或者已知存在外部审查、历史漂移、旧实现误导、真实环境熔断风险。
+
+该 implementation plan 不是新的产品决策源。它必须继承 OpenSpec，不得扩大范围；它的职责是把 OpenSpec 的原则落成可执行步骤：具体文件、具体字段/shape、DTO 到 persisted/API payload 的转换点、先写的失败测试、fixture 来源、验证命令、预期输出和每步完成证据。
+
+对 source-truth-bound change，plan 必须包含 Source Truth Binding 验收步骤：列出权威真相源，说明产品 DTO 与源头 shape 的差异，规定每个写入 action 的最终 payload/patch 如何被源头 schema、validator、真实 API 或等价 contract gate 接受。不能只写“枚举真相”，必须写“用真相验证产物”。
+
 ## OpenSpec 完成闭环规则
 
 OpenSpec completion discipline 不绑定具体协作方式。无论任务是否经过头脑风暴、是否使用 `/goal`、是否拆成多个提案，只要使用 OpenSpec，就必须按任务复杂度完成对应闭环后才能宣称完成。
@@ -121,6 +137,14 @@ OpenSpec completion discipline 不绑定具体协作方式。无论任务是否�
 - 必须运行 `openspec validate <change> --type change --strict`，并按触达面运行相关测试、build、contract 或 E2E 验证。
 - accepted spec deltas 必须同步到 `openspec/specs/**`，被触达的 accepted specs 必须 strict validate。
 - 未提交代码、未归档 change、未验证场景、已知失败或 circuit-breaker handoff 必须在最终报告中明确列出；不能用“完成”掩盖交付风险。
+
+### 验证阻塞的小型确定性修复
+
+OpenSpec 的范围边界不能被随意扩大，但验证 gate 被其他文件的明显小问题阻塞时，不应机械地把所有阻塞都转成 handoff。先判断阻塞性质：
+
+- 若阻塞是确定性的类型、lint、构建脚本或测试夹具问题，修复范围很小、行为保持不变、风险低，并且修复是让当前 change 的既定验证 gate 恢复运行的必要条件，可以直接作为 verification unblocker 修复。
+- 这种修复必须保持最小 diff，不借机扩展产品/契约/架构范围；完成后重跑被阻塞的 gate，并在 `verification.yaml`、tasks 或最终报告中标注为“verification unblocker”。
+- 若阻塞涉及语义不清、跨模块产品设计、真实数据风险、大范围重构、其他 agent 正在进行的复杂改动，或修复会改变当前 OpenSpec 的设计边界，则不要直接修；记录 follow-up/handoff，并说明为什么不能在本 change 内解决。
 
 ### 多 OpenSpec change / program matrix
 
