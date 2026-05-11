@@ -390,7 +390,6 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("hello from main");
     expect(container.textContent).toContain("history sess-main");
     expect(container.textContent).toContain("main preview");
-    expect(container.textContent).toContain("Runtime metadata");
     expect(container.textContent).toContain("context 20%");
     expect(container.textContent).toContain("thinking: low | fast mode: on");
     expect(getCachedTranscript("sess-main")).toMatchObject([
@@ -941,5 +940,21 @@ describe("SessionsPanel", () => {
     expect(text).toMatch(/Output/);
     expect(text).toMatch(/Model/);
     expect(text).toMatch(/Thinking Level/);
+  });
+
+  it("does not render an independent Runtime metadata surface", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    const panel = container.querySelector(".sessions-panel");
+    expect(panel).not.toBeNull();
+    const surfaces = panel!.querySelectorAll(".sessions-surface");
+    const runtimeMetadataHeadings = Array.from(surfaces).filter((surface) =>
+      surface.querySelector("h3")?.textContent?.toLowerCase().includes("runtime metadata"),
+    );
+    expect(runtimeMetadataHeadings.length).toBe(0);
   });
 });

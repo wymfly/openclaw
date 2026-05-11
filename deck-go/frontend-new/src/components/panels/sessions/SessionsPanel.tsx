@@ -843,51 +843,6 @@ export function SessionsPanel() {
                 </div>
               </section>
 
-              {selectedSession ? (
-                <section className="sessions-surface">
-                  <div className="sessions-section-heading">
-                    <h3>{t("runtimeMetadata")}</h3>
-                    <Badge variant={statusVariant(selectedSession.status)}>
-                      {selectedSession.status || t("unknown")}
-                    </Badge>
-                  </div>
-                  <div className="sessions-stat-grid">
-                    <StatTile
-                      label={t("inputTokens")}
-                      value={formatCompactNumber(positiveNumber(selectedSession.inputTokens))}
-                    />
-                    <StatTile
-                      label={t("outputTokens")}
-                      value={formatCompactNumber(positiveNumber(selectedSession.outputTokens))}
-                    />
-                    <StatTile
-                      label={t("totalTokens")}
-                      value={formatCompactNumber(selectedTotalTokens)}
-                    />
-                    <StatTile
-                      label={t("contextWindow")}
-                      value={formatCompactNumber(selectedContextTokens)}
-                    />
-                    <StatTile
-                      label={t("contextPressure")}
-                      value={
-                        selectedContextPressure != null ? `${selectedContextPressure}%` : t("na")
-                      }
-                    />
-                    <StatTile
-                      label={t("estimatedCost")}
-                      value={formatCost(selectedSession.estimatedCostUsd)}
-                    />
-                  </div>
-                  <p className="sessions-note">
-                    {t("thinkingFastMode", {
-                      fastMode: selectedSession.fastMode ? t("on") : t("off"),
-                      thinking: selectedSession.thinkingLevel || t("off"),
-                    })}
-                  </p>
-                </section>
-              ) : null}
-
               <section className="sessions-surface">
                 <div className="sessions-section-heading">
                   <h3>{t("transcriptSearchExport")}</h3>
