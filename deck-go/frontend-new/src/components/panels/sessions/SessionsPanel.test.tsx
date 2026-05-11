@@ -20,7 +20,6 @@ const apiMocks = vi.hoisted(() => ({
   fetchCompactionCheckpoints: vi.fn(),
   fetchChatHistory: vi.fn(),
   fetchSessionDetail: vi.fn(),
-  fetchSessionPreviews: vi.fn(),
   fetchSessions: vi.fn(),
   fetchSubagentLineage: vi.fn(),
   fetchUsageSessionLogs: vi.fn(),
@@ -125,23 +124,6 @@ function chatHistory(key: string) {
         id: `history-${key}`,
         role: "user",
         content: [{ type: "text", text: `history ${key}` }],
-      },
-    ],
-  };
-}
-
-function sessionPreviews() {
-  return {
-    previews: [
-      {
-        key: "sess-main",
-        status: "ok",
-        items: [{ role: "assistant", text: "main preview" }],
-      },
-      {
-        key: "sess-build",
-        status: "ok",
-        items: [{ role: "user", text: "builder preview" }],
       },
     ],
   };
@@ -321,7 +303,6 @@ describe("SessionsPanel", () => {
     document.body.appendChild(container);
     clearTranscriptCache();
     apiMocks.fetchSessions.mockResolvedValue(sessionsPayload());
-    apiMocks.fetchSessionPreviews.mockResolvedValue(sessionPreviews());
     apiMocks.fetchSessionDetail.mockImplementation(async ({ sessionKey }: { sessionKey: string }) =>
       sessionDetail(sessionKey),
     );
@@ -372,7 +353,6 @@ describe("SessionsPanel", () => {
     );
 
     expect(apiMocks.fetchSessions).toHaveBeenCalledTimes(1);
-    expect(apiMocks.fetchSessionPreviews).toHaveBeenCalledWith(["sess-main", "sess-build"]);
     expect(apiMocks.fetchChatHistory).toHaveBeenCalledWith({
       sessionKey: "sess-main",
       limit: 80,
@@ -389,7 +369,6 @@ describe("SessionsPanel", () => {
     expect(container.textContent).toContain("Main Session");
     expect(container.textContent).toContain("hello from main");
     expect(container.textContent).toContain("history sess-main");
-    expect(container.textContent).toContain("main preview");
     expect(container.textContent).toContain("context 20%");
     expect(container.textContent).toContain("thinking: low | fast mode: on");
     expect(getCachedTranscript("sess-main")).toMatchObject([
@@ -997,5 +976,23 @@ describe("SessionsPanel", () => {
     if (details) {
       expect((details as HTMLDetailsElement).open).toBe(false);
     }
+  });
+
+  it("inventory row renders exactly 4 fields (row-top + meta + note + meta)", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    const firstRow = container.querySelector(".sessions-inventory-list .sessions-inventory-row");
+    expect(firstRow).not.toBeNull();
+    // 4 fields = .sessions-row-top + .sessions-meta + .sessions-note + .sessions-meta
+    // 即 row-top 之外还有 3 个直接 span（meta + note + meta）
+    const directSpans = firstRow!.querySelectorAll(
+      ":scope > .sessions-meta, :scope > .sessions-note",
+    );
+    expect(directSpans.length).toBe(3);
+    expect(firstRow!.querySelector(":scope > .sessions-row-top")).not.toBeNull();
   });
 });

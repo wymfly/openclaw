@@ -18,14 +18,12 @@ import type {
   DeckGoSessionDetailResponse,
   DeckGoSessionMeta,
   DeckGoSessionsListResponse,
-  DeckGoSessionsPreviewResponse,
 } from "../../../../../contracts/generated/ts/deck-api.generated";
 import { useDataFabricTransports } from "../../../data/client/scoped-query-provider";
 import {
   sessionDetailQueryOptions,
   sessionHistoryQueryOptions,
   sessionLineageQueryOptions,
-  sessionPreviewsQueryOptions,
   sessionsListQueryOptions,
   useClearSessionMutation,
   useCompactSessionMutation,
@@ -63,9 +61,7 @@ type RefreshSessionsOptions = {
 type NormalizedHistoryMessages = ReturnType<typeof normalizeTranscriptMessages>;
 type SessionKindFilter = "" | "direct" | "group" | "global" | "subagent";
 type SessionInspectorTab = "overview" | "usage" | "compaction" | "lineage" | "actions";
-type SessionPreview = NonNullable<DeckGoSessionsPreviewResponse["previews"]>[number];
 
-const PREVIEW_LIMIT = 12;
 const SESSION_FETCH_LIMIT = 200;
 const SESSION_PAGE_SIZE = 20;
 const THINKING_LEVELS = ["off", "low", "medium", "high"] as const;
@@ -218,16 +214,6 @@ function statusVariant(status: string | undefined): BadgeVariant {
   }
 }
 
-function previewText(preview: SessionPreview | undefined, session: DeckGoSessionMeta) {
-  const previewItems = preview?.items ?? [];
-  const text = previewItems
-    .map((item) => item.text)
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    .slice(0, 2)
-    .join(" / ");
-  return text || session.lastMessagePreview || "n/a";
-}
-
 function MetricTile(props: { hint?: string; label: string; value: string | number }) {
   return (
     <article className="sessions-metric">
@@ -259,7 +245,6 @@ export function SessionsPanel() {
   const deleteSessionMutation = useDeleteSessionMutation();
   const [navigationTarget] = useState(readSessionNavigationTarget);
   const [sessions, setSessions] = useState<DeckGoSessionsListResponse | null>(null);
-  const [previews, setPreviews] = useState<DeckGoSessionsPreviewResponse | null>(null);
   const [detail, setDetail] = useState<DeckGoSessionDetailResponse | null>(null);
   const [history, setHistory] = useState<DeckGoChatHistoryResponse | null>(null);
   const [lineage, setLineage] = useState<DeckGoSubagentsLineageResponse | null>(null);
@@ -302,18 +287,7 @@ export function SessionsPanel() {
           ...sessionsListQueryOptions(bff, filters),
           staleTime: 0,
         });
-        const previewKeys = (sessionsResult.sessions ?? [])
-          .slice(0, PREVIEW_LIMIT)
-          .map((session) => session.key);
-        const previewResult =
-          previewKeys.length > 0
-            ? await queryClient.fetchQuery({
-                ...sessionPreviewsQueryOptions(bff, previewKeys),
-                staleTime: 0,
-              })
-            : { previews: [] };
         setSessions(sessionsResult);
-        setPreviews(previewResult);
         setInventoryState("ready");
         setError("");
 
@@ -466,14 +440,6 @@ export function SessionsPanel() {
   const selectedTranscriptMatchIndex = transcriptMatchIndices[currentTranscriptMatch] ?? -1;
   const selectedTranscriptMatch =
     selectedTranscriptMatchIndex >= 0 ? transcriptMessages[selectedTranscriptMatchIndex] : null;
-  const previewByKey = useMemo(() => {
-    const map = new Map<string, SessionPreview>();
-    for (const preview of previews?.previews ?? []) {
-      map.set(preview.key, preview);
-    }
-    return map;
-  }, [previews]);
-
   useEffect(() => {
     setCurrentTranscriptMatch(0);
   }, [transcriptSearchQuery, selectedSessionKey]);
@@ -724,7 +690,6 @@ export function SessionsPanel() {
                 ) : (
                   pagedSessions.map((session) => {
                     const selected = session.key === selectedSessionKey;
-                    const preview = previewByKey.get(session.key);
                     return (
                       <li key={session.key}>
                         <button
@@ -743,7 +708,6 @@ export function SessionsPanel() {
                           <span className="sessions-note">
                             {session.lastMessagePreview || "n/a"}
                           </span>
-                          <span className="sessions-meta">{previewText(preview, session)}</span>
                           <span className="sessions-meta">
                             {formatTimestamp(session.updatedAt)}
                           </span>
