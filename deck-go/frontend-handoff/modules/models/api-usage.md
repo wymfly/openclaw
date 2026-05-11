@@ -8,19 +8,18 @@
 
 ## Authority split
 
-| Path                                                                                                  | Authority                        | When                                                                          |
-| ----------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------- |
-| `GET /models/config/detail` (typed)                                                                   | Read authority for the typed UI. | Initial load + after any typed mutation success.                              |
-| `POST /models/providers/upsert` (typed)                                                               | Provider create/edit.            | Add Provider wizard submit + `ProviderDrawer` edit submit.                    |
-| `POST /models/providers/delete-preview` + `POST /models/providers/delete` (typed)                     | Provider delete.                 | Provider delete preview + commit.                                             |
-| `POST /models/{providerId}/models/upsert` (typed)                                                     | Model create/edit.               | Add model on a provider + `ModelDrawer` edit submit.                          |
-| `POST /models/{providerId}/models/delete-preview` + `POST /models/{providerId}/models/delete` (typed) | Model delete.                    | Model delete preview + commit.                                                |
-| `POST /models/catalog/mode` (typed; supports `dryRun=true`/`commit=true`)                             | Catalog mode change.             | Mode toggle dry-run + commit.                                                 |
-| `GET /models/config` + `PATCH /models/config` (raw)                                                   | Advanced editor only.            | Raw escape hatch when the typed UI cannot represent the desired config shape. |
+| Path                                                                                                  | Authority                        | When                                                       |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------- |
+| `GET /models/config/detail` (typed)                                                                   | Read authority for the typed UI. | Initial load + after any typed mutation success.           |
+| `POST /models/providers/upsert` (typed)                                                               | Provider create/edit.            | Add Provider wizard submit + `ProviderDrawer` edit submit. |
+| `POST /models/providers/delete-preview` + `POST /models/providers/delete` (typed)                     | Provider delete.                 | Provider delete impact check + commit.                     |
+| `POST /models/{providerId}/models/upsert` (typed)                                                     | Model create/edit.               | Add model on a provider + `ModelDrawer` edit submit.       |
+| `POST /models/{providerId}/models/delete-preview` + `POST /models/{providerId}/models/delete` (typed) | Model delete.                    | Model delete impact check + commit.                        |
+| `POST /models/catalog/mode` (typed; supports `dryRun=true`/`commit=true`)                             | Catalog sync policy change.      | Policy dry-run impact check + commit.                      |
 
-The typed BFF actions are the default save path. Raw `PATCH /models/config`
-is reserved and not invoked by the catalog header / drawers / wizard /
-dialogs.
+The typed BFF actions are the Models save path. Lower-level raw config routes
+may remain available to generic configuration tooling, but the Models page,
+drawers, wizard, and dialogs do not invoke a raw JSON editor.
 
 ## Frontend wrappers (`@/api`)
 
@@ -33,10 +32,6 @@ upsertModel(providerId: string, req: DeckGoModelUpsertRequest): Promise<...>;
 previewModelDelete(providerId: string, req: DeckGoModelDeletePreviewRequest): Promise<DeckGoModelImpactPreviewResponse>;
 deleteModel(providerId: string, req: DeckGoModelDeleteRequest): Promise<DeckGoConfigApplyResponse>;
 setModelsCatalogMode(req: DeckGoSetModelsCatalogModeRequest): Promise<...>;
-
-// Advanced raw escape hatch
-fetchModelsConfig(): Promise<DeckGoModelsConfigResponse>;
-saveModelsConfig(rawDraft: string, baseHash: string): Promise<DeckGoConfigApplyResponse>;
 ```
 
 All typed mutation requests carry `expectedBaseHash`. On `409` the BFF
@@ -52,7 +47,6 @@ Query keys live at
 ```ts
 modelsKeys = {
   all,
-  config, // raw GET /models/config
   configDetail, // typed GET /models/config/detail
   configured, // models.configured RPC roll-up
   authOverview, // deck.auth.overview RPC roll-up
@@ -80,8 +74,6 @@ Mutation hooks at `mutations.ts`:
 - `useDeleteModelMutation`.
 - `useSetModelsCatalogModeMutation` (dry-run does NOT invalidate; commit
   invalidates `configDetail`, `config`, `configured`, `catalogProviders`).
-- `useSaveModelsConfigMutation` — advanced raw escape hatch only;
-  invalidates `modelsKeys.all()`.
 
 `invalidateConfigSurfaces` is the shared invalidation helper for typed
 mutations. Mode dry-run is the only typed action that intentionally skips
@@ -98,15 +90,17 @@ authoritative shape.
 
 ```ts
 {
+  runtimeId?: string;
   detail: DeckGoModelsConfigDetail;
-  baseHash: string;          // forwarded into expectedBaseHash on writes
-  generatedAt: number;
 }
 
 DeckGoModelsConfigDetail = {
-  providers: DeckGoModelProviderDetail[];
-  models: DeckGoModelDetail[];
-  references: DeckGoModelReferenceIndexEntry[];
+  hash: string;              // forwarded into expectedBaseHash on writes
+  configPresent: boolean;
+  mode: "merge" | "replace";
+  modeSource: "config" | "default";
+  defaults?: Record<string, { provider?: string; model?: string }>;
+  providers: DeckGoModelProviderEntry[];
   runtime: DeckGoModelsConfigDetailRuntime; // catalog + auth + counts
 };
 ```
@@ -128,20 +122,18 @@ exposes a Clear action to migrate to a SecretRef.
   expectedBaseHash: string;
   providerId: string;
   isCreate: boolean;
-  patch: {
-    name?: string;
-    baseUrl?: string;
-    api?: ModelApi;
-    auth?: ModelProviderAuthMode;
-    apiKey?:
-      | { action: "preserve" }
-      | { action: "clear" }
-      | { action: "set-ref"; ref: string; refTemplate?: string };
-    providerHeaders?: Record<string, string>;
-    injectNumCtxForOpenAICompat?: boolean;
-    request?: { /* pass-through summary */ };
-    compat?: { /* pass-through summary */ };
-  };
+  baseUrl?: string;
+  api?: ModelApi;
+  auth?: ModelProviderAuthMode;
+  authHeader?: "enable" | "disable" | "preserve";
+  injectNumCtxForOpenAICompat?: "enable" | "disable" | "preserve";
+  apiKey?:
+    | { action: "preserve" }
+    | { action: "clear" }
+    | { action: "set-ref"; ref: { source: "env" | "file" | "exec"; provider: string; id: string } };
+  headers?: Record<string, { action: "preserve" | "remove" | "set-ref"; ref?: { source: "env" | "file" | "exec"; provider: string; id: string } }>;
+  models?: DeckGoModelProviderUpsertModelInput[];
+  preserveRequest?: boolean;
 }
 ```
 
@@ -153,25 +145,22 @@ exposes a Clear action to migrate to a SecretRef.
   providerId: string;
   modelId: string;
   isCreate: boolean;
-  patch: {
-    name?: string;
-    api?: ModelApi;
-    reasoning?: boolean;
-    inputs?: Array<"text" | "image" | "audio" | "video">;
-    capacity?: {
-      contextWindow?: number;
-      maxOutputTokens?: number;
-      maxThinkingTokens?: number;
-      customMaxTokens?: number;
-    };
-    cost?: {
-      tokenCostPerKilo?: number;
-      tokenCostInputPerKilo?: number;
-      tokenCostOutputPerKilo?: number;
-    };
-    headers?: Record<string, string>;
-    compat?: { /* pass-through summary */ };
+  name?: string;
+  api?: ModelApi;
+  inheritsApi?: boolean;
+  reasoning?: "enable" | "disable" | "preserve";
+  inputs?: Array<"text" | "image">;
+  contextWindow?: number;
+  contextTokens?: number;
+  maxTokens?: number;
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
   };
+  headers?: Record<string, string>;
+  preserveCompat?: boolean;
 }
 ```
 
@@ -179,7 +168,7 @@ Numeric fields accept `undefined` for partial-config preservation. Empty
 strings in the drawer are converted to `undefined` via
 `toNumberOrUndefined`.
 
-### Delete preview / commit
+### Delete impact check / commit
 
 ```ts
 DeckGoModelDeletePreviewRequest = {
@@ -194,7 +183,7 @@ DeckGoModelImpactPreview = {
     | "catalog.mode.merge"
     | "catalog.mode.replace";
   severity: "safe" | "info" | "warn" | "danger";
-  references: DeckGoModelReferenceIndexEntry[];
+  references: DeckGoModelReferenceIndexEntry[]; // includes relation / role when known
   unavailableProviders?: string[];
   defaultsAffected?: boolean;
   impactToken: string;
@@ -249,14 +238,12 @@ out of scope for the typed UI.
 | -------------------------------------------- | ------ | --------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------- |
 | `/models/config/detail`                      | GET    | Initial load + post-mutation refetch                      | —                                   | `DeckGoModelsConfigDetailResponse`                                                  |
 | `/models/providers/upsert`                   | POST   | Wizard submit + provider drawer edit                      | `DeckGoModelProviderUpsertRequest`  | `DeckGoConfigApplyResponse`                                                         |
-| `/models/providers/delete-preview`           | POST   | Provider preview-delete                                   | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
+| `/models/providers/delete-preview`           | POST   | Provider delete impact check                              | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
 | `/models/providers/delete`                   | POST   | Provider commit-delete                                    | `DeckGoModelDeleteRequest`          | `DeckGoConfigApplyResponse`                                                         |
 | `/models/{providerId}/models/upsert`         | POST   | Model drawer create/edit                                  | `DeckGoModelUpsertRequest`          | `DeckGoConfigApplyResponse`                                                         |
-| `/models/{providerId}/models/delete-preview` | POST   | Model preview-delete                                      | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
+| `/models/{providerId}/models/delete-preview` | POST   | Model delete impact check                                 | `DeckGoModelDeletePreviewRequest`   | `DeckGoModelImpactPreviewResponse`                                                  |
 | `/models/{providerId}/models/delete`         | POST   | Model commit-delete                                       | `DeckGoModelDeleteRequest`          | `DeckGoConfigApplyResponse`                                                         |
 | `/models/catalog/mode`                       | POST   | Mode dry-run + commit                                     | `DeckGoSetModelsCatalogModeRequest` | `DeckGoModelImpactPreviewResponse` (dry-run) / `DeckGoConfigApplyResponse` (commit) |
-| `/models/config`                             | GET    | Advanced raw editor only                                  | —                                   | `DeckGoModelsConfigResponse`                                                        |
-| `/models/config`                             | PATCH  | Advanced raw editor only                                  | raw JSON + base hash                | `DeckGoConfigApplyResponse`                                                         |
 | `models.catalog.providers` (typed RPC)       | POST   | Wizard catalog via `/v1/runtimes/{runtimeId}/gateway/rpc` | —                                   | `DeckGoModelCatalogProvidersResponse`                                               |
 
 ## Backend chain
@@ -280,10 +267,10 @@ browser boundary. Concretely:
 
 - The detail response surfaces only `DeckGoModelSecretInputStatus`.
 - The upsert request accepts either `{ action: "preserve" }`,
-  `{ action: "clear" }`, or `{ action: "set-ref", ref, refTemplate? }`.
-- A literal value is never accepted as input from the typed UI; the
-  advanced raw editor is the only path that can write a literal, and
-  even there the BFF normalizes it into a SecretRef on save.
+  `{ action: "clear" }`, or `{ action: "set-ref", ref: SecretRef }`.
+- A literal value is never accepted as input from the typed UI. Existing
+  literals are shown as redacted status and must be migrated through a
+  dedicated secret/config workflow outside the Models product surface.
 
 ## Conflict handling
 
@@ -296,7 +283,7 @@ browser boundary. Concretely:
 
 ## Stale-preview handling
 
-- Impact preview responses include `impactToken` + `generatedAt` +
+- Impact check responses include `impactToken` + `generatedAt` +
   `baseHash`.
 - The commit request sends back `impactToken` + `expectedBaseHash`.
 - The BFF re-runs the impact analysis at commit time. If the token is
@@ -310,18 +297,19 @@ For component tests and visual fixtures the minimal data set is:
 
 - `detail.providers`: 2–3 providers with mixed auth modes
   (`api-key`, `aws-sdk`, `oauth`, `token`) and at least one provider
-  in each `secretStatus`: `missing`, `empty`, `ref`,
+  in each `apiKeyStatus`: `missing`, `empty`, `ref`,
   `literal-redacted`.
-- `detail.models`: 4–6 models across providers with reasoning enabled
-  on at least one and partial cost configuration on at least one.
-- `detail.references`: at least one reference per source
-  (agent / channel / hook / tool / runtime / session) so the impact
-  preview list is non-empty in tests.
-- `detail.runtime.catalog`: covers `available`, `stale`, and
+- Nested provider `models`: 4–6 models across providers with reasoning
+  enabled on at least one and partial cost configuration on at least one.
+- Impact check fixtures: at least one reference per source
+  (agent / channel / hook / tool / session) so the preview list is
+  non-empty in destructive-flow tests. Include relation / role coverage for
+  primary/default/fallback model references.
+- `detail.runtime.catalogStatus`: covers `available`, `stale`, and
   `unavailable` statuses across at least one fixture each.
 - Catalog providers query: at least one `models.catalog.providers`
   entry plus a "custom" pathway test (catalog query degraded).
-- Impact preview fixtures: cover `safe`, `info`, `warn`, `danger`
+- Impact check fixtures: cover `safe`, `info`, `warn`, `danger`
   severities and the `defaultsAffected: true` branch.
 
 Component tests do not exercise mode dry-run vs. commit invalidation

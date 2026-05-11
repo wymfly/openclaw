@@ -2028,6 +2028,301 @@ function defaultMethods() {
       ...agentProtection(definition.id),
     };
   };
+  const configuredModelChoices = () =>
+    Object.entries(configFixture.models?.providers ?? {}).flatMap(([provider, definition]) =>
+      (definition.models ?? []).map((model) => ({
+        ref: `${provider}/${model.id}`,
+        provider,
+        model: model.id,
+        name: model.name ?? model.id,
+      })),
+    );
+  const resolveModelRef = (value) => {
+    if (!value) {
+      return "";
+    }
+    if (String(value).includes("/")) {
+      return String(value);
+    }
+    return String(value).startsWith("sonnet") || String(value).startsWith("claude")
+      ? `anthropic/${value}`
+      : `openai/${value}`;
+  };
+  const normalizeModelSelection = (value) => {
+    if (!value) {
+      return undefined;
+    }
+    if (typeof value === "string") {
+      return { primary: resolveModelRef(value), fallbacks: [] };
+    }
+    const primary = resolveModelRef(value.primary ?? "");
+    const fallbacks = (value.fallbacks ?? []).map(resolveModelRef).filter(Boolean);
+    return primary || fallbacks.length > 0 ? { primary, fallbacks } : undefined;
+  };
+  const modelUnavailableRefs = (selection, choices = configuredModelChoices()) => {
+    const configuredRefs = new Set(choices.map((choice) => choice.ref));
+    return [selection?.primary, ...(selection?.fallbacks ?? [])]
+      .filter(Boolean)
+      .filter((ref) => !configuredRefs.has(ref));
+  };
+  const agentConfigEntry = (agentId) =>
+    configFixture.agents?.list?.find((agent) => agent.id === agentId) ?? null;
+  const agentPolicySelection = (agentId, key) => {
+    const agentConfig = agentConfigEntry(agentId);
+    if (key === "agentSubagents") {
+      return normalizeModelSelection(agentConfig?.subagents?.model);
+    }
+    const explicit = normalizeModelSelection(agentConfig?.model);
+    if (explicit) {
+      return explicit;
+    }
+    const definition = agentDefinitions[agentId];
+    if (!definition || agentId === "main") {
+      return undefined;
+    }
+    return {
+      primary: resolveModelRef(definition.model),
+      fallbacks: (definition.fallbackModels ?? []).map(resolveModelRef),
+    };
+  };
+  const setAgentPolicySelection = (agentId, key, selection, clear) => {
+    let agentConfig = agentConfigEntry(agentId);
+    if (!agentConfig) {
+      agentConfig = { id: agentId };
+      configFixture.agents.list.push(agentConfig);
+    }
+    if (key === "agentSubagents") {
+      agentConfig.subagents ??= {};
+      if (clear) {
+        delete agentConfig.subagents.model;
+        return;
+      }
+      agentConfig.subagents.model = selection;
+      return;
+    }
+    if (clear) {
+      delete agentConfig.model;
+      return;
+    }
+    agentConfig.model = selection;
+    const definition = agentDefinitions[agentId];
+    if (definition) {
+      definition.model = selection.primary?.split("/").pop() ?? definition.model;
+      definition.fallbackModels = (selection.fallbacks ?? []).map((ref) => ref.split("/").pop());
+    }
+  };
+  const globalModelPolicyTargets = [
+    ["text", "Text default", "agents.defaults.model", "agentModelConfig"],
+    ["image", "Image input default", "agents.defaults.imageModel", "agentModelConfig"],
+    [
+      "imageGeneration",
+      "Image generation default",
+      "agents.defaults.imageGenerationModel",
+      "agentModelConfig",
+    ],
+    [
+      "videoGeneration",
+      "Video generation default",
+      "agents.defaults.videoGenerationModel",
+      "agentModelConfig",
+    ],
+    [
+      "musicGeneration",
+      "Music generation default",
+      "agents.defaults.musicGenerationModel",
+      "agentModelConfig",
+    ],
+    ["pdf", "PDF default", "agents.defaults.pdfModel", "agentModelConfig"],
+    ["compaction", "Compaction default", "agents.defaults.compaction.model", "string"],
+    ["memorySearch", "Memory search default", "agents.defaults.memorySearch.model", "string"],
+    ["subagents", "Subagent default", "agents.defaults.subagents.model", "agentModelConfig"],
+  ];
+  const readGlobalModelSelection = (key) => {
+    const defaults = configFixture.agents?.defaults ?? {};
+    switch (key) {
+      case "text":
+        return normalizeModelSelection(defaults.model);
+      case "image":
+        return normalizeModelSelection(defaults.imageModel);
+      case "imageGeneration":
+        return normalizeModelSelection(defaults.imageGenerationModel);
+      case "videoGeneration":
+        return normalizeModelSelection(defaults.videoGenerationModel);
+      case "musicGeneration":
+        return normalizeModelSelection(defaults.musicGenerationModel);
+      case "pdf":
+        return normalizeModelSelection(defaults.pdfModel);
+      case "compaction":
+        return normalizeModelSelection(defaults.compaction?.model);
+      case "memorySearch":
+        return normalizeModelSelection(defaults.memorySearch?.model);
+      case "subagents":
+        return normalizeModelSelection(defaults.subagents?.model);
+      default:
+        return undefined;
+    }
+  };
+  const writeGlobalModelSelection = (key, selection) => {
+    configFixture.agents.defaults ??= {};
+    const defaults = configFixture.agents.defaults;
+    switch (key) {
+      case "text":
+        defaults.model = selection;
+        break;
+      case "image":
+        defaults.imageModel = selection;
+        break;
+      case "imageGeneration":
+        defaults.imageGenerationModel = selection;
+        break;
+      case "videoGeneration":
+        defaults.videoGenerationModel = selection;
+        break;
+      case "musicGeneration":
+        defaults.musicGenerationModel = selection;
+        break;
+      case "pdf":
+        defaults.pdfModel = selection;
+        break;
+      case "compaction":
+        defaults.compaction ??= {};
+        defaults.compaction.model = selection.primary ?? "";
+        break;
+      case "memorySearch":
+        defaults.memorySearch ??= {};
+        defaults.memorySearch.model = selection.primary ?? "";
+        break;
+      case "subagents":
+        defaults.subagents ??= {};
+        defaults.subagents.model = selection;
+        break;
+      default:
+        throw new Error(`unsupported global model policy target: ${key}`);
+    }
+  };
+  const modelPolicyEntry = ({
+    agentId,
+    configPath,
+    effective,
+    kind,
+    key,
+    label,
+    selection,
+    shape,
+    source,
+  }) => ({
+    kind,
+    key,
+    label,
+    configPath,
+    source,
+    supportedShape: shape,
+    selection,
+    effective,
+    unavailableRefs: modelUnavailableRefs(selection ?? effective),
+    editable: true,
+    owner: "agents",
+    ...(agentId ? { agentId } : {}),
+  });
+  const modelPolicyGet = (params) => {
+    const agentId = params?.agentId ?? "main";
+    const choices = configuredModelChoices();
+    const textDefault = readGlobalModelSelection("text");
+    const subagentDefault = readGlobalModelSelection("subagents");
+    const policies = [
+      modelPolicyEntry({
+        agentId,
+        kind: "agent-model",
+        key: "agent",
+        label: "Agent runtime model",
+        configPath: `agents.list[${agentId}].model`,
+        shape: "agentModelConfig",
+        source: agentPolicySelection(agentId, "agent") ? "agent" : "default",
+        selection: agentPolicySelection(agentId, "agent"),
+        effective: agentPolicySelection(agentId, "agent") ?? textDefault,
+      }),
+      modelPolicyEntry({
+        agentId,
+        kind: "agent-subagents",
+        key: "agentSubagents",
+        label: "Agent subagent model",
+        configPath: `agents.list[${agentId}].subagents.model`,
+        shape: "agentModelConfig",
+        source: agentPolicySelection(agentId, "agentSubagents") ? "agent" : "default",
+        selection: agentPolicySelection(agentId, "agentSubagents"),
+        effective: agentPolicySelection(agentId, "agentSubagents") ?? subagentDefault,
+      }),
+      ...globalModelPolicyTargets.map(([key, label, configPath, shape]) => {
+        const selection = readGlobalModelSelection(key);
+        return modelPolicyEntry({
+          kind: "global-default",
+          key,
+          label,
+          configPath,
+          shape,
+          source: selection ? "default" : "missing",
+          selection,
+          effective: selection,
+        });
+      }),
+    ];
+    return {
+      agentId,
+      configHash: configHash(),
+      configuredModels: choices,
+      policies: policies.map((policy) => ({
+        ...policy,
+        unavailableRefs: modelUnavailableRefs(policy.selection ?? policy.effective, choices),
+      })),
+      unsupported: configFixture.agents?.defaults?.summaryModel
+        ? [
+            {
+              key: "summaryModel",
+              configPath: "agents.defaults.summaryModel",
+              reason: "Not present in current OpenClaw AgentDefaultsConfig schema",
+            },
+          ]
+        : [],
+    };
+  };
+  const modelPolicySet = (params) => {
+    if (params?.baseHash && params.baseHash !== configHash()) {
+      throw new Error("stale config base hash");
+    }
+    const target = params?.target ?? {};
+    const selection = normalizeModelSelection(params?.selection);
+    if (!params?.clear && !selection?.primary) {
+      throw new Error("model policy selection primary is required");
+    }
+    const isStringTarget =
+      target.kind === "global-default" && ["compaction", "memorySearch"].includes(target.key);
+    if (isStringTarget && (selection?.fallbacks ?? []).length > 0) {
+      throw new Error("string-only model policy target does not support fallbacks");
+    }
+    if (target.kind === "global-default") {
+      writeGlobalModelSelection(target.key, selection ?? {});
+    } else if (target.kind === "agent-model") {
+      setAgentPolicySelection(target.agentId ?? "main", "agent", selection ?? {}, params?.clear);
+    } else if (target.kind === "agent-subagents") {
+      setAgentPolicySelection(
+        target.agentId ?? "main",
+        "agentSubagents",
+        selection ?? {},
+        params?.clear,
+      );
+    } else {
+      throw new Error(`unsupported model policy target: ${target.kind ?? "missing"}`);
+    }
+    const nextHash = bumpConfigHash();
+    return {
+      ok: true,
+      agentId: target.agentId,
+      target,
+      configHash: nextHash,
+      selection: params?.clear ? undefined : selection,
+      cleared: params?.clear === true,
+    };
+  };
   const visualSkillInventory = (agentId) => [
     { key: "github", name: "GitHub", eligible: true, assigned: agentId !== "qa" },
     { key: "shell", name: "Shell", eligible: true, assigned: true },
@@ -2863,12 +3158,21 @@ function defaultMethods() {
         raw: JSON.stringify(configFixture, null, 2),
       };
     },
-    "config.patch": (params) => ({
-      ok: true,
-      baseHash: params?.baseHash ?? configHash(),
-      hash: bumpConfigHash(),
-      raw: params?.raw ?? "{}",
-    }),
+    "config.patch": (params) => {
+      if (typeof params?.raw === "string") {
+        try {
+          configFixture = JSON.parse(params.raw);
+        } catch {
+          // Keep the last fixture if a caller submits malformed JSON.
+        }
+      }
+      return {
+        ok: true,
+        baseHash: params?.baseHash ?? configHash(),
+        hash: bumpConfigHash(),
+        raw: JSON.stringify(configFixture, null, 2),
+      };
+    },
     "deck.routing.list": () => ({
       bindings: [
         {
@@ -2987,6 +3291,8 @@ function defaultMethods() {
       configHash: `${params?.baseHash ?? "subagents-hash"}-saved`,
       model: params?.model,
     }),
+    "deck.agents.modelPolicy.get": (params) => modelPolicyGet(params),
+    "deck.agents.modelPolicy.set": (params) => modelPolicySet(params),
     "deck.subagents.list": (params) => {
       let runs = subagentRuns;
       if (params?.status && params.status !== "all") {

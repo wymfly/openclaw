@@ -706,6 +706,10 @@ func (m *ManagedRuntime) RunDeckAgentAction(ctx context.Context, runtimeID strin
 		return m.GatewayQueries().DeckAgentsSubagentsGet(ctx, body)
 	case "subagents.set":
 		return m.GatewayQueries().DeckAgentsSubagentsSet(ctx, body)
+	case "modelPolicy.get":
+		return m.GatewayQueries().DeckAgentsModelPolicyGet(ctx, body)
+	case "modelPolicy.set":
+		return m.GatewayQueries().DeckAgentsModelPolicySet(ctx, body)
 	case "toolPolicy.preview":
 		return m.GatewayQueries().DeckAgentsToolPolicyPreview(ctx, body)
 	case "systemPrompt.preview":

@@ -5,8 +5,11 @@ import type {
   DeckGoModelImpactPreview,
   DeckGoModelImpactSeverity,
   DeckGoModelInputModality,
+  DeckGoModelBooleanToggleAction,
   DeckGoModelProviderDetail,
   DeckGoModelProviderEntry,
+  DeckGoModelReferenceRelation,
+  DeckGoModelSecretRef,
   DeckGoModelSecretInputStatus,
   DeckGoModelsConfigDetail,
   DeckGoModelsConfigDetailResponse,
@@ -16,7 +19,25 @@ import type {
 export type SecretEditAction =
   | { kind: "preserve" }
   | { kind: "clear" }
-  | { kind: "set-ref"; ref: string; refTemplate?: string };
+  | { kind: "set-ref"; ref: DeckGoModelSecretRef };
+
+export function envSecretRef(id: string): DeckGoModelSecretRef {
+  return { source: "env", provider: "default", id };
+}
+
+export function secretRefLabel(ref: DeckGoModelSecretRef | undefined): string {
+  if (!ref) {
+    return "";
+  }
+  if (ref.provider === "default" || ref.provider.trim() === "") {
+    return `${ref.source}:${ref.id}`;
+  }
+  return `${ref.source}:${ref.provider}/${ref.id}`;
+}
+
+export function booleanToggleAction(enabled: boolean): DeckGoModelBooleanToggleAction {
+  return enabled ? "enable" : "disable";
+}
 
 export function getDetail(
   data: DeckGoModelsConfigDetailResponse | undefined,
@@ -82,7 +103,7 @@ export function severityVariant(
 }
 
 export function impactReferenceCount(preview: DeckGoModelImpactPreview): number {
-  return preview.references.length;
+  return preview.references?.length ?? 0;
 }
 
 export function shouldBlockCommit(preview: DeckGoModelImpactPreview): boolean {
@@ -121,6 +142,16 @@ export function totalConfiguredModels(detail: DeckGoModelsConfigDetail | undefin
 
 export function modelDefaultRoles(model: DeckGoModelEntry | DeckGoModelDetail): string[] {
   return [...(model.defaultRoles ?? [])].toSorted();
+}
+
+export function modelUsageRelations(
+  model: DeckGoModelEntry | DeckGoModelDetail,
+): DeckGoModelReferenceRelation[] {
+  return [...(model.usageRelations ?? [])].toSorted();
+}
+
+export function modelUsageRoles(model: DeckGoModelEntry | DeckGoModelDetail): string[] {
+  return [...(model.usageRoles ?? [])].toSorted();
 }
 
 export function isProviderReferenced(provider: DeckGoModelProviderEntry): boolean {

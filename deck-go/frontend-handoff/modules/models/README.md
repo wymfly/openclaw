@@ -9,6 +9,12 @@
 - [`./prototype-v2-list-detail.html`](./prototype-v2-list-detail.html) — V2 list↔detail prototype shell that wires the historical multi-file Babel-standalone bundle. Kept as labeled reference for the earlier "Limits / Pricing / Usage / Auth / Audit" tab line of thinking; do not implement against it.
 - `./app.jsx` / `./list-view.jsx` / `./detail-view.jsx` / `./dialogs.jsx` / `./data.js` / `./icons.jsx` / `./styles.css` / `./tokens.css` / `./tweaks-panel.jsx` — V2 multi-file prototype assets loaded by `prototype-v2-list-detail.html`; kept as labeled reference. The current Models module no longer implements that line; see "Why the prototype line of thinking shifted" below.
 
+Historical files that show "Set default", "Add fallback", or fallback-chain
+editing are Agents-owned references only. Production Models shows those
+model-policy references for usage and delete impact; it does not claim to edit
+`agents.defaults.model`, per-agent `model`, subagent defaults, or
+`{ primary, fallbacks }` chains.
+
 This handoff covers the Models config control plane that aligns deck-go with
 OpenClaw config truth (`src/config/types.models.ts` /
 `src/config/zod-schema.core.ts`). The production module is a typed
@@ -19,23 +25,33 @@ config-authority workbench, not a usage/audit dashboard.
 `models/` is the deck-go workbench for the OpenClaw `models?: ModelsConfig`
 slice of `openclaw.json`. Operators use it to:
 
-- Inspect runtime-configured providers/models grouped under a single source
-  of truth (`models.config.detail`).
+- Inspect configured providers and their nested models as the main page surface.
+  Provider Library (`models.catalog.providers`) templates are available inside
+  Add Provider, but the primary page content is the configured provider list
+  from `models.config.detail` with each provider's nested models.
 - Add or edit a provider — provider id/name, baseUrl, api/auth enums,
-  injectNumCtxForOpenAICompat, `apiKey` SecretInput (SecretRef-only writes),
+  injectNumCtxForOpenAICompat, `apiKey` SecretInput (SecretRef object writes),
   provider headers, and advanced (`request`, `compat`) summaries.
+- Configure a provider by copying an optional built-in template into an authored
+  `models.providers.<id>` block, then editing the copied parameters and
+  selecting template default models. Built-in catalog entries are not installed,
+  uninstalled, or edited in place by this product surface.
 - Add or edit a model under a provider — model id/name, API inherit/override,
-  reasoning, input modalities, capacity caps (contextWindow, maxOutputTokens,
-  maxThinkingTokens, customMaxTokens), cost (`tokenCostPerKilo`,
-  `tokenCostInputPerKilo`, `tokenCostOutputPerKilo`), per-model headers, and
+  reasoning, `text | image` input modalities, capacity caps (`contextWindow`,
+  `contextTokens`, `maxTokens`), cost (`input`, `output`, `cacheRead`,
+  `cacheWrite`), per-model headers, and
   advanced compat summary.
-- Preview the impact of deleting a provider/model or switching catalog mode
+- Check the impact of deleting a provider/model or switching catalog policy
   before committing destructive intent (impact token + service-side rescan +
   type-to-confirm).
-- Switch between catalog modes `merge | replace` with a dry-run preview before
-  the commit step.
-- Drop into the advanced raw editor as an explicit escape hatch when the
-  typed UI cannot represent a desired config shape.
+- Represent `models.mode` truthfully as advanced catalog policy. The normal
+  product surface is configured provider/model management; low-level `merge` /
+  `replace` values and provider-library mechanics are secondary setup details.
+- Inspect usage/default/fallback references, including `agents.defaults`,
+  per-agent, subagent model-policy paths, and role defaults such as PDF,
+  summary, compaction, memory search, media generation, and subagents as
+  read-only owner facts. These are usage policy roles, not additional model
+  input modalities.
 
 The design **does not** include a usage/audit dashboard, a probe runner, an
 OAuth runner, a secret-store CRUD surface, a quota/rate-limit editor, or a
@@ -67,17 +83,18 @@ Production and mocks must use the typed Models contract chain rather than ad
 hoc raw-config shapes:
 
 - Config detail: `DeckGoModelsConfigDetailResponse`
-  (`detail.providers[]`, `detail.models[]`, `detail.references[]`,
-  `detail.runtime`).
+  (`detail.providers[]`, nested provider `models[]`, `detail.runtime`,
+  `detail.defaults`, `detail.hash`).
 - Provider record: `DeckGoModelProviderDetail`
-  (id, name, baseUrl, api, authMode, secretStatus, providerHeaders,
-  injectNumCtxForOpenAICompat, request, compat, advancedSummary).
+  (id, baseUrl, api, auth, apiKeyStatus, headers, authHeader,
+  injectNumCtxForOpenAICompat, request, models).
 - Model record: `DeckGoModelDetail`
-  (id, name, providerId, api?, reasoning?, modalities?, capacity, cost,
-  headers, compatSummary, references).
-- Impact preview: `DeckGoModelImpactPreview`
+  (id, name, api?, inheritsApi, reasoning?, inputs?, contextWindow,
+  contextTokens, maxTokens, cost, headers, compat, reference/default badges).
+- Impact check: `DeckGoModelImpactPreview`
   (`scope`, `severity`, `references[]`, `impactToken`, `generatedAt`,
-  `baseHash`).
+  `baseHash`). `references[]` may include `relation` / `role` metadata for
+  primary, default, fallback, or generic references.
 - Typed mutations: `DeckGoModelProviderUpsertRequest`,
   `DeckGoModelDeletePreviewRequest`, `DeckGoModelDeleteRequest`,
   `DeckGoModelUpsertRequest`, `DeckGoModelDeletePreviewRequest` (model),
@@ -85,9 +102,8 @@ hoc raw-config shapes:
 - Sensitive fields are surfaced through `DeckGoModelSecretInputStatus`
   (`missing | empty | ref | literal-redacted`); literal secret values are
   never returned to the browser.
-- Raw config payload: `DeckGoModelsConfigResponse` /
-  `DeckGoConfigApplyResponse` — kept available **only** for the advanced
-  raw editor escape hatch.
+- Raw config payloads may still exist in lower-level or generic config
+  tooling, but the Models product surface does not expose a raw JSON editor.
 
 Runtime read surfaces still in use:
 
@@ -103,10 +119,11 @@ Runtime read surfaces still in use:
 `Spinner`, `Tab`, `Toggle`. Toggle requires `onCheckedChange` + `aria-label`
 per atom contract; Spinner requires `aria-label`. Local molecules:
 
-- catalog header (mode badge + counts + runtime status).
-- provider section header + collapse control.
+- catalog header (provider-library policy badge + counts + runtime status).
+- configured provider section header + collapse control on the main page.
+- Add Provider wizard template list (read-only Provider Library copy sources).
 - provider/model row badges.
-- secret input field (radio: preserve / set-ref / clear, ref + refTemplate inputs).
+- secret input field (radio: preserve / set-ref / clear, environment SecretRef ID input).
 - impact preview reference list.
 - typed-confirm dialog body.
 
@@ -127,13 +144,15 @@ modules may motivate a `WizardShell` proposal but is not in scope here.
 - Code truth (`src/config/types.models.ts` + zod schema +
   `contracts/source/deck-api.contract.ts`) wins over this handoff when the
   two disagree.
-- Typed BFF actions are the default save path. Raw `PATCH /models/config` is
-  reserved for the advanced editor.
+- Typed BFF actions are the Models save path. Unsupported advanced leaves are
+  summarized or tracked as follow-ups; they are not routed through a Models raw
+  editor.
 - SecretInput writes never carry a literal secret value; only `SecretRef`
-  values cross the wire. Existing literals are surfaced as `literal-redacted`
-  in `secretStatus` and clearable via the `clear` action.
-- Delete and mode-replace flows MUST go through impact preview → impact
-  token → type-to-confirm. Stale preview tokens are rejected by the BFF.
+  objects cross the wire. Existing literals are surfaced as
+  `literal-redacted` in `apiKeyStatus` / header statuses and clearable via
+  the `clear` action.
+- Delete and advanced configured-only policy flows MUST go through impact check
+  → impact token → type-to-confirm. Stale preview tokens are rejected by the BFF.
 - Base-hash conflicts surface as `DataFabricError` `kind: "conflict"` and
   refresh the underlying detail before the user retries.
 - This change does not claim audit, rollback, secret-store CRUD, OAuth
@@ -143,7 +162,7 @@ modules may motivate a `WizardShell` proposal but is not in scope here.
 
 1. Open the active `prototype.html` (served via `http.server`) and walk
    through the catalog header, provider list, provider drawer, model drawer,
-   Add Provider wizard, Impact preview dialog, and type-to-confirm dialog.
+   Add Provider wizard, Impact check dialog, and type-to-confirm dialog.
 2. Read `components.md` (component tree + props shapes for the typed flow).
 3. Read `states.md` (orchestrator state machines + edge cases).
 4. Read `interactions.md` (keyboard / a11y / pointer / loading / errors).
@@ -151,11 +170,11 @@ modules may motivate a `WizardShell` proposal but is not in scope here.
    conflict and stale-preview handling).
 6. Translate into `frontend-new/src/components/panels/models/` preserving
    the typed mutation routing, `expectedBaseHash` flow, SecretRef-only
-   writes, impact-preview gating, and advanced-raw escape boundary.
+   writes and impact-preview gating.
 7. Extract literal text into `i18n/{en,zh}.json` per protocol.
 8. Add focused component tests covering list rendering, drawers, wizard,
    typed mutation routing, conflict propagation, SecretRef construction,
-   delete preview-then-commit, and advanced raw fallback isolation.
+   delete preview-then-commit, raw-editor absence, and usage-policy rendering.
 
 ## Why the prototype line of thinking shifted
 
@@ -173,8 +192,10 @@ proposals add them with a real contract chain.
 
 Tracked under `openspec/follow-ups/`:
 
-- Model-default editing UI surface (config detail currently exposes default
-  references read-only; a dedicated default editor is deferred).
+- Agent model-policy editing UI surface. Models exposes default/fallback
+  references read-only; editing `agents.defaults.model`, role defaults,
+  per-agent `model`, subagent `model`, and `{ primary, fallbacks }` belongs to
+  the Agents redesign.
 - Rate-limit / per-model schema additions (`rateLimit`, advanced cost
   layouts).
 - OAuth runner UX (browser-driven OAuth round trip).

@@ -550,6 +550,33 @@ export const deckGoMutationEvidenceContract = {
       },
     },
     {
+      id: "agents.modelPolicy.save",
+      ownerModule: "agents",
+      route: "POST /deck/agents",
+      sourceClassification: "gateway-backed",
+      responseDto: "DeckGoAgentModelPolicySetResponse",
+      successIndicator: {
+        path: "ok",
+        expected: true,
+      },
+      targetId: {
+        source: "response",
+        path: "target.agentId",
+      },
+      auditCoverage: {
+        mode: "process-memory",
+        source: "deck-go-agents-model-policy-convergence",
+      },
+      idempotency: "unsupported",
+      conflictBehavior: "config-write-safety",
+      fixtureSafety: {
+        status: "deferred",
+        evidence: ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        notes:
+          "Uses baseHash config-write semantics; final fixture-safety depends on this change's reversible isolated real-stack model-policy coverage.",
+      },
+    },
+    {
       id: "skills.update",
       ownerModule: "skills",
       route: "PATCH /skills/{skillKey}",
@@ -1191,7 +1218,7 @@ export const deckGoMutationEvidenceContract = {
         status: "deferred",
         evidence: ["deck-go/test/e2e/models-real-gateway.spec.ts"],
         notes:
-          "Provider delete commit re-runs modelReferenceIndex against current config, rejects stale impactToken or hash mismatch, and removes the provider via Gateway config.patch. Real mutation deferred until reversible fixtures exist.",
+          "Provider delete commit re-runs modelReferenceIndex against current config, rejects stale impactToken or hash mismatch, and removes the provider via Gateway config.apply because config.patch merge semantics cannot delete omitted provider keys. Real mutation is covered by deck-go/test/e2e/models-real-gateway.spec.ts.",
       },
     },
     {
@@ -1245,7 +1272,7 @@ export const deckGoMutationEvidenceContract = {
         status: "deferred",
         evidence: ["deck-go/test/e2e/models-real-gateway.spec.ts"],
         notes:
-          "Model delete commit re-scans references, validates impactToken freshness, and removes the model from the provider via Gateway config.patch. Deferred until reversible fixtures exist.",
+          "Model delete commit re-scans references, validates impactToken freshness, and removes the model from the provider via Gateway config.apply because config.patch merges array entries by id and omission does not delete a model. Real mutation is covered by deck-go/test/e2e/models-real-gateway.spec.ts.",
       },
     },
     {

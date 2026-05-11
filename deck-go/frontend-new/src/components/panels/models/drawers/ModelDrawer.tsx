@@ -6,11 +6,17 @@ import type {
 } from "@/api-types";
 import { Banner, Button, Drawer, Input, Tab, Toggle } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
+import {
+  booleanToggleAction,
+  modelDefaultRoles,
+  modelUsageRelations,
+  modelUsageRoles,
+} from "../lib/models-selectors";
 
 const MODEL_TABS = ["overview", "identity", "capacity", "cost", "networking", "advanced"] as const;
 type ModelTab = (typeof MODEL_TABS)[number];
 
-const INPUT_MODALITIES: DeckGoModelInputModality[] = ["text", "image", "pdf", "audio", "video"];
+const INPUT_MODALITIES: DeckGoModelInputModality[] = ["text", "image"];
 
 export interface ModelDrawerProps {
   open: boolean;
@@ -37,6 +43,9 @@ function toNumberOrUndefined(value: string): number | undefined {
 export function ModelDrawer(props: ModelDrawerProps) {
   const t = useTranslations("models");
   const model = props.model;
+  const defaultRoles = model ? modelDefaultRoles(model) : [];
+  const usageRelations = model ? modelUsageRelations(model) : [];
+  const usageRoles = model ? modelUsageRoles(model) : [];
   const [tab, setTab] = useState<ModelTab>("overview");
   const [modelId, setModelId] = useState(model?.id ?? "");
   const [name, setName] = useState(model?.name ?? "");
@@ -107,7 +116,7 @@ export function ModelDrawer(props: ModelDrawerProps) {
       name: name.trim() || undefined,
       api: api.trim() || undefined,
       inheritsApi,
-      reasoning,
+      reasoning: booleanToggleAction(reasoning),
       inputs: Array.from(inputs),
       contextWindow: toNumberOrUndefined(contextWindow),
       contextTokens: toNumberOrUndefined(contextTokens),
@@ -159,6 +168,9 @@ export function ModelDrawer(props: ModelDrawerProps) {
         <section className="models-drawer-body" role="tabpanel">
           {tab === "overview" ? (
             <div className="models-form">
+              {!props.isCreate && (usageRelations.length > 0 || usageRoles.length > 0) ? (
+                <Banner variant="info">{t("modelDrawer.hints.policyOwner")}</Banner>
+              ) : null}
               <label>
                 {t("modelDrawer.fields.modelId")}
                 <Input
@@ -172,6 +184,33 @@ export function ModelDrawer(props: ModelDrawerProps) {
                 {t("modelDrawer.fields.name")}
                 <Input value={name} onChange={(event) => setName(event.target.value)} />
               </label>
+              {!props.isCreate && (usageRelations.length > 0 || usageRoles.length > 0) ? (
+                <ul className="models-drawer-summary">
+                  {usageRelations.length > 0 ? (
+                    <li>
+                      {t("modelDrawer.summary.usageRelations", {
+                        relations: usageRelations
+                          .map((relation) => t(`impactDialog.relation.${relation}`))
+                          .join(", "),
+                      })}
+                    </li>
+                  ) : null}
+                  {usageRoles.length > 0 ? (
+                    <li>
+                      {t("modelDrawer.summary.usageRoles", {
+                        roles: usageRoles.join(", "),
+                      })}
+                    </li>
+                  ) : null}
+                  {defaultRoles.length > 0 ? (
+                    <li>
+                      {t("modelDrawer.summary.defaultRoles", {
+                        roles: defaultRoles.join(", "),
+                      })}
+                    </li>
+                  ) : null}
+                </ul>
+              ) : null}
             </div>
           ) : null}
           {tab === "identity" ? (

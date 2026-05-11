@@ -5,9 +5,14 @@ import { createDataFabricQueryClient } from "../../client/query-client";
 import { executeBffQuerySource, type DataFabricBffTransport } from "../../transport/bff";
 import type { DataFabricGatewayRpcTransport } from "../../transport/gateway-rpc";
 import { agentsKeys } from "./keys";
-import { agentsListQueryOptions, agentSkillsQueryOptions } from "./queries";
+import {
+  agentModelPolicyQueryOptions,
+  agentsListQueryOptions,
+  agentSkillsQueryOptions,
+} from "./queries";
 
 const apiMocks = vi.hoisted(() => ({
+  fetchAgentModelPolicy: vi.fn(),
   fetchAgentSkills: vi.fn(),
   fetchAgentsList: vi.fn(),
 }));
@@ -67,6 +72,27 @@ describe("Agents Data Fabric queries", () => {
     await queryClient.fetchQuery(agentSkillsQueryOptions(bff, "main"));
 
     expect(apiMocks.fetchAgentSkills).toHaveBeenCalledWith("main");
+    expect(calls).toEqual(["POST /deck/agents"]);
+  });
+
+  it("wraps model policy as a config-authority BFF read model", async () => {
+    const calls: string[] = [];
+    const bff: DataFabricBffTransport = (source, signal) => {
+      calls.push(source.path);
+      return executeBffQuerySource(source, signal) as never;
+    };
+    const queryClient = new QueryClient();
+    apiMocks.fetchAgentModelPolicy.mockResolvedValue({
+      agentId: "main",
+      configHash: "policy-hash",
+      configuredModels: [],
+      policies: [],
+      unsupported: [],
+    });
+
+    await queryClient.fetchQuery(agentModelPolicyQueryOptions(bff, "main"));
+
+    expect(apiMocks.fetchAgentModelPolicy).toHaveBeenCalledWith("main");
     expect(calls).toEqual(["POST /deck/agents"]);
   });
 });

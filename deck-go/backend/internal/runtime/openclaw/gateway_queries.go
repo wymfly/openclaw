@@ -400,6 +400,22 @@ func (q *GatewayQueries) DeckAgentsSubagentsSet(ctx context.Context, body map[st
 	return q.typed.DeckAgentsSubagentsSet(ctx, params)
 }
 
+func (q *GatewayQueries) DeckAgentsModelPolicyGet(ctx context.Context, body map[string]any) (generated.DeckAgentsModelPolicyGetResult, error) {
+	params, err := typedParamsFromMap[generated.DeckAgentsModelPolicyGetParams](body)
+	if err != nil {
+		return generated.DeckAgentsModelPolicyGetResult{}, err
+	}
+	return q.typed.DeckAgentsModelPolicyGet(ctx, params)
+}
+
+func (q *GatewayQueries) DeckAgentsModelPolicySet(ctx context.Context, body map[string]any) (generated.DeckAgentsModelPolicySetResult, error) {
+	params, err := typedParamsFromMap[generated.DeckAgentsModelPolicySetParams](body)
+	if err != nil {
+		return generated.DeckAgentsModelPolicySetResult{}, err
+	}
+	return q.typed.DeckAgentsModelPolicySet(ctx, params)
+}
+
 func (q *GatewayQueries) DeckAgentsToolPolicyPreview(ctx context.Context, body map[string]any) (generated.DeckAgentsToolPolicyPreviewResult, error) {
 	params, err := typedParamsFromMap[generated.DeckAgentsToolPolicyPreviewParams](body)
 	if err != nil {

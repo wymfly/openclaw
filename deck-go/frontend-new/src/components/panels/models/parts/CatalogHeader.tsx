@@ -10,7 +10,6 @@ export interface CatalogHeaderProps {
   isRefreshing: boolean;
   onRefresh: () => void;
   onAddProvider: () => void;
-  onOpenAdvancedRaw: () => void;
   onChangeMode: (mode: DeckGoModelCatalogMode) => void;
   modeBusy: boolean;
 }
@@ -51,16 +50,14 @@ export function CatalogHeader(props: CatalogHeaderProps) {
         <div className="models-header-title">
           <h2>{t("title")}</h2>
           <span className="models-header-mode" data-mode={mode}>
-            {t(`mode.${mode}`)}
+            {t(`mode.${mode}Label`)}
+            <small>{t("mode.rawValue", { value: mode })}</small>
           </span>
         </div>
         <div className="models-header-actions">
           <Button variant="ghost" size="sm" onClick={props.onRefresh} disabled={props.isRefreshing}>
             <IconRefresh size={14} aria-hidden />
             {props.isRefreshing ? t("status.refreshing") : t("status.refresh")}
-          </Button>
-          <Button variant="ghost" size="sm" onClick={props.onOpenAdvancedRaw}>
-            {t("actions.openAdvancedRaw")}
           </Button>
           <Button
             variant="primary"
@@ -93,24 +90,20 @@ export function CatalogHeader(props: CatalogHeaderProps) {
           </Badge>
         </Chip>
       </div>
-      <div className="models-header-mode-toggle" role="group" aria-label={t("mode.toggleLabel")}>
-        <Button
-          variant={mode === "merge" ? "primary" : "ghost"}
-          size="sm"
-          onClick={() => props.onChangeMode("merge")}
-          disabled={props.modeBusy || mode === "merge"}
-        >
-          {t("mode.merge")}
-        </Button>
-        <Button
-          variant={mode === "replace" ? "primary" : "ghost"}
-          size="sm"
-          onClick={() => props.onChangeMode("replace")}
-          disabled={props.modeBusy || mode === "replace"}
-        >
-          {t("mode.replace")}
-        </Button>
-      </div>
+      {mode === "replace" ? (
+        <div className="models-header-policy" role="status">
+          <p>{t("mode.replaceWarning")}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => props.onChangeMode("merge")}
+            disabled={props.modeBusy}
+          >
+            {t("mode.restoreMerge")}
+          </Button>
+        </div>
+      ) : null}
+      <p className="models-header-mode-help">{t(`mode.${mode}Help`)}</p>
     </header>
   );
 }

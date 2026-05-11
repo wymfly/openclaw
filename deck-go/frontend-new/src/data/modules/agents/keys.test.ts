@@ -8,6 +8,7 @@ import {
   agentEventStreamsQueryOptions,
   agentFilesQueryOptions,
   agentHealthQueryOptions,
+  agentModelPolicyQueryOptions,
   agentSkillsQueryOptions,
   agentsConfiguredModelsQueryOptions,
   agentsListQueryOptions,
@@ -28,6 +29,8 @@ describe("Agents Data Fabric keys", () => {
       agentsKeys.health(),
       agentsKeys.skills("main"),
       agentsKeys.subagents("main"),
+      agentsKeys.modelPolicy("main"),
+      agentsKeys.modelPolicy(),
       agentsKeys.eventStreams("main"),
       agentsKeys.toolPolicy("main"),
       agentsKeys.systemPrompt("main"),
@@ -56,6 +59,9 @@ describe("Agents Data Fabric keys", () => {
       dataFreshnessPolicies["config-authority"].staleTime,
     );
     expect(agentSubagentsQueryOptions(noopBff, "main").staleTime).toBe(
+      dataFreshnessPolicies["config-authority"].staleTime,
+    );
+    expect(agentModelPolicyQueryOptions(noopBff, "main").staleTime).toBe(
       dataFreshnessPolicies["config-authority"].staleTime,
     );
     expect(agentEventStreamsQueryOptions(noopBff, "main").staleTime).toBe(

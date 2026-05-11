@@ -260,6 +260,52 @@
       "guardsLabel": "Guarded runtime fields",
       "saveGuarded": "Review and save"
     },
+    "modelPolicy": {
+      "title": "Model usage policy",
+      "description": "Agents owns runtime model usage policy. Models owns provider and model assets.",
+      "agentGroup": "Selected agent policy",
+      "globalGroup": "Global role defaults",
+      "modeLabel": "Model policy mode",
+      "inherit": "Inherit default",
+      "override": "Explicit override",
+      "inheritedCopy": "This agent inherits the effective model {value}.",
+      "primary": "Primary model",
+      "fallbacks": "Fallback chain",
+      "selectPrimary": "Select primary model",
+      "selectFallback": "Select fallback model",
+      "noFallbacks": "No fallbacks configured.",
+      "addFallback": "Add fallback",
+      "removeFallback": "Remove",
+      "moveUp": "Up",
+      "moveDown": "Down",
+      "savePolicy": "Save policy",
+      "primaryRequired": "Choose a primary model before saving.",
+      "confirmMain": "This changes model policy for the protected main agent or its defaults. Continue?",
+      "confirmRuntime": "This changes runtime cost, capability, fallback, or availability behavior. Continue?",
+      "fallbackSupported": "fallbacks",
+      "primaryOnly": "primary only",
+      "noConfiguredModels": "No configured model assets are available. Add providers and models in Models before editing policy.",
+      "unavailable": "Unavailable references are preserved until replaced: {refs}",
+      "unsupported": "Unsupported model-like fields are read-only and not editable here: {fields}",
+      "source": {
+        "agent": "agent",
+        "default": "default",
+        "missing": "missing"
+      },
+      "targets": {
+        "agent": "Agent runtime model",
+        "agentSubagents": "Agent subagent model",
+        "text": "Text default",
+        "image": "Image input default",
+        "imageGeneration": "Image generation default",
+        "videoGeneration": "Video generation default",
+        "musicGeneration": "Music generation default",
+        "pdf": "PDF default",
+        "compaction": "Compaction default",
+        "memorySearch": "Memory search default",
+        "subagents": "Subagent default"
+      }
+    },
     "skills": {
       "description": "Use current Gateway skill semantics: all skills or a whitelist with explicit toggles.",
       "modeLabel": "Skill mode",
@@ -283,6 +329,7 @@
       "explicit": "Explicit list",
       "allowAnyDescription": "Gateway wildcard is active: this agent may delegate to any agent.",
       "narrowingWarning": "Explicit list mode narrows the previous wildcard permission.",
+      "modelPolicyMoved": "Subagent model policy now lives in Runtime → Model usage policy so allow-list editing cannot overwrite model strategy.",
       "empty": "No delegatable agents are reported by the runtime.",
       "toggle": "Permit subagent {name}"
     },
@@ -935,7 +982,14 @@
     "mode": {
       "merge": "merge",
       "replace": "replace",
-      "toggleLabel": "Catalog mode"
+      "mergeLabel": "Provider library + configured assets",
+      "replaceLabel": "Strict configured-only policy",
+      "mergeHelp": "Built-in provider templates stay available to configure, while authored providers in openclaw.json remain the writable assets.",
+      "replaceHelp": "This config is using the low-level replace policy, so runtime visibility is limited to providers authored in openclaw.json.",
+      "replaceWarning": "Strict configured-only policy is active. Built-in templates remain visible here for setup, but runtime only sees authored providers.",
+      "restoreMerge": "Restore library visibility",
+      "rawValue": "mode: {value}",
+      "toggleLabel": "Catalog sync policy"
     },
     "status": {
       "refresh": "Refresh",
@@ -958,7 +1012,6 @@
     },
     "actions": {
       "addProvider": "Add provider",
-      "openAdvancedRaw": "Advanced raw editor",
       "refresh": "Refresh",
       "dismiss": "Dismiss",
       "close": "Close",
@@ -980,7 +1033,7 @@
     "errors": {
       "detailFailed": "Failed to load models config detail.",
       "upsertFailed": "Save failed.",
-      "previewFailed": "Impact preview failed.",
+      "previewFailed": "Impact check failed.",
       "deleteFailed": "Delete failed.",
       "modeFailed": "Mode change failed.",
       "saveFailed": "Save failed.",
@@ -991,9 +1044,12 @@
       "reasoning": "reasoning",
       "contextWindow": "ctx {value}",
       "defaultBadge": "default",
+      "fallbackBadge": "fallback",
+      "primaryBadge": "primary",
       "referencedBadge": "referenced",
+      "usageRoles": "roles: {roles}",
       "edit": "Edit",
-      "previewDelete": "Preview delete"
+      "checkDeleteImpact": "Check impact"
     },
     "provider": {
       "apiUnknown": "(api unset)",
@@ -1007,7 +1063,49 @@
       "noModels": "No models configured for this provider.",
       "edit": "Edit provider",
       "addModel": "Add model",
-      "previewDelete": "Preview delete"
+      "checkDeleteImpact": "Check impact"
+    },
+    "providerLibrary": {
+      "title": "Provider Library",
+      "description": "Built-in templates are read-only starting points. Copy one to create your own configured provider and choose its models.",
+      "count": "{count} templates",
+      "loading": "Loading provider library...",
+      "empty": "No provider templates are available from the runtime catalog.",
+      "unavailable": "Provider library is unavailable. Configured providers below remain editable.",
+      "template": "template",
+      "configured": "configured",
+      "models": "{count} catalog models",
+      "baseUrlConfigured": "base URL",
+      "configure": "Configure",
+      "editConfigured": "Edit configured"
+    },
+    "configuredProviders": {
+      "title": "Configured Providers",
+      "description": "These providers are authored assets in openclaw.json. Edit, add models, or run impact checks here."
+    },
+    "policy": {
+      "title": "Model usage policy",
+      "description": "Read-only view of model roles projected from agents defaults and references. Models owns provider/model assets; Agents owns primary, fallback, and role policy edits.",
+      "owner": "Edited in Agents",
+      "empty": "No explicit model usage policy is configured in this snapshot.",
+      "unset": "No primary model",
+      "fallbacks": "Fallbacks: {fallbacks}",
+      "source": {
+        "explicit": "explicit",
+        "derived": "derived"
+      },
+      "roles": {
+        "text": "Text",
+        "image": "Image understanding",
+        "imageGeneration": "Image generation",
+        "videoGeneration": "Video generation",
+        "musicGeneration": "Music generation",
+        "pdf": "PDF",
+        "summary": "Summary",
+        "compaction": "Compaction",
+        "memorySearch": "Memory search",
+        "subagents": "Subagents"
+      }
     },
     "secret": {
       "missing": "missing",
@@ -1015,10 +1113,8 @@
       "ref": "secret ref",
       "literal-redacted": "literal value (redacted)",
       "literalHint": "Existing literal value is hidden. Use Set ref to migrate to a SecretRef.",
-      "refLabel": "Secret ref",
-      "refPlaceholder": "deck.secrets.openai.apiKey",
-      "refTemplateLabel": "Ref template (optional)",
-      "refTemplatePlaceholder": "${ENV_VAR_NAME}",
+      "refLabel": "Env secret id",
+      "refPlaceholder": "OPENAI_API_KEY",
       "actions": {
         "preserve": "Keep current",
         "setRef": "Set ref",
@@ -1048,7 +1144,7 @@
       "hints": {
         "providerId": "Used as the openclaw.json key. Cannot be renamed once created.",
         "apiKey": "deck-go writes SecretRef references; literal values must be managed elsewhere.",
-        "advanced": "Compat and request blobs remain in advanced raw editor."
+        "advanced": "Request and header details are summarized here until dedicated typed controls exist."
       },
       "summary": {
         "requestPresent": "request block: {state}",
@@ -1085,13 +1181,17 @@
         "costCacheWrite": "Cache write cost"
       },
       "hints": {
-        "networking": "Per-model headers are kept as opaque secrets. Use Advanced raw to inspect them.",
-        "advanced": "Compat flags and rawKeys are read-only summaries."
+        "networking": "Per-model headers are summarized as technical config and are not editable from Models yet.",
+        "advanced": "Compat flags and rawKeys are read-only summaries.",
+        "policyOwner": "Usage shown here is read-only. Agent defaults, primary model, and fallback policy are owned by Agents."
       },
       "summary": {
         "headers": "headers: {state}",
         "compatPresent": "compat block: {state}",
-        "compatFlags": "flags: {flags}"
+        "compatFlags": "flags: {flags}",
+        "usageRelations": "usage: {relations}",
+        "usageRoles": "roles: {roles}",
+        "defaultRoles": "default roles: {roles}"
       }
     },
     "addProvider": {
@@ -1103,23 +1203,37 @@
         "review": "Review"
       },
       "hints": {
-        "select": "Pick a provider from the runtime catalog or create a custom one.",
-        "secret": "We write SecretRef. Existing literal values must be migrated through the advanced editor."
+        "select": "Copy any provider template as a baseline, or start from a blank custom provider.",
+        "secret": "We write SecretRef. Existing literal values are shown only as redacted status and must be migrated through a dedicated secret/config workflow."
       },
       "noCatalog": "Catalog is empty. Use Custom to add a provider manually.",
       "useCustom": "Use custom provider",
+      "startBlank": "Start blank custom provider",
+      "templateSummary": "{api} · {count} default models",
       "submit": "Create provider",
+      "collision": {
+        "description": "Provider {provider} already exists. Edit the existing provider or choose another id before creating a new asset.",
+        "editExisting": "Edit existing"
+      },
       "review": {
-        "secretRef": "ref: {ref}"
+        "secretRef": "SecretRef: {ref}"
+      },
+      "models": {
+        "title": "Default models",
+        "empty": "This provider starts without default models. You can add custom models after creation.",
+        "hint": "Selected template models will be written to the authored provider config. Unselected catalog models remain available as template data only.",
+        "reviewLabel": "Models",
+        "reviewCount": "{count} selected"
       }
     },
     "impactDialog": {
-      "title": "Impact preview",
+      "title": "Impact check",
       "loading": "Loading impact preview...",
       "referenceCount": "{count} references found.",
       "noReferences": "No references found in current config.",
       "unavailableProviders": "{count} provider(s) become unavailable after replace mode.",
       "defaultsAffected": "Default roles affected: {paths}.",
+      "agentOwnerNote": "Agent model policy is owned by Agents. Models shows these references for impact review; defaults, primary models, and fallback chains are handled by the Agents redesign.",
       "continue": "Continue",
       "blocked": "Blocked",
       "severity": {
@@ -1140,6 +1254,13 @@
         "hooks": "hooks",
         "tools": "tools",
         "sessions": "sessions"
+      },
+      "relation": {
+        "primary": "primary",
+        "fallback": "fallback",
+        "default": "default",
+        "derived": "derived",
+        "reference": "reference"
       }
     },
     "confirmDialog": {
@@ -1154,14 +1275,9 @@
         "description": "This rewrites openclaw.json without the model entry. Existing references will fail until they are repointed."
       },
       "mode": {
-        "title": "Switch to replace mode",
-        "description": "Replace mode hides catalog providers that are not present in openclaw.json. Type the word to confirm."
+        "title": "Switch to configured-assets-only policy",
+        "description": "This writes mode value \"replace\" and hides catalog providers that are not present in openclaw.json. Type the word to confirm."
       }
-    },
-    "advancedRaw": {
-      "title": "Advanced raw editor",
-      "disclaimer": "Raw editor bypasses typed validation. Reserved for compat/request leaves and unproductized fields.",
-      "editorLabel": "openclaw.json models block"
     }
   },
   "routing": {

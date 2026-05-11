@@ -173,6 +173,45 @@ func TestGatewayQueriesLowRiskWrappersUseTypedClient(t *testing.T) {
 			},
 		},
 		{
+			name: "deck agents model policy get",
+			call: func() (any, error) {
+				return queries.DeckAgentsModelPolicyGet(ctx, map[string]any{"agentId": "main"})
+			},
+			method: "deck.agents.modelPolicy.get",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.DeckAgentsModelPolicyGetParams)
+				if !ok || got.AgentId != "main" {
+					t.Fatalf("expected DeckAgentsModelPolicyGetParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
+			name: "deck agents model policy set",
+			call: func() (any, error) {
+				return queries.DeckAgentsModelPolicySet(ctx, map[string]any{
+					"target":    map[string]any{"kind": "agent-model", "key": "agent", "agentId": "main"},
+					"selection": map[string]any{"primary": "openai/gpt-5.4", "fallbacks": []any{"anthropic/claude-sonnet-4-6"}},
+					"baseHash":  "hash-1",
+				})
+			},
+			method: "deck.agents.modelPolicy.set",
+			assertType: func(t *testing.T, params any) {
+				t.Helper()
+				got, ok := params.(generated.DeckAgentsModelPolicySetParams)
+				if !ok ||
+					got.Target.Kind != "agent-model" ||
+					got.Target.Key != "agent" ||
+					got.Target.AgentId != "main" ||
+					got.Selection.Primary != "openai/gpt-5.4" ||
+					len(got.Selection.Fallbacks) != 1 ||
+					got.Selection.Fallbacks[0] != "anthropic/claude-sonnet-4-6" ||
+					got.BaseHash != "hash-1" {
+					t.Fatalf("expected DeckAgentsModelPolicySetParams, got %T %#v", params, params)
+				}
+			},
+		},
+		{
 			name: "deck plugins list",
 			call: func() (any, error) {
 				return queries.DeckPluginsList(ctx, map[string]any{"capability": "channels"})

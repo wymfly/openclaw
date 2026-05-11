@@ -1251,6 +1251,20 @@ func registerInventoryRoutes(mux interface {
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
+		case "modelPolicy.get":
+			payload, err := adapter.DeckAgentsModelPolicyGet(ctx, body)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "deck.agents.modelPolicy.get", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		case "modelPolicy.set":
+			payload, err := adapter.DeckAgentsModelPolicySet(ctx, body)
+			if err != nil {
+				writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "method": "deck.agents.modelPolicy.set", "error": err.Error()})
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
 		case "toolPolicy.preview":
 			payload, err := adapter.DeckAgentsToolPolicyPreview(ctx, body)
 			if err != nil {

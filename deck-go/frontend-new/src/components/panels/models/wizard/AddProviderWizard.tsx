@@ -1,13 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   DeckGoCatalogProvider,
   DeckGoModelProviderAuthMode,
+  DeckGoModelProviderUpsertModelInput,
   DeckGoModelProviderUpsertRequest,
 } from "@/api-types";
 import { Banner, Button, Drawer, Input, Select } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
 import { SecretInputField } from "../drawers/SecretInputField";
-import type { SecretEditAction } from "../lib/models-selectors";
+import { envSecretRef, secretRefLabel, type SecretEditAction } from "../lib/models-selectors";
 
 const STEP_KEYS = ["select", "configure", "review"] as const;
 type WizardStep = (typeof STEP_KEYS)[number];
@@ -18,9 +19,12 @@ export interface AddProviderWizardProps {
   open: boolean;
   baseHash: string | undefined;
   catalogProviders: DeckGoCatalogProvider[];
+  existingProviderIds: string[];
+  initialProviderId?: string;
   busy: boolean;
   errorMessage?: string;
   onClose: () => void;
+  onEditExisting: (providerId: string) => void;
   onSubmit: (request: DeckGoModelProviderUpsertRequest) => Promise<void>;
 }
 
@@ -32,6 +36,11 @@ interface DraftState {
   baseUrl: string;
   auth: DeckGoModelProviderAuthMode;
   secret: SecretEditAction;
+  models: DraftModel[];
+}
+
+interface DraftModel extends DeckGoModelProviderUpsertModelInput {
+  selected: boolean;
 }
 
 function emptyDraft(): DraftState {
@@ -41,14 +50,57 @@ function emptyDraft(): DraftState {
     api: "",
     baseUrl: "",
     auth: "api-key",
-    secret: { kind: "set-ref", ref: "" },
+    secret: { kind: "set-ref", ref: envSecretRef("") },
+    models: [],
   };
+}
+
+function draftFromCatalog(entry: DeckGoCatalogProvider): DraftState {
+  const auth: DeckGoModelProviderAuthMode = AUTH_MODES.includes(
+    entry.authType as DeckGoModelProviderAuthMode,
+  )
+    ? (entry.authType as DeckGoModelProviderAuthMode)
+    : "api-key";
+  const models = (entry.models ?? []).map((model) => {
+    const draftModel: DraftModel = {
+      id: model.id,
+      selected: true,
+    };
+    if (model.name) {
+      draftModel.name = model.name;
+    }
+    if (model.contextWindow != null) {
+      draftModel.contextWindow = model.contextWindow;
+    }
+    if (model.maxTokens != null) {
+      draftModel.maxTokens = model.maxTokens;
+    }
+    if (model.reasoning) {
+      draftModel.reasoning = "enable";
+    }
+    return draftModel;
+  });
+  return {
+    ...emptyDraft(),
+    source: "catalog",
+    catalogId: entry.id,
+    providerId: entry.id ?? "",
+    api: entry.api ?? "",
+    baseUrl: entry.defaultBaseUrl ?? "",
+    auth,
+    models,
+  };
+}
+
+function selectedModelInputs(models: DraftModel[]): DeckGoModelProviderUpsertModelInput[] {
+  return models.filter((model) => model.selected).map(({ selected: _selected, ...model }) => model);
 }
 
 export function AddProviderWizard(props: AddProviderWizardProps) {
   const t = useTranslations("models");
   const [step, setStep] = useState<WizardStep>("select");
   const [draft, setDraft] = useState(emptyDraft());
+  const [appliedInitial, setAppliedInitial] = useState<string | undefined>();
 
   const sortedCatalog = useMemo(
     () =>
@@ -58,9 +110,15 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
     [props.catalogProviders],
   );
 
+  const collisionProviderId = props.existingProviderIds.find(
+    (id) => id === draft.providerId.trim(),
+  );
+  const hasCollision = Boolean(collisionProviderId);
+
   const ready =
     draft.providerId.trim().length > 0 &&
-    (draft.secret.kind !== "set-ref" || draft.secret.ref.trim().length > 0);
+    !hasCollision &&
+    (draft.secret.kind !== "set-ref" || draft.secret.ref.id.trim().length > 0);
 
   const reset = () => {
     setStep("select");
@@ -73,20 +131,8 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
   };
 
   const pickCatalog = (entry: DeckGoCatalogProvider) => {
-    const auth: DeckGoModelProviderAuthMode = AUTH_MODES.includes(
-      entry.authType as DeckGoModelProviderAuthMode,
-    )
-      ? (entry.authType as DeckGoModelProviderAuthMode)
-      : "api-key";
-    setDraft({
-      ...draft,
-      source: "catalog",
-      catalogId: entry.id,
-      providerId: entry.id ?? "",
-      api: entry.api ?? "",
-      baseUrl: entry.defaultBaseUrl ?? "",
-      auth,
-    });
+    setDraft(draftFromCatalog(entry));
+    setStep("configure");
   };
 
   const pickCustom = () => {
@@ -94,7 +140,33 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
       ...emptyDraft(),
       source: "custom",
     });
+    setStep("configure");
   };
+
+  useEffect(() => {
+    if (!props.open) {
+      setAppliedInitial(undefined);
+      return;
+    }
+    const marker = props.initialProviderId ? `catalog:${props.initialProviderId}` : "select";
+    if (appliedInitial === marker) {
+      return;
+    }
+    if (!props.initialProviderId) {
+      reset();
+      setAppliedInitial(marker);
+      return;
+    }
+    const initialEntry = props.catalogProviders.find(
+      (entry) => entry.id === props.initialProviderId,
+    );
+    if (!initialEntry) {
+      return;
+    }
+    setDraft(draftFromCatalog(initialEntry));
+    setStep("configure");
+    setAppliedInitial(marker);
+  }, [appliedInitial, props.catalogProviders, props.initialProviderId, props.open]);
 
   const submit = async () => {
     if (!props.baseHash || !ready) {
@@ -111,16 +183,20 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
     if (draft.secret.kind === "set-ref") {
       request.apiKey = {
         action: "set-ref",
-        ref: draft.secret.ref.trim(),
-        refTemplate: draft.secret.refTemplate,
+        ref: { ...draft.secret.ref, id: draft.secret.ref.id.trim() },
       };
     } else if (draft.secret.kind === "clear") {
       request.apiKey = { action: "clear" };
     } else {
       request.apiKey = { action: "preserve" };
     }
+    const models = selectedModelInputs(draft.models);
+    if (models.length > 0) {
+      request.models = models;
+    }
     await props.onSubmit(request);
     reset();
+    props.onClose();
   };
 
   return (
@@ -150,22 +226,50 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
               ) : (
                 <ul className="models-wizard-catalog">
                   {sortedCatalog.map((entry) => (
-                    <li key={entry.id} data-active={draft.catalogId === entry.id || undefined}>
+                    <li
+                      key={entry.id}
+                      data-active={draft.catalogId === entry.id || undefined}
+                      data-configured={props.existingProviderIds.includes(entry.id) || undefined}
+                    >
                       <button type="button" onClick={() => pickCatalog(entry)}>
                         <strong>{entry.id}</strong>
-                        <span>{entry.api ?? t("provider.apiUnknown")}</span>
+                        <span>
+                          {props.existingProviderIds.includes(entry.id)
+                            ? t("providerLibrary.configured")
+                            : t("addProvider.templateSummary", {
+                                api: entry.api ?? t("provider.apiUnknown"),
+                                count: entry.modelCount ?? entry.models?.length ?? 0,
+                              })}
+                        </span>
                       </button>
                     </li>
                   ))}
                 </ul>
               )}
               <Button variant="ghost" size="sm" onClick={pickCustom}>
-                {t("addProvider.useCustom")}
+                {t("addProvider.startBlank")}
               </Button>
             </div>
           ) : null}
           {step === "configure" ? (
             <div className="models-form">
+              {hasCollision && collisionProviderId ? (
+                <Banner variant="warn">
+                  <span>
+                    {t("addProvider.collision.description", { provider: collisionProviderId })}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      close();
+                      props.onEditExisting(collisionProviderId);
+                    }}
+                  >
+                    {t("addProvider.collision.editExisting")}
+                  </Button>
+                </Banner>
+              ) : null}
               <label>
                 {t("providerDrawer.fields.providerId")}
                 <Input
@@ -213,10 +317,54 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
                 description={t("addProvider.hints.secret")}
                 testId="add-provider-api-key"
               />
+              <fieldset className="models-form-fieldset models-template-models">
+                <legend>{t("addProvider.models.title")}</legend>
+                {draft.models.length === 0 ? (
+                  <p className="models-form-meta">{t("addProvider.models.empty")}</p>
+                ) : (
+                  <ul className="models-template-model-list">
+                    {draft.models.map((model) => (
+                      <li key={model.id}>
+                        <label className="models-form-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={model.selected}
+                            onChange={() =>
+                              setDraft({
+                                ...draft,
+                                models: draft.models.map((candidate) =>
+                                  candidate.id === model.id
+                                    ? { ...candidate, selected: !candidate.selected }
+                                    : candidate,
+                                ),
+                              })
+                            }
+                          />
+                          <span>
+                            <strong>{model.name || model.id}</strong>
+                            <small>
+                              {model.id}
+                              {model.contextWindow
+                                ? ` · ${t("rows.contextWindow", { value: model.contextWindow })}`
+                                : ""}
+                            </small>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <p className="models-form-hint">{t("addProvider.models.hint")}</p>
+              </fieldset>
             </div>
           ) : null}
           {step === "review" ? (
             <div className="models-form models-wizard-review">
+              {hasCollision && collisionProviderId ? (
+                <Banner variant="warn">
+                  {t("addProvider.collision.description", { provider: collisionProviderId })}
+                </Banner>
+              ) : null}
               <dl>
                 <dt>{t("providerDrawer.fields.providerId")}</dt>
                 <dd>{draft.providerId || "—"}</dd>
@@ -229,10 +377,16 @@ export function AddProviderWizard(props: AddProviderWizardProps) {
                 <dt>{t("providerDrawer.fields.apiKey")}</dt>
                 <dd>
                   {draft.secret.kind === "set-ref"
-                    ? t("addProvider.review.secretRef", { ref: draft.secret.ref })
+                    ? t("addProvider.review.secretRef", { ref: secretRefLabel(draft.secret.ref) })
                     : draft.secret.kind === "clear"
                       ? t("secret.actions.clear")
                       : t("secret.actions.preserve")}
+                </dd>
+                <dt>{t("addProvider.models.reviewLabel")}</dt>
+                <dd>
+                  {t("addProvider.models.reviewCount", {
+                    count: selectedModelInputs(draft.models).length,
+                  })}
                 </dd>
               </dl>
             </div>

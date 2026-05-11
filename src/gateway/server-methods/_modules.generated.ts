@@ -13,6 +13,7 @@ import { gatewayMethodModule as deckPostAgentsModule } from "./deck-post-agents.
 import { gatewayMethodModule as deckModule } from "./deck.module.js";
 import { gatewayMethodModule as deckAgentsDetailModule } from "./deck/agents-detail.module.js";
 import { gatewayMethodModule as deckAgentsEventStreamsModule } from "./deck/agents-event-streams.module.js";
+import { gatewayMethodModule as deckAgentsModelPolicyModule } from "./deck/agents-model-policy.module.js";
 import { gatewayMethodModule as deckAgentsPreviewSystemPromptModule } from "./deck/agents-preview-system-prompt.module.js";
 import { gatewayMethodModule as deckAgentsPreviewToolPolicyModule } from "./deck/agents-preview-tool-policy.module.js";
 import { gatewayMethodModule as deckAgentsSkillsModule } from "./deck/agents-skills.module.js";
@@ -64,6 +65,7 @@ export const gatewayMethodModules: readonly GatewayMethodModule[] = [
   deckModule,
   deckAgentsDetailModule,
   deckAgentsEventStreamsModule,
+  deckAgentsModelPolicyModule,
   deckAgentsPreviewSystemPromptModule,
   deckAgentsPreviewToolPolicyModule,
   deckAgentsSkillsModule,

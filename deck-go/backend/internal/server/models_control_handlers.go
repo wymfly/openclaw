@@ -141,6 +141,7 @@ func handleProviderDeletePreview(ctx context.Context, adapter modelsControlSurfa
 	}
 	refIndex := buildModelReferenceIndex(configMap)
 	references := refIndex.ReferencesForProvider(req.ProviderId)
+	references = nonNilModelReferences(references)
 	severity := deckapi.DeckGoModelImpactSeverity("info")
 	if len(references) > 0 {
 		severity = deckapi.DeckGoModelImpactSeverity("block")
@@ -208,7 +209,7 @@ func handleProviderDeleteCommit(ctx context.Context, adapter modelsControlSurfac
 	if err != nil {
 		return deckapi.DeckGoModelProviderDeleteCommitResponse{}, http.StatusInternalServerError, err
 	}
-	if _, err := adapter.ConfigPatch(ctx, raw, req.ExpectedBaseHash, ""); err != nil {
+	if _, err := adapter.ConfigApply(ctx, raw, req.ExpectedBaseHash); err != nil {
 		status, mapped := classifyConfigPatchError(err)
 		return deckapi.DeckGoModelProviderDeleteCommitResponse{}, status, mapped
 	}
@@ -281,12 +282,13 @@ func handleModelDeletePreview(ctx context.Context, adapter modelsControlSurface,
 	if provider == nil {
 		return deckapi.DeckGoModelImpactPreviewResponse{}, http.StatusNotFound, fmt.Errorf("provider %q not found", req.ProviderId)
 	}
-	providerModels := coerce.Map(provider["models"])
-	if providerModels == nil || providerModels[req.ModelId] == nil {
+	providerModels := modelConfigByID(provider["models"])
+	if providerModels[req.ModelId] == nil {
 		return deckapi.DeckGoModelImpactPreviewResponse{}, http.StatusNotFound, fmt.Errorf("model %q not found", req.ModelId)
 	}
 	refIndex := buildModelReferenceIndex(configMap)
 	references := refIndex.ReferencesForModel(req.ProviderId, req.ModelId)
+	references = nonNilModelReferences(references)
 	severity := deckapi.DeckGoModelImpactSeverity("info")
 	if len(references) > 0 {
 		severity = deckapi.DeckGoModelImpactSeverity("block")
@@ -353,7 +355,7 @@ func handleModelDeleteCommit(ctx context.Context, adapter modelsControlSurface, 
 	if err != nil {
 		return deckapi.DeckGoModelDeleteCommitResponse{}, http.StatusInternalServerError, err
 	}
-	if _, err := adapter.ConfigPatch(ctx, raw, req.ExpectedBaseHash, ""); err != nil {
+	if _, err := adapter.ConfigApply(ctx, raw, req.ExpectedBaseHash); err != nil {
 		status, mapped := classifyConfigPatchError(err)
 		return deckapi.DeckGoModelDeleteCommitResponse{}, status, mapped
 	}
@@ -446,6 +448,7 @@ func buildModeSetPreview(ctx context.Context, adapter modelsControlSurface, conf
 	preview := deckapi.DeckGoModelImpactPreview{
 		Scope:       "mode.set",
 		Severity:    deckapi.DeckGoModelImpactSeverity("info"),
+		References:  []deckapi.DeckGoModelReferenceEntry{},
 		ImpactToken: token,
 		GeneratedAt: float64(time.Now().UnixMilli()),
 		BaseHash:    baseHash,
@@ -483,10 +486,7 @@ func buildModeSetPreview(ctx context.Context, adapter modelsControlSurface, conf
 		entry := deckapi.DeckGoModelBuiltinProviderImpact{
 			ProviderId:   id,
 			IsReferenced: len(references) > 0,
-			References:   references,
-		}
-		if entry.References == nil {
-			entry.References = []deckapi.DeckGoModelReferenceEntry{}
+			References:   nonNilModelReferences(references),
 		}
 		unavailable = append(unavailable, entry)
 	}
@@ -506,6 +506,13 @@ func buildModeSetPreview(ctx context.Context, adapter modelsControlSurface, conf
 		}
 	}
 	return preview, token, nil
+}
+
+func nonNilModelReferences(references []deckapi.DeckGoModelReferenceEntry) []deckapi.DeckGoModelReferenceEntry {
+	if references == nil {
+		return []deckapi.DeckGoModelReferenceEntry{}
+	}
+	return references
 }
 
 func extractCatalogProviderIDs(payload any) []string {
@@ -555,11 +562,15 @@ func defaultsAffectedFromReferences(references []deckapi.DeckGoModelReferenceEnt
 		if string(ref.Kind) != "agents.defaults" {
 			continue
 		}
-		if _, dup := seen[ref.Label]; dup || ref.Label == "" {
+		name := strings.TrimSpace(ref.Role)
+		if name == "" {
+			name = strings.TrimSpace(ref.Label)
+		}
+		if _, dup := seen[name]; dup || name == "" {
 			continue
 		}
-		seen[ref.Label] = struct{}{}
-		out = append(out, ref.Label)
+		seen[name] = struct{}{}
+		out = append(out, name)
 	}
 	if len(out) == 0 {
 		return nil

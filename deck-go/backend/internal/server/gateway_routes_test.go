@@ -472,7 +472,14 @@ func TestGatewayFacade_DeckToolsEffective(t *testing.T) {
 }
 
 func TestGatewayFacade_DeckAgents(t *testing.T) {
-	expectedCalls := []string{"deck.agents.detail", "deck.agents.skills.get", "config.get", "config.patch"}
+	expectedCalls := []string{
+		"deck.agents.detail",
+		"deck.agents.skills.get",
+		"deck.agents.modelPolicy.get",
+		"deck.agents.modelPolicy.set",
+		"config.get",
+		"config.patch",
+	}
 	callIndex := 0
 
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
@@ -499,6 +506,37 @@ func TestGatewayFacade_DeckAgents(t *testing.T) {
 				"id":      params["_requestID"],
 				"ok":      true,
 				"payload": map[string]any{"skills": []string{"foo"}},
+			})
+		case "deck.agents.modelPolicy.get":
+			if params["agentId"] != "main" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"agentId":          "main",
+					"policies":         []map[string]any{},
+					"configuredModels": []map[string]any{},
+					"configHash":       "hash-1",
+					"unsupported":      []map[string]any{},
+				},
+			})
+		case "deck.agents.modelPolicy.set":
+			target, ok := params["target"].(map[string]any)
+			if !ok || target["kind"] != "agent-model" || target["agentId"] != "main" {
+				t.Fatalf("unexpected params: %#v", params)
+			}
+			_ = conn.WriteJSON(map[string]any{
+				"type": "res",
+				"id":   params["_requestID"],
+				"ok":   true,
+				"payload": map[string]any{
+					"ok":         true,
+					"target":     target,
+					"configHash": "hash-2",
+				},
 			})
 		case "config.get":
 			_ = conn.WriteJSON(map[string]any{
@@ -546,7 +584,7 @@ func TestGatewayFacade_DeckAgents(t *testing.T) {
 		t.Fatalf("unexpected deck agents skills.get status: %d", res2.StatusCode)
 	}
 
-	req3, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/agents", strings.NewReader(`{"action":"config.patch","path":"agents.defaults.thinkingDefault","value":"low"}`))
+	req3, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/agents", strings.NewReader(`{"action":"modelPolicy.get","agentId":"main"}`))
 	req3.Header.Set("Authorization", "Bearer admin-token")
 	req3.Header.Set("Content-Type", "application/json")
 	res3, err := http.DefaultClient.Do(req3)
@@ -555,7 +593,31 @@ func TestGatewayFacade_DeckAgents(t *testing.T) {
 	}
 	defer res3.Body.Close()
 	if res3.StatusCode != http.StatusOK {
-		t.Fatalf("unexpected deck agents config.patch status: %d", res3.StatusCode)
+		t.Fatalf("unexpected deck agents modelPolicy.get status: %d", res3.StatusCode)
+	}
+
+	req4, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/agents", strings.NewReader(`{"action":"modelPolicy.set","target":{"kind":"agent-model","key":"agent","agentId":"main"},"clear":true,"baseHash":"hash-1"}`))
+	req4.Header.Set("Authorization", "Bearer admin-token")
+	req4.Header.Set("Content-Type", "application/json")
+	res4, err := http.DefaultClient.Do(req4)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res4.Body.Close()
+	if res4.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected deck agents modelPolicy.set status: %d", res4.StatusCode)
+	}
+
+	req5, _ := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/agents", strings.NewReader(`{"action":"config.patch","path":"agents.defaults.thinkingDefault","value":"low"}`))
+	req5.Header.Set("Authorization", "Bearer admin-token")
+	req5.Header.Set("Content-Type", "application/json")
+	res5, err := http.DefaultClient.Do(req5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res5.Body.Close()
+	if res5.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected deck agents config.patch status: %d", res5.StatusCode)
 	}
 }
 

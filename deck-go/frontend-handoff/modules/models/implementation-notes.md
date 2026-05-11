@@ -19,11 +19,9 @@ prototype, both of which remain on disk as labeled references.
 - Deck-facing contract authority:
   `contracts/source/deck-api.contract.ts` and
   `contracts/source/deck-endpoints.contract.json` (typed mutations,
-  delete-preview/commit, mode dry-run/commit, SecretInput status, raw
-  fallback).
+  delete-preview/commit, mode dry-run/commit, SecretInput status).
 - UI metadata: `contracts/source/deck-ui.contract.json` (Models domain
-  registers typed actions plus the advanced raw fallback as separate
-  paths).
+  registers typed actions and their evidence).
 - Production frontend tree:
   `frontend-new/src/components/panels/models/`.
 - Browser boundary: the panel calls deck-go BFF routes only; it does
@@ -34,14 +32,14 @@ prototype, both of which remain on disk as labeled references.
 ```
 ModelsPanel (orchestrator)
 ├── lib/models-selectors.ts      — pure projections over DeckGoModelsConfigDetail
-├── parts/CatalogHeader.tsx      — mode badge + counts + runtime status + actions
-├── parts/ProviderListSection.tsx — collapsible per-provider section with badges + actions
+├── parts/CatalogHeader.tsx      — policy badge + counts + runtime status + actions
 ├── parts/ModelRow.tsx           — per-model row with chips/badges + actions
+├── parts/ProviderListSection.tsx — configured provider sections on the main page
 ├── drawers/ProviderDrawer.tsx   — 5 tabs (overview/identity/networking/models/advanced)
 ├── drawers/ModelDrawer.tsx      — 6 tabs (overview/identity/capacity/cost/networking/advanced)
-├── drawers/SecretInputField.tsx — preserve / set-ref / clear radio + ref + refTemplate
+├── drawers/SecretInputField.tsx — preserve / set-ref / clear radio + env SecretRef id
 ├── wizard/AddProviderWizard.tsx — select / configure / review (with custom-provider path)
-├── dialogs/ImpactPreviewDialog.tsx — severity / scope / references / defaults-affected banner
+├── dialogs/ImpactPreviewDialog.tsx — severity / scope / references / relation-role metadata / owner boundary
 └── dialogs/TypeToConfirmDialog.tsx — typed confirmation guard for delete + mode replace
 ```
 
@@ -52,7 +50,11 @@ State machines live inside `ModelsPanel.tsx`:
 - `ModeFlowState` — dry-run → impact-token → type-to-confirm commit.
 
 `AddProviderWizard.tsx` owns its own three-step state (select /
-configure / review).
+configure / review). The blank custom-provider option and every template-copy
+entry point enter the configure step visibly; they must not rely on hidden draft
+state with no UI transition. Template copies prefill editable API/baseUrl/auth
+and expose selectable default model entries that are written through provider
+upsert.
 
 Confirm strings: `CONFIRM_TEXT_DELETE = "delete"`,
 `CONFIRM_TEXT_REPLACE = "replace"` (passed into `TypeToConfirmDialog`
@@ -65,20 +67,31 @@ The typed mutations carry `expectedBaseHash` derived from the latest
 `DataFabricError` with `kind: "conflict"`; `invalidateConfigSurfaces`
 refreshes `configDetail` automatically.
 
-| Workflow                | Frontend wrapper                         | BFF route                                         | Authority                                                          |
-| ----------------------- | ---------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------ |
-| Read                    | `fetchModelsConfigDetail`                | `GET /models/config/detail`                       | Typed read authority for the panel.                                |
-| Provider create         | `upsertModelProvider` (`isCreate=true`)  | `POST /models/providers/upsert`                   | Wizard → typed mutation.                                           |
-| Provider edit           | `upsertModelProvider` (`isCreate=false`) | same                                              | Provider drawer → typed mutation.                                  |
-| Provider delete preview | `previewProviderDelete`                  | `POST /models/providers/delete-preview`           | Required before commit.                                            |
-| Provider delete commit  | `deleteModelProvider`                    | `POST /models/providers/delete`                   | Carries `impactToken` + `confirmText: "delete"`.                   |
-| Model create            | `upsertModel` (`isCreate=true`)          | `POST /models/{providerId}/models/upsert`         | Model drawer (new).                                                |
-| Model edit              | `upsertModel` (`isCreate=false`)         | same                                              | Model drawer (edit).                                               |
-| Model delete preview    | `previewModelDelete`                     | `POST /models/{providerId}/models/delete-preview` | Required before commit.                                            |
-| Model delete commit     | `deleteModel`                            | `POST /models/{providerId}/models/delete`         | Carries `impactToken` + `confirmText: "delete"`.                   |
-| Mode dry-run            | `setModelsCatalogMode` (`dryRun=true`)   | `POST /models/catalog/mode`                       | Returns impact preview; does not invalidate.                       |
-| Mode commit             | `setModelsCatalogMode` (`commit=true`)   | same                                              | Carries `impactToken` (and `confirmText: "replace"` for replace).  |
-| Advanced raw save       | `saveModelsConfig`                       | `PATCH /models/config`                            | Reserved for advanced editor only; invalidates `modelsKeys.all()`. |
+| Workflow                     | Frontend wrapper                         | BFF route                                          | Authority                                                                |
+| ---------------------------- | ---------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| Read                         | `fetchModelsConfigDetail`                | `GET /models/config/detail`                        | Typed read authority for the panel.                                      |
+| Provider Library read        | `fetchRuntimeModelCatalogProviders`      | Gateway `models.catalog.providers` through deck-go | Read-only template catalog. Does not imply writable installed providers. |
+| Provider create              | `upsertModelProvider` (`isCreate=true`)  | `POST /models/providers/upsert`                    | Wizard → typed mutation.                                                 |
+| Provider edit                | `upsertModelProvider` (`isCreate=false`) | same                                               | Provider drawer → typed mutation.                                        |
+| Provider delete impact check | `previewProviderDelete`                  | `POST /models/providers/delete-preview`            | Required before commit.                                                  |
+| Provider delete commit       | `deleteModelProvider`                    | `POST /models/providers/delete`                    | Carries `impactToken` + `confirmText: "delete"`.                         |
+| Model create                 | `upsertModel` (`isCreate=true`)          | `POST /models/{providerId}/models/upsert`          | Model drawer (new).                                                      |
+| Model edit                   | `upsertModel` (`isCreate=false`)         | same                                               | Model drawer (edit).                                                     |
+| Model delete impact check    | `previewModelDelete`                     | `POST /models/{providerId}/models/delete-preview`  | Required before commit.                                                  |
+| Model delete commit          | `deleteModel`                            | `POST /models/{providerId}/models/delete`          | Carries `impactToken` + `confirmText: "delete"`.                         |
+| Mode dry-run                 | `setModelsCatalogMode` (`dryRun=true`)   | `POST /models/catalog/mode`                        | Advanced policy only. Returns impact check; does not invalidate.         |
+| Mode commit                  | `setModelsCatalogMode` (`commit=true`)   | same                                               | Advanced policy only. Carries `impactToken` and required confirm text.   |
+
+Provider Library semantics:
+
+- `models.catalog.providers` entries are read-only templates.
+- `detail.providers[]` entries are authored `openclaw.json` assets.
+- A matching id in both surfaces is a configured built-in provider.
+- Provider templates are used inside the Add Provider wizard only. Copy/configure
+  on a template writes `models.providers.<id>` via provider upsert and may
+  include selected template model entries; it never mutates the built-in catalog.
+- Custom models are written only under an authored provider. A template-only
+  provider must be configured first.
 
 ## SecretInput safety
 
@@ -88,10 +101,8 @@ boundary:
 - The detail response surfaces only `DeckGoModelSecretInputStatus`
   (`missing | empty | ref | literal-redacted`).
 - Upsert requests carry one of `{ action: "preserve" }` /
-  `{ action: "clear" }` / `{ action: "set-ref"; ref; refTemplate? }`.
-- The advanced raw editor is the only surface that could write a
-  literal; even there the BFF normalizes literals into SecretRefs on
-  save.
+  `{ action: "clear" }` / `{ action: "set-ref"; ref: SecretRef }`.
+- Literal secrets are not writable from the Models product surface.
 
 The default radio selection in `SecretInputField` is `preserve`, so
 editing a provider does not unintentionally clear or rebind its
@@ -111,6 +122,16 @@ The module deliberately does not claim:
 - Provider/model search and filter at list level.
 - Per-model rate-limit overrides.
 
+## Agents-owned model policy
+
+Models displays `agents.defaults`, per-agent, and subagent model references
+as read-only usage facts, including `primary`, `default`, `fallback`, and
+generic reference relations when the BFF can derive them. Editing
+`agents.defaults.model`, role-specific defaults, per-agent `model`,
+subagent defaults, and `{ primary, fallbacks }` chains is intentionally
+deferred to the Agents module. Models must not reintroduce a raw editor as the
+policy-editing path.
+
 These are tracked under `openspec/follow-ups/` and will land with their
 own contract chains.
 
@@ -120,14 +141,15 @@ Component-level evidence:
 
 - `frontend-new/src/data/modules/models/mutations.test.ts` — 11/11
   covering typed mutation routing, dryRun/commit invalidation split,
-  advanced raw escape hatch isolation, conflict propagation through
+  conflict propagation through
   `DataFabricError` `kind: "conflict"`, and SecretRef construction.
 - `frontend-new/src/components/panels/models/ModelsPanel.test.tsx` —
-  6/6 covering catalog header + provider list rendering, empty-state
-  CTA, AddProvider wizard typed mutation routing with SecretRef
-  construction, advanced raw editor opens without firing typed
-  mutations, delete preview surfaces references then commits with
-  `confirmText: "delete"` + `impactToken`, Chinese locale copy.
+  covering catalog header + configured provider list rendering, usage/default/
+  fallback badges, empty-state CTA, AddProvider wizard typed mutation
+  routing with SecretRef construction, provider id collision copy,
+  raw-editor absence, usage-policy overview, delete impact check surfaces references
+  with owner-boundary copy then commits with `confirmText: "delete"` +
+  `impactToken`, and Chinese locale copy.
 
 Mechanical verification (recorded in tasks 7.1–7.4 of the source
 change):

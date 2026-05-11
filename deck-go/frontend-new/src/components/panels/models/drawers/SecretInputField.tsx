@@ -1,7 +1,7 @@
 import type { DeckGoModelSecretInputStatus } from "@/api-types";
 import { Input } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
-import type { SecretEditAction } from "../lib/models-selectors";
+import { envSecretRef, secretRefLabel, type SecretEditAction } from "../lib/models-selectors";
 
 export interface SecretInputFieldProps {
   label: string;
@@ -30,7 +30,7 @@ export function SecretInputField({
     } else if (kind === "clear") {
       onChange({ kind: "clear" });
     } else {
-      onChange({ kind: "set-ref", ref: action.kind === "set-ref" ? action.ref : "" });
+      onChange({ kind: "set-ref", ref: action.kind === "set-ref" ? action.ref : envSecretRef("") });
     }
   };
 
@@ -39,7 +39,9 @@ export function SecretInputField({
       <legend>{label}</legend>
       <div className="models-secret-status">
         <span data-state={stored}>{t(`secret.${stored}`)}</span>
-        {status?.state === "ref" ? <code>{status.ref}</code> : null}
+        {status?.state === "ref" ? (
+          <code>{status.displayRef ?? secretRefLabel(status.ref)}</code>
+        ) : null}
         {status?.state === "literal-redacted" ? (
           <span className="models-secret-redacted">
             {status.redactedHint ?? t("secret.literalHint")}
@@ -78,28 +80,15 @@ export function SecretInputField({
       {action.kind === "set-ref" ? (
         <div className="models-secret-ref">
           <Input
-            value={action.ref}
+            value={action.ref.id}
             onChange={(event) =>
               onChange({
                 kind: "set-ref",
-                ref: event.target.value,
-                refTemplate: action.refTemplate,
+                ref: { ...action.ref, id: event.target.value },
               })
             }
             placeholder={refPlaceholder ?? t("secret.refPlaceholder")}
             aria-label={t("secret.refLabel")}
-          />
-          <Input
-            value={action.refTemplate ?? ""}
-            onChange={(event) =>
-              onChange({
-                kind: "set-ref",
-                ref: action.ref,
-                refTemplate: event.target.value || undefined,
-              })
-            }
-            placeholder={t("secret.refTemplatePlaceholder")}
-            aria-label={t("secret.refTemplateLabel")}
           />
         </div>
       ) : null}

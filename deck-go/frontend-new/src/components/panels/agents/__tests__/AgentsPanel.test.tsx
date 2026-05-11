@@ -17,6 +17,7 @@ const api = vi.hoisted(() => ({
   fetchAgentEventStreams: vi.fn(),
   fetchAgentFile: vi.fn(),
   fetchAgentFiles: vi.fn(),
+  fetchAgentModelPolicy: vi.fn(),
   fetchAgentSkills: vi.fn(),
   fetchAgentSubagentConfig: vi.fn(),
   fetchAgentSystemPromptPreview: vi.fn(),
@@ -28,6 +29,7 @@ const api = vi.hoisted(() => ({
   streamEvents: vi.fn(),
   updateAgent: vi.fn(),
   updateAgentEventStreams: vi.fn(),
+  updateAgentModelPolicy: vi.fn(),
   updateAgentSkills: vi.fn(),
   updateAgentSubagentConfig: vi.fn(),
 }));
@@ -65,6 +67,84 @@ const defaultAgents = [
     bindingCount: 2,
   },
 ];
+
+function modelPolicyFixture(agentId = "main") {
+  return {
+    agentId,
+    configHash: `${agentId}-policy-hash`,
+    configuredModels: [
+      {
+        ref: "cpa/gpt-5.4",
+        provider: "cpa",
+        model: "gpt-5.4",
+        name: "GPT 5.4",
+      },
+      {
+        ref: "cpa/gpt-5.4-mini",
+        provider: "cpa",
+        model: "gpt-5.4-mini",
+        name: "GPT 5.4 Mini",
+      },
+    ],
+    policies: [
+      {
+        kind: "agent-model",
+        key: "agent",
+        label: "Agent runtime model",
+        configPath: `agents.list[${agentId}].model`,
+        source: agentId === "main" ? "default" : "agent",
+        supportedShape: "agentModelConfig",
+        selection: agentId === "main" ? undefined : { primary: "cpa/gpt-5.4-mini", fallbacks: [] },
+        effective: {
+          primary: agentId === "main" ? "cpa/gpt-5.4" : "cpa/gpt-5.4-mini",
+          fallbacks: agentId === "main" ? ["cpa/gpt-5.4-mini"] : [],
+        },
+        unavailableRefs: [],
+        editable: true,
+        owner: "agents",
+      },
+      {
+        kind: "agent-subagents",
+        key: "agentSubagents",
+        label: "Agent subagent model",
+        configPath: `agents.list[${agentId}].subagents.model`,
+        source: "default",
+        supportedShape: "agentModelConfig",
+        effective: { primary: "cpa/gpt-5.4-mini", fallbacks: [] },
+        unavailableRefs: [],
+        editable: true,
+        owner: "agents",
+      },
+      {
+        kind: "global-default",
+        key: "text",
+        label: "Text default",
+        configPath: "agents.defaults.model",
+        source: "default",
+        supportedShape: "agentModelConfig",
+        selection: { primary: "cpa/gpt-5.4", fallbacks: ["cpa/gpt-5.4-mini"] },
+        effective: { primary: "cpa/gpt-5.4", fallbacks: ["cpa/gpt-5.4-mini"] },
+        unavailableRefs: [],
+        editable: true,
+        owner: "agents",
+      },
+      {
+        kind: "global-default",
+        key: "compaction",
+        label: "Compaction default",
+        configPath: "agents.defaults.compaction.model",
+        source: "default",
+        supportedShape: "string",
+        selection: { primary: "cpa/gpt-5.4" },
+        effective: { primary: "cpa/gpt-5.4" },
+        unavailableRefs: [],
+        editable: true,
+        owner: "agents",
+      },
+    ],
+    unsupported: [],
+  };
+}
 
 function renderPanel() {
   act(() => {
@@ -104,6 +184,7 @@ describe("AgentsPanel", () => {
     window.history.replaceState(null, "", "/?panel=agents");
     useAgentsStore.getState().reset();
     vi.clearAllMocks();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     api.fetchAgentsList.mockResolvedValue({
       agents: defaultAgents,
       defaultId: "main",
@@ -140,6 +221,14 @@ describe("AgentsPanel", () => {
       },
       identityExists: true,
     }));
+    api.fetchAgentModelPolicy.mockImplementation(async (agentId?: string) =>
+      modelPolicyFixture(agentId ?? "main"),
+    );
+    api.updateAgentModelPolicy.mockResolvedValue({
+      ok: true,
+      agentId: "ops",
+      configHash: "ops-policy-hash-2",
+    });
     api.fetchAgentSkills.mockResolvedValue({
       agentId: "main",
       mode: "whitelist",
@@ -198,6 +287,7 @@ describe("AgentsPanel", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     unmountPanel();
     window.history.replaceState(null, "", "/");
     container.remove();
@@ -293,16 +383,43 @@ describe("AgentsPanel", () => {
     fireEvent.click(opsRow!);
     fireEvent.click(await screen.findByRole("tab", { name: /Runtime/ }));
 
-    fireEvent.change(await screen.findByLabelText("Model"), { target: { value: "gpt-5.4" } });
-    fireEvent.change(screen.getByLabelText("Workspace"), { target: { value: "/ops-v2" } });
+    fireEvent.change(await screen.findByLabelText("Workspace"), { target: { value: "/ops-v2" } });
     fireEvent.click(screen.getByRole("button", { name: "Review and save" }));
 
     await waitFor(() => {
       expect(api.updateAgent).toHaveBeenCalledWith("ops", {
-        model: "gpt-5.4",
         workspace: "/ops-v2",
       });
     });
+  });
+
+  it("saves per-agent model policy through the model-policy mutation", async () => {
+    renderPanel();
+
+    const opsRow = (await screen.findByText("Ops")).closest("button");
+    expect(opsRow).toBeTruthy();
+    fireEvent.click(opsRow!);
+    fireEvent.click(await screen.findByRole("tab", { name: /Runtime/ }));
+
+    expect(await screen.findByText("Model usage policy")).toBeTruthy();
+    const primaryInputs = await screen.findAllByLabelText("Select primary model");
+    fireEvent.change(primaryInputs[0], { target: { value: "cpa/gpt-5.4" } });
+    const saveButtons = screen.getAllByRole("button", { name: "Save policy" });
+    await waitFor(() => {
+      expect(saveButtons[0].hasAttribute("disabled")).toBe(false);
+    });
+    fireEvent.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(api.updateAgentModelPolicy).toHaveBeenCalledWith({
+        target: { kind: "agent-model", key: "agent", agentId: "ops" },
+        baseHash: "ops-policy-hash",
+        selection: { primary: "cpa/gpt-5.4", fallbacks: [] },
+      });
+    });
+    expect(window.confirm).toHaveBeenCalledWith(
+      "This changes runtime cost, capability, fallback, or availability behavior. Continue?",
+    );
   });
 
   it("keeps ineligible skills disabled and out of whitelist saves", async () => {
@@ -365,7 +482,6 @@ describe("AgentsPanel", () => {
       expect(api.updateAgentSubagentConfig).toHaveBeenCalledWith("ops", {
         allowAgents: ["main", "ops", "reviewer"],
         baseHash: "subagents-hash",
-        model: undefined,
       });
     });
   });

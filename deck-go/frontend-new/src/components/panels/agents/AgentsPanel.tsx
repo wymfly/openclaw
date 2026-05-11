@@ -14,6 +14,11 @@ import {
   type DeckGoAgentDetailResponse,
   type DeckGoAgentEventStreamsResponse,
   type DeckGoAgentFile,
+  type DeckGoAgentModelChoice,
+  type DeckGoAgentModelPolicyEntry,
+  type DeckGoAgentModelPolicyResponse,
+  type DeckGoAgentModelPolicyTarget,
+  type DeckGoAgentModelSelection,
   type DeckGoAgentSkillsResponse,
   type DeckGoAgentSubagentPermissionOption,
   type DeckGoAgentSystemPromptPreviewResponse,
@@ -27,6 +32,7 @@ import {
   useAgentEventStreamsQuery,
   useAgentFileQuery,
   useAgentFilesQuery,
+  useAgentModelPolicyQuery,
   useAgentsConfiguredModelsQuery,
   useAgentsListQuery,
   useAgentSkillsQuery,
@@ -37,6 +43,7 @@ import {
   useDeleteAgentMutation,
   useSaveAgentEventStreamsMutation,
   useSaveAgentFileMutation,
+  useSaveAgentModelPolicyMutation,
   useSaveAgentSkillsMutation,
   useSaveAgentSubagentsMutation,
   useUpdateAgentMutation,
@@ -561,7 +568,6 @@ function AgentDetailView({
   const subagents = subagentsQuery.data ?? null;
   const [subagentRows, setSubagentRows] = useState<DeckGoAgentSubagentPermissionOption[]>([]);
   const [subagentAllowAny, setSubagentAllowAny] = useState(false);
-  const [subagentModel, setSubagentModel] = useState("");
   const [subagentSaving, setSubagentSaving] = useState(false);
   const [subagentError, setSubagentError] = useState<string | null>(null);
   const [subagentConflict, setSubagentConflict] = useState(false);
@@ -609,7 +615,7 @@ function AgentDetailView({
       skillsDraft?.skills.join("\n") !== skills?.skills.join("\n"));
   const subagentsDirty =
     Boolean(subagents) &&
-    ((subagentAllowAny
+    (subagentAllowAny
       ? "*"
       : subagentRows
           .filter((row) => row.allowed)
@@ -618,8 +624,7 @@ function AgentDetailView({
           .join("\n")) !==
       (subagents?.allowAny || subagents?.allowAgents.includes("*")
         ? "*"
-        : [...(subagents?.allowAgents ?? [])].toSorted().join("\n")) ||
-      subagentModel !== (subagents?.model ?? ""));
+        : [...(subagents?.allowAgents ?? [])].toSorted().join("\n"));
   const streamsDirty = streams
     ? [...streamDraft].toSorted().join("\n") !== [...streams.eventStreams].toSorted().join("\n")
     : false;
@@ -642,7 +647,6 @@ function AgentDetailView({
     setSkillsDraft(null);
     setSubagentRows([]);
     setSubagentAllowAny(false);
-    setSubagentModel("");
     setStreamDraft([]);
     setFileName("");
     setSelectedFileName("");
@@ -677,7 +681,6 @@ function AgentDetailView({
     }
     setSubagentRows(normalizeAgentSubagentPermissionOptions(subagents));
     setSubagentAllowAny(subagents.allowAny === true || subagents.allowAgents.includes("*"));
-    setSubagentModel(subagents.model ?? "");
   }, [subagents]);
 
   useEffect(() => {
@@ -825,7 +828,6 @@ function AgentDetailView({
         agentId: agent.id,
         allowAgents,
         baseHash: subagents.configHash,
-        model: subagentModel.trim() || undefined,
       });
       const nextAllowAgents = response.allowAgents ?? allowAgents;
       setSubagentAllowAny(nextAllowAgents.includes("*"));
@@ -835,7 +837,6 @@ function AgentDetailView({
           allowed: nextAllowAgents.includes("*") || nextAllowAgents.includes(row.id),
         })),
       );
-      setSubagentModel(response.model ?? subagentModel);
       await subagentsQuery.refetch();
     } catch (error) {
       setSubagentConflict(isConflictError(error));
@@ -843,15 +844,7 @@ function AgentDetailView({
     } finally {
       setSubagentSaving(false);
     }
-  }, [
-    agent.id,
-    saveSubagentsMutation,
-    subagentAllowAny,
-    subagentModel,
-    subagentRows,
-    subagents,
-    subagentsQuery,
-  ]);
+  }, [agent.id, saveSubagentsMutation, subagentAllowAny, subagentRows, subagents, subagentsQuery]);
 
   const saveStreams = useCallback(async () => {
     if (!streams) {
@@ -1097,7 +1090,6 @@ function AgentDetailView({
           <SubagentsSection
             rows={subagentRows}
             allowAny={subagentAllowAny}
-            model={subagentModel}
             loaded={Boolean(subagents)}
             dirty={subagentsDirty}
             saving={subagentSaving}
@@ -1106,7 +1098,6 @@ function AgentDetailView({
             onReload={reloadSubagents}
             onAllowAnyChange={setSubagentAllowAny}
             onRowsChange={setSubagentRows}
-            onModelChange={setSubagentModel}
             onSave={saveSubagents}
           />
         ) : null}
@@ -1271,14 +1262,8 @@ function RuntimeSection({
   onSave: () => Promise<void>;
 }) {
   const t = useTranslations("agentsPanel");
-  const modelsQuery = useAgentsConfiguredModelsQuery();
-  const models = modelsQuery.data?.payload?.models ?? modelsQuery.data?.payload?.items ?? [];
-  const modelLoadError = modelsQuery.error ? formatAgentError(modelsQuery.error) : null;
   const update = (patch: Partial<OverviewDraft>) => onDraftChange({ ...draft, ...patch });
-  const isProtected = detail?.isMainProtected ?? agent.isMainProtected;
-  const modelOptions = models
-    .map((model) => ({ value: configuredModelRef(model), label: configuredModelLabel(model) }))
-    .filter((model) => model.value);
+  const isProtected = Boolean(detail?.isMainProtected ?? agent.isMainProtected);
 
   return (
     <SectionCard title={t("sections.runtime")} description={t("runtime.description")}>
@@ -1304,27 +1289,6 @@ function RuntimeSection({
       </div>
       <div className="agent-form-grid">
         <label>
-          <span>{t("fields.model")}</span>
-          {modelOptions.length > 0 ? (
-            <Select
-              value={draft.model}
-              onChange={(event) => update({ model: event.currentTarget.value })}
-            >
-              <option value="">{t("runtime.inheritModel")}</option>
-              {modelOptions.map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <Input
-              value={draft.model}
-              onChange={(event) => update({ model: event.target.value })}
-            />
-          )}
-        </label>
-        <label>
           <span>{t("fields.workspace")}</span>
           <Input
             value={draft.workspace}
@@ -1332,9 +1296,6 @@ function RuntimeSection({
           />
         </label>
       </div>
-      {modelLoadError ? (
-        <Banner variant="warn">{t("runtime.modelFallback", { error: modelLoadError })}</Banner>
-      ) : null}
       <div className="agent-guarded-list" aria-label={t("runtime.guardsLabel")}>
         {(detail?.guardedEdits ?? []).map((guard) => (
           <div key={guard.field} className="agent-preview-row">
@@ -1349,7 +1310,423 @@ function RuntimeSection({
           {saving ? t("saving") : t("runtime.saveGuarded")}
         </Button>
       </footer>
+      <AgentModelPolicyControls
+        agentId={agent.id}
+        isMainProtected={isProtected}
+        effectiveModel={detail?.model ?? agent.model}
+      />
     </SectionCard>
+  );
+}
+
+type ModelPolicyDraft = {
+  mode: "inherit" | "explicit";
+  primary: string;
+  fallbacks: string[];
+};
+
+function policyIdentity(policy: DeckGoAgentModelPolicyEntry) {
+  return `${policy.kind}:${policy.key}`;
+}
+
+function orderedPolicyEntries(data: DeckGoAgentModelPolicyResponse | null) {
+  const policies = data?.policies ?? [];
+  const agentPolicies = policies.filter((policy) => policy.kind !== "global-default");
+  const globalPolicies = policies.filter((policy) => policy.kind === "global-default");
+  return { agentPolicies, globalPolicies };
+}
+
+function draftFromPolicy(policy: DeckGoAgentModelPolicyEntry): ModelPolicyDraft {
+  const selection = policy.selection ?? policy.effective;
+  return {
+    mode: policy.kind === "global-default" || policy.selection ? "explicit" : "inherit",
+    primary: selection?.primary ?? "",
+    fallbacks: selection?.fallbacks ?? [],
+  };
+}
+
+function sameRefs(left: readonly string[], right: readonly string[]) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function isPolicyDraftDirty(policy: DeckGoAgentModelPolicyEntry, draft: ModelPolicyDraft) {
+  if (policy.kind !== "global-default" && draft.mode === "inherit") {
+    return Boolean(policy.selection);
+  }
+  const selection = policy.selection;
+  return (
+    draft.primary.trim() !== (selection?.primary ?? "") ||
+    !sameRefs(draft.fallbacks, selection?.fallbacks ?? [])
+  );
+}
+
+function policyTarget(
+  policy: DeckGoAgentModelPolicyEntry,
+  agentId: string,
+): DeckGoAgentModelPolicyTarget {
+  return {
+    kind: policy.kind,
+    key: policy.key,
+    ...(policy.kind === "global-default" ? {} : { agentId }),
+  };
+}
+
+function cleanModelSelection(
+  draft: ModelPolicyDraft,
+  supportsFallbacks: boolean,
+): DeckGoAgentModelSelection {
+  return {
+    primary: draft.primary.trim(),
+    ...(supportsFallbacks
+      ? { fallbacks: draft.fallbacks.map((ref) => ref.trim()).filter(Boolean) }
+      : {}),
+  };
+}
+
+function modelChoiceLabel(choice: DeckGoAgentModelChoice) {
+  return choice.name && choice.name !== choice.model
+    ? `${choice.name} · ${choice.ref}`
+    : choice.ref;
+}
+
+function policyDisplayLabel(
+  t: ReturnType<typeof useTranslations>,
+  policy: DeckGoAgentModelPolicyEntry,
+) {
+  const key =
+    policy.kind === "agent-model"
+      ? "agent"
+      : policy.kind === "agent-subagents"
+        ? "agentSubagents"
+        : policy.key;
+  return t(`modelPolicy.targets.${key}`);
+}
+
+function ModelRefInput({
+  choices,
+  label,
+  onChange,
+  value,
+}: {
+  choices: readonly DeckGoAgentModelChoice[];
+  label: string;
+  onChange: (value: string) => void;
+  value: string;
+}) {
+  const hasChoice = choices.some((choice) => choice.ref === value);
+  if (choices.length === 0) {
+    return (
+      <Input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
+    );
+  }
+  return (
+    <Select
+      aria-label={label}
+      value={value}
+      onChange={(event) => onChange(event.currentTarget.value)}
+    >
+      <option value="">{label}</option>
+      {value && !hasChoice ? <option value={value}>{value}</option> : null}
+      {choices.map((choice) => (
+        <option key={choice.ref} value={choice.ref}>
+          {modelChoiceLabel(choice)}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
+function AgentModelPolicyControls({
+  agentId,
+  effectiveModel,
+  isMainProtected,
+}: {
+  agentId: string;
+  effectiveModel?: string;
+  isMainProtected: boolean;
+}) {
+  const t = useTranslations("agentsPanel");
+  const policyQuery = useAgentModelPolicyQuery(agentId);
+  const savePolicyMutation = useSaveAgentModelPolicyMutation();
+  const data = policyQuery.data ?? null;
+  const [drafts, setDrafts] = useState<Record<string, ModelPolicyDraft>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    setDrafts(
+      Object.fromEntries(
+        data.policies.map((policy) => [policyIdentity(policy), draftFromPolicy(policy)]),
+      ),
+    );
+    setError(null);
+    setConflict(false);
+  }, [data]);
+
+  const choices = data?.configuredModels ?? [];
+  const { agentPolicies, globalPolicies } = orderedPolicyEntries(data);
+
+  const updateDraft = useCallback(
+    (policy: DeckGoAgentModelPolicyEntry, patch: Partial<ModelPolicyDraft>) => {
+      const id = policyIdentity(policy);
+      setDrafts((current) => ({
+        ...current,
+        [id]: {
+          ...(current[id] ?? draftFromPolicy(policy)),
+          ...patch,
+        },
+      }));
+    },
+    [],
+  );
+
+  const savePolicy = useCallback(
+    async (policy: DeckGoAgentModelPolicyEntry) => {
+      if (!data) {
+        return;
+      }
+      const id = policyIdentity(policy);
+      const draft = drafts[id] ?? draftFromPolicy(policy);
+      const supportsFallbacks = policy.supportedShape === "agentModelConfig";
+      const clear = policy.kind !== "global-default" && draft.mode === "inherit";
+      const selection = cleanModelSelection(draft, supportsFallbacks);
+      if (!clear && !selection.primary) {
+        setError(t("modelPolicy.primaryRequired"));
+        return;
+      }
+      const confirmText = isMainProtected
+        ? t("modelPolicy.confirmMain")
+        : t("modelPolicy.confirmRuntime");
+      if (!window.confirm(confirmText)) {
+        return;
+      }
+      setSavingKey(id);
+      setError(null);
+      setConflict(false);
+      try {
+        await savePolicyMutation.mutateAsync({
+          target: policyTarget(policy, agentId),
+          baseHash: data.configHash,
+          ...(clear ? { clear: true } : { selection }),
+        });
+        await policyQuery.refetch();
+      } catch (err) {
+        setConflict(isConflictError(err));
+        setError(formatAgentError(err));
+      } finally {
+        setSavingKey(null);
+      }
+    },
+    [agentId, data, drafts, isMainProtected, policyQuery, savePolicyMutation, t],
+  );
+
+  const renderPolicy = (policy: DeckGoAgentModelPolicyEntry) => {
+    const id = policyIdentity(policy);
+    const draft = drafts[id] ?? draftFromPolicy(policy);
+    const supportsFallbacks = policy.supportedShape === "agentModelConfig";
+    const dirty = isPolicyDraftDirty(policy, draft);
+    const disabled = savingKey === id || !policy.editable;
+    const unavailableRefs = policy.unavailableRefs ?? [];
+
+    return (
+      <div key={id} className="agent-model-policy-row">
+        <div className="agent-model-policy-row__header">
+          <div>
+            <strong>{policyDisplayLabel(t, policy)}</strong>
+            <small>{policy.configPath}</small>
+          </div>
+          <div className="agent-meta-strip">
+            <Badge variant={policy.source === "missing" ? "warn" : "neutral"}>
+              {t(`modelPolicy.source.${policy.source}`)}
+            </Badge>
+            <Badge variant={supportsFallbacks ? "ok" : "neutral"}>
+              {supportsFallbacks
+                ? t("modelPolicy.fallbackSupported")
+                : t("modelPolicy.primaryOnly")}
+            </Badge>
+          </div>
+        </div>
+
+        {policy.kind !== "global-default" ? (
+          <SegmentedControl
+            aria-label={t("modelPolicy.modeLabel")}
+            value={draft.mode}
+            onChange={(value) =>
+              updateDraft(policy, { mode: value === "inherit" ? "inherit" : "explicit" })
+            }
+            items={[
+              { value: "inherit", label: t("modelPolicy.inherit") },
+              { value: "explicit", label: t("modelPolicy.override") },
+            ]}
+          />
+        ) : null}
+
+        {draft.mode === "inherit" && policy.kind !== "global-default" ? (
+          <Banner>
+            {t("modelPolicy.inheritedCopy", {
+              value: policy.effective?.primary ?? effectiveModel ?? t("missingModel"),
+            })}
+          </Banner>
+        ) : (
+          <div className="agent-model-policy-editor">
+            <label>
+              <span>{t("modelPolicy.primary")}</span>
+              <ModelRefInput
+                choices={choices}
+                label={t("modelPolicy.selectPrimary")}
+                value={draft.primary}
+                onChange={(value) => updateDraft(policy, { primary: value })}
+              />
+            </label>
+            {supportsFallbacks ? (
+              <div className="agent-model-policy-fallbacks">
+                <span>{t("modelPolicy.fallbacks")}</span>
+                {draft.fallbacks.length === 0 ? <p>{t("modelPolicy.noFallbacks")}</p> : null}
+                {draft.fallbacks.map((fallback, index) => (
+                  <div key={`${id}:${index}`} className="agent-model-policy-fallback-row">
+                    <ModelRefInput
+                      choices={choices}
+                      label={t("modelPolicy.selectFallback")}
+                      value={fallback}
+                      onChange={(value) =>
+                        updateDraft(policy, {
+                          fallbacks: draft.fallbacks.map((entry, entryIndex) =>
+                            entryIndex === index ? value : entry,
+                          ),
+                        })
+                      }
+                    />
+                    <Button
+                      size="sm"
+                      disabled={index === 0}
+                      onClick={() =>
+                        updateDraft(policy, {
+                          fallbacks: draft.fallbacks.map((entry, entryIndex, entries) =>
+                            entryIndex === index - 1
+                              ? entries[index]
+                              : entryIndex === index
+                                ? entries[index - 1]
+                                : entry,
+                          ),
+                        })
+                      }
+                    >
+                      {t("modelPolicy.moveUp")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={index === draft.fallbacks.length - 1}
+                      onClick={() =>
+                        updateDraft(policy, {
+                          fallbacks: draft.fallbacks.map((entry, entryIndex, entries) =>
+                            entryIndex === index
+                              ? entries[index + 1]
+                              : entryIndex === index + 1
+                                ? entries[index]
+                                : entry,
+                          ),
+                        })
+                      }
+                    >
+                      {t("modelPolicy.moveDown")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={() =>
+                        updateDraft(policy, {
+                          fallbacks: draft.fallbacks.filter(
+                            (_, entryIndex) => entryIndex !== index,
+                          ),
+                        })
+                      }
+                    >
+                      {t("modelPolicy.removeFallback")}
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    updateDraft(policy, {
+                      fallbacks: [...draft.fallbacks, choices[0]?.ref ?? ""],
+                    })
+                  }
+                >
+                  {t("modelPolicy.addFallback")}
+                </Button>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        {unavailableRefs.length > 0 ? (
+          <Banner variant="warn">
+            {t("modelPolicy.unavailable", { refs: unavailableRefs.join(", ") })}
+          </Banner>
+        ) : null}
+
+        <footer className="agent-section__actions">
+          <Button disabled={savingKey !== null} onClick={() => void policyQuery.refetch()}>
+            {t("reload")}
+          </Button>
+          <Button
+            variant="primary"
+            disabled={!dirty || disabled || savingKey !== null}
+            onClick={() => void savePolicy(policy)}
+          >
+            {savingKey === id ? t("saving") : t("modelPolicy.savePolicy")}
+          </Button>
+        </footer>
+      </div>
+    );
+  };
+
+  return (
+    <div className="agent-model-policy">
+      <header className="agent-model-policy__title">
+        <div>
+          <h4>{t("modelPolicy.title")}</h4>
+          <p>{t("modelPolicy.description")}</p>
+        </div>
+      </header>
+      {policyQuery.isPending ? <LoadingRows label={t("loading")} /> : null}
+      {policyQuery.error ? (
+        <Banner variant="error">{formatAgentError(policyQuery.error)}</Banner>
+      ) : null}
+      {error ? (
+        <Banner variant={conflict ? "warn" : "error"}>
+          <strong>{conflict ? t("errors.conflictTitle") : t("errors.saveTitle")}</strong>
+          <span>{error}</span>
+        </Banner>
+      ) : null}
+      {choices.length === 0 && data ? (
+        <Banner variant="warn">{t("modelPolicy.noConfiguredModels")}</Banner>
+      ) : null}
+      {data?.unsupported.length ? (
+        <Banner variant="warn">
+          {t("modelPolicy.unsupported", {
+            fields: data.unsupported.map((entry) => entry.configPath).join(", "),
+          })}
+        </Banner>
+      ) : null}
+      {agentPolicies.length > 0 ? (
+        <div className="agent-model-policy__group">
+          <h5>{t("modelPolicy.agentGroup")}</h5>
+          {agentPolicies.map(renderPolicy)}
+        </div>
+      ) : null}
+      {globalPolicies.length > 0 ? (
+        <div className="agent-model-policy__group">
+          <h5>{t("modelPolicy.globalGroup")}</h5>
+          {globalPolicies.map(renderPolicy)}
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -1497,7 +1874,6 @@ function SkillsSection({
 function SubagentsSection({
   rows,
   allowAny,
-  model,
   loaded,
   dirty,
   saving,
@@ -1506,12 +1882,10 @@ function SubagentsSection({
   onReload,
   onAllowAnyChange,
   onRowsChange,
-  onModelChange,
   onSave,
 }: {
   rows: DeckGoAgentSubagentPermissionOption[];
   allowAny: boolean;
-  model: string;
   loaded: boolean;
   dirty: boolean;
   saving: boolean;
@@ -1520,7 +1894,6 @@ function SubagentsSection({
   onReload: () => Promise<void>;
   onAllowAnyChange: (allowAny: boolean) => void;
   onRowsChange: (rows: DeckGoAgentSubagentPermissionOption[]) => void;
-  onModelChange: (model: string) => void;
   onSave: () => Promise<void>;
 }) {
   const t = useTranslations("agentsPanel");
@@ -1553,10 +1926,7 @@ function SubagentsSection({
           ) : (
             <Banner>{t("subagents.allowAnyDescription")}</Banner>
           )}
-          <label className="agent-field">
-            <span>{t("fields.model")}</span>
-            <Input value={model} onChange={(event) => onModelChange(event.target.value)} />
-          </label>
+          <Banner>{t("subagents.modelPolicyMoved")}</Banner>
           <div className="agent-option-list">
             {rows.length === 0 ? <p>{t("subagents.empty")}</p> : null}
             {rows.map((row) => (

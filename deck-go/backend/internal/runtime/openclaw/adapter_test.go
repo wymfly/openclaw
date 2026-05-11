@@ -100,6 +100,10 @@ func (s *stubAdapterRequester) Request(_ context.Context, method string, params 
 		return s.payload["deck.agents.subagents.get"], nil
 	case "deck.agents.subagents.set":
 		return s.payload["deck.agents.subagents.set"], nil
+	case "deck.agents.modelPolicy.get":
+		return s.payload["deck.agents.modelPolicy.get"], nil
+	case "deck.agents.modelPolicy.set":
+		return s.payload["deck.agents.modelPolicy.set"], nil
 	case "deck.agents.toolPolicy.preview":
 		return s.payload["deck.agents.toolPolicy.preview"], nil
 	case "deck.agents.systemPrompt.preview":
@@ -298,6 +302,8 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 			"deck.agents.skills.set":                map[string]any{"ok": true},
 			"deck.agents.subagents.get":             map[string]any{"subagents": []any{}},
 			"deck.agents.subagents.set":             map[string]any{"ok": true},
+			"deck.agents.modelPolicy.get":           map[string]any{"policies": []any{}, "configuredModels": []any{}, "unsupported": []any{}, "configHash": "hash-1"},
+			"deck.agents.modelPolicy.set":           map[string]any{"ok": true, "configHash": "hash-2"},
 			"deck.agents.toolPolicy.preview":        map[string]any{"ok": true},
 			"deck.agents.systemPrompt.preview":      map[string]any{"ok": true},
 			"deck.agents.eventStreams.get":          map[string]any{"ok": true},
@@ -481,6 +487,16 @@ func TestAdapter_ExposesCapabilityStatusAndSessionQueries(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := adapter.GatewayQueries().DeckAgentsSubagentsSet(context.Background(), map[string]any{"agentId": "main"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := adapter.GatewayQueries().DeckAgentsModelPolicyGet(context.Background(), map[string]any{"agentId": "main"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := adapter.GatewayQueries().DeckAgentsModelPolicySet(context.Background(), map[string]any{
+		"target":   map[string]any{"kind": "agent-model", "key": "agent", "agentId": "main"},
+		"clear":    true,
+		"baseHash": "hash-1",
+	}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := adapter.GatewayQueries().DeckAgentsToolPolicyPreview(context.Background(), map[string]any{"agentId": "main"}); err != nil {

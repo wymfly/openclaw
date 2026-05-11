@@ -1430,6 +1430,77 @@ export interface DeckAgentsEventStreamsSetResult {
   ok: boolean;
 }
 
+export interface DeckAgentsModelPolicyGetParams {
+  agentId?: string;
+}
+
+export type DeckAgentsModelPolicyGetResult = {
+  agentId?: string;
+  configHash: string;
+  configuredModels: {
+    contextWindow?: number;
+    input?: string[];
+    model: string;
+    name: string;
+    provider: string;
+    reasoning?: boolean;
+    ref: string;
+  }[];
+  policies: {
+    configPath: string;
+    editable: boolean;
+    effective?: {
+      fallbacks?: string[];
+      primary?: string;
+    };
+    key: string;
+    kind: "agent-model" | "agent-subagents" | "global-default";
+    label: string;
+    owner: "agents" | "models" | "other";
+    selection?: {
+      fallbacks?: string[];
+      primary?: string;
+    };
+    source: "agent" | "default" | "missing";
+    supportedShape: "agentModelConfig" | "string";
+    unavailableRefs: string[];
+  }[];
+  unsupported: {
+    configPath: string;
+    key: string;
+    reason: string;
+  }[];
+};
+
+export type DeckAgentsModelPolicySetParams = {
+  baseHash: string;
+  clear?: boolean;
+  selection?: {
+    fallbacks?: string[];
+    primary?: string;
+  };
+  target: {
+    agentId?: string;
+    key: string;
+    kind: "agent-model" | "agent-subagents" | "global-default";
+  };
+};
+
+export type DeckAgentsModelPolicySetResult = {
+  cleared?: boolean;
+  configHash: string;
+  ok: boolean;
+  selection?: {
+    fallbacks?: string[];
+    primary?: string;
+  };
+  target: {
+    agentId?: string;
+    key: string;
+    kind: "agent-model" | "agent-subagents" | "global-default";
+  };
+};
+
 export interface DeckAgentsSkillsGetParams {
   agentId: string;
 }
@@ -4192,6 +4263,14 @@ export interface GatewayMethodMap {
   "deck.agents.eventStreams.set": {
     params: DeckAgentsEventStreamsSetParams;
     result: DeckAgentsEventStreamsSetResult;
+  };
+  "deck.agents.modelPolicy.get": {
+    params: DeckAgentsModelPolicyGetParams;
+    result: DeckAgentsModelPolicyGetResult;
+  };
+  "deck.agents.modelPolicy.set": {
+    params: DeckAgentsModelPolicySetParams;
+    result: DeckAgentsModelPolicySetResult;
   };
   "deck.agents.skills.get": {
     params: DeckAgentsSkillsGetParams;

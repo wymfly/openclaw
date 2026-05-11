@@ -1169,12 +1169,21 @@ export type DeckGoModelProbeResponse = {
 //
 // SecretInput safety rule: deck-go SHALL never reveal a literal secret value
 // through these DTOs. Sensitive fields (provider apiKey, provider headers
-// values) are exposed only through DeckGoModelSecretInputStatus.
+// values) are exposed only through DeckGoModelSecretInputStatus. Product
+// actions may use ergonomic UI controls, but the persisted OpenClaw shape is
+// always SecretInput = string | { source, provider, id }; normal UI writes emit
+// the SecretRef object form.
+
+export type DeckGoModelSecretRef = {
+  source: "env" | "file" | "exec";
+  provider: string;
+  id: string;
+};
 
 export type DeckGoModelSecretInputStatus =
   | { state: "missing" }
   | { state: "empty" }
-  | { state: "ref"; ref: string; refTemplate?: string }
+  | { state: "ref"; ref: DeckGoModelSecretRef; displayRef?: string }
   | { state: "literal-redacted"; redactedHint?: string };
 
 export type DeckGoModelCompatFlag =
@@ -1206,14 +1215,15 @@ export type DeckGoModelProviderRequestSummary = {
   rawKeys?: string[];
 };
 
-export type DeckGoModelInputModality = "text" | "image" | "pdf" | "audio" | "video";
+export type DeckGoModelInputModality = "text" | "image";
+
+export type DeckGoModelBooleanToggleAction = "enable" | "disable" | "preserve";
 
 export type DeckGoModelCost = {
   input?: number;
   output?: number;
   cacheRead?: number;
   cacheWrite?: number;
-  unit?: string;
 };
 
 export type DeckGoModelEntry = {
@@ -1232,6 +1242,8 @@ export type DeckGoModelEntry = {
   isReferenced: boolean;
   isDefault?: boolean;
   defaultRoles?: string[];
+  usageRelations?: DeckGoModelReferenceRelation[];
+  usageRoles?: string[];
 };
 
 export type DeckGoModelDetail = {
@@ -1250,6 +1262,8 @@ export type DeckGoModelDetail = {
   isReferenced: boolean;
   isDefault?: boolean;
   defaultRoles?: string[];
+  usageRelations?: DeckGoModelReferenceRelation[];
+  usageRoles?: string[];
   headers?: Record<string, string>;
 };
 
@@ -1297,18 +1311,31 @@ export type DeckGoModelsConfigDetailRuntime = {
   staleAt?: number;
 };
 
+export type DeckGoModelDefaultSource = "explicit" | "derived";
+
+export type DeckGoModelDefaultEntry = {
+  provider?: string;
+  model?: string;
+  source?: DeckGoModelDefaultSource;
+  fallbacks?: Array<{ provider?: string; model?: string }>;
+};
+
 export type DeckGoModelsConfigDetail = {
   hash: string;
   configPresent: boolean;
   mode: DeckGoModelCatalogMode;
   modeSource: "config" | "default";
   defaults?: {
-    text?: { provider?: string; model?: string };
-    image?: { provider?: string; model?: string };
-    pdf?: { provider?: string; model?: string };
-    summary?: { provider?: string; model?: string };
-    compaction?: { provider?: string; model?: string };
-    memorySearch?: { provider?: string; model?: string };
+    text?: DeckGoModelDefaultEntry;
+    image?: DeckGoModelDefaultEntry;
+    imageGeneration?: DeckGoModelDefaultEntry;
+    videoGeneration?: DeckGoModelDefaultEntry;
+    musicGeneration?: DeckGoModelDefaultEntry;
+    pdf?: DeckGoModelDefaultEntry;
+    summary?: DeckGoModelDefaultEntry;
+    compaction?: DeckGoModelDefaultEntry;
+    memorySearch?: DeckGoModelDefaultEntry;
+    subagents?: DeckGoModelDefaultEntry;
   };
   providers: DeckGoModelProviderEntry[];
   runtime: DeckGoModelsConfigDetailRuntime;
@@ -1327,12 +1354,21 @@ export type DeckGoModelReferenceKind =
   | "tools"
   | "sessions";
 
+export type DeckGoModelReferenceRelation =
+  | "primary"
+  | "fallback"
+  | "default"
+  | "derived"
+  | "reference";
+
 export type DeckGoModelReferenceEntry = {
   kind: DeckGoModelReferenceKind;
   path: string;
   providerId?: string;
   modelId?: string;
   label?: string;
+  relation?: DeckGoModelReferenceRelation;
+  role?: string;
 };
 
 export type DeckGoModelBuiltinProviderImpact = {
@@ -1366,7 +1402,7 @@ export type DeckGoModelProviderUpsertModelInput = {
   name?: string;
   api?: string;
   inheritsApi?: boolean;
-  reasoning?: boolean;
+  reasoning?: DeckGoModelBooleanToggleAction;
   inputs?: DeckGoModelInputModality[];
   contextWindow?: number;
   contextTokens?: number;
@@ -1383,17 +1419,15 @@ export type DeckGoModelProviderUpsertRequest = {
   api?: string;
   baseUrl?: string;
   auth?: DeckGoModelProviderAuthMode;
-  authHeader?: boolean;
-  injectNumCtxForOpenAICompat?: boolean;
+  authHeader?: DeckGoModelBooleanToggleAction;
+  injectNumCtxForOpenAICompat?: DeckGoModelBooleanToggleAction;
   apiKey?:
-    | { action: "set-ref"; ref: string; refTemplate?: string }
+    | { action: "set-ref"; ref: DeckGoModelSecretRef }
     | { action: "clear" }
     | { action: "preserve" };
   headers?: Record<
     string,
-    | { action: "set-ref"; ref: string; refTemplate?: string }
-    | { action: "remove" }
-    | { action: "preserve" }
+    { action: "set-ref"; ref: DeckGoModelSecretRef } | { action: "remove" } | { action: "preserve" }
   >;
   models?: DeckGoModelProviderUpsertModelInput[];
   preserveRequest?: boolean;
@@ -1437,7 +1471,7 @@ export type DeckGoModelUpsertRequest = {
   name?: string;
   api?: string;
   inheritsApi?: boolean;
-  reasoning?: boolean;
+  reasoning?: DeckGoModelBooleanToggleAction;
   inputs?: DeckGoModelInputModality[];
   contextWindow?: number;
   contextTokens?: number;
@@ -1702,6 +1736,84 @@ export type DeckGoAgentSubagentConfigSetResponse = {
   agentId?: string;
   allowAgents?: string[];
   model?: string;
+  configHash?: string;
+};
+
+export type DeckGoAgentModelPolicyTargetKind = "global-default" | "agent-model" | "agent-subagents";
+
+export type DeckGoAgentModelPolicyShape = "agentModelConfig" | "string";
+
+export type DeckGoAgentModelPolicySource = "agent" | "default" | "missing";
+
+export type DeckGoAgentModelPolicyOwner = "agents" | "models" | "other";
+
+export type DeckGoAgentModelSelection = {
+  primary?: string;
+  fallbacks?: string[];
+};
+
+export type DeckGoAgentModelPolicyTarget = {
+  kind: DeckGoAgentModelPolicyTargetKind;
+  key: string;
+  agentId?: string;
+};
+
+export type DeckGoAgentModelChoice = {
+  ref: string;
+  provider: string;
+  model: string;
+  name: string;
+  contextWindow?: number;
+  reasoning?: boolean;
+  input?: string[];
+};
+
+export type DeckGoAgentModelPolicyEntry = {
+  kind: DeckGoAgentModelPolicyTargetKind;
+  key: string;
+  label: string;
+  configPath: string;
+  source: DeckGoAgentModelPolicySource;
+  supportedShape: DeckGoAgentModelPolicyShape;
+  selection?: DeckGoAgentModelSelection;
+  effective?: DeckGoAgentModelSelection;
+  unavailableRefs: string[];
+  editable: boolean;
+  owner: DeckGoAgentModelPolicyOwner;
+};
+
+export type DeckGoAgentUnsupportedModelPolicy = {
+  key: string;
+  configPath: string;
+  reason: string;
+};
+
+export type DeckGoAgentModelPolicyGetRequest = {
+  action: "modelPolicy.get";
+  agentId?: string;
+};
+
+export type DeckGoAgentModelPolicySetRequest = {
+  action: "modelPolicy.set";
+  target: DeckGoAgentModelPolicyTarget;
+  selection?: DeckGoAgentModelSelection;
+  clear?: boolean;
+  baseHash: string;
+};
+
+export type DeckGoAgentModelPolicyResponse = {
+  agentId?: string;
+  policies: DeckGoAgentModelPolicyEntry[];
+  configuredModels: DeckGoAgentModelChoice[];
+  configHash: string;
+  unsupported: DeckGoAgentUnsupportedModelPolicy[];
+};
+
+export type DeckGoAgentModelPolicySetResponse = {
+  ok?: boolean;
+  target?: DeckGoAgentModelPolicyTarget;
+  selection?: DeckGoAgentModelSelection;
+  cleared?: boolean;
   configHash?: string;
 };
 

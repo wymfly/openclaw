@@ -15,6 +15,8 @@ export const agentsKeys = {
     [...agentDetailRoot(agentId, scope), "skills"] as const,
   subagents: (agentId: string, scope?: DeckQueryScope) =>
     [...agentDetailRoot(agentId, scope), "subagents"] as const,
+  modelPolicy: (agentId?: string, scope?: DeckQueryScope) =>
+    [...deckKeys.agents.all(scope), "model-policy", agentId ?? "global"] as const,
   eventStreams: (agentId: string, scope?: DeckQueryScope) =>
     [...agentDetailRoot(agentId, scope), "event-streams"] as const,
   toolPolicy: (agentId: string, scope?: DeckQueryScope) =>

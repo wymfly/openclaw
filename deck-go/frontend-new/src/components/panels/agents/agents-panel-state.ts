@@ -81,10 +81,7 @@ export function hasOverviewChanges(agent: Agent, draft: OverviewDraft): boolean 
 }
 
 export function hasRuntimeChanges(agent: Agent, draft: OverviewDraft): boolean {
-  return (
-    draft.model.trim() !== (agent.model ?? "") ||
-    draft.workspace.trim() !== (agent.workspace ?? "")
-  );
+  return draft.workspace.trim() !== (agent.workspace ?? "");
 }
 
 export function buildAgentIdentityPatch(
@@ -107,13 +104,12 @@ export function buildAgentIdentityPatch(
   return patch;
 }
 
-export function buildAgentRuntimePatch(agent: Agent, draft: OverviewDraft): DeckGoAgentPatchRequest {
+export function buildAgentRuntimePatch(
+  agent: Agent,
+  draft: OverviewDraft,
+): DeckGoAgentPatchRequest {
   const patch: DeckGoAgentPatchRequest = {};
-  const model = draft.model.trim();
   const workspace = draft.workspace.trim();
-  if (model !== (agent.model ?? "")) {
-    patch.model = model || undefined;
-  }
   if (workspace !== (agent.workspace ?? "")) {
     patch.workspace = workspace || undefined;
   }

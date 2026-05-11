@@ -11,23 +11,26 @@ and the implementation-discovered gaps that surfaced during the work.
 
 - **Status**: candidate
 - **Source**: `deck-go-models-config-control-plane` task 6.4; design.md
-  scope notes.
+  scope notes; refined by
+  `deck-go-models-product-semantics-convergence`.
 - **Classification**: next-openspec
-- **Fact baseline**: `DeckGoModelsConfigDetail.references` surfaces
-  default-role assignments read-only (see
-  `frontend-new/src/components/panels/models/lib/models-selectors.ts`
-  `modelDefaultRoles`). The current panel does not expose an editor for
-  `agents.<id>.defaultModel`, channel default, hook default, or runtime
-  default. Operators must use the advanced raw editor to change a
-  default reference today.
+- **Fact baseline**: OpenClaw model policy is not a `models.providers`
+  field. It is represented by `AgentModelConfig = string | { primary,
+fallbacks }` through paths such as `agents.defaults.model`,
+  `agents.list[].model`, `agents.list[].subagents.model`, and
+  role-specific `agents.defaults.*` model fields. The current Models
+  panel may surface default/reference assignments read-only, but it is
+  not the canonical editor for those policy fields. Operators must use
+  advanced raw editing today for policy changes that are not already
+  covered by Agents UI.
 - **Why not now**: Default editing crosses module boundaries (agents,
   channels, hooks, runtime). Modeling the UX requires deciding where
   the edit surface lives — inside Models, inside the owning module, or
   in a global Settings surface. That decision was explicitly out of
   scope for this change to keep Models config-authority focused.
-- **Suggested next step**: Brainstorm the cross-module default editing
-  UX (likely a small OpenSpec change with a design document covering
-  agents/channels/hooks/runtime default ownership).
+- **Suggested next step**: Use
+  `openspec/follow-ups/2026-05-09-agents-model-policy-redesign-handoff.md`
+  as input for the next Agents module redesign proposal.
 - **Acceptance hints**: Each owning module must remain the primary
   editor of its own default; Models can surface a read-only mirror plus
   a "jump to owner" affordance.
@@ -40,9 +43,9 @@ and the implementation-discovered gaps that surfaced during the work.
 - **Source**: `deck-go-models-config-control-plane` task 6.4.
 - **Classification**: next-openspec
 - **Fact baseline**: OpenClaw `ModelConfig` currently exposes
-  `tokenCostPerKilo`, `tokenCostInputPerKilo`, and
-  `tokenCostOutputPerKilo`; there is no `rateLimit` field and no
-  cached-vs-uncached input pricing. The drawer reflects only the
+  `cost.input`, `cost.output`, `cost.cacheRead`, and
+  `cost.cacheWrite`; there is no `rateLimit`, quota, pricing `unit`,
+  or vendor invoice snapshot field. The drawer reflects only the
   current schema fields.
 - **Why not now**: Adding fields requires an OpenClaw config schema
   change (`src/config/types.models.ts` + `src/config/zod-schema.core.ts`
@@ -83,18 +86,20 @@ and the implementation-discovered gaps that surfaced during the work.
 - **Status**: candidate
 - **Source**: `deck-go-models-config-control-plane` task 6.4.
 - **Classification**: next-openspec
-- **Fact baseline**: `SecretInputField` writes a `SecretRef` (e.g.
-  `deck.secrets.anthropic.apiKey`) but does not currently expose CRUD
-  for the underlying secret store. The deck-go BFF normalizes refs to
-  the underlying store; central CRUD is operator-managed elsewhere.
-- **Why not now**: A SecretRef registry is a separate platform
-  capability. Mixing it into Models would conflate config authority
-  with secret-store ownership.
+- **Fact baseline**: `SecretInputField` writes the real OpenClaw
+  `SecretInput` object form, for example
+  `{ source: "env", provider: "default", id: "OPENAI_API_KEY" }`.
+  It does not currently create, edit, validate, or delete env/file/exec
+  secret provider entries or literal secret values.
+- **Why not now**: Secret provider management is a separate platform
+  capability. Mixing it into Models would conflate model config
+  authority with secret-source ownership.
 - **Suggested next step**: Standalone OpenSpec change for a Secrets
   module (`/secrets/*` BFF + dedicated panel).
 - **Acceptance hints**: Models must continue to consume opaque
-  SecretRef strings; the secrets panel manages literal values once and
-  exposes only the ref name to other modules.
+  `SecretRef` objects; the secrets panel manages provider configuration
+  and literal values once, then exposes only safe reference choices to
+  other modules.
 
 ## FU-005: Probe runner UX
 
@@ -199,6 +204,32 @@ and the implementation-discovered gaps that surfaced during the work.
   (vendor invoice, snapshot date) and never claim authoritative
   invoice equivalence; audit must include actor, before, after, and
   base-hash chain.
+
+## FU-010: Real-stack bundled runtime bootstrap timeout
+
+- **Status**: candidate
+- **Source**: `deck-go-models-config-control-plane` task 7.6.
+- **Classification**: real-e2e
+- **Fact baseline**: `cd deck-go && make e2e-real-module MODULE=models`
+  was retargeted to typed BFF actions but timed out before the Models
+  test body. Playwright hit its 300000ms timeout in
+  `test/e2e/helpers.ts` while waiting for `waitForBundledRuntime`; the
+  backend `/api/runtime/gateway` endpoint did not expose a bundled
+  Gateway pid in time.
+- **Why not now**: This is a shared L2 real-stack bootstrap issue, not
+  evidence that the Models typed routes failed. The proposal allowed a
+  bounded real-E2E circuit breaker when the environment blocks before
+  the module path.
+- **Suggested next step**: Investigate the shared real E2E bootstrap
+  path separately: real-stack env file, backend runtime supervisor,
+  Gateway stdout/stderr capture, `/api/runtime/gateway` readiness
+  semantics, and timeout diagnostics.
+- **Acceptance hints**: The rerun should reach the first
+  `/api/models/config/detail` request, then complete provider upsert,
+  model upsert, mode dry-run, model delete cleanup, and provider delete
+  cleanup against the isolated real stack. On timeout, logs must include
+  backend and Gateway startup output rather than only the Playwright
+  waiter failure.
 
 ## Promotion notes
 

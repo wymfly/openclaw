@@ -1,7 +1,7 @@
 import type { DeckGoModelEntry } from "@/api-types";
 import { Badge, Chip } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
-import { modelInputsLabel } from "../lib/models-selectors";
+import { modelInputsLabel, modelUsageRelations, modelUsageRoles } from "../lib/models-selectors";
 
 export interface ModelRowProps {
   providerId: string;
@@ -12,6 +12,8 @@ export interface ModelRowProps {
 
 export function ModelRow({ providerId, model, onOpen, onPreviewDelete }: ModelRowProps) {
   const t = useTranslations("models");
+  const relations = new Set(modelUsageRelations(model));
+  const roles = modelUsageRoles(model);
   return (
     <li
       className="models-row"
@@ -34,7 +36,14 @@ export function ModelRow({ providerId, model, onOpen, onPreviewDelete }: ModelRo
           <Chip>{t("rows.contextWindow", { value: model.contextWindow })}</Chip>
         ) : null}
         {model.isDefault ? <Badge variant="ok">{t("rows.defaultBadge")}</Badge> : null}
+        {relations.has("fallback") ? <Badge variant="warn">{t("rows.fallbackBadge")}</Badge> : null}
+        {relations.has("primary") && !model.isDefault ? (
+          <Badge variant="running">{t("rows.primaryBadge")}</Badge>
+        ) : null}
         {model.isReferenced ? <Badge variant="warn">{t("rows.referencedBadge")}</Badge> : null}
+        {roles.length > 0 ? (
+          <Chip>{t("rows.usageRoles", { roles: roles.slice(0, 3).join(", ") })}</Chip>
+        ) : null}
       </div>
       <div className="models-row-actions">
         <button type="button" className="models-link-btn" onClick={() => onOpen(model.id)}>
@@ -45,7 +54,7 @@ export function ModelRow({ providerId, model, onOpen, onPreviewDelete }: ModelRo
           className="models-link-btn models-link-btn-danger"
           onClick={() => onPreviewDelete(model.id)}
         >
-          {t("rows.previewDelete")}
+          {t("rows.checkDeleteImpact")}
         </button>
       </div>
     </li>

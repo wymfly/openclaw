@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
@@ -22,6 +23,7 @@ import (
 type modelsControlSurface interface {
 	ConfigGet(ctx context.Context) (any, error)
 	ConfigPatch(ctx context.Context, raw string, baseHash string, note string) (any, error)
+	ConfigApply(ctx context.Context, raw string, baseHash string) (any, error)
 	ModelsCatalogProviders(ctx context.Context) (any, error)
 	ModelsConfigured(ctx context.Context) (any, error)
 	DeckAuthOverview(ctx context.Context) (any, error)
@@ -31,6 +33,7 @@ type modelsControlSurface interface {
 // commit handlers can verify the preview is fresh and matches the current
 // reference index. It is keyed by impactToken.
 type modelsControlImpactStore struct {
+	mu      sync.Mutex
 	entries map[string]modelsControlImpactRecord
 }
 
@@ -58,7 +61,9 @@ func (s *modelsControlImpactStore) put(token string, record modelsControlImpactR
 	if s == nil {
 		return
 	}
-	s.gc()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gcLocked(time.Now())
 	s.entries[token] = record
 }
 
@@ -66,7 +71,9 @@ func (s *modelsControlImpactStore) consume(token string) (modelsControlImpactRec
 	if s == nil {
 		return modelsControlImpactRecord{}, false
 	}
-	s.gc()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gcLocked(time.Now())
 	rec, ok := s.entries[token]
 	if !ok {
 		return modelsControlImpactRecord{}, false
@@ -76,7 +83,16 @@ func (s *modelsControlImpactStore) consume(token string) (modelsControlImpactRec
 }
 
 func (s *modelsControlImpactStore) gc() {
-	cutoff := time.Now().Add(-modelsControlImpactTTL)
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gcLocked(time.Now())
+}
+
+func (s *modelsControlImpactStore) gcLocked(now time.Time) {
+	cutoff := now.Add(-modelsControlImpactTTL)
 	for k, v := range s.entries {
 		if v.IssuedAt.Before(cutoff) {
 			delete(s.entries, k)

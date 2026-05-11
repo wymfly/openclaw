@@ -12,6 +12,12 @@ export interface ImpactPreviewDialogProps {
   errorMessage?: string;
 }
 
+function hasAgentOwnerReferences(preview: DeckGoModelImpactPreview | undefined): boolean {
+  return Boolean(
+    preview?.references.some((ref) => ref.kind === "agents.defaults" || ref.kind === "agents.list"),
+  );
+}
+
 export function ImpactPreviewDialog(props: ImpactPreviewDialogProps) {
   const t = useTranslations("models");
   const preview = props.preview;
@@ -58,6 +64,9 @@ export function ImpactPreviewDialog(props: ImpactPreviewDialogProps) {
               })}
             </Banner>
           ) : null}
+          {hasAgentOwnerReferences(preview) ? (
+            <Banner variant="info">{t("impactDialog.agentOwnerNote")}</Banner>
+          ) : null}
           {refs > 0 ? (
             <ul className="models-dialog-list">
               {preview.references.map((ref, index) => (
@@ -65,6 +74,8 @@ export function ImpactPreviewDialog(props: ImpactPreviewDialogProps) {
                   <code>{ref.path}</code>
                   <span className="models-dialog-meta">
                     {t(`impactDialog.refKind.${ref.kind}`)}
+                    {ref.relation ? ` · ${t(`impactDialog.relation.${ref.relation}`)}` : ""}
+                    {ref.role ? ` · ${ref.role}` : ""}
                     {ref.providerId ? ` · ${ref.providerId}` : ""}
                     {ref.modelId ? `/${ref.modelId}` : ""}
                   </span>

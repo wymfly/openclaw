@@ -32,17 +32,31 @@ import (
 // Each entry preserves the authored config path so impact previews can render
 // the originating field unambiguously and tests can assert coverage.
 type modelReferenceIndex struct {
-	byProvider     map[string][]deckapi.DeckGoModelReferenceEntry
-	byModel        map[modelKey][]deckapi.DeckGoModelReferenceEntry
-	defaultRoles   map[modelKey][]string
-	defaultByRole  map[string]modelKey
-	all            []deckapi.DeckGoModelReferenceEntry
-	hashSeed       string
+	byProvider    map[string][]deckapi.DeckGoModelReferenceEntry
+	byModel       map[modelKey][]deckapi.DeckGoModelReferenceEntry
+	defaultRoles  map[modelKey][]string
+	defaultByRole map[string]modelKey
+	all           []deckapi.DeckGoModelReferenceEntry
+	hashSeed      string
 }
 
 type modelKey struct {
 	provider string
 	model    string
+}
+
+const (
+	modelReferencePrimary  deckapi.DeckGoModelReferenceRelation = "primary"
+	modelReferenceFallback deckapi.DeckGoModelReferenceRelation = "fallback"
+	modelReferenceDefault  deckapi.DeckGoModelReferenceRelation = "default"
+	modelReferenceGeneric  deckapi.DeckGoModelReferenceRelation = "reference"
+)
+
+type modelReferenceCandidate struct {
+	key      modelKey
+	path     string
+	relation deckapi.DeckGoModelReferenceRelation
+	role     string
 }
 
 func newModelKey(provider, model string) modelKey {
@@ -93,6 +107,10 @@ func (idx *modelReferenceIndex) finalize() {
 		hash.WriteString(entry.ProviderId)
 		hash.WriteByte(':')
 		hash.WriteString(entry.ModelId)
+		hash.WriteByte(':')
+		hash.WriteString(string(entry.Relation))
+		hash.WriteByte(':')
+		hash.WriteString(entry.Role)
 		hash.WriteByte('\n')
 	}
 	idx.hashSeed = hash.String()
@@ -124,6 +142,57 @@ func (idx *modelReferenceIndex) DefaultRolesForModel(providerID, modelID string)
 	return out
 }
 
+func (idx *modelReferenceIndex) RelationsForModel(providerID, modelID string) []deckapi.DeckGoModelReferenceRelation {
+	refs := idx.ReferencesForModel(providerID, modelID)
+	if len(refs) == 0 {
+		return nil
+	}
+	seen := map[deckapi.DeckGoModelReferenceRelation]struct{}{}
+	values := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		relation := ref.Relation
+		if relation == "" {
+			relation = modelReferenceGeneric
+		}
+		if _, ok := seen[relation]; ok {
+			continue
+		}
+		seen[relation] = struct{}{}
+		values = append(values, string(relation))
+	}
+	sort.Strings(values)
+	out := make([]deckapi.DeckGoModelReferenceRelation, 0, len(values))
+	for _, value := range values {
+		out = append(out, deckapi.DeckGoModelReferenceRelation(value))
+	}
+	return out
+}
+
+func (idx *modelReferenceIndex) RolesForModel(providerID, modelID string) []string {
+	refs := idx.ReferencesForModel(providerID, modelID)
+	if len(refs) == 0 {
+		return nil
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		role := strings.TrimSpace(ref.Role)
+		if role == "" {
+			role = strings.TrimSpace(ref.Label)
+		}
+		if role == "" {
+			continue
+		}
+		if _, ok := seen[role]; ok {
+			continue
+		}
+		seen[role] = struct{}{}
+		out = append(out, role)
+	}
+	sort.Strings(out)
+	return out
+}
+
 func (idx *modelReferenceIndex) IsProviderReferenced(providerID string) bool {
 	return len(idx.byProvider[providerID]) > 0
 }
@@ -142,6 +211,9 @@ func (idx *modelReferenceIndex) HashSeed() string {
 func (idx *modelReferenceIndex) record(entry deckapi.DeckGoModelReferenceEntry) {
 	if entry.Path == "" {
 		return
+	}
+	if entry.Relation == "" {
+		entry.Relation = modelReferenceGeneric
 	}
 	if entry.ProviderId != "" {
 		idx.byProvider[entry.ProviderId] = append(idx.byProvider[entry.ProviderId], entry)
@@ -167,7 +239,35 @@ func (idx *modelReferenceIndex) recordDefault(role string, providerID, modelID s
 		ProviderId: providerID,
 		ModelId:    modelID,
 		Label:      role,
+		Relation:   modelReferenceDefault,
+		Role:       role,
 	})
+}
+
+func (idx *modelReferenceIndex) recordDefaultSelection(role string, path string, value any) {
+	role = strings.TrimSpace(role)
+	if role == "" {
+		return
+	}
+	for _, ref := range modelSelectionReferences(value, path, modelReferenceDefault, role) {
+		if ref.key.provider == "" || ref.key.model == "" {
+			continue
+		}
+		if ref.relation == modelReferenceDefault {
+			key := ref.key
+			idx.defaultRoles[key] = append(idx.defaultRoles[key], role)
+			idx.defaultByRole[role] = key
+		}
+		idx.record(deckapi.DeckGoModelReferenceEntry{
+			Kind:       "agents.defaults",
+			Path:       ref.path,
+			ProviderId: ref.key.provider,
+			ModelId:    ref.key.model,
+			Label:      role,
+			Relation:   ref.relation,
+			Role:       role,
+		})
+	}
 }
 
 // modelRefSpec parses a model reference string of the form "provider/model".
@@ -183,6 +283,94 @@ func parseModelRef(value any) modelKey {
 		return modelKey{}
 	}
 	return newModelKey(s[:idx], s[idx+1:])
+}
+
+func primaryModelRef(value any) modelKey {
+	if ref := parseModelRef(value); ref.provider != "" {
+		return ref
+	}
+	record := coerce.Map(value)
+	if record == nil {
+		return modelKey{}
+	}
+	return parseModelRef(record["primary"])
+}
+
+func modelSelectionReferences(value any, path string, primaryRelation deckapi.DeckGoModelReferenceRelation, role string) []modelReferenceCandidate {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return nil
+	}
+	if primaryRelation == "" {
+		primaryRelation = modelReferencePrimary
+	}
+	if ref := parseModelRef(value); ref.provider != "" {
+		return []modelReferenceCandidate{{
+			key:      ref,
+			path:     path,
+			relation: primaryRelation,
+			role:     role,
+		}}
+	}
+	record := coerce.Map(value)
+	if record == nil {
+		return nil
+	}
+
+	var out []modelReferenceCandidate
+	if ref := parseModelRef(record["primary"]); ref.provider != "" {
+		out = append(out, modelReferenceCandidate{
+			key:      ref,
+			path:     path + ".primary",
+			relation: primaryRelation,
+			role:     role,
+		})
+	}
+	for i, raw := range modelFallbackValues(record["fallbacks"]) {
+		ref := parseModelRef(raw)
+		if ref.provider == "" {
+			continue
+		}
+		out = append(out, modelReferenceCandidate{
+			key:      ref,
+			path:     fmt.Sprintf("%s.fallbacks[%d]", path, i),
+			relation: modelReferenceFallback,
+			role:     role,
+		})
+	}
+	return out
+}
+
+func modelFallbackValues(value any) []any {
+	switch list := value.(type) {
+	case []any:
+		return list
+	case []string:
+		out := make([]any, 0, len(list))
+		for _, item := range list {
+			out = append(out, item)
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func (idx *modelReferenceIndex) recordSelection(kind deckapi.DeckGoModelReferenceKind, path string, value any, label string, relation deckapi.DeckGoModelReferenceRelation, role string) {
+	for _, ref := range modelSelectionReferences(value, path, relation, role) {
+		if ref.key.provider == "" || ref.key.model == "" {
+			continue
+		}
+		idx.record(deckapi.DeckGoModelReferenceEntry{
+			Kind:       kind,
+			Path:       ref.path,
+			ProviderId: ref.key.provider,
+			ModelId:    ref.key.model,
+			Label:      label,
+			Relation:   ref.relation,
+			Role:       ref.role,
+		})
+	}
 }
 
 // scanAgentsDefaults records default model assignments (image, pdf, summary,
@@ -202,37 +390,30 @@ func scanAgentsDefaults(idx *modelReferenceIndex, configMap map[string]any) {
 		path string
 		key  string
 	}{
+		{role: "textModel", path: "agents.defaults.model", key: "model"},
 		{role: "imageModel", path: "agents.defaults.imageModel", key: "imageModel"},
+		{role: "imageGenerationModel", path: "agents.defaults.imageGenerationModel", key: "imageGenerationModel"},
+		{role: "videoGenerationModel", path: "agents.defaults.videoGenerationModel", key: "videoGenerationModel"},
+		{role: "musicGenerationModel", path: "agents.defaults.musicGenerationModel", key: "musicGenerationModel"},
 		{role: "pdfModel", path: "agents.defaults.pdfModel", key: "pdfModel"},
 		{role: "summaryModel", path: "agents.defaults.summaryModel", key: "summaryModel"},
 	}
 	for _, item := range roles {
-		ref := parseModelRef(defaults[item.key])
-		if ref.provider == "" {
-			continue
-		}
-		idx.recordDefault(item.role, ref.provider, ref.model, item.path)
+		idx.recordDefaultSelection(item.role, item.path, defaults[item.key])
 	}
 
 	if compaction := coerce.Map(defaults["compaction"]); compaction != nil {
-		ref := parseModelRef(compaction["model"])
-		if ref.provider != "" {
-			idx.recordDefault("compactionModel", ref.provider, ref.model, "agents.defaults.compaction.model")
-		}
+		idx.recordDefaultSelection("compactionModel", "agents.defaults.compaction.model", compaction["model"])
 	}
 	if memSearch := coerce.Map(defaults["memorySearch"]); memSearch != nil {
-		ref := parseModelRef(memSearch["model"])
-		if ref.provider != "" {
-			idx.recordDefault("memorySearchModel", ref.provider, ref.model, "agents.defaults.memorySearch.model")
-		}
+		idx.recordDefaultSelection("memorySearchModel", "agents.defaults.memorySearch.model", memSearch["model"])
+	}
+	if subagents := coerce.Map(defaults["subagents"]); subagents != nil {
+		idx.recordDefaultSelection("subagents.model", "agents.defaults.subagents.model", subagents["model"])
 	}
 	if remote := coerce.Map(defaults["remote"]); remote != nil {
 		for _, key := range sortedKeys(remote) {
-			ref := parseModelRef(remote[key])
-			if ref.provider == "" {
-				continue
-			}
-			idx.recordDefault("remote."+key, ref.provider, ref.model, fmt.Sprintf("agents.defaults.remote.%s", key))
+			idx.recordDefaultSelection("remote."+key, fmt.Sprintf("agents.defaults.remote.%s", key), remote[key])
 		}
 	}
 }
@@ -253,22 +434,19 @@ func scanAgentsList(idx *modelReferenceIndex, configMap map[string]any) {
 		if entry == nil {
 			continue
 		}
-		ref := parseModelRef(entry["model"])
-		if ref.provider == "" {
-			continue
-		}
 		agentID := coerce.FirstString(entry["id"], entry["name"])
 		path := fmt.Sprintf("agents.list[%d].model", i)
 		if agentID != "" {
 			path = fmt.Sprintf("agents.list[%s].model", agentID)
 		}
-		idx.record(deckapi.DeckGoModelReferenceEntry{
-			Kind:       "agents.list",
-			Path:       path,
-			ProviderId: ref.provider,
-			ModelId:    ref.model,
-			Label:      agentID,
-		})
+		idx.recordSelection("agents.list", path, entry["model"], agentID, modelReferencePrimary, "agent.model")
+		if subagents := coerce.Map(entry["subagents"]); subagents != nil {
+			subPath := fmt.Sprintf("agents.list[%d].subagents.model", i)
+			if agentID != "" {
+				subPath = fmt.Sprintf("agents.list[%s].subagents.model", agentID)
+			}
+			idx.recordSelection("agents.list", subPath, subagents["model"], agentID, modelReferencePrimary, "subagents.model")
+		}
 	}
 }
 
@@ -284,17 +462,7 @@ func scanChannels(idx *modelReferenceIndex, configMap map[string]any) {
 		return
 	}
 	for _, channelID := range sortedKeys(mapping) {
-		ref := parseModelRef(mapping[channelID])
-		if ref.provider == "" {
-			continue
-		}
-		idx.record(deckapi.DeckGoModelReferenceEntry{
-			Kind:       "channels",
-			Path:       fmt.Sprintf("channels.modelByChannel.%s", channelID),
-			ProviderId: ref.provider,
-			ModelId:    ref.model,
-			Label:      channelID,
-		})
+		idx.recordSelection("channels", fmt.Sprintf("channels.modelByChannel.%s", channelID), mapping[channelID], channelID, modelReferencePrimary, "channel.model")
 	}
 }
 
@@ -310,35 +478,16 @@ func scanHooks(idx *modelReferenceIndex, configMap map[string]any) {
 			if entry == nil {
 				continue
 			}
-			ref := parseModelRef(entry["model"])
-			if ref.provider == "" {
-				continue
-			}
 			label := coerce.FirstString(entry["id"], entry["name"], entry["match"])
 			path := fmt.Sprintf("hooks.mappings[%d].model", i)
 			if label != "" {
 				path = fmt.Sprintf("hooks.mappings[%s].model", label)
 			}
-			idx.record(deckapi.DeckGoModelReferenceEntry{
-				Kind:       "hooks",
-				Path:       path,
-				ProviderId: ref.provider,
-				ModelId:    ref.model,
-				Label:      label,
-			})
+			idx.recordSelection("hooks", path, entry["model"], label, modelReferencePrimary, "hook.model")
 		}
 	}
 	if gmail := coerce.Map(hooks["gmail"]); gmail != nil {
-		ref := parseModelRef(gmail["model"])
-		if ref.provider != "" {
-			idx.record(deckapi.DeckGoModelReferenceEntry{
-				Kind:       "hooks",
-				Path:       "hooks.gmail.model",
-				ProviderId: ref.provider,
-				ModelId:    ref.model,
-				Label:      "gmail",
-			})
-		}
+		idx.recordSelection("hooks", "hooks.gmail.model", gmail["model"], "gmail", modelReferencePrimary, "hook.model")
 	}
 }
 
@@ -373,31 +522,11 @@ func scanEmbeddingModels(idx *modelReferenceIndex, embedding map[string]any, bas
 		if !strings.HasPrefix(strings.ToLower(key), "model") {
 			continue
 		}
-		ref := parseModelRef(embedding[key])
-		if ref.provider == "" {
-			continue
-		}
-		idx.record(deckapi.DeckGoModelReferenceEntry{
-			Kind:       "tools",
-			Path:       fmt.Sprintf("%s.%s", basePath, key),
-			ProviderId: ref.provider,
-			ModelId:    ref.model,
-			Label:      key,
-		})
+		idx.recordSelection("tools", fmt.Sprintf("%s.%s", basePath, key), embedding[key], key, modelReferencePrimary, "tool.model")
 	}
 	if models, ok := embedding["models"].(map[string]any); ok {
 		for _, name := range sortedKeys(models) {
-			ref := parseModelRef(models[name])
-			if ref.provider == "" {
-				continue
-			}
-			idx.record(deckapi.DeckGoModelReferenceEntry{
-				Kind:       "tools",
-				Path:       fmt.Sprintf("%s.models.%s", basePath, name),
-				ProviderId: ref.provider,
-				ModelId:    ref.model,
-				Label:      name,
-			})
+			idx.recordSelection("tools", fmt.Sprintf("%s.models.%s", basePath, name), models[name], name, modelReferencePrimary, "tool.model")
 		}
 	}
 }
@@ -415,17 +544,7 @@ func scanSessions(idx *modelReferenceIndex, configMap map[string]any) {
 		if entry == nil {
 			continue
 		}
-		ref := parseModelRef(entry["model"])
-		if ref.provider == "" {
-			continue
-		}
-		idx.record(deckapi.DeckGoModelReferenceEntry{
-			Kind:       "sessions",
-			Path:       fmt.Sprintf("sessions.%s.model", key),
-			ProviderId: ref.provider,
-			ModelId:    ref.model,
-			Label:      key,
-		})
+		idx.recordSelection("sessions", fmt.Sprintf("sessions.%s.model", key), entry["model"], key, modelReferencePrimary, "session.model")
 	}
 	if list, ok := sessions["list"].([]any); ok {
 		for i, raw := range list {
@@ -433,22 +552,12 @@ func scanSessions(idx *modelReferenceIndex, configMap map[string]any) {
 			if entry == nil {
 				continue
 			}
-			ref := parseModelRef(entry["model"])
-			if ref.provider == "" {
-				continue
-			}
 			label := coerce.FirstString(entry["id"], entry["sessionKey"], entry["name"])
 			path := fmt.Sprintf("sessions.list[%d].model", i)
 			if label != "" {
 				path = fmt.Sprintf("sessions.list[%s].model", label)
 			}
-			idx.record(deckapi.DeckGoModelReferenceEntry{
-				Kind:       "sessions",
-				Path:       path,
-				ProviderId: ref.provider,
-				ModelId:    ref.model,
-				Label:      label,
-			})
+			idx.recordSelection("sessions", path, entry["model"], label, modelReferencePrimary, "session.model")
 		}
 	}
 }

@@ -45,9 +45,6 @@ var providerAuthModes = map[string]struct{}{
 var knownInputModalities = map[string]struct{}{
 	"text":  {},
 	"image": {},
-	"pdf":   {},
-	"audio": {},
-	"video": {},
 }
 
 // compatFlagKeys map source-of-truth compat keys (kebab-case or camelCase) to
@@ -111,41 +108,60 @@ func projectModelsConfigDetail(configMap map[string]any, hash string, configPres
 	return detail
 }
 
-// projectDefaults pulls the agents.defaults.* model assignments and the synthetic
-// `text` default derived from agents.list[0].model so the control plane can
-// surface "what is the active default for this role" without reading agent
-// internals beyond the model field.
+// projectDefaults pulls explicit agents.defaults.* model assignments. When no
+// explicit text default exists it also exposes the first agent model as a
+// derived compatibility display so the UI can distinguish authored policy from
+// runtime fallback behavior.
 func projectDefaults(configMap map[string]any) map[string]any {
 	out := map[string]any{}
 	agents := coerce.Map(configMap["agents"])
 	if agents != nil {
 		defaults := coerce.Map(agents["defaults"])
 		if defaults != nil {
-			if entry, ok := defaultEntry(defaults["imageModel"]); ok {
+			if entry, ok := defaultEntry(defaults["model"], "explicit"); ok {
+				out["text"] = entry
+			}
+			if entry, ok := defaultEntry(defaults["imageModel"], "explicit"); ok {
 				out["image"] = entry
 			}
-			if entry, ok := defaultEntry(defaults["pdfModel"]); ok {
+			if entry, ok := defaultEntry(defaults["imageGenerationModel"], "explicit"); ok {
+				out["imageGeneration"] = entry
+			}
+			if entry, ok := defaultEntry(defaults["videoGenerationModel"], "explicit"); ok {
+				out["videoGeneration"] = entry
+			}
+			if entry, ok := defaultEntry(defaults["musicGenerationModel"], "explicit"); ok {
+				out["musicGeneration"] = entry
+			}
+			if entry, ok := defaultEntry(defaults["pdfModel"], "explicit"); ok {
 				out["pdf"] = entry
 			}
-			if entry, ok := defaultEntry(defaults["summaryModel"]); ok {
+			if entry, ok := defaultEntry(defaults["summaryModel"], "explicit"); ok {
 				out["summary"] = entry
 			}
 			if compaction := coerce.Map(defaults["compaction"]); compaction != nil {
-				if entry, ok := defaultEntry(compaction["model"]); ok {
+				if entry, ok := defaultEntry(compaction["model"], "explicit"); ok {
 					out["compaction"] = entry
 				}
 			}
 			if memSearch := coerce.Map(defaults["memorySearch"]); memSearch != nil {
-				if entry, ok := defaultEntry(memSearch["model"]); ok {
+				if entry, ok := defaultEntry(memSearch["model"], "explicit"); ok {
 					out["memorySearch"] = entry
 				}
 			}
+			if subagents := coerce.Map(defaults["subagents"]); subagents != nil {
+				if entry, ok := defaultEntry(subagents["model"], "explicit"); ok {
+					out["subagents"] = entry
+				}
+			}
 		}
-		// text default = first agent's model when present
-		if list, ok := agents["list"].([]any); ok && len(list) > 0 {
-			if first := coerce.Map(list[0]); first != nil {
-				if entry, ok := defaultEntry(first["model"]); ok {
-					out["text"] = entry
+		if _, hasText := out["text"]; !hasText {
+			// text default compatibility display = first agent's model when present
+			if list, ok := agents["list"].([]any); ok && len(list) > 0 {
+				if first := coerce.Map(list[0]); first != nil {
+					if entry, ok := defaultEntry(first["model"], "derived"); ok {
+						out["text"] = entry
+					}
 				}
 			}
 		}
@@ -153,12 +169,29 @@ func projectDefaults(configMap map[string]any) map[string]any {
 	return out
 }
 
-func defaultEntry(value any) (map[string]any, bool) {
-	ref := parseModelRef(value)
+func defaultEntry(value any, source string) (map[string]any, bool) {
+	ref := primaryModelRef(value)
 	if ref.provider == "" || ref.model == "" {
 		return nil, false
 	}
-	return map[string]any{"provider": ref.provider, "model": ref.model}, true
+	out := map[string]any{"provider": ref.provider, "model": ref.model}
+	if source != "" {
+		out["source"] = source
+	}
+	var fallbacks []any
+	for _, candidate := range modelSelectionReferences(value, "default", modelReferenceDefault, "") {
+		if candidate.relation != modelReferenceFallback {
+			continue
+		}
+		fallbacks = append(fallbacks, map[string]any{
+			"provider": candidate.key.provider,
+			"model":    candidate.key.model,
+		})
+	}
+	if len(fallbacks) > 0 {
+		out["fallbacks"] = fallbacks
+	}
+	return out, true
 }
 
 // projectProviderEntry projects a single provider's authored config into the
@@ -194,35 +227,76 @@ func projectProviderEntry(providerID string, providerMap map[string]any, refInde
 }
 
 func projectProviderModels(providerID string, providerMap map[string]any, refIndex *modelReferenceIndex, providerAPI string) []deckapi.DeckGoModelEntry {
-	rawModels := coerce.Map(providerMap["models"])
-	if rawModels == nil {
-		// also accept legacy array shape
-		if list, ok := providerMap["models"].([]any); ok {
-			rawModels = map[string]any{}
-			for _, raw := range list {
-				entry := coerce.Map(raw)
-				if entry == nil {
-					continue
-				}
-				id := strings.TrimSpace(coerce.String(entry["id"], ""))
-				if id == "" {
-					continue
-				}
-				rawModels[id] = entry
-			}
-		}
-	}
-	if rawModels == nil {
+	entries := modelConfigEntries(providerMap["models"])
+	if len(entries) == 0 {
 		return []deckapi.DeckGoModelEntry{}
 	}
-	ids := sortedKeys(rawModels)
-	out := make([]deckapi.DeckGoModelEntry, 0, len(ids))
-	for _, id := range ids {
-		modelMap := coerce.Map(rawModels[id])
-		if modelMap == nil {
-			continue
+	out := make([]deckapi.DeckGoModelEntry, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, projectModelEntry(providerID, entry.id, entry.value, providerAPI, refIndex))
+	}
+	return out
+}
+
+type modelConfigEntry struct {
+	id    string
+	value map[string]any
+}
+
+func modelConfigEntries(raw any) []modelConfigEntry {
+	switch value := raw.(type) {
+	case []any:
+		out := make([]modelConfigEntry, 0, len(value))
+		for _, item := range value {
+			entry := coerce.Map(item)
+			if entry == nil {
+				continue
+			}
+			id := strings.TrimSpace(coerce.String(entry["id"], ""))
+			if id == "" {
+				continue
+			}
+			out = append(out, modelConfigEntry{id: id, value: cloneShallowMapWithID(entry, id)})
 		}
-		out = append(out, projectModelEntry(providerID, id, modelMap, providerAPI, refIndex))
+		return out
+	case map[string]any:
+		ids := sortedKeys(value)
+		out := make([]modelConfigEntry, 0, len(ids))
+		for _, id := range ids {
+			entry := coerce.Map(value[id])
+			if entry == nil {
+				continue
+			}
+			out = append(out, modelConfigEntry{id: id, value: cloneShallowMapWithID(entry, id)})
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func cloneShallowMapWithID(input map[string]any, id string) map[string]any {
+	out := make(map[string]any, len(input)+1)
+	for k, v := range input {
+		out[k] = v
+	}
+	out["id"] = id
+	return out
+}
+
+func modelConfigByID(raw any) map[string]map[string]any {
+	out := map[string]map[string]any{}
+	for _, entry := range modelConfigEntries(raw) {
+		out[entry.id] = entry.value
+	}
+	return out
+}
+
+func modelConfigValues(entries []modelConfigEntry) []any {
+	out := make([]any, 0, len(entries))
+	for _, entry := range entries {
+		value := cloneShallowMapWithID(entry.value, entry.id)
+		out = append(out, value)
 	}
 	return out
 }
@@ -249,6 +323,8 @@ func projectModelEntry(providerID string, modelID string, modelMap map[string]an
 
 	if refIndex != nil {
 		entry.IsReferenced = refIndex.IsModelReferenced(providerID, modelID)
+		entry.UsageRelations = refIndex.RelationsForModel(providerID, modelID)
+		entry.UsageRoles = refIndex.RolesForModel(providerID, modelID)
 		roles := refIndex.DefaultRolesForModel(providerID, modelID)
 		if len(roles) > 0 {
 			entry.DefaultRoles = roles
@@ -299,36 +375,37 @@ func secretInputStatus(value any) deckapi.DeckGoModelSecretInputStatus {
 		}
 		return deckapi.DeckGoModelSecretInputStatus{"state": "literal-redacted"}
 	case map[string]any:
-		ref := strings.TrimSpace(coerce.String(v["ref"], ""))
-		if ref != "" {
-			out := deckapi.DeckGoModelSecretInputStatus{"state": "ref", "ref": ref}
-			if tpl := strings.TrimSpace(coerce.String(v["refTemplate"], "")); tpl != "" {
-				out["refTemplate"] = tpl
-			}
-			return out
-		}
-		// SecretRef shape (source/provider/id) -- if it is structured, expose
-		// a synthetic ref label so the UI can render it without leaking values.
 		source := strings.TrimSpace(coerce.String(v["source"], ""))
 		provider := strings.TrimSpace(coerce.String(v["provider"], ""))
 		id := strings.TrimSpace(coerce.String(v["id"], ""))
 		if source != "" && id != "" {
-			label := id
-			if provider != "" && provider != "default" {
-				label = provider + "/" + id
-			}
 			return deckapi.DeckGoModelSecretInputStatus{
-				"state":    "ref",
-				"ref":      label,
-				"refKind":  source,
-				"provider": provider,
-				"id":       id,
+				"state":      "ref",
+				"ref":        deckapi.DeckGoModelSecretRef{Source: source, Provider: provider, Id: id},
+				"displayRef": secretRefDisplayLabel(source, provider, id),
+			}
+		}
+		// Prior deck-go builds temporarily wrote {ref, refTemplate}. Treat the
+		// legacy value as an env SecretRef for display so operators can replace
+		// it without seeing literal secret material.
+		if ref := strings.TrimSpace(coerce.String(v["ref"], "")); ref != "" {
+			return deckapi.DeckGoModelSecretInputStatus{
+				"state":      "ref",
+				"ref":        deckapi.DeckGoModelSecretRef{Source: "env", Provider: "default", Id: ref},
+				"displayRef": ref,
 			}
 		}
 		return deckapi.DeckGoModelSecretInputStatus{"state": "missing"}
 	default:
 		return deckapi.DeckGoModelSecretInputStatus{"state": "missing"}
 	}
+}
+
+func secretRefDisplayLabel(source string, provider string, id string) string {
+	if provider == "" || provider == "default" {
+		return source + ":" + id
+	}
+	return source + ":" + provider + "/" + id
 }
 
 func compatSummary(compatRaw any) deckapi.DeckGoModelCompatSummary {
@@ -406,7 +483,6 @@ func costSummary(costRaw any) deckapi.DeckGoModelCost {
 	out.Output = coerce.Number(costMap["output"])
 	out.CacheRead = coerce.Number(costMap["cacheRead"])
 	out.CacheWrite = coerce.Number(costMap["cacheWrite"])
-	out.Unit = strings.TrimSpace(coerce.String(costMap["unit"], ""))
 	return out
 }
 
@@ -505,21 +581,11 @@ func applyProviderUpsert(configMap map[string]any, req deckapi.DeckGoModelProvid
 	} else if req.IsCreate {
 		delete(target, "auth")
 	}
-	// authHeader is a boolean toggle (force Authorization header). Same
-	// semantics as injectNumCtxForOpenAICompat: only written when true.
-	// Operators clearing the toggle through the typed surface relies on the
-	// preserve-existing model — explicit clear is reserved for the advanced
-	// raw editor.
-	if req.AuthHeader {
-		target["authHeader"] = true
-	} else if req.IsCreate {
-		delete(target, "authHeader")
+	if err := applyBooleanToggleAction(target, "authHeader", req.AuthHeader, req.IsCreate); err != nil {
+		return nil, err
 	}
-	// injectNumCtxForOpenAICompat is a boolean opt-in.
-	if req.InjectNumCtxForOpenAICompat {
-		target["injectNumCtxForOpenAICompat"] = true
-	} else if req.IsCreate {
-		delete(target, "injectNumCtxForOpenAICompat")
+	if err := applyBooleanToggleAction(target, "injectNumCtxForOpenAICompat", req.InjectNumCtxForOpenAICompat, req.IsCreate); err != nil {
+		return nil, err
 	}
 
 	// apiKey action union
@@ -534,11 +600,11 @@ func applyProviderUpsert(configMap map[string]any, req deckapi.DeckGoModelProvid
 
 	// models replacement
 	if req.Models != nil {
-		modelsMap := map[string]any{}
-		var existingModels map[string]any
+		var existingModels map[string]map[string]any
 		if existing != nil {
-			existingModels = coerce.Map(existing["models"])
+			existingModels = modelConfigByID(existing["models"])
 		}
+		modelEntries := make([]modelConfigEntry, 0, len(req.Models))
 		for _, modelInput := range req.Models {
 			id := strings.TrimSpace(modelInput.Id)
 			if !providerOrModelIDPattern.MatchString(id) {
@@ -549,10 +615,15 @@ func applyProviderUpsert(configMap map[string]any, req deckapi.DeckGoModelProvid
 					return nil, fmt.Errorf("model %q api %q is not a supported MODEL_APIS value", id, api)
 				}
 			}
-			modelMap := buildModelConfigMap(modelInput, coerce.Map(existingModels[id]))
-			modelsMap[id] = modelMap
+			modelMap, err := buildModelConfigMap(modelInput, existingModels[id])
+			if err != nil {
+				return nil, err
+			}
+			modelEntries = append(modelEntries, modelConfigEntry{id: id, value: modelMap})
 		}
-		target["models"] = modelsMap
+		target["models"] = modelConfigValues(modelEntries)
+	} else {
+		target["models"] = modelConfigValues(modelConfigEntries(target["models"]))
 	}
 
 	// request preservation: typed routes never accept request edits — preserve
@@ -577,15 +648,11 @@ func applyApiKeyAction(target map[string]any, action map[string]any) error {
 		delete(target, "apiKey")
 		return nil
 	case "set-ref":
-		ref := strings.TrimSpace(coerce.String(action["ref"], ""))
-		if ref == "" {
-			return errors.New("apiKey set-ref requires ref")
+		ref, err := secretRefFromAction(action, "apiKey")
+		if err != nil {
+			return err
 		}
-		out := map[string]any{"ref": ref}
-		if tpl := strings.TrimSpace(coerce.String(action["refTemplate"], "")); tpl != "" {
-			out["refTemplate"] = tpl
-		}
-		target["apiKey"] = out
+		target["apiKey"] = ref
 		return nil
 	default:
 		return fmt.Errorf("apiKey action %q is not supported", state)
@@ -612,13 +679,9 @@ func applyHeadersActions(target map[string]any, headers map[string]map[string]an
 		case "remove":
 			delete(out, key)
 		case "set-ref":
-			ref := strings.TrimSpace(coerce.String(action["ref"], ""))
-			if ref == "" {
-				return fmt.Errorf("headers[%s] set-ref requires ref", key)
-			}
-			value := map[string]any{"ref": ref}
-			if tpl := strings.TrimSpace(coerce.String(action["refTemplate"], "")); tpl != "" {
-				value["refTemplate"] = tpl
+			value, err := secretRefFromAction(action, "headers["+key+"]")
+			if err != nil {
+				return err
 			}
 			out[key] = value
 		default:
@@ -640,7 +703,66 @@ func applyHeadersActions(target map[string]any, headers map[string]map[string]an
 	return nil
 }
 
-func buildModelConfigMap(input deckapi.DeckGoModelProviderUpsertModelInput, existing map[string]any) map[string]any {
+func secretRefFromAction(action map[string]any, field string) (map[string]any, error) {
+	raw := action["ref"]
+	var source, provider, id string
+	switch value := raw.(type) {
+	case deckapi.DeckGoModelSecretRef:
+		source = strings.TrimSpace(value.Source)
+		provider = strings.TrimSpace(value.Provider)
+		id = strings.TrimSpace(value.Id)
+	case map[string]any:
+		source = strings.TrimSpace(coerce.String(value["source"], ""))
+		provider = strings.TrimSpace(coerce.String(value["provider"], ""))
+		id = strings.TrimSpace(coerce.String(value["id"], ""))
+	case nil:
+		return nil, fmt.Errorf("%s set-ref requires ref", field)
+	default:
+		legacy := strings.TrimSpace(coerce.String(value, ""))
+		if legacy != "" {
+			source = "env"
+			provider = "default"
+			id = legacy
+		}
+	}
+	if source != "env" && source != "file" && source != "exec" {
+		return nil, fmt.Errorf("%s ref.source must be env, file, or exec", field)
+	}
+	if provider == "" {
+		return nil, fmt.Errorf("%s ref.provider is required", field)
+	}
+	if id == "" {
+		return nil, fmt.Errorf("%s ref.id is required", field)
+	}
+	return map[string]any{"source": source, "provider": provider, "id": id}, nil
+}
+
+func applyBooleanToggleAction(target map[string]any, key string, action deckapi.DeckGoModelBooleanToggleAction, isCreate bool) error {
+	switch strings.TrimSpace(string(action)) {
+	case "", "preserve":
+		if isCreate {
+			delete(target, key)
+		}
+	case "enable":
+		target[key] = true
+	case "disable":
+		delete(target, key)
+	default:
+		return fmt.Errorf("%s action %q is not supported", key, action)
+	}
+	return nil
+}
+
+func validateInputModalities(values []deckapi.DeckGoModelInputModality) error {
+	for _, value := range values {
+		if _, ok := knownInputModalities[string(value)]; !ok {
+			return fmt.Errorf("input modality %q is not supported", value)
+		}
+	}
+	return nil
+}
+
+func buildModelConfigMap(input deckapi.DeckGoModelProviderUpsertModelInput, existing map[string]any) (map[string]any, error) {
 	out := map[string]any{
 		"id": strings.TrimSpace(input.Id),
 	}
@@ -669,10 +791,13 @@ func buildModelConfigMap(input deckapi.DeckGoModelProviderUpsertModelInput, exis
 	} else if input.InheritsApi {
 		delete(out, "api")
 	}
-	if input.Reasoning {
-		out["reasoning"] = true
+	if err := applyBooleanToggleAction(out, "reasoning", input.Reasoning, existing == nil); err != nil {
+		return nil, err
 	}
 	if input.Inputs != nil {
+		if err := validateInputModalities(input.Inputs); err != nil {
+			return nil, err
+		}
 		modalities := make([]string, 0, len(input.Inputs))
 		for _, m := range input.Inputs {
 			modalities = append(modalities, string(m))
@@ -698,7 +823,7 @@ func buildModelConfigMap(input deckapi.DeckGoModelProviderUpsertModelInput, exis
 		}
 		out["headers"] = hdrMap
 	}
-	return out
+	return out, nil
 }
 
 func stringSliceToAnySlice(values []string) []any {
@@ -710,7 +835,7 @@ func stringSliceToAnySlice(values []string) []any {
 }
 
 func isNonZeroCost(c deckapi.DeckGoModelCost) bool {
-	return c.Input != 0 || c.Output != 0 || c.CacheRead != 0 || c.CacheWrite != 0 || strings.TrimSpace(c.Unit) != ""
+	return c.Input != 0 || c.Output != 0 || c.CacheRead != 0 || c.CacheWrite != 0
 }
 
 func costMapFromInput(c deckapi.DeckGoModelCost) map[string]any {
@@ -726,9 +851,6 @@ func costMapFromInput(c deckapi.DeckGoModelCost) map[string]any {
 	}
 	if c.CacheWrite != 0 {
 		out["cacheWrite"] = c.CacheWrite
-	}
-	if unit := strings.TrimSpace(c.Unit); unit != "" {
-		out["unit"] = unit
 	}
 	return out
 }
@@ -771,11 +893,9 @@ func applyModelUpsert(configMap map[string]any, req deckapi.DeckGoModelUpsertReq
 	if provider == nil {
 		return nil, fmt.Errorf("provider %q not found", req.ProviderId)
 	}
-	providerModels := coerce.Map(provider["models"])
-	if providerModels == nil {
-		providerModels = map[string]any{}
-	}
-	existing := coerce.Map(providerModels[req.ModelId])
+	modelEntries := modelConfigEntries(provider["models"])
+	providerModels := modelConfigByID(provider["models"])
+	existing := providerModels[req.ModelId]
 	if req.IsCreate && existing != nil {
 		return nil, fmt.Errorf("model %q already exists", req.ModelId)
 	}
@@ -793,19 +913,20 @@ func applyModelUpsert(configMap map[string]any, req deckapi.DeckGoModelUpsertReq
 	if name := strings.TrimSpace(req.Name); name != "" {
 		target["name"] = name
 	} else if req.IsCreate {
-		delete(target, "name")
+		target["name"] = req.ModelId
 	}
 	if api := strings.TrimSpace(req.Api); api != "" {
 		target["api"] = api
 	} else if req.InheritsApi || req.IsCreate {
 		delete(target, "api")
 	}
-	if req.Reasoning {
-		target["reasoning"] = true
-	} else if req.IsCreate {
-		delete(target, "reasoning")
+	if err := applyBooleanToggleAction(target, "reasoning", req.Reasoning, req.IsCreate); err != nil {
+		return nil, err
 	}
 	if req.Inputs != nil {
+		if err := validateInputModalities(req.Inputs); err != nil {
+			return nil, err
+		}
 		modalities := make([]string, 0, len(req.Inputs))
 		for _, m := range req.Inputs {
 			modalities = append(modalities, string(m))
@@ -846,8 +967,18 @@ func applyModelUpsert(configMap map[string]any, req deckapi.DeckGoModelUpsertReq
 		delete(target, "compat")
 	}
 
-	providerModels[req.ModelId] = target
-	provider["models"] = providerModels
+	replaced := false
+	for i, entry := range modelEntries {
+		if entry.id == req.ModelId {
+			modelEntries[i] = modelConfigEntry{id: req.ModelId, value: target}
+			replaced = true
+			break
+		}
+	}
+	if !replaced {
+		modelEntries = append(modelEntries, modelConfigEntry{id: req.ModelId, value: target})
+	}
+	provider["models"] = modelConfigValues(modelEntries)
 	providers[req.ProviderId] = provider
 	return clone, nil
 }
@@ -866,15 +997,23 @@ func applyModelDelete(configMap map[string]any, providerID string, modelID strin
 	if provider == nil {
 		return nil, fmt.Errorf("provider %q not found", providerID)
 	}
-	providerModels := coerce.Map(provider["models"])
-	if providerModels == nil {
+	modelEntries := modelConfigEntries(provider["models"])
+	if len(modelEntries) == 0 {
 		return nil, fmt.Errorf("model %q not found", modelID)
 	}
-	if _, ok := providerModels[modelID]; !ok {
+	next := make([]modelConfigEntry, 0, len(modelEntries))
+	found := false
+	for _, entry := range modelEntries {
+		if entry.id == modelID {
+			found = true
+			continue
+		}
+		next = append(next, entry)
+	}
+	if !found {
 		return nil, fmt.Errorf("model %q not found", modelID)
 	}
-	delete(providerModels, modelID)
-	provider["models"] = providerModels
+	provider["models"] = modelConfigValues(next)
 	providers[providerID] = provider
 	models["providers"] = providers
 	clone["models"] = models

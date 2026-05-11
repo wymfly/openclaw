@@ -265,7 +265,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals",
-      "line": 1366,
+      "line": 1380,
       "method": "GET",
       "path": "/api/approvals",
       "category": "deck-go-bff",
@@ -284,7 +284,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/pending",
-      "line": 1396,
+      "line": 1410,
       "method": "GET",
       "path": "/api/approvals/pending",
       "category": "deck-go-bff",
@@ -303,7 +303,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/plugins",
-      "line": 1456,
+      "line": 1470,
       "method": "GET",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
@@ -322,7 +322,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/policy",
-      "line": 1426,
+      "line": 1440,
       "method": "GET",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",
@@ -602,7 +602,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/identity",
-      "line": 1486,
+      "line": 1500,
       "method": "GET",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
@@ -643,7 +643,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/routing",
-      "line": 1536,
+      "line": 1550,
       "method": "GET",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
@@ -665,7 +665,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/subagents",
-      "line": 1611,
+      "line": 1625,
       "method": "GET",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
@@ -684,7 +684,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/threads",
-      "line": 1689,
+      "line": 1703,
       "method": "GET",
       "path": "/api/deck/threads",
       "category": "deck-go-bff",
@@ -842,7 +842,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/logs",
-      "line": 1711,
+      "line": 1725,
       "method": "GET",
       "path": "/api/logs",
       "category": "deck-go-bff",
@@ -980,7 +980,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "GET /api/models/config/detail",
-      "line": 101,
+      "line": 117,
       "method": "GET",
       "path": "/api/models/config/detail",
       "category": "deck-go-bff",
@@ -1623,7 +1623,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals",
-      "line": 1377,
+      "line": 1391,
       "method": "POST",
       "path": "/api/approvals",
       "category": "deck-go-bff",
@@ -1642,7 +1642,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals/plugins",
-      "line": 1467,
+      "line": 1481,
       "method": "POST",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
@@ -2059,7 +2059,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/commands/discover",
-      "line": 1322,
+      "line": 1336,
       "method": "POST",
       "path": "/api/deck/commands/discover",
       "category": "gateway-protocol-adapter",
@@ -2078,7 +2078,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/identity",
-      "line": 1497,
+      "line": 1511,
       "method": "POST",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
@@ -2100,7 +2100,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/routing",
-      "line": 1558,
+      "line": 1572,
       "method": "POST",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
@@ -2122,7 +2122,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/subagents",
-      "line": 1643,
+      "line": 1657,
       "method": "POST",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
@@ -2141,7 +2141,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/tools-effective",
-      "line": 1344,
+      "line": 1358,
       "method": "POST",
       "path": "/api/deck/tools-effective",
       "category": "documented-exception",
@@ -2259,7 +2259,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/exec/approval",
-      "line": 1407,
+      "line": 1421,
       "method": "POST",
       "path": "/api/exec/approval",
       "category": "deck-go-bff",
@@ -2316,7 +2316,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/mode/set",
-      "line": 245,
+      "line": 261,
       "method": "POST",
       "path": "/api/models/mode/set",
       "category": "deck-go-bff",
@@ -2335,7 +2335,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/models/delete",
-      "line": 223,
+      "line": 239,
       "method": "POST",
       "path": "/api/models/models/delete",
       "category": "deck-go-bff",
@@ -2354,7 +2354,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/models/delete-preview",
-      "line": 201,
+      "line": 217,
       "method": "POST",
       "path": "/api/models/models/delete-preview",
       "category": "deck-go-bff",
@@ -2373,7 +2373,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/models/upsert",
-      "line": 179,
+      "line": 195,
       "method": "POST",
       "path": "/api/models/models/upsert",
       "category": "deck-go-bff",
@@ -2392,7 +2392,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/providers/delete",
-      "line": 158,
+      "line": 174,
       "method": "POST",
       "path": "/api/models/providers/delete",
       "category": "deck-go-bff",
@@ -2411,7 +2411,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/providers/delete-preview",
-      "line": 137,
+      "line": 153,
       "method": "POST",
       "path": "/api/models/providers/delete-preview",
       "category": "deck-go-bff",
@@ -2430,7 +2430,7 @@
     {
       "file": "deck-go/backend/internal/server/models_control.go",
       "key": "POST /api/models/providers/upsert",
-      "line": 116,
+      "line": 132,
       "method": "POST",
       "path": "/api/models/providers/upsert",
       "category": "deck-go-bff",
@@ -2684,7 +2684,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PUT /api/approvals/policy",
-      "line": 1437,
+      "line": 1451,
       "method": "PUT",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",

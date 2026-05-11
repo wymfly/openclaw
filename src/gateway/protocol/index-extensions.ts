@@ -16,6 +16,8 @@ import {
   DeckAgentsDetailParamsSchema,
   DeckAgentsEventStreamsGetParamsSchema,
   DeckAgentsEventStreamsSetParamsSchema,
+  DeckAgentsModelPolicyGetParamsSchema,
+  DeckAgentsModelPolicySetParamsSchema,
   DeckAgentsSkillsGetParamsSchema,
   DeckAgentsSkillsSetParamsSchema,
   DeckAgentsSubagentsGetParamsSchema,
@@ -59,6 +61,12 @@ export const validateDeckAgentsSkillsGetParams = ajv.compile(DeckAgentsSkillsGet
 export const validateDeckAgentsSkillsSetParams = ajv.compile(DeckAgentsSkillsSetParamsSchema);
 export const validateDeckAgentsSubagentsGetParams = ajv.compile(DeckAgentsSubagentsGetParamsSchema);
 export const validateDeckAgentsSubagentsSetParams = ajv.compile(DeckAgentsSubagentsSetParamsSchema);
+export const validateDeckAgentsModelPolicyGetParams = ajv.compile(
+  DeckAgentsModelPolicyGetParamsSchema,
+);
+export const validateDeckAgentsModelPolicySetParams = ajv.compile(
+  DeckAgentsModelPolicySetParamsSchema,
+);
 export const validateDeckAgentsEventStreamsGetParams = ajv.compile(
   DeckAgentsEventStreamsGetParamsSchema,
 );

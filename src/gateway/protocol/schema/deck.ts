@@ -123,6 +123,61 @@ export const DeckAgentsSubagentsSetParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const DeckAgentModelSelectionSchema = Type.Object(
+  {
+    primary: Type.Optional(Type.String()),
+    fallbacks: Type.Optional(Type.Array(Type.String())),
+  },
+  { additionalProperties: false },
+);
+
+const DeckAgentModelPolicyTargetKindSchema = Type.Union([
+  Type.Literal("global-default"),
+  Type.Literal("agent-model"),
+  Type.Literal("agent-subagents"),
+]);
+
+const DeckAgentModelPolicyShapeSchema = Type.Union([
+  Type.Literal("agentModelConfig"),
+  Type.Literal("string"),
+]);
+
+const DeckAgentModelPolicySourceSchema = Type.Union([
+  Type.Literal("agent"),
+  Type.Literal("default"),
+  Type.Literal("missing"),
+]);
+
+const DeckAgentModelPolicyOwnerSchema = Type.Union([
+  Type.Literal("agents"),
+  Type.Literal("models"),
+  Type.Literal("other"),
+]);
+
+export const DeckAgentsModelPolicyGetParamsSchema = Type.Object(
+  {
+    agentId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const DeckAgentsModelPolicySetParamsSchema = Type.Object(
+  {
+    target: Type.Object(
+      {
+        kind: DeckAgentModelPolicyTargetKindSchema,
+        key: NonEmptyString,
+        agentId: Type.Optional(NonEmptyString),
+      },
+      { additionalProperties: false },
+    ),
+    selection: Type.Optional(DeckAgentModelSelectionSchema),
+    clear: Type.Optional(Type.Boolean()),
+    baseHash: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 // === deck.agents.eventStreams.* ===
 export const DeckAgentsEventStreamsGetParamsSchema = Type.Object(
   {
@@ -446,6 +501,68 @@ export const DeckAgentsSubagentsSetResultSchema = Type.Object({
   agentId: Type.String(),
   allowAgents: Type.Array(Type.String()),
   model: Type.Optional(Type.String()),
+  configHash: Type.String(),
+});
+
+const DeckAgentModelChoiceSchema = Type.Object(
+  {
+    ref: Type.String(),
+    provider: Type.String(),
+    model: Type.String(),
+    name: Type.String(),
+    contextWindow: Type.Optional(Type.Integer({ minimum: 1 })),
+    reasoning: Type.Optional(Type.Boolean()),
+    input: Type.Optional(Type.Array(Type.String())),
+  },
+  { additionalProperties: false },
+);
+
+const DeckAgentModelPolicyEntrySchema = Type.Object(
+  {
+    kind: DeckAgentModelPolicyTargetKindSchema,
+    key: Type.String(),
+    label: Type.String(),
+    configPath: Type.String(),
+    source: DeckAgentModelPolicySourceSchema,
+    supportedShape: DeckAgentModelPolicyShapeSchema,
+    selection: Type.Optional(DeckAgentModelSelectionSchema),
+    effective: Type.Optional(DeckAgentModelSelectionSchema),
+    unavailableRefs: Type.Array(Type.String()),
+    editable: Type.Boolean(),
+    owner: DeckAgentModelPolicyOwnerSchema,
+  },
+  { additionalProperties: false },
+);
+
+export const DeckAgentsModelPolicyGetResultSchema = Type.Object({
+  agentId: Type.Optional(Type.String()),
+  policies: Type.Array(DeckAgentModelPolicyEntrySchema),
+  configuredModels: Type.Array(DeckAgentModelChoiceSchema),
+  configHash: Type.String(),
+  unsupported: Type.Array(
+    Type.Object(
+      {
+        key: Type.String(),
+        configPath: Type.String(),
+        reason: Type.String(),
+      },
+      { additionalProperties: false },
+    ),
+  ),
+});
+
+export const DeckAgentsModelPolicySetResultSchema = Type.Object({
+  ok: Type.Boolean(),
+  target: Type.Object(
+    {
+      kind: DeckAgentModelPolicyTargetKindSchema,
+      key: Type.String(),
+      agentId: Type.Optional(Type.String()),
+    },
+    { additionalProperties: false },
+  ),
+  selection: Type.Optional(DeckAgentModelSelectionSchema),
+  cleared: Type.Optional(Type.Boolean()),
   configHash: Type.String(),
 });
 

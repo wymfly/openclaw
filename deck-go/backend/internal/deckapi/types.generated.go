@@ -1026,6 +1026,12 @@ type DeckGoModelProbeResponse struct {
 	RequestId string `json:"requestId,omitempty"`
 }
 
+type DeckGoModelSecretRef struct {
+	Source string `json:"source"`
+	Provider string `json:"provider"`
+	Id string `json:"id"`
+}
+
 type DeckGoModelSecretInputStatus map[string]any
 
 type DeckGoModelCompatFlag string
@@ -1046,12 +1052,13 @@ type DeckGoModelProviderRequestSummary struct {
 
 type DeckGoModelInputModality string
 
+type DeckGoModelBooleanToggleAction string
+
 type DeckGoModelCost struct {
 	Input float64 `json:"input,omitempty"`
 	Output float64 `json:"output,omitempty"`
 	CacheRead float64 `json:"cacheRead,omitempty"`
 	CacheWrite float64 `json:"cacheWrite,omitempty"`
-	Unit string `json:"unit,omitempty"`
 }
 
 type DeckGoModelEntry struct {
@@ -1070,6 +1077,8 @@ type DeckGoModelEntry struct {
 	IsReferenced bool `json:"isReferenced"`
 	IsDefault bool `json:"isDefault,omitempty"`
 	DefaultRoles []string `json:"defaultRoles,omitempty"`
+	UsageRelations []DeckGoModelReferenceRelation `json:"usageRelations,omitempty"`
+	UsageRoles []string `json:"usageRoles,omitempty"`
 }
 
 type DeckGoModelDetail struct {
@@ -1088,6 +1097,8 @@ type DeckGoModelDetail struct {
 	IsReferenced bool `json:"isReferenced"`
 	IsDefault bool `json:"isDefault,omitempty"`
 	DefaultRoles []string `json:"defaultRoles,omitempty"`
+	UsageRelations []DeckGoModelReferenceRelation `json:"usageRelations,omitempty"`
+	UsageRoles []string `json:"usageRoles,omitempty"`
 	Headers map[string]string `json:"headers,omitempty"`
 }
 
@@ -1135,6 +1146,15 @@ type DeckGoModelsConfigDetailRuntime struct {
 	StaleAt float64 `json:"staleAt,omitempty"`
 }
 
+type DeckGoModelDefaultSource string
+
+type DeckGoModelDefaultEntry struct {
+	Provider string `json:"provider,omitempty"`
+	Model string `json:"model,omitempty"`
+	Source DeckGoModelDefaultSource `json:"source,omitempty"`
+	Fallbacks []map[string]any `json:"fallbacks,omitempty"`
+}
+
 type DeckGoModelsConfigDetail struct {
 	Hash string `json:"hash"`
 	ConfigPresent bool `json:"configPresent"`
@@ -1152,12 +1172,16 @@ type DeckGoModelsConfigDetailResponse struct {
 
 type DeckGoModelReferenceKind string
 
+type DeckGoModelReferenceRelation string
+
 type DeckGoModelReferenceEntry struct {
 	Kind DeckGoModelReferenceKind `json:"kind"`
 	Path string `json:"path"`
 	ProviderId string `json:"providerId,omitempty"`
 	ModelId string `json:"modelId,omitempty"`
 	Label string `json:"label,omitempty"`
+	Relation DeckGoModelReferenceRelation `json:"relation,omitempty"`
+	Role string `json:"role,omitempty"`
 }
 
 type DeckGoModelBuiltinProviderImpact struct {
@@ -1189,7 +1213,7 @@ type DeckGoModelProviderUpsertModelInput struct {
 	Name string `json:"name,omitempty"`
 	Api string `json:"api,omitempty"`
 	InheritsApi bool `json:"inheritsApi,omitempty"`
-	Reasoning bool `json:"reasoning,omitempty"`
+	Reasoning DeckGoModelBooleanToggleAction `json:"reasoning,omitempty"`
 	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
 	ContextWindow float64 `json:"contextWindow,omitempty"`
 	ContextTokens float64 `json:"contextTokens,omitempty"`
@@ -1206,8 +1230,8 @@ type DeckGoModelProviderUpsertRequest struct {
 	Api string `json:"api,omitempty"`
 	BaseUrl string `json:"baseUrl,omitempty"`
 	Auth DeckGoModelProviderAuthMode `json:"auth,omitempty"`
-	AuthHeader bool `json:"authHeader,omitempty"`
-	InjectNumCtxForOpenAICompat bool `json:"injectNumCtxForOpenAICompat,omitempty"`
+	AuthHeader DeckGoModelBooleanToggleAction `json:"authHeader,omitempty"`
+	InjectNumCtxForOpenAICompat DeckGoModelBooleanToggleAction `json:"injectNumCtxForOpenAICompat,omitempty"`
 	ApiKey map[string]any `json:"apiKey,omitempty"`
 	Headers map[string]map[string]any `json:"headers,omitempty"`
 	Models []DeckGoModelProviderUpsertModelInput `json:"models,omitempty"`
@@ -1248,7 +1272,7 @@ type DeckGoModelUpsertRequest struct {
 	Name string `json:"name,omitempty"`
 	Api string `json:"api,omitempty"`
 	InheritsApi bool `json:"inheritsApi,omitempty"`
-	Reasoning bool `json:"reasoning,omitempty"`
+	Reasoning DeckGoModelBooleanToggleAction `json:"reasoning,omitempty"`
 	Inputs []DeckGoModelInputModality `json:"inputs,omitempty"`
 	ContextWindow float64 `json:"contextWindow,omitempty"`
 	ContextTokens float64 `json:"contextTokens,omitempty"`
@@ -1503,6 +1527,84 @@ type DeckGoAgentSubagentConfigSetResponse struct {
 	AgentId string `json:"agentId,omitempty"`
 	AllowAgents []string `json:"allowAgents,omitempty"`
 	Model string `json:"model,omitempty"`
+	ConfigHash string `json:"configHash,omitempty"`
+}
+
+type DeckGoAgentModelPolicyTargetKind string
+
+type DeckGoAgentModelPolicyShape string
+
+type DeckGoAgentModelPolicySource string
+
+type DeckGoAgentModelPolicyOwner string
+
+type DeckGoAgentModelSelection struct {
+	Primary string `json:"primary,omitempty"`
+	Fallbacks []string `json:"fallbacks,omitempty"`
+}
+
+type DeckGoAgentModelPolicyTarget struct {
+	Kind DeckGoAgentModelPolicyTargetKind `json:"kind"`
+	Key string `json:"key"`
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type DeckGoAgentModelChoice struct {
+	Ref string `json:"ref"`
+	Provider string `json:"provider"`
+	Model string `json:"model"`
+	Name string `json:"name"`
+	ContextWindow float64 `json:"contextWindow,omitempty"`
+	Reasoning bool `json:"reasoning,omitempty"`
+	Input []string `json:"input,omitempty"`
+}
+
+type DeckGoAgentModelPolicyEntry struct {
+	Kind DeckGoAgentModelPolicyTargetKind `json:"kind"`
+	Key string `json:"key"`
+	Label string `json:"label"`
+	ConfigPath string `json:"configPath"`
+	Source DeckGoAgentModelPolicySource `json:"source"`
+	SupportedShape DeckGoAgentModelPolicyShape `json:"supportedShape"`
+	Selection DeckGoAgentModelSelection `json:"selection,omitempty"`
+	Effective DeckGoAgentModelSelection `json:"effective,omitempty"`
+	UnavailableRefs []string `json:"unavailableRefs"`
+	Editable bool `json:"editable"`
+	Owner DeckGoAgentModelPolicyOwner `json:"owner"`
+}
+
+type DeckGoAgentUnsupportedModelPolicy struct {
+	Key string `json:"key"`
+	ConfigPath string `json:"configPath"`
+	Reason string `json:"reason"`
+}
+
+type DeckGoAgentModelPolicyGetRequest struct {
+	Action string `json:"action"`
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type DeckGoAgentModelPolicySetRequest struct {
+	Action string `json:"action"`
+	Target DeckGoAgentModelPolicyTarget `json:"target"`
+	Selection DeckGoAgentModelSelection `json:"selection,omitempty"`
+	Clear bool `json:"clear,omitempty"`
+	BaseHash string `json:"baseHash"`
+}
+
+type DeckGoAgentModelPolicyResponse struct {
+	AgentId string `json:"agentId,omitempty"`
+	Policies []DeckGoAgentModelPolicyEntry `json:"policies"`
+	ConfiguredModels []DeckGoAgentModelChoice `json:"configuredModels"`
+	ConfigHash string `json:"configHash"`
+	Unsupported []DeckGoAgentUnsupportedModelPolicy `json:"unsupported"`
+}
+
+type DeckGoAgentModelPolicySetResponse struct {
+	Ok bool `json:"ok,omitempty"`
+	Target DeckGoAgentModelPolicyTarget `json:"target,omitempty"`
+	Selection DeckGoAgentModelSelection `json:"selection,omitempty"`
+	Cleared bool `json:"cleared,omitempty"`
 	ConfigHash string `json:"configHash,omitempty"`
 }
 

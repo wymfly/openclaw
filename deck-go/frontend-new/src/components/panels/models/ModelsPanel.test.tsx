@@ -57,7 +57,11 @@ function makeProvider(overrides: Partial<DeckGoModelProviderEntry> = {}): DeckGo
     auth: "api-key",
     authHeader: false,
     hasHeaders: false,
-    apiKeyStatus: { state: "ref", ref: "deck.secrets.openai.apiKey" },
+    apiKeyStatus: {
+      state: "ref",
+      ref: { source: "env", provider: "default", id: "OPENAI_API_KEY" },
+      displayRef: "env:OPENAI_API_KEY",
+    },
     request: { hasRequest: false },
     isReferenced: false,
     modelCount: 1,
@@ -75,8 +79,11 @@ function makeProvider(overrides: Partial<DeckGoModelProviderEntry> = {}): DeckGo
         cost: { input: 5, output: 15 },
         hasHeaders: false,
         compat: { hasCompat: false },
-        isReferenced: false,
-        isDefault: false,
+        isReferenced: true,
+        isDefault: true,
+        defaultRoles: ["textModel"],
+        usageRelations: ["default", "fallback"],
+        usageRoles: ["textModel", "agent.model"],
       },
     ],
     ...overrides,
@@ -93,6 +100,24 @@ function detailResponse(
       mode: "merge",
       modeSource: "config",
       providers: [makeProvider()],
+      defaults: {
+        text: {
+          provider: "openai",
+          model: "gpt-5.4",
+          source: "explicit",
+          fallbacks: [{ provider: "anthropic", model: "claude-sonnet-4.6" }],
+        },
+        pdf: {
+          provider: "openai",
+          model: "gpt-5.4",
+          source: "explicit",
+        },
+        compaction: {
+          provider: "openai",
+          model: "gpt-5.4-mini",
+          source: "derived",
+        },
+      },
       runtime: {
         catalogStatus: "available",
         catalogProviderCount: 3,
@@ -114,6 +139,44 @@ const samplePreview: DeckGoModelImpactPreview = {
   baseHash: "h1",
 };
 
+const sampleCatalogProviders = [
+  {
+    id: "openai",
+    displayName: "OpenAI Catalog",
+    api: "openai-responses",
+    defaultBaseUrl: "https://api.openai.com/v1",
+    modelCount: 2,
+    models: [
+      {
+        id: "gpt-5.4",
+        name: "GPT-5.4",
+        contextWindow: 200_000,
+        maxTokens: 8192,
+      },
+      {
+        id: "gpt-5.4-mini",
+        name: "GPT-5.4 Mini",
+        contextWindow: 128_000,
+        maxTokens: 4096,
+      },
+    ],
+  },
+  {
+    id: "anthropic",
+    displayName: "Claude Catalog",
+    api: "anthropic-messages",
+    modelCount: 2,
+    models: [
+      {
+        id: "claude-sonnet-4.6",
+        name: "Claude Sonnet 4.6",
+        contextWindow: 200_000,
+        maxTokens: 8192,
+      },
+    ],
+  },
+];
+
 describe("ModelsPanel rebuild", () => {
   beforeEach(() => {
     (
@@ -127,7 +190,9 @@ describe("ModelsPanel rebuild", () => {
     apiMocks.fetchModelUsageProviders.mockResolvedValue({ providers: [] });
     apiMocks.fetchRuntimeConfiguredModels.mockResolvedValue({ providers: [] });
     apiMocks.fetchRuntimeModelAuthOverview.mockResolvedValue({ providers: [] });
-    apiMocks.fetchRuntimeModelCatalogProviders.mockResolvedValue({ providers: [] });
+    apiMocks.fetchRuntimeModelCatalogProviders.mockResolvedValue({
+      providers: sampleCatalogProviders,
+    });
     apiMocks.lookupConfigPath.mockResolvedValue({ path: "models", children: [] });
     apiMocks.probeRuntimeModelAuth.mockResolvedValue({ provider: "openai", status: "ok" });
     Object.values(apiMocks).forEach((fn) => fn.mockClear?.());
@@ -135,7 +200,9 @@ describe("ModelsPanel rebuild", () => {
     apiMocks.fetchModelsConfigDetail.mockResolvedValue(detailResponse());
     apiMocks.fetchRuntimeConfiguredModels.mockResolvedValue({ providers: [] });
     apiMocks.fetchRuntimeModelAuthOverview.mockResolvedValue({ providers: [] });
-    apiMocks.fetchRuntimeModelCatalogProviders.mockResolvedValue({ providers: [] });
+    apiMocks.fetchRuntimeModelCatalogProviders.mockResolvedValue({
+      providers: sampleCatalogProviders,
+    });
   });
 
   afterEach(() => {
@@ -148,7 +215,7 @@ describe("ModelsPanel rebuild", () => {
     container.remove();
   });
 
-  it("renders the catalog header and provider list when detail is loaded", async () => {
+  it("renders the catalog header and configured provider groups when detail is loaded", async () => {
     await act(async () => {
       renderPanel();
     });
@@ -156,10 +223,21 @@ describe("ModelsPanel rebuild", () => {
       expect(container.querySelector('[data-testid="models-catalog-header"]')).toBeTruthy(),
     );
     await waitFor(() =>
-      expect(container.querySelector('[data-testid="models-section-openai"]')).toBeTruthy(),
+      expect(container.querySelector('[data-testid="models-list"]')).toBeTruthy(),
     );
     expect(container.textContent).toContain("openai");
     expect(container.textContent).toContain("GPT-5.4");
+    expect(container.textContent).toContain("Provider library + configured assets");
+    expect(container.textContent).toContain("Configured Providers");
+    expect(container.textContent).toContain("Model usage policy");
+    expect(container.textContent).toContain("openai/gpt-5.4");
+    expect(container.textContent).toContain("Fallbacks: anthropic/claude-sonnet-4.6");
+    expect(container.textContent).toContain("PDF");
+    expect(container.textContent).toContain("Compaction");
+    expect(container.querySelector('[data-testid="models-section-openai"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="models-provider-library"]')).toBeNull();
+    expect(container.textContent).toContain("fallback");
+    expect(container.textContent).toContain("roles: agent.model, textModel");
   });
 
   it("shows empty-state CTA when no providers are configured", async () => {
@@ -203,19 +281,11 @@ describe("ModelsPanel rebuild", () => {
     });
 
     const useCustom = Array.from(container.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Use custom provider"),
+      btn.textContent?.includes("Start blank custom provider"),
     );
     expect(useCustom).toBeTruthy();
     await act(async () => {
       fireEvent.click(useCustom!);
-    });
-
-    const next = Array.from(container.querySelectorAll("button")).find(
-      (btn) => btn.textContent === "Next",
-    );
-    expect(next, "Next visible after select").toBeTruthy();
-    await act(async () => {
-      fireEvent.click(next!);
     });
 
     const inputs = Array.from(
@@ -230,10 +300,10 @@ describe("ModelsPanel rebuild", () => {
     });
 
     const refInputs = Array.from(container.querySelectorAll<HTMLInputElement>("input"));
-    const refField = refInputs.find((el) => el.placeholder?.includes("deck.secrets"));
+    const refField = refInputs.find((el) => el.placeholder?.includes("OPENAI_API_KEY"));
     expect(refField).toBeTruthy();
     await act(async () => {
-      fireEvent.change(refField!, { target: { value: "deck.secrets.anthropic.apiKey" } });
+      fireEvent.change(refField!, { target: { value: "ANTHROPIC_API_KEY" } });
     });
 
     const next2 = Array.from(container.querySelectorAll("button")).find(
@@ -258,27 +328,201 @@ describe("ModelsPanel rebuild", () => {
       expectedBaseHash: "h1",
       providerId: "anthropic",
       isCreate: true,
-      apiKey: { action: "set-ref", ref: "deck.secrets.anthropic.apiKey" },
+      apiKey: {
+        action: "set-ref",
+        ref: { source: "env", provider: "default", id: "ANTHROPIC_API_KEY" },
+      },
     });
   });
 
-  it("opens advanced raw editor on demand without firing typed mutations", async () => {
+  it("shows product choices when add-provider id already exists", async () => {
     await act(async () => {
       renderPanel();
     });
     await waitFor(() =>
       expect(container.querySelector('[data-testid="models-catalog-header"]')).toBeTruthy(),
     );
-    const advancedBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
-      btn.textContent?.includes("Advanced raw editor"),
+
+    const addBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("Add provider"),
     );
-    expect(advancedBtn).toBeTruthy();
+    expect(addBtn).toBeTruthy();
     await act(async () => {
-      fireEvent.click(advancedBtn!);
+      fireEvent.click(addBtn!);
+    });
+
+    const useCustom = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("Start blank custom provider"),
+    );
+    expect(useCustom).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(useCustom!);
+    });
+
+    const providerIdInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (el) => el.type === "text",
+    );
+    expect(providerIdInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(providerIdInput!, { target: { value: "openai" } });
+    });
+
+    expect(container.textContent).toContain("Provider openai already exists.");
+    expect(container.textContent).toContain("Edit existing");
+    const disabledNext = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Next",
+    );
+    expect(disabledNext?.disabled).toBe(true);
+  });
+
+  it("copies catalog templates into configurable providers with selectable default models", async () => {
+    apiMocks.upsertModelProvider.mockResolvedValue({
+      ok: true,
+      hash: "h2",
+      providerId: "anthropic",
+    });
+    await act(async () => {
+      renderPanel();
     });
     await waitFor(() =>
-      expect(container.textContent).toContain("Raw editor bypasses typed validation."),
+      expect(container.querySelector('[data-testid="models-catalog-header"]')).toBeTruthy(),
     );
+    expect(container.querySelector('[data-testid="models-provider-library"]')).toBeNull();
+
+    const addBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("Add provider"),
+    );
+    expect(addBtn).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(addBtn!);
+    });
+
+    const configureAnthropic = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("anthropic"),
+    );
+    expect(configureAnthropic).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(configureAnthropic!);
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("Add provider"));
+    const providerIdInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (el) => el.type === "text",
+    );
+    expect(providerIdInput?.value).toBe("anthropic");
+    expect(container.textContent).toContain("Claude Sonnet 4.6");
+
+    const refField = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find((el) =>
+      el.placeholder?.includes("OPENAI_API_KEY"),
+    );
+    expect(refField).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(refField!, { target: { value: "ANTHROPIC_API_KEY" } });
+    });
+
+    const next = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Next",
+    );
+    expect(next).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(next!);
+    });
+
+    const submit = Array.from(container.querySelectorAll("button")).find((btn) =>
+      btn.textContent?.includes("Create provider"),
+    );
+    expect(submit).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(submit!);
+    });
+
+    await waitFor(() => expect(apiMocks.upsertModelProvider).toHaveBeenCalledTimes(1));
+    expect(apiMocks.upsertModelProvider.mock.calls[0]?.[0]).toMatchObject({
+      providerId: "anthropic",
+      models: [
+        {
+          id: "claude-sonnet-4.6",
+          name: "Claude Sonnet 4.6",
+          contextWindow: 200_000,
+          maxTokens: 8192,
+        },
+      ],
+    });
+  });
+
+  it("adds custom models through the configured provider upsert path", async () => {
+    apiMocks.upsertModel.mockResolvedValue({
+      ok: true,
+      hash: "h2",
+      providerId: "openai",
+      modelId: "gpt-5.4-mini",
+    });
+    await act(async () => {
+      renderPanel();
+    });
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="models-section-openai"]')).toBeTruthy(),
+    );
+
+    const addModel = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Add model",
+    );
+    expect(addModel).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(addModel!);
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("New model under openai"));
+    const modelIdInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
+      (el) => el.type === "text",
+    );
+    expect(modelIdInput).toBeTruthy();
+    await act(async () => {
+      fireEvent.change(modelIdInput!, { target: { value: "gpt-5.4-mini" } });
+    });
+
+    const save = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Save",
+    );
+    expect(save).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(save!);
+    });
+
+    await waitFor(() => expect(apiMocks.upsertModel).toHaveBeenCalledTimes(1));
+    expect(apiMocks.upsertModel.mock.calls[0]?.[0]).toMatchObject({
+      expectedBaseHash: "h1",
+      providerId: "openai",
+      modelId: "gpt-5.4-mini",
+      isCreate: true,
+      inheritsApi: true,
+      inputs: ["text"],
+    });
+  });
+
+  it("renders replace mode as an advanced configured-only policy state", async () => {
+    apiMocks.fetchModelsConfigDetail.mockResolvedValueOnce(
+      detailResponse({ mode: "replace", modeSource: "config" }),
+    );
+    await act(async () => {
+      renderPanel();
+    });
+
+    await waitFor(() => expect(container.textContent).toContain("Strict configured-only policy"));
+    expect(container.textContent).toContain("Restore library visibility");
+    expect(container.textContent).toContain("mode: replace");
+  });
+
+  it("does not expose the raw editor from the Models product surface", async () => {
+    await act(async () => {
+      renderPanel();
+    });
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="models-catalog-header"]')).toBeTruthy(),
+    );
+    expect(container.textContent).not.toContain("Advanced raw editor");
+    expect(container.querySelector("textarea[aria-label='openclaw.json models block']")).toBeNull();
+    expect(apiMocks.fetchModelsConfig).not.toHaveBeenCalled();
     expect(apiMocks.upsertModelProvider).not.toHaveBeenCalled();
     expect(apiMocks.upsertModel).not.toHaveBeenCalled();
   });
@@ -293,6 +537,8 @@ describe("ModelsPanel rebuild", () => {
             path: "agents.defaults.model",
             providerId: "openai",
             modelId: "gpt-5.4",
+            relation: "fallback",
+            role: "textModel",
           },
         ],
       },
@@ -310,9 +556,9 @@ describe("ModelsPanel rebuild", () => {
       expect(container.querySelector('[data-testid="models-section-openai"]')).toBeTruthy(),
     );
 
-    const previewBtn = Array.from(container.querySelectorAll("button")).find(
-      (btn) =>
-        btn.textContent === "Preview delete" || btn.textContent?.startsWith("Preview delete"),
+    const providerSection = container.querySelector('[data-testid="models-section-openai"]');
+    const previewBtn = Array.from(providerSection?.querySelectorAll("button") ?? []).find((btn) =>
+      btn.textContent?.startsWith("Check impact"),
     );
     expect(previewBtn).toBeTruthy();
     await act(async () => {
@@ -321,6 +567,17 @@ describe("ModelsPanel rebuild", () => {
 
     await waitFor(() => expect(apiMocks.previewProviderDelete).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("agents.defaults.model"));
+    expect(container.textContent).toContain("Impact check");
+    expect(container.textContent).toContain("fallback");
+    expect(container.textContent).toContain("Agent model policy is owned by Agents");
+
+    const continueBtn = Array.from(container.querySelectorAll("button")).find(
+      (btn) => btn.textContent === "Continue",
+    );
+    expect(continueBtn).toBeTruthy();
+    await act(async () => {
+      fireEvent.click(continueBtn!);
+    });
 
     const confirmInput = container.querySelector<HTMLInputElement>(
       "input[aria-label='Confirmation text']",
@@ -352,6 +609,6 @@ describe("ModelsPanel rebuild", () => {
       renderPanel("zh");
     });
     await waitFor(() => expect(container.textContent).toContain("新增提供方"));
-    expect(container.textContent).toContain("高级原始编辑");
+    expect(container.textContent).toContain("模型用途策略");
   });
 });

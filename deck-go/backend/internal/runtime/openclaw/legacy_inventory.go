@@ -241,6 +241,10 @@ func (s *LegacyInventorySurface) ConfigPatch(ctx context.Context, raw string, ba
 	return s.managed.GatewayQueries().ConfigPatch(ctx, raw, baseHash, note)
 }
 
+func (s *LegacyInventorySurface) ConfigApply(ctx context.Context, raw string, baseHash string) (any, error) {
+	return s.managed.GatewayQueries().ConfigApply(ctx, raw, baseHash)
+}
+
 func (s *LegacyInventorySurface) ChannelsStatus(ctx context.Context, params map[string]any) (any, error) {
 	return s.managed.GatewayQueries().ChannelsStatus(ctx, params)
 }
@@ -287,6 +291,14 @@ func (s *LegacyInventorySurface) DeckAgentsSubagentsGet(ctx context.Context, bod
 
 func (s *LegacyInventorySurface) DeckAgentsSubagentsSet(ctx context.Context, body map[string]any) (any, error) {
 	return s.managed.GatewayQueries().DeckAgentsSubagentsSet(ctx, body)
+}
+
+func (s *LegacyInventorySurface) DeckAgentsModelPolicyGet(ctx context.Context, body map[string]any) (any, error) {
+	return s.managed.GatewayQueries().DeckAgentsModelPolicyGet(ctx, body)
+}
+
+func (s *LegacyInventorySurface) DeckAgentsModelPolicySet(ctx context.Context, body map[string]any) (any, error) {
+	return s.managed.GatewayQueries().DeckAgentsModelPolicySet(ctx, body)
 }
 
 func (s *LegacyInventorySurface) DeckAgentsToolPolicyPreview(ctx context.Context, body map[string]any) (any, error) {

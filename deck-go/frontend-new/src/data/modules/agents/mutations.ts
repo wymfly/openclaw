@@ -6,8 +6,11 @@ import {
   updateAgent,
   updateAgentEventStreams,
   updateAgentSkills,
+  updateAgentModelPolicy,
   updateAgentSubagentConfig,
   type DeckGoAgentCreateRequest,
+  type DeckGoAgentModelPolicyTarget,
+  type DeckGoAgentModelSelection,
   type DeckGoAgentPatchRequest,
 } from "@/api";
 import { mutationDefaults, requireBaseHash } from "../shared";
@@ -54,6 +57,7 @@ export async function invalidateAgentsReadModels(
           queryClient.invalidateQueries({ queryKey: agentsKeys.detail(agentId) }),
           queryClient.invalidateQueries({ queryKey: agentsKeys.skills(agentId) }),
           queryClient.invalidateQueries({ queryKey: agentsKeys.subagents(agentId) }),
+          queryClient.invalidateQueries({ queryKey: agentsKeys.modelPolicy(agentId) }),
           queryClient.invalidateQueries({ queryKey: agentsKeys.eventStreams(agentId) }),
         ]
       : []),
@@ -148,6 +152,34 @@ export function useSaveAgentSubagentsMutation() {
       }),
     onSuccess: async (_response, vars) => {
       await invalidateAgentsReadModels(queryClient, vars.agentId);
+    },
+  });
+}
+
+export function useSaveAgentModelPolicyMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...mutationDefaults,
+    mutationFn: ({
+      baseHash,
+      clear,
+      selection,
+      target,
+    }: {
+      baseHash: string | null | undefined;
+      clear?: boolean;
+      selection?: DeckGoAgentModelSelection;
+      target: DeckGoAgentModelPolicyTarget;
+    }) =>
+      updateAgentModelPolicy({
+        baseHash: requireBaseHash(baseHash, "agents.modelPolicy.save"),
+        clear,
+        selection,
+        target,
+      }),
+    onSuccess: async (_response, vars) => {
+      await invalidateAgentsReadModels(queryClient, vars.target.agentId);
+      await queryClient.invalidateQueries({ queryKey: agentsKeys.modelPolicy() });
     },
   });
 }

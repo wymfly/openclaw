@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type {
   DeckGoModelCatalogMode,
+  DeckGoModelCatalogProvidersResponse,
   DeckGoModelDeleteCommitRequest,
   DeckGoModelDeletePreviewRequest,
   DeckGoModelImpactPreview,
@@ -15,7 +16,6 @@ import {
   useDeleteModelProviderMutation,
   usePreviewModelDeleteMutation,
   usePreviewProviderDeleteMutation,
-  useSaveModelsConfigMutation,
   useSetModelsCatalogModeMutation,
   useUpsertModelMutation,
   useUpsertModelProviderMutation,
@@ -24,9 +24,8 @@ import {
   useModelAuthOverviewQuery,
   useModelCatalogProvidersQuery,
   useModelsConfigDetailQuery,
-  useModelsConfigQuery,
 } from "@/data/modules/models/queries";
-import { Banner, Button, Drawer, Spinner, Textarea } from "@/design-system/atoms";
+import { Banner, Button, Spinner } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
 import { ImpactPreviewDialog } from "./dialogs/ImpactPreviewDialog";
 import { TypeToConfirmDialog } from "./dialogs/TypeToConfirmDialog";
@@ -35,6 +34,7 @@ import { ProviderDrawer } from "./drawers/ProviderDrawer";
 import { findModel, findProvider, listProviders } from "./lib/models-selectors";
 import { CatalogHeader } from "./parts/CatalogHeader";
 import { ProviderListSection } from "./parts/ProviderListSection";
+import { UsagePolicyOverview } from "./parts/UsagePolicyOverview";
 import { AddProviderWizard } from "./wizard/AddProviderWizard";
 import "./models-panel.css";
 
@@ -60,6 +60,7 @@ type DeleteFlowState =
       kind: "confirm-provider";
       providerId: string;
       preview: DeckGoModelImpactPreview;
+      confirmOpen?: boolean;
       error?: string;
     }
   | {
@@ -74,6 +75,7 @@ type DeleteFlowState =
       providerId: string;
       modelId: string;
       preview: DeckGoModelImpactPreview;
+      confirmOpen?: boolean;
       error?: string;
     };
 
@@ -91,6 +93,7 @@ type ModeFlowState =
       mode: DeckGoModelCatalogMode;
       preview: DeckGoModelImpactPreview;
       baseHash: string;
+      confirmOpen?: boolean;
       error?: string;
     };
 
@@ -111,10 +114,13 @@ function isConflictError(error: unknown): boolean {
   return isDataFabricError(error) && error.kind === "conflict";
 }
 
+function catalogProvidersFromResponse(response: DeckGoModelCatalogProvidersResponse | undefined) {
+  return response?.providers ?? response?.payload?.providers ?? [];
+}
+
 export function ModelsPanel() {
   const t = useTranslations("models");
   const detailQuery = useModelsConfigDetailQuery();
-  const rawConfigQuery = useModelsConfigQuery();
   const catalogQuery = useModelCatalogProvidersQuery();
   const authQuery = useModelAuthOverviewQuery();
 
@@ -125,32 +131,23 @@ export function ModelsPanel() {
   const previewModelDelete = usePreviewModelDeleteMutation();
   const deleteModel = useDeleteModelMutation();
   const setMode = useSetModelsCatalogModeMutation();
-  const saveRaw = useSaveModelsConfigMutation();
 
   const [providerEditor, setProviderEditor] = useState<ProviderEditorState>({ kind: "closed" });
   const [modelEditor, setModelEditor] = useState<ModelEditorState>({ kind: "closed" });
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitialProviderId, setWizardInitialProviderId] = useState<string | undefined>();
   const [deleteFlow, setDeleteFlow] = useState<DeleteFlowState>({ kind: "idle" });
   const [modeFlow, setModeFlow] = useState<ModeFlowState>({ kind: "idle" });
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [advancedRaw, setAdvancedRaw] = useState("");
-  const [advancedError, setAdvancedError] = useState<string | undefined>();
   const [globalError, setGlobalError] = useState<string | undefined>();
   const [conflict, setConflict] = useState(false);
 
   const detail = detailQuery.data?.detail;
   const baseHash = detail?.hash;
   const providers = useMemo(() => listProviders(detail), [detail]);
-
-  useEffect(() => {
-    if (!advancedOpen) {
-      return;
-    }
-    const raw = rawConfigQuery.data?.raw;
-    if (typeof raw === "string") {
-      setAdvancedRaw(raw);
-    }
-  }, [advancedOpen, rawConfigQuery.data?.raw]);
+  const catalogProviders = useMemo(
+    () => catalogProvidersFromResponse(catalogQuery.data),
+    [catalogQuery.data],
+  );
 
   const refreshAll = useCallback(async () => {
     await Promise.all([detailQuery.refetch(), catalogQuery.refetch(), authQuery.refetch()]);
@@ -364,23 +361,6 @@ export function ModelsPanel() {
     }
   }, [modeFlow, setMode, t]);
 
-  const submitAdvancedRaw = useCallback(async () => {
-    if (!baseHash) {
-      setAdvancedError(t("errors.baseHashMissing"));
-      return;
-    }
-    try {
-      await saveRaw.mutateAsync({ baseHash, raw: advancedRaw });
-      setAdvancedError(undefined);
-      setAdvancedOpen(false);
-    } catch (error) {
-      if (isConflictError(error)) {
-        setConflict(true);
-      }
-      setAdvancedError(asErrorMessage(error, t("errors.saveFailed")));
-    }
-  }, [advancedRaw, baseHash, saveRaw, t]);
-
   const editingProvider = useMemo(() => {
     if (providerEditor.kind === "edit") {
       return findProvider(detail, providerEditor.providerId);
@@ -396,7 +376,35 @@ export function ModelsPanel() {
     return undefined;
   }, [detail, modelEditor]);
 
-  const renderState = () => {
+  const deleteImpactOpen =
+    deleteFlow.kind === "preview-provider" ||
+    deleteFlow.kind === "preview-model" ||
+    (deleteFlow.kind === "confirm-provider" && !deleteFlow.confirmOpen) ||
+    (deleteFlow.kind === "confirm-model" && !deleteFlow.confirmOpen);
+
+  const deleteConfirmOpen =
+    (deleteFlow.kind === "confirm-provider" || deleteFlow.kind === "confirm-model") &&
+    Boolean(deleteFlow.preview) &&
+    Boolean(deleteFlow.confirmOpen);
+
+  const modeImpactOpen =
+    modeFlow.kind === "preview" ||
+    (modeFlow.kind === "confirm" && !(modeFlow.mode === "replace" && modeFlow.confirmOpen));
+
+  const modeConfirmOpen =
+    modeFlow.kind === "confirm" && modeFlow.mode === "replace" && Boolean(modeFlow.confirmOpen);
+
+  const openProviderWizard = useCallback((initialProviderId?: string) => {
+    setWizardInitialProviderId(initialProviderId);
+    setWizardOpen(true);
+  }, []);
+
+  const closeProviderWizard = useCallback(() => {
+    setWizardOpen(false);
+    setWizardInitialProviderId(undefined);
+  }, []);
+
+  const renderConfiguredProviders = () => {
     if (detailQuery.isLoading) {
       return (
         <div className="models-state-block" role="status">
@@ -416,7 +424,7 @@ export function ModelsPanel() {
       return (
         <div className="models-state-block">
           <p>{t("states.empty")}</p>
-          <Button variant="primary" size="sm" onClick={() => setWizardOpen(true)}>
+          <Button variant="primary" size="sm" onClick={() => openProviderWizard()}>
             {t("actions.addProvider")}
           </Button>
         </div>
@@ -449,8 +457,7 @@ export function ModelsPanel() {
         isLoading={detailQuery.isLoading}
         isRefreshing={detailQuery.isFetching && !detailQuery.isLoading}
         onRefresh={() => void refreshAll()}
-        onAddProvider={() => setWizardOpen(true)}
-        onOpenAdvancedRaw={() => setAdvancedOpen(true)}
+        onAddProvider={() => openProviderWizard()}
         onChangeMode={(mode) => void startModeChange(mode)}
         modeBusy={setMode.isPending}
       />
@@ -477,7 +484,16 @@ export function ModelsPanel() {
           </Button>
         </Banner>
       ) : null}
-      {renderState()}
+      <UsagePolicyOverview detail={detail} />
+      <section className="models-configured" data-testid="models-configured-providers">
+        <header className="models-configured-head">
+          <div>
+            <h3>{t("configuredProviders.title")}</h3>
+            <p>{t("configuredProviders.description")}</p>
+          </div>
+        </header>
+        {renderConfiguredProviders()}
+      </section>
 
       <ProviderDrawer
         open={providerEditor.kind !== "closed"}
@@ -505,22 +521,20 @@ export function ModelsPanel() {
       <AddProviderWizard
         open={wizardOpen}
         baseHash={baseHash}
-        catalogProviders={catalogQuery.data?.providers ?? []}
+        catalogProviders={catalogProviders}
+        existingProviderIds={providers.map((provider) => provider.id)}
+        initialProviderId={wizardInitialProviderId}
         busy={upsertProvider.isPending}
         errorMessage={globalError}
-        onClose={() => setWizardOpen(false)}
+        onClose={closeProviderWizard}
+        onEditExisting={(providerId) => setProviderEditor({ kind: "edit", providerId })}
         onSubmit={async (request) => {
           await handleProviderSubmit(request);
-          setWizardOpen(false);
+          closeProviderWizard();
         }}
       />
       <ImpactPreviewDialog
-        open={
-          deleteFlow.kind === "confirm-provider" ||
-          deleteFlow.kind === "confirm-model" ||
-          deleteFlow.kind === "preview-provider" ||
-          deleteFlow.kind === "preview-model"
-        }
+        open={deleteImpactOpen}
         busy={previewProviderDelete.isPending || previewModelDelete.isPending}
         preview={
           deleteFlow.kind === "confirm-provider" || deleteFlow.kind === "confirm-model"
@@ -533,23 +547,20 @@ export function ModelsPanel() {
           if (deleteFlow.kind === "confirm-provider") {
             setDeleteFlow({
               ...deleteFlow,
+              confirmOpen: true,
               error: undefined,
             });
-            void commitProviderDelete();
           } else if (deleteFlow.kind === "confirm-model") {
             setDeleteFlow({
               ...deleteFlow,
+              confirmOpen: true,
               error: undefined,
             });
-            void commitModelDelete();
           }
         }}
       />
       <TypeToConfirmDialog
-        open={
-          (deleteFlow.kind === "confirm-provider" || deleteFlow.kind === "confirm-model") &&
-          Boolean(deleteFlow.preview)
-        }
+        open={deleteConfirmOpen}
         title={
           deleteFlow.kind === "confirm-provider"
             ? t("confirmDialog.provider.title", { provider: deleteFlow.providerId })
@@ -580,19 +591,23 @@ export function ModelsPanel() {
         }}
       />
       <ImpactPreviewDialog
-        open={modeFlow.kind === "preview" || modeFlow.kind === "confirm"}
+        open={modeImpactOpen}
         busy={setMode.isPending}
         preview={modeFlow.kind === "confirm" ? modeFlow.preview : undefined}
         errorMessage={modeFlow.kind !== "idle" ? modeFlow.error : undefined}
         onCancel={() => setModeFlow({ kind: "idle" })}
         onConfirm={() => {
           if (modeFlow.kind === "confirm") {
-            void commitModeChange();
+            if (modeFlow.mode === "replace") {
+              setModeFlow({ ...modeFlow, confirmOpen: true, error: undefined });
+            } else {
+              void commitModeChange();
+            }
           }
         }}
       />
       <TypeToConfirmDialog
-        open={modeFlow.kind === "confirm" && modeFlow.mode === "replace"}
+        open={modeConfirmOpen}
         title={t("confirmDialog.mode.title")}
         description={t("confirmDialog.mode.description")}
         expectedText={CONFIRM_TEXT_REPLACE}
@@ -601,45 +616,6 @@ export function ModelsPanel() {
         onCancel={() => setModeFlow({ kind: "idle" })}
         onConfirm={() => void commitModeChange()}
       />
-      <Drawer
-        open={advancedOpen}
-        onClose={() => setAdvancedOpen(false)}
-        width={640}
-        scrim
-        aria-label={t("advancedRaw.title")}
-      >
-        <div className="models-drawer">
-          <header className="models-drawer-head">
-            <h3>{t("advancedRaw.title")}</h3>
-            <Button variant="ghost" size="sm" onClick={() => setAdvancedOpen(false)}>
-              {t("actions.close")}
-            </Button>
-          </header>
-          {advancedError ? <Banner variant="error">{advancedError}</Banner> : null}
-          <Banner variant="warn">{t("advancedRaw.disclaimer")}</Banner>
-          <Textarea
-            value={advancedRaw}
-            onChange={(event) => setAdvancedRaw(event.target.value)}
-            rows={20}
-            spellCheck={false}
-            aria-label={t("advancedRaw.editorLabel")}
-            className="models-advanced-textarea"
-          />
-          <footer className="models-drawer-foot">
-            <Button variant="ghost" size="sm" onClick={() => setAdvancedOpen(false)}>
-              {t("actions.cancel")}
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => void submitAdvancedRaw()}
-              disabled={saveRaw.isPending || !baseHash}
-            >
-              {saveRaw.isPending ? t("actions.saving") : t("actions.save")}
-            </Button>
-          </footer>
-        </div>
-      </Drawer>
     </section>
   );
 }

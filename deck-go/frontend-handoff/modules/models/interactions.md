@@ -5,26 +5,23 @@
 - Click "Refresh" on the catalog header → re-fetch
   `models.config.detail` (and the catalog providers query when the wizard
   is open).
-- Click "Advanced raw" on the catalog header → open the raw editor
-  surface (advanced escape hatch). Typed mutations remain available in
-  the panel; the raw editor calls `useSaveModelsConfigMutation`.
 - Click "Add Provider" on the catalog header → open
   `wizard/AddProviderWizard` at the `select` step.
-- Toggle merge/replace on the catalog header → enter `ModeFlowState`
-  `preview` (server dry-run). On `replace` selection, the type-to-confirm
-  step is mandatory; on `merge` the dry-run preview still runs but
+- Change catalog sync policy on the catalog header → enter `ModeFlowState`
+  `preview` (server dry-run). On configured-assets-only (`replace`) selection,
+  the type-to-confirm step is mandatory; on built-in-catalog (`merge`) the dry-run preview still runs but
   type-to-confirm is shown only when the impact severity is
   `warn | danger`.
 - Click "Edit" on a provider → open `drawers/ProviderDrawer` in `edit`
   mode for that provider.
 - Click "Add model" on a provider → open `drawers/ModelDrawer` in `new`
   mode scoped to that provider.
-- Click "Preview delete" on a provider → trigger
+- Click "Delete..." on a provider → trigger
   `usePreviewProviderDeleteMutation`; transition `DeleteFlowState` from
   `idle` → `preview-provider` → on success → `confirm-provider`.
 - Click "Edit" on a model row → open `drawers/ModelDrawer` in `edit`
   mode.
-- Click "Preview delete" on a model row → trigger
+- Click "Delete..." on a model row → trigger
   `usePreviewModelDeleteMutation`; transition `DeleteFlowState` from
   `idle` → `preview-model` → on success → `confirm-model`.
 - Inside `dialogs/ImpactPreviewDialog`:
@@ -49,15 +46,16 @@
     `useUpsertModelProviderMutation` with `isCreate=true`.
 - Inside `drawers/SecretInputField`:
   - Choose "Preserve" → field omitted from the upsert request (no write).
-  - Choose "Set ref" → render `ref` + optional `refTemplate` inputs;
-    apiKey arrives at the BFF as `{ action: "set-ref", ref, refTemplate? }`.
+  - Choose "Set ref" → render an environment Secret ID input;
+    apiKey arrives at the BFF as
+    `{ action: "set-ref", ref: { source: "env", provider: "default", id } }`.
   - Choose "Clear" → apiKey arrives as `{ action: "clear" }`.
 
 ## Keyboard
 
 | Key                                            | Action                                                          |
 | ---------------------------------------------- | --------------------------------------------------------------- |
-| `Enter` / `Space` on focused row action button | Trigger the action (Edit / Preview delete / Add model).         |
+| `Enter` / `Space` on focused row action button | Trigger the action (Edit / Delete... / Add model).              |
 | `Esc` in any drawer                            | Close the topmost drawer (state machine returns to `idle`).     |
 | `Esc` in any dialog                            | Close the topmost dialog (state machine returns to `idle`).     |
 | `Tab` / `Shift+Tab`                            | Cycle focus through the focus trap of the active drawer/dialog. |
@@ -116,14 +114,15 @@ entry is via the catalog header button + wizard.
 - Long ids truncate via the design-system Input/Chip components and
   expose the full value through the underlying `<input title>` /
   `<span title>` attributes.
-- Impact preview reference list scrolls vertically inside
+- Impact check reference list scrolls vertically inside
   `ImpactPreviewDialog` body.
 
 ## Dialogs
 
-- `dialogs/ImpactPreviewDialog` — informational. Surfaces severity,
+- `dialogs/ImpactPreviewDialog` — informational impact check. Surfaces severity,
   scope description, the BFF-rebuilt reference list, unavailable
-  providers, and a defaults-affected Banner. The "Continue" button
+  providers, relation/role metadata, Agents owner-boundary copy, and a
+  defaults-affected Banner. The "Continue" button
   carries the impact token to the type-to-confirm step.
 - `dialogs/TypeToConfirmDialog` — guarded confirmation. The confirm
   button is disabled until the typed input matches the expected text;
@@ -139,8 +138,9 @@ entry is via the catalog header button + wizard.
 - Mode commit additionally invalidates `catalogProviders`.
 - Mode dry-run preview does **not** invalidate any keys (it is a
   read-only server-side projection).
-- A successful raw save through the advanced editor invalidates the
-  whole `modelsKeys.all()` namespace.
+- Raw config save is not exposed from the Models product surface. If a
+  lower-level generic config tool changes model config, Models refetches typed
+  detail through normal Data Fabric invalidation on the next refresh/navigation.
 
 ## Out-of-scope for this module
 
@@ -150,5 +150,7 @@ entry is via the catalog header button + wizard.
 - Bulk-import models.
 - Real-time streaming usage tiles.
 - Per-model rate-limit override editor.
-- "Set default" is read-only here — the default reference index is
-  surfaced but a default editor is a deferred follow-up.
+- "Set default" / "Add fallback" / fallback-chain editing are read-only here.
+  Models surfaces the reference index for impact review; editing
+  `agents.defaults.model`, per-agent `model`, subagent model defaults, and
+  `{ primary, fallbacks }` belongs to the Agents module.

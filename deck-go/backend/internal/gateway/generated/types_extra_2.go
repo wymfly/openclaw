@@ -2,6 +2,82 @@
 
 package generated
 
+type ExecApprovalsSetParams struct {
+	BaseHash string `json:"baseHash,omitempty"`
+	File     struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+}
+
+type ExecApprovalsSetResult struct {
+	Exists bool `json:"exists"`
+	File   struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+	Hash string `json:"hash"`
+	Path string `json:"path"`
+}
+
+type GatewayBatchParams struct {
+	Calls []struct {
+		Id     string `json:"id"`
+		Method string `json:"method"`
+		Params any    `json:"params,omitempty"`
+	} `json:"calls"`
+	Options struct {
+		FailFast  bool `json:"failFast,omitempty"`
+		TimeoutMs int  `json:"timeoutMs,omitempty"`
+	} `json:"options,omitempty"`
+}
+
 type GatewayBatchResult struct {
 	Results []struct {
 		Error struct {

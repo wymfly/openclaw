@@ -9,49 +9,53 @@
 ```
 ModelsPanel (orchestrator)
   ├── parts/CatalogHeader
-  │     ├── mode badge + merge/replace Toggle (typed mode flow)
+  │     ├── catalog sync policy badge (mode is secondary technical detail)
   │     ├── configured provider/model counts
   │     ├── runtime catalog status Badge
   │     ├── runtime auth status Badge
-  │     └── action row: Refresh · Advanced raw · Add Provider
-  ├── parts/ProviderListSection[]            (per-provider, collapsible)
-  │     ├── provider header (auth / secret / inject-num-ctx /
-  │     │   auth-header / referenced badges)
-  │     ├── per-section action row (Edit · Add model · Preview delete)
-  │     └── parts/ModelRow[]
-  │            ├── reasoning / inputs / contextWindow chips
-  │            ├── default / referenced badges
-  │            └── row actions (Edit · Preview delete)
+  │     └── action row: Refresh · Add Provider
+  ├── parts/UsagePolicyOverview
+  │     ├── read-only `DeckGoModelsConfigDetail.defaults` role grid
+  │     ├── primary model + fallback labels
+  │     └── Agents ownership chip
+  ├── parts/ProviderListSection[]            (main configured provider groups)
+  │     ├── provider auth/status badges
+  │     ├── provider actions (Edit provider · Add model · Check impact)
+  │     └── parts/ModelRow[]                 (nested configured models)
+  │           ├── reasoning/input/contextWindow chips
+  │           ├── default / fallback / primary / referenced badges
+  │           └── row actions (Edit · Check impact)
   ├── drawers/ProviderDrawer
   │     ├── tab "overview"   — provider id / name / baseUrl / api / auth
-  │     ├── tab "identity"   — apiKey via SecretInputField, providerHeaders
+  │     ├── tab "identity"   — apiKey via SecretInputField, provider headers
   │     ├── tab "networking" — request layout summary, injectNumCtx toggle
   │     ├── tab "models"     — read-only model count + jump-into-list
   │     └── tab "advanced"   — compat / unsupported field summary (read-only)
   ├── drawers/ModelDrawer
   │     ├── tab "overview"   — model id / name / providerId / api inherit
   │     ├── tab "identity"   — reasoning toggle / modality multi-select
-  │     ├── tab "capacity"   — contextWindow, maxOutputTokens,
-  │     │                     maxThinkingTokens, customMaxTokens
-  │     ├── tab "cost"       — tokenCostPerKilo / input / output
+  │     ├── tab "capacity"   — contextWindow, contextTokens, maxTokens
+  │     ├── tab "cost"       — input / output / cacheRead / cacheWrite
   │     ├── tab "networking" — per-model headers (read-only summary +
   │     │                     SecretInputField for sensitive header values)
   │     └── tab "advanced"   — compat summary + unsupported fields
   ├── drawers/SecretInputField
   │     ├── radio: preserve / set-ref / clear
-  │     ├── ref input (when set-ref selected)
-  │     └── refTemplate input (optional, when set-ref selected)
+  │     └── env secret id input (when set-ref selected)
   ├── wizard/AddProviderWizard
-  │     ├── step "select"    — pick from `models.catalog.providers`
-  │     │                     or "Use custom" entry
-  │     ├── step "configure" — provider id/name/baseUrl/api/auth + SecretInput
+  │     ├── step "select"    — copy a read-only template from
+  │     │                     `models.catalog.providers`, or start blank
+  │     │                     custom provider
+  │     ├── step "configure" — provider id/baseUrl/api/auth + SecretInput
+  │     │                     + selectable copied default models
   │     └── step "review"    — summary + submit (calls upsert mutation
   │                          with isCreate=true)
   ├── dialogs/ImpactPreviewDialog
   │     ├── severity Badge (`safe | info | warn | danger`)
   │     ├── scope description
   │     ├── reference list (agents / channels / hooks / tools / runtime
-  │     │   / session sources)
+  │     │   / session sources) with relation / role metadata
+  │     ├── Agents owner-boundary Banner for `agents.*` model policy
   │     ├── unavailable providers
   │     └── defaults-affected Banner
   ├── dialogs/TypeToConfirmDialog
@@ -64,7 +68,8 @@ ModelsPanel (orchestrator)
         describeSecretStatus, isSecretConfigured, describeMode,
         severityVariant, impactReferenceCount, shouldBlockCommit,
         describeRuntime, modelInputsLabel, totalConfiguredModels,
-        modelDefaultRoles, isProviderReferenced).
+        modelDefaultRoles, modelUsageRelations, modelUsageRoles,
+        isProviderReferenced).
 ```
 
 ## Prototype file → production target
@@ -110,7 +115,6 @@ useUpsertModelMutation();
 usePreviewModelDeleteMutation();
 useDeleteModelMutation();
 useSetModelsCatalogModeMutation();
-useSaveModelsConfigMutation(); // advanced raw escape hatch only
 ```
 
 Internal state machines (see `states.md`):
@@ -118,7 +122,7 @@ Internal state machines (see `states.md`):
 - `ProviderEditorState = { kind: "idle" } | { kind: "new" } | { kind: "edit"; providerId: string }`
 - `ModelEditorState   = { kind: "idle" } | { kind: "new"; providerId: string } | { kind: "edit"; providerId: string; modelId: string }`
 - `DeleteFlowState    = { kind: "idle" } | { kind: "preview-provider"; providerId } | { kind: "confirm-provider"; preview: DeckGoModelImpactPreview } | { kind: "preview-model"; ... } | { kind: "confirm-model"; preview }`
-- `ModeFlowState      = { kind: "idle" } | { kind: "preview"; targetMode: "merge" | "replace" } | { kind: "confirm"; preview: DeckGoModelImpactPreview }`
+- `ModeFlowState      = { kind: "idle" } | { kind: "preview"; targetMode: "merge" | "replace" } | { kind: "confirm"; preview: DeckGoModelImpactPreview }` — advanced policy path only.
 
 ### `parts/CatalogHeader`
 
@@ -127,7 +131,6 @@ interface CatalogHeaderProps {
   detail: DeckGoModelsConfigDetail;
   busy: boolean;
   onRefresh(): void;
-  onAdvancedRaw(): void;
   onAddProvider(): void;
   onModeChange(target: "merge" | "replace"): void;
 }
@@ -135,13 +138,17 @@ interface CatalogHeaderProps {
 
 Surfaces:
 
-- mode Badge + merge/replace Toggle (`onCheckedChange` + `aria-label`).
+- catalog sync policy Badge + product-language Toggle (`onCheckedChange` +
+  `aria-label`) is historical. Current production keeps normal setup focused
+  on configured provider groups and the Add Provider wizard; `merge` /
+  `replace` values are secondary technical copy and advanced policy controls
+  only.
 - configured provider/model counts (`totalConfiguredModels`,
   `detail.providers.length`).
 - runtime catalog Badge: `available → ok`, `stale → warn`,
   `unavailable → neutral`.
 - runtime auth Badge: same mapping over `detail.runtime.auth.status`.
-- action buttons: Refresh, Advanced raw, Add Provider.
+- action buttons: Refresh, Add Provider.
 
 ### `parts/ProviderListSection`
 
@@ -154,9 +161,9 @@ interface ProviderListSectionProps {
   onToggleCollapsed(): void;
   onEditProvider(): void;
   onAddModel(): void;
-  onPreviewDeleteProvider(): void;
+  onPreviewDeleteProvider(): void; // user-facing label: Delete... / impact check
   onEditModel(modelId: string): void;
-  onPreviewDeleteModel(modelId: string): void;
+  onPreviewDeleteModel(modelId: string): void; // user-facing label: Delete... / impact check
 }
 ```
 
@@ -233,7 +240,7 @@ interface SecretInputFieldProps {
 type SecretEditAction =
   | { kind: "preserve" }
   | { kind: "clear" }
-  | { kind: "set-ref"; ref: string; refTemplate?: string };
+  | { kind: "set-ref"; ref: DeckGoModelSecretRef };
 ```
 
 Existing status surfaced via `describeSecretStatus`. The radio defaults
@@ -254,9 +261,11 @@ interface AddProviderWizardProps {
 }
 ```
 
-Steps: `select | configure | review`. Custom-provider entry skips the
-catalog `defaultBaseUrl`/`authType` seeding and starts from blank
-fields. `authType` from the catalog is validated against
+Steps: `select | configure | review`. Custom-provider entry immediately
+enters the visible configure step, skips the catalog
+`defaultBaseUrl`/`authType` seeding, and starts from blank fields. Provider
+Library Configure also enters the configure step with the catalog template
+preselected. `authType` from the catalog is validated against
 `AUTH_MODES = ["api-key", "aws-sdk", "oauth", "token"]` before assignment;
 unknown values fall back to `api-key`.
 
@@ -316,8 +325,9 @@ CSS lives at `frontend-new/src/components/panels/models/models-panel.css`
 
 ## Accessibility
 
-- Toggle (mode switch) requires `onCheckedChange` + `aria-label`
-  per atom contract.
+- Advanced mode-switch controls, when visible, require accessible labeling and
+  impact-check gating. They are not part of the normal Provider Library setup
+  path.
 - Spinner instances require `aria-label` (the orchestrator passes the
   i18n loading copy).
 - Drawer/Modal: focus trap inside while open; `Esc` closes the topmost

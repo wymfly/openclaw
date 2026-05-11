@@ -472,6 +472,186 @@ describe("deck.agents.eventStreams.get", () => {
   });
 });
 
+describe("deck.agents.modelPolicy.get", () => {
+  it("returns normalized global and per-agent model policy", async () => {
+    mockConfig = {
+      models: {
+        providers: {
+          openai: {
+            models: [
+              { id: "gpt-5.4", name: "GPT 5.4" },
+              { id: "gpt-image-1", name: "GPT Image" },
+            ],
+          },
+          anthropic: {
+            models: [{ id: "claude-sonnet-4-6", name: "Claude Sonnet" }],
+          },
+        },
+      },
+      agents: {
+        defaults: {
+          model: {
+            primary: "openai/gpt-5.4",
+            fallbacks: ["anthropic/claude-sonnet-4-6"],
+          },
+          imageModel: "openai/gpt-image-1",
+          compaction: { model: "anthropic/claude-sonnet-4-6" },
+          memorySearch: { model: "missing/embedding-model" },
+          subagents: { model: { primary: "anthropic/claude-sonnet-4-6" } },
+        },
+        list: [
+          {
+            id: "main",
+            name: "Main Agent",
+            workspace: "/tmp/main",
+            model: {
+              primary: "openai/gpt-5.4",
+              fallbacks: ["missing/provider-model"],
+            },
+          },
+        ],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await callHandler("deck.agents.modelPolicy.get", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as {
+      configuredModels: Array<{ ref: string }>;
+      policies: Array<{
+        key: string;
+        kind: string;
+        supportedShape: string;
+        source: string;
+        selection?: { primary?: string; fallbacks?: string[] };
+        effective?: { primary?: string; fallbacks?: string[] };
+        unavailableRefs: string[];
+      }>;
+      unsupported: Array<{ key: string }>;
+    };
+    expect(p.configuredModels.map((entry) => entry.ref)).toEqual(
+      expect.arrayContaining(["openai/gpt-5.4", "openai/gpt-image-1"]),
+    );
+    const textDefault = p.policies.find(
+      (policy) => policy.kind === "global-default" && policy.key === "text",
+    );
+    expect(textDefault?.selection).toEqual({
+      primary: "openai/gpt-5.4",
+      fallbacks: ["anthropic/claude-sonnet-4-6"],
+    });
+    const compaction = p.policies.find((policy) => policy.key === "compaction");
+    expect(compaction?.supportedShape).toBe("string");
+    expect(compaction?.selection).toEqual({ primary: "anthropic/claude-sonnet-4-6" });
+    const mainPolicy = p.policies.find((policy) => policy.kind === "agent-model");
+    expect(mainPolicy?.source).toBe("agent");
+    expect(mainPolicy?.selection?.fallbacks).toEqual(["missing/provider-model"]);
+    expect(mainPolicy?.unavailableRefs).toEqual(["missing/provider-model"]);
+    const memorySearch = p.policies.find((policy) => policy.key === "memorySearch");
+    expect(memorySearch?.unavailableRefs).toEqual(["missing/embedding-model"]);
+  });
+
+  it("reports unsupported legacy summary policy if it exists", async () => {
+    mockConfig = {
+      agents: {
+        defaults: {
+          summaryModel: "openai/gpt-5.4",
+        },
+        list: [],
+      },
+    } as OpenClawConfig;
+
+    const result = await callHandler("deck.agents.modelPolicy.get", {});
+    expect(result.ok).toBe(true);
+    const p = result.payload as { unsupported: Array<{ key: string; configPath: string }> };
+    expect(p.unsupported).toContainEqual({
+      key: "summary",
+      configPath: "agents.defaults.summaryModel",
+      reason: "Current OpenClaw schema truth does not define agents.defaults.summaryModel.",
+    });
+  });
+});
+
+describe("deck.agents.modelPolicy.set", () => {
+  it("writes per-agent primary and fallback policy", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "agent-model", key: "agent", agentId: "main" },
+      selection: {
+        primary: "openai/gpt-5.4",
+        fallbacks: ["anthropic/claude-sonnet-4-6"],
+      },
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(true);
+    const written = writtenConfig as typeof defaultMockConfig;
+    const mainAgent = written.agents.list.find((agent) => agent.id === "main");
+    expect(mainAgent?.model).toEqual({
+      primary: "openai/gpt-5.4",
+      fallbacks: ["anthropic/claude-sonnet-4-6"],
+    });
+  });
+
+  it("clears per-agent model policy to inherit default", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "agent-model", key: "agent", agentId: "main" },
+      clear: true,
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(true);
+    expect((result.payload as Record<string, unknown>).cleared).toBe(true);
+    const written = writtenConfig as typeof defaultMockConfig;
+    const mainAgent = written.agents.list.find((agent) => agent.id === "main");
+    expect(mainAgent?.model).toBeUndefined();
+  });
+
+  it("writes global text default model policy", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "global-default", key: "text" },
+      selection: {
+        primary: "openai/gpt-5.4",
+        fallbacks: ["anthropic/claude-sonnet-4-6"],
+      },
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(true);
+    const written = writtenConfig as typeof defaultMockConfig;
+    expect(written.agents.defaults.model).toEqual({
+      primary: "openai/gpt-5.4",
+      fallbacks: ["anthropic/claude-sonnet-4-6"],
+    });
+  });
+
+  it("rejects fallbacks for string-only global fields", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "global-default", key: "compaction" },
+      selection: {
+        primary: "openai/gpt-5.4",
+        fallbacks: ["anthropic/claude-sonnet-4-6"],
+      },
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(false);
+    expect(writtenConfig).toBeNull();
+  });
+
+  it("rejects on baseHash mismatch", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "agent-model", key: "agent", agentId: "main" },
+      selection: { primary: "openai/gpt-5.4" },
+      baseHash: "wrong-hash",
+    });
+    expect(result.ok).toBe(false);
+    expect(writtenConfig).toBeNull();
+  });
+
+  it("rejects missing selection without explicit clear", async () => {
+    const result = await callHandler("deck.agents.modelPolicy.set", {
+      target: { kind: "agent-model", key: "agent", agentId: "main" },
+      baseHash: "hash-abc123",
+    });
+    expect(result.ok).toBe(false);
+    expect(writtenConfig).toBeNull();
+  });
+});
+
 // === Scenario 9: Set eventStreams ===
 describe("deck.agents.eventStreams.set", () => {
   it("writes eventStreams to agent config", async () => {

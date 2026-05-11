@@ -7,7 +7,7 @@ import type {
 } from "@/api-types";
 import { Banner, Button, Drawer, Input, Select, Tab, Toggle } from "@/design-system/atoms";
 import { useTranslations } from "@/i18n/provider";
-import type { SecretEditAction } from "../lib/models-selectors";
+import { booleanToggleAction, type SecretEditAction } from "../lib/models-selectors";
 import { SecretInputField } from "./SecretInputField";
 
 const PROVIDER_TABS = ["overview", "identity", "networking", "models", "advanced"] as const;
@@ -64,14 +64,13 @@ export function ProviderDrawer(props: ProviderDrawerProps) {
       api: api.trim() || undefined,
       baseUrl: baseUrl.trim() || undefined,
       auth,
-      authHeader,
-      injectNumCtxForOpenAICompat: injectNumCtx,
+      authHeader: booleanToggleAction(authHeader),
+      injectNumCtxForOpenAICompat: booleanToggleAction(injectNumCtx),
     };
     if (secret.kind === "set-ref") {
       request.apiKey = {
         action: "set-ref",
         ref: secret.ref,
-        refTemplate: secret.refTemplate,
       };
     } else if (secret.kind === "clear") {
       request.apiKey = { action: "clear" };

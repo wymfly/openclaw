@@ -11,13 +11,13 @@ All states live inside the orchestrator and are driven by:
 
 ## Detail query state
 
-| State                  | Trigger                                                      | UI                                                                                                             |
-| ---------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| `pending` (initial)    | First mount with no cache.                                   | Centered Spinner with i18n loading label; the rest of the panel is hidden.                                     |
-| `pending` (refresh)    | Programmatic `refetch()` while data is present.              | Spinner adjacent to the Refresh button; the existing UI keeps rendering.                                       |
-| `success`              | `models.config.detail` resolved.                             | Catalog header + provider list; empty state when `providers` is empty.                                         |
-| `error`                | Query failed.                                                | Banner `error` with i18n message and Retry button; underlying empty-state visible if cache is empty.           |
-| `conflict` (transient) | Mutation returned `DataFabricError` with `kind: "conflict"`. | Banner `warn` inside the active drawer/dialog; query is refetched automatically by `invalidateConfigSurfaces`. |
+| State                  | Trigger                                                      | UI                                                                                                              |
+| ---------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `pending` (initial)    | First mount with no cache.                                   | Centered Spinner with i18n loading label; the rest of the panel is hidden.                                      |
+| `pending` (refresh)    | Programmatic `refetch()` while data is present.              | Spinner adjacent to the Refresh button; the existing UI keeps rendering.                                        |
+| `success`              | `models.config.detail` resolved.                             | Catalog header + configured provider sections with nested model rows; Add Provider contains template-copy flow. |
+| `error`                | Query failed.                                                | Banner `error` with i18n message and Retry button; underlying empty-state visible if cache is empty.            |
+| `conflict` (transient) | Mutation returned `DataFabricError` with `kind: "conflict"`. | Banner `warn` inside the active drawer/dialog; query is refetched automatically by `invalidateConfigSurfaces`.  |
 
 ## ProviderEditorState (drawer flow)
 
@@ -32,7 +32,7 @@ Transitions:
 
 - `idle → new` — "Add Provider" wizard submitted (the wizard owns the
   create path; `ProviderDrawer` is reserved for `edit` here).
-- `idle → edit` — "Edit" button on a provider row.
+- `idle → edit` — "Edit provider" button on a configured provider section.
 - `new | edit → idle` — drawer close (`Esc` / cancel / submit success).
 - Conflict during submit → `kind` retained; conflict Banner surfaces in
   the drawer; the user keeps editing until they retry against the fresh
@@ -51,7 +51,7 @@ Transitions parallel `ProviderEditorState`. The drawer is scoped to the
 provider regardless of `new` / `edit` so cross-provider model moves are
 not modeled here (out of scope).
 
-## DeleteFlowState (preview → confirm)
+## DeleteFlowState (impact check → confirm)
 
 ```ts
 type DeleteFlowState =
@@ -64,8 +64,8 @@ type DeleteFlowState =
 
 Transitions:
 
-- `idle → preview-provider` (user clicks Preview delete on a provider).
-- `preview-provider → confirm-provider` (preview mutation success).
+- `idle → preview-provider` (user starts Delete... on a provider).
+- `preview-provider → confirm-provider` (impact-check mutation success).
 - `preview-provider → idle` (preview error / cancel).
 - `confirm-provider → idle` (commit success or cancel).
 - Same loop applies for the model variant.
@@ -75,7 +75,7 @@ Transitions:
 preview tokens are rejected by the BFF and surface as Banner errors
 inside the type-to-confirm dialog.
 
-## ModeFlowState (catalog mode)
+## ModeFlowState (advanced catalog policy)
 
 ```ts
 type ModeFlowState =
@@ -86,11 +86,12 @@ type ModeFlowState =
 
 Transitions:
 
-- `idle → preview` — user toggles the catalog mode.
+- `idle → preview` — user invokes an advanced catalog policy action.
 - `preview → confirm` — dry-run mutation succeeded **and** the mode is
-  `replace` or the impact severity is `warn | danger`.
-- `preview → idle` — dry-run shows `safe | info` for `merge` (commit is
-  applied directly) or the user cancels.
+  raw `replace` / strict configured-only policy or the impact severity is
+  `warn | danger`.
+- `preview → idle` — dry-run shows `safe | info` for restoring library
+  visibility (`merge`; commit is applied directly) or the user cancels.
 - `confirm → idle` — commit success or cancel.
 
 Mode dry-run does NOT invalidate any query keys; only the commit step
@@ -104,15 +105,16 @@ The wizard owns its own three-step state inside `AddProviderWizard.tsx`:
 "select" → "configure" → "review" → submit
 ```
 
-- `select` — pick from `useModelCatalogProvidersQuery` data, or "Use
-  custom" entry.
-- `configure` — provider id/name/baseUrl/api/auth + SecretInput.
+- `select` — copy from `useModelCatalogProvidersQuery` data, or start from a
+  blank custom provider.
+- `configure` — provider id/baseUrl/api/auth + SecretInput plus selectable
+  default model entries copied from the template when present.
 - `review` — surface the planned upsert payload (including SecretRef
-  summary). Submit calls `useUpsertModelProviderMutation` with
+  summary and selected model count). Submit calls `useUpsertModelProviderMutation` with
   `isCreate=true` and `expectedBaseHash` from the active detail query.
 
 If the catalog providers query is degraded, the `select` step Banner
-suggests "Use custom" and the wizard proceeds without seeded defaults.
+suggests starting blank and the wizard proceeds without seeded defaults.
 
 ## Mutation lifecycle
 
@@ -128,10 +130,10 @@ For each typed mutation:
    the detail query is refetched automatically (the user re-submits
    against the fresh hash).
 
-Advanced raw save (`useSaveModelsConfigMutation`) follows the same
-lifecycle but invalidates `modelsKeys.all()` rather than the typed
-surfaces. Typed surfaces are not updated optimistically by the raw
-save — they are refetched.
+Models does not expose a raw config save state. Unsupported advanced leaves are
+displayed as typed/read-only summaries or recorded as follow-ups, while actual
+asset writes continue through the provider/model typed mutation state machines
+above.
 
 ## Responsive
 

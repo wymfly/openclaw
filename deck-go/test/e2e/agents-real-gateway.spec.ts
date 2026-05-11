@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import {
   authHeaders,
   createAgentFixture,
@@ -58,6 +58,8 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
         "deck.agents.skills.get",
         "deck.agents.skills.set",
         "deck.agents.subagents.get",
+        "deck.agents.modelPolicy.get",
+        "deck.agents.modelPolicy.set",
         "deck.agents.eventStreams.get",
         "deck.agents.toolPolicy.preview",
         "deck.agents.systemPrompt.preview",
@@ -111,6 +113,7 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
       for (const action of [
         "skills.get",
         "subagents.get",
+        "modelPolicy.get",
         "eventStreams.get",
         "toolPolicy.preview",
         "systemPrompt.preview",
@@ -125,6 +128,53 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
           0,
         );
       }
+
+      const policy = await postDeckAgentsJson(request, stack, {
+        action: "modelPolicy.get",
+        agentId: fixture.id,
+      });
+      expect(Array.isArray(policy.policies), "modelPolicy.get policies must be an array").toBe(
+        true,
+      );
+      expect(
+        Array.isArray(policy.configuredModels),
+        "modelPolicy.get configuredModels must be an array",
+      ).toBe(true);
+      const configuredModel = (policy.configuredModels as Array<{ ref?: string }>).find(
+        (model) => typeof model.ref === "string" && model.ref.length > 0,
+      );
+      const configuredRef = configuredModel?.ref;
+      if (typeof configuredRef !== "string" || configuredRef.length === 0) {
+        throw new Error("real modelPolicy test needs at least one configured model");
+      }
+
+      const savePolicy = await request.post(`${stack.backendBase}/api/deck/agents`, {
+        headers,
+        data: {
+          action: "modelPolicy.set",
+          target: { kind: "agent-model", key: "agent", agentId: fixture.id },
+          selection: { primary: configuredRef },
+          baseHash: policy.configHash,
+        },
+      });
+      const saveText = await savePolicy.text();
+      expect(savePolicy.ok(), `modelPolicy.set returned ${savePolicy.status()}: ${saveText}`).toBe(
+        true,
+      );
+
+      const stalePolicy = await request.post(`${stack.backendBase}/api/deck/agents`, {
+        headers,
+        data: {
+          action: "modelPolicy.set",
+          target: { kind: "agent-model", key: "agent", agentId: fixture.id },
+          selection: { primary: configuredRef },
+          baseHash: "__deck_go_e2e_invalid_hash__",
+        },
+      });
+      expect(
+        [400, 404, 409, 422, 500, 502, 503],
+        `modelPolicy.set stale hash returned ${stalePolicy.status()}`,
+      ).toContain(stalePolicy.status());
 
       const files = await request.get(
         `${stack.backendBase}/api/agents/${encodeURIComponent(fixture.id)}/files`,
@@ -154,8 +204,14 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
             "agents.create",
             "agents.update",
             "agents.delete",
+            "deck.agents.modelPolicy.get",
+            "deck.agents.modelPolicy.set",
             "deck.agents.*",
           ],
+          modelPolicy: {
+            selectedRef: configuredRef,
+            staleHashStatus: stalePolicy.status(),
+          },
           protectedMainDelete: { status: protectedDelete.status() },
         },
         testInfo,
@@ -297,6 +353,8 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await clickDetailTab(page, "Runtime");
   await expect(page.getByText("Model source")).toBeVisible();
   await expect(page.getByText("Workspace source")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Model usage policy" })).toBeVisible();
+  await expect(page.getByText("Agent runtime model")).toBeVisible();
   await expect(page.getByRole("button", { name: "Review and save" })).toBeVisible();
 
   await clickDetailTab(page, "Skills");
@@ -307,7 +365,7 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await expect(page.getByRole("heading", { name: "Skills" })).toBeVisible();
 
   await clickDetailTab(page, "Subagents");
-  await expect(page.getByLabel("Model")).toBeVisible();
+  await expect(page.getByText(/model policy now lives/i)).toBeVisible();
   await page.getByRole("button", { name: "Reload" }).click();
   await expect(page.getByRole("heading", { name: "Subagents" })).toBeVisible();
 
@@ -365,4 +423,19 @@ function recordUnexpected(page: Page, backendBase: string) {
     }
   });
   return unexpected;
+}
+
+async function postDeckAgentsJson(
+  request: APIRequestContext,
+  stack: E2EStack,
+  data: Record<string, unknown>,
+) {
+  const response = await request.post(`${stack.backendBase}/api/deck/agents`, {
+    headers: authHeaders(stack.accessToken),
+    data,
+  });
+  const text = await response.text();
+  const action = typeof data.action === "string" ? data.action : "unknown-action";
+  expect(response.ok(), `/deck/agents ${action} returned ${response.status()}: ${text}`).toBe(true);
+  return JSON.parse(text) as Record<string, unknown>;
 }

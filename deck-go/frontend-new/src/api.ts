@@ -13,6 +13,12 @@ import type {
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
   DeckGoAgentMutationResponse,
+  DeckGoAgentModelChoice,
+  DeckGoAgentModelPolicyEntry,
+  DeckGoAgentModelPolicyResponse,
+  DeckGoAgentModelPolicySetResponse,
+  DeckGoAgentModelPolicyTarget,
+  DeckGoAgentModelSelection,
   DeckGoAgentRawConfig,
   DeckGoAgentStatus,
   DeckGoAgentPatchRequest,
@@ -266,6 +272,12 @@ export type {
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
   DeckGoAgentMutationResponse,
+  DeckGoAgentModelChoice,
+  DeckGoAgentModelPolicyEntry,
+  DeckGoAgentModelPolicyResponse,
+  DeckGoAgentModelPolicySetResponse,
+  DeckGoAgentModelPolicyTarget,
+  DeckGoAgentModelSelection,
   DeckGoAgentRawConfig,
   DeckGoAgentStatus,
   DeckGoAgentPatchRequest,
@@ -2622,6 +2634,47 @@ export async function updateAgentSubagentConfig(
   );
   return acknowledgeMutationResponse("agents.subagents.save", response, {
     routeParams: { agentId },
+  });
+}
+
+export async function fetchAgentModelPolicy(agentId?: string) {
+  return fetchDeckJson<DeckGoAgentModelPolicyResponse>(
+    "/deck/agents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "modelPolicy.get",
+        ...(agentId ? { agentId } : {}),
+      }),
+    },
+    "agent model policy fetch failed",
+  );
+}
+
+export async function updateAgentModelPolicy(params: {
+  target: DeckGoAgentModelPolicyTarget;
+  selection?: DeckGoAgentModelSelection;
+  clear?: boolean;
+  baseHash: string;
+}) {
+  const response = await fetchDeckJson<DeckGoAgentModelPolicySetResponse>(
+    "/deck/agents",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "modelPolicy.set",
+        target: params.target,
+        ...(params.selection ? { selection: params.selection } : {}),
+        ...(params.clear ? { clear: true } : {}),
+        baseHash: params.baseHash,
+      }),
+    },
+    "agent model policy update failed",
+  );
+  return acknowledgeMutationResponse("agents.modelPolicy.save", response, {
+    routeParams: { agentId: params.target.agentId ?? params.target.key },
   });
 }
 

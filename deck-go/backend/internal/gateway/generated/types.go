@@ -751,6 +751,77 @@ type DeckAgentsEventStreamsSetResult struct {
 	Ok           bool     `json:"ok"`
 }
 
+type DeckAgentsModelPolicyGetParams struct {
+	AgentId string `json:"agentId,omitempty"`
+}
+
+type DeckAgentsModelPolicyGetResult struct {
+	AgentId          string `json:"agentId,omitempty"`
+	ConfigHash       string `json:"configHash"`
+	ConfiguredModels []struct {
+		ContextWindow int      `json:"contextWindow,omitempty"`
+		Input         []string `json:"input,omitempty"`
+		Model         string   `json:"model"`
+		Name          string   `json:"name"`
+		Provider      string   `json:"provider"`
+		Reasoning     bool     `json:"reasoning,omitempty"`
+		Ref           string   `json:"ref"`
+	} `json:"configuredModels"`
+	Policies []struct {
+		ConfigPath string `json:"configPath"`
+		Editable   bool   `json:"editable"`
+		Effective  struct {
+			Fallbacks []string `json:"fallbacks,omitempty"`
+			Primary   string   `json:"primary,omitempty"`
+		} `json:"effective,omitempty"`
+		Key       string `json:"key"`
+		Kind      string `json:"kind"`
+		Label     string `json:"label"`
+		Owner     string `json:"owner"`
+		Selection struct {
+			Fallbacks []string `json:"fallbacks,omitempty"`
+			Primary   string   `json:"primary,omitempty"`
+		} `json:"selection,omitempty"`
+		Source          string   `json:"source"`
+		SupportedShape  string   `json:"supportedShape"`
+		UnavailableRefs []string `json:"unavailableRefs"`
+	} `json:"policies"`
+	Unsupported []struct {
+		ConfigPath string `json:"configPath"`
+		Key        string `json:"key"`
+		Reason     string `json:"reason"`
+	} `json:"unsupported"`
+}
+
+type DeckAgentsModelPolicySetParams struct {
+	BaseHash  string `json:"baseHash"`
+	Clear     bool   `json:"clear,omitempty"`
+	Selection struct {
+		Fallbacks []string `json:"fallbacks,omitempty"`
+		Primary   string   `json:"primary,omitempty"`
+	} `json:"selection,omitempty"`
+	Target struct {
+		AgentId string `json:"agentId,omitempty"`
+		Key     string `json:"key"`
+		Kind    string `json:"kind"`
+	} `json:"target"`
+}
+
+type DeckAgentsModelPolicySetResult struct {
+	Cleared    bool   `json:"cleared,omitempty"`
+	ConfigHash string `json:"configHash"`
+	Ok         bool   `json:"ok"`
+	Selection  struct {
+		Fallbacks []string `json:"fallbacks,omitempty"`
+		Primary   string   `json:"primary,omitempty"`
+	} `json:"selection,omitempty"`
+	Target struct {
+		AgentId string `json:"agentId,omitempty"`
+		Key     string `json:"key"`
+		Kind    string `json:"kind"`
+	} `json:"target"`
+}
+
 type DeckAgentsSkillsGetParams struct {
 	AgentId string `json:"agentId"`
 }
@@ -1711,80 +1782,4 @@ type ExecApprovalsNodeSetResult struct {
 	} `json:"file"`
 	Hash string `json:"hash"`
 	Path string `json:"path"`
-}
-
-type ExecApprovalsSetParams struct {
-	BaseHash string `json:"baseHash,omitempty"`
-	File     struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-}
-
-type ExecApprovalsSetResult struct {
-	Exists bool `json:"exists"`
-	File   struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-	Hash string `json:"hash"`
-	Path string `json:"path"`
-}
-
-type GatewayBatchParams struct {
-	Calls []struct {
-		Id     string `json:"id"`
-		Method string `json:"method"`
-		Params any    `json:"params,omitempty"`
-	} `json:"calls"`
-	Options struct {
-		FailFast  bool `json:"failFast,omitempty"`
-		TimeoutMs int  `json:"timeoutMs,omitempty"`
-	} `json:"options,omitempty"`
 }

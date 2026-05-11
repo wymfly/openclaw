@@ -70,7 +70,7 @@ export function ProviderListSection(props: ProviderListSectionProps) {
             className="models-link-btn models-link-btn-danger"
             onClick={() => props.onPreviewDeleteProvider(provider.id)}
           >
-            {t("provider.previewDelete")}
+            {t("provider.checkDeleteImpact")}
           </button>
         </div>
       </header>

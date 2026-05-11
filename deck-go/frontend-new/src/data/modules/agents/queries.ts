@@ -6,6 +6,7 @@ import {
   fetchAgentFiles,
   fetchAgentHealthSnapshot,
   fetchAgentIdentity,
+  fetchAgentModelPolicy,
   fetchAgentsList,
   fetchAgentSkills,
   fetchAgentSubagentConfig,
@@ -20,6 +21,7 @@ import type {
   DeckGoAgentFilesResponse,
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
+  DeckGoAgentModelPolicyResponse,
   DeckGoAgentSkillsResponse,
   DeckGoAgentsListResponse,
   DeckGoAgentSubagentConfigResponse,
@@ -64,6 +66,12 @@ export function agentSkillsSource(agentId: string) {
 export function agentSubagentsSource(agentId: string) {
   return bffSource<DeckGoAgentSubagentConfigResponse>("POST /deck/agents", () =>
     fetchAgentSubagentConfig(agentId),
+  );
+}
+
+export function agentModelPolicySource(agentId?: string) {
+  return bffSource<DeckGoAgentModelPolicyResponse>("POST /deck/agents", () =>
+    fetchAgentModelPolicy(agentId),
   );
 }
 
@@ -166,6 +174,19 @@ export function agentSubagentsQueryOptions(
     bff,
     agentSubagentsSource(agentId),
     agentsKeys.subagents(agentId, scope),
+    "config-authority",
+  );
+}
+
+export function agentModelPolicyQueryOptions(
+  bff: DataFabricBffTransport,
+  agentId?: string,
+  scope?: DeckQueryScope,
+) {
+  return bffQueryOptions(
+    bff,
+    agentModelPolicySource(agentId),
+    agentsKeys.modelPolicy(agentId, scope),
     "config-authority",
   );
 }
@@ -294,6 +315,14 @@ export function useAgentSubagentsQuery(agentId: string, options: ModuleQueryOpti
   return useQuery({
     ...agentSubagentsQueryOptions(transports.bff, agentId, options.scope),
     enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentModelPolicyQuery(agentId?: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentModelPolicyQueryOptions(transports.bff, agentId, options.scope),
+    enabled: options.enabled ?? true,
   });
 }
 

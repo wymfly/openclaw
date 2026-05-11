@@ -260,6 +260,52 @@
       "guardsLabel": "受保护运行字段",
       "saveGuarded": "复核并保存"
     },
+    "modelPolicy": {
+      "title": "模型使用策略",
+      "description": "Agents 负责运行时模型使用策略；Models 负责提供商和模型资产。",
+      "agentGroup": "当前智能体策略",
+      "globalGroup": "全局角色默认值",
+      "modeLabel": "模型策略模式",
+      "inherit": "继承默认",
+      "override": "显式覆盖",
+      "inheritedCopy": "该智能体继承当前生效模型 {value}。",
+      "primary": "主模型",
+      "fallbacks": "回退链",
+      "selectPrimary": "选择主模型",
+      "selectFallback": "选择回退模型",
+      "noFallbacks": "尚未配置回退模型。",
+      "addFallback": "添加回退",
+      "removeFallback": "移除",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "savePolicy": "保存策略",
+      "primaryRequired": "保存前请选择主模型。",
+      "confirmMain": "这会修改受保护 main 智能体或其默认模型策略。继续？",
+      "confirmRuntime": "这会影响运行成本、能力、回退或可用性。继续？",
+      "fallbackSupported": "支持回退",
+      "primaryOnly": "仅主模型",
+      "noConfiguredModels": "当前没有可用的已配置模型资产。请先在 Models 中添加提供商和模型。",
+      "unavailable": "不可用引用会被保留，直到你显式替换：{refs}",
+      "unsupported": "以下未支持的模型类字段仅只读展示，不能在这里编辑：{fields}",
+      "source": {
+        "agent": "智能体",
+        "default": "默认",
+        "missing": "缺失"
+      },
+      "targets": {
+        "agent": "智能体运行模型",
+        "agentSubagents": "智能体子智能体模型",
+        "text": "文本默认",
+        "image": "图片输入默认",
+        "imageGeneration": "图片生成默认",
+        "videoGeneration": "视频生成默认",
+        "musicGeneration": "音乐生成默认",
+        "pdf": "PDF 默认",
+        "compaction": "压缩默认",
+        "memorySearch": "记忆搜索默认",
+        "subagents": "子智能体默认"
+      }
+    },
     "skills": {
       "description": "使用当前 Gateway 技能语义：全部技能或显式白名单。",
       "modeLabel": "技能模式",
@@ -283,6 +329,7 @@
       "explicit": "显式列表",
       "allowAnyDescription": "Gateway 通配符已启用：该智能体可以委派给任意智能体。",
       "narrowingWarning": "显式列表模式会收窄原先的通配符权限。",
+      "modelPolicyMoved": "子智能体模型策略已移动到运行时 → 模型使用策略，避免权限列表编辑误覆盖模型策略。",
       "empty": "运行时未返回可委派智能体。",
       "toggle": "允许子智能体 {name}"
     },
@@ -935,7 +982,14 @@
     "mode": {
       "merge": "合并",
       "replace": "覆盖",
-      "toggleLabel": "目录模式"
+      "mergeLabel": "提供方目录 + 已配置资产",
+      "replaceLabel": "严格仅使用已配置资产",
+      "mergeHelp": "内置提供方模板保持可配置；写入 openclaw.json 的提供方才是可编辑资产。",
+      "replaceHelp": "当前配置使用底层 replace 策略，运行时只看到 openclaw.json 中声明的提供方。",
+      "replaceWarning": "当前启用了严格仅使用已配置资产策略。这里仍展示内置模板用于配置，但运行时只看到已写入 openclaw.json 的提供方。",
+      "restoreMerge": "恢复目录可见性",
+      "rawValue": "模式：{value}",
+      "toggleLabel": "目录同步策略"
     },
     "status": {
       "refresh": "刷新",
@@ -958,7 +1012,6 @@
     },
     "actions": {
       "addProvider": "新增提供方",
-      "openAdvancedRaw": "高级原始编辑",
       "refresh": "刷新",
       "dismiss": "关闭",
       "close": "关闭",
@@ -980,7 +1033,7 @@
     "errors": {
       "detailFailed": "加载模型配置失败。",
       "upsertFailed": "保存失败。",
-      "previewFailed": "影响预览失败。",
+      "previewFailed": "影响检查失败。",
       "deleteFailed": "删除失败。",
       "modeFailed": "切换目录模式失败。",
       "saveFailed": "保存失败。",
@@ -991,9 +1044,12 @@
       "reasoning": "推理",
       "contextWindow": "ctx {value}",
       "defaultBadge": "默认",
+      "fallbackBadge": "回退",
+      "primaryBadge": "主用",
       "referencedBadge": "被引用",
+      "usageRoles": "角色：{roles}",
       "edit": "编辑",
-      "previewDelete": "预览删除"
+      "checkDeleteImpact": "检查影响"
     },
     "provider": {
       "apiUnknown": "(未配置 API)",
@@ -1007,7 +1063,49 @@
       "noModels": "该提供方尚未配置模型。",
       "edit": "编辑提供方",
       "addModel": "新增模型",
-      "previewDelete": "预览删除"
+      "checkDeleteImpact": "检查影响"
+    },
+    "providerLibrary": {
+      "title": "提供方目录",
+      "description": "内置模板是只读起点。复制模板后，可以创建自己的已配置提供方并选择模型。",
+      "count": "{count} 个模板",
+      "loading": "正在加载提供方目录…",
+      "empty": "运行时目录中没有可用的提供方模板。",
+      "unavailable": "提供方目录不可用。下方已配置提供方仍可编辑。",
+      "template": "模板",
+      "configured": "已配置",
+      "models": "{count} 个目录模型",
+      "baseUrlConfigured": "base URL",
+      "configure": "配置",
+      "editConfigured": "编辑配置"
+    },
+    "configuredProviders": {
+      "title": "已配置提供方",
+      "description": "这些是 openclaw.json 中已写入的资产。这里可以编辑、添加模型或执行影响检查。"
+    },
+    "policy": {
+      "title": "模型用途策略",
+      "description": "只读展示从 agents 默认值和引用关系投影出的模型角色。Models 负责提供方/模型资产；Agents 负责主用、回退和角色策略编辑。",
+      "owner": "在 Agents 中编辑",
+      "empty": "当前快照没有显式模型用途策略。",
+      "unset": "未设置主用模型",
+      "fallbacks": "回退：{fallbacks}",
+      "source": {
+        "explicit": "显式",
+        "derived": "派生"
+      },
+      "roles": {
+        "text": "文本",
+        "image": "图像理解",
+        "imageGeneration": "图像生成",
+        "videoGeneration": "视频生成",
+        "musicGeneration": "音乐生成",
+        "pdf": "PDF",
+        "summary": "摘要",
+        "compaction": "压缩",
+        "memorySearch": "记忆搜索",
+        "subagents": "子智能体"
+      }
     },
     "secret": {
       "missing": "未设置",
@@ -1015,10 +1113,8 @@
       "ref": "secret 引用",
       "literal-redacted": "字面值（已隐藏）",
       "literalHint": "已隐藏现有字面值，建议使用 Set ref 迁移到 SecretRef。",
-      "refLabel": "Secret 引用",
-      "refPlaceholder": "deck.secrets.openai.apiKey",
-      "refTemplateLabel": "Ref 模板（可选）",
-      "refTemplatePlaceholder": "${ENV_VAR_NAME}",
+      "refLabel": "环境变量 Secret ID",
+      "refPlaceholder": "OPENAI_API_KEY",
       "actions": {
         "preserve": "保留现状",
         "setRef": "设置引用",
@@ -1048,7 +1144,7 @@
       "hints": {
         "providerId": "对应 openclaw.json 中的键名，创建后不可修改。",
         "apiKey": "deck-go 仅写入 SecretRef，字面值需在其他界面管理。",
-        "advanced": "compat 与 request 的复杂字段保留在高级原始编辑器。"
+        "advanced": "request 与 headers 细节在这里摘要展示，后续如需编辑应补充专门的类型化控件。"
       },
       "summary": {
         "requestPresent": "request 块：{state}",
@@ -1085,13 +1181,17 @@
         "costCacheWrite": "缓存写入成本"
       },
       "hints": {
-        "networking": "模型独立 headers 视为机密，请通过高级编辑器查看。",
-        "advanced": "compat flags 与 rawKeys 仅作只读摘要。"
+        "networking": "模型独立 headers 作为技术配置摘要展示，当前不在 Models 中编辑。",
+        "advanced": "compat flags 与 rawKeys 仅作只读摘要。",
+        "policyOwner": "这里的使用关系只读展示。智能体默认模型、主用模型和回退策略归 Agents 模块所有。"
       },
       "summary": {
         "headers": "headers：{state}",
         "compatPresent": "compat 块：{state}",
-        "compatFlags": "flags：{flags}"
+        "compatFlags": "flags：{flags}",
+        "usageRelations": "使用关系：{relations}",
+        "usageRoles": "角色：{roles}",
+        "defaultRoles": "默认角色：{roles}"
       }
     },
     "addProvider": {
@@ -1103,23 +1203,37 @@
         "review": "复核"
       },
       "hints": {
-        "select": "从运行时目录选择，或自定义新增。",
-        "secret": "deck-go 仅写入 SecretRef；字面值需通过高级编辑器迁移。"
+        "select": "复制任意提供方模板作为基线，或从空白自定义提供方开始。",
+        "secret": "deck-go 仅写入 SecretRef；已有字面值只显示为脱敏状态，迁移应通过专门的 Secret/配置工作流完成。"
       },
       "noCatalog": "目录为空，请使用自定义新增。",
       "useCustom": "使用自定义",
+      "startBlank": "从空白自定义提供方开始",
+      "templateSummary": "{api} · {count} 个默认模型",
       "submit": "创建提供方",
+      "collision": {
+        "description": "提供方 {provider} 已存在。请编辑现有提供方，或换一个 ID 后再创建新资产。",
+        "editExisting": "编辑现有项"
+      },
       "review": {
-        "secretRef": "引用：{ref}"
+        "secretRef": "SecretRef：{ref}"
+      },
+      "models": {
+        "title": "默认模型",
+        "empty": "该提供方没有默认模型。创建后可以继续添加自定义模型。",
+        "hint": "勾选的模板模型会写入已配置提供方；未勾选的目录模型仍只作为模板数据存在。",
+        "reviewLabel": "模型",
+        "reviewCount": "已选择 {count} 个"
       }
     },
     "impactDialog": {
-      "title": "影响预览",
+      "title": "影响检查",
       "loading": "正在加载影响预览…",
       "referenceCount": "共发现 {count} 处引用。",
       "noReferences": "当前配置未发现引用。",
       "unavailableProviders": "切换到 replace 后将隐藏 {count} 个提供方。",
       "defaultsAffected": "受影响的默认角色：{paths}。",
+      "agentOwnerNote": "智能体模型策略归 Agents 模块所有。Models 只展示这些引用用于影响检查；默认模型、主用模型和回退链后续在 Agents 重构中处理。",
       "continue": "继续",
       "blocked": "已被阻止",
       "severity": {
@@ -1140,6 +1254,13 @@
         "hooks": "hooks",
         "tools": "tools",
         "sessions": "sessions"
+      },
+      "relation": {
+        "primary": "主用",
+        "fallback": "回退",
+        "default": "默认",
+        "derived": "派生",
+        "reference": "引用"
       }
     },
     "confirmDialog": {
@@ -1154,14 +1275,9 @@
         "description": "将从 openclaw.json 中移除该模型条目，相关引用在被修复前会失败。"
       },
       "mode": {
-        "title": "切换为 replace 模式",
-        "description": "replace 模式会隐藏未在 openclaw.json 中声明的目录提供方，请输入确认词。"
+        "title": "切换为仅使用已配置资产策略",
+        "description": "该操作会写入 mode 值 “replace”，并隐藏未在 openclaw.json 中声明的目录提供方，请输入确认词。"
       }
-    },
-    "advancedRaw": {
-      "title": "高级原始编辑器",
-      "disclaimer": "原始编辑器跳过类型校验，仅用于 compat/request 等未产品化字段。",
-      "editorLabel": "openclaw.json models 块"
     }
   },
   "routing": {

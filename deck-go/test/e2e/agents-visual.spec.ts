@@ -48,6 +48,10 @@ test.describe("agents mock visual handoff alignment", () => {
 
     await clickDetailTab(page, "Runtime");
     await expect(page.getByLabel("Guarded runtime fields")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Model usage policy" })).toBeVisible();
+    await expect(page.getByText("Global role defaults")).toBeVisible();
+    await expect(page.getByText("Agent runtime model")).toBeVisible();
+    await expect(page.getByText("Fallback chain").first()).toBeVisible();
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("agents-runtime-guarded.png"),
