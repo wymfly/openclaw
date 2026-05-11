@@ -1,3 +1,24 @@
+/* Sessions visual parity overrides — see docs/superpowers/specs/2026-05-11-sessions-visual-parity-design.md
+ * Scoped to .sessions-panel; CSS variables cascade to canonical atoms within this subtree.
+ * Cross-theme: spacing / radius / font-size / line — sessions prototype is denser/larger than chat-pilot baseline. */
+.sessions-panel {
+  --ds-sp-2: 8px;
+  --ds-sp-3: 12px;
+  --ds-sp-4: 16px;
+  --ds-sp-5: 24px;
+  --ds-radius-md: 8px;
+  --ds-fs-body: 13px;
+  --ds-fs-meta: 11px;
+  --ds-line: 1.45;
+}
+
+/* Dark-only: colors / shadow — keep light theme readable (canonical light text is dark on white). */
+[data-theme="dark"] .sessions-panel {
+  --ds-text-1: #f3f6fb;
+  --ds-text-2: #c7d0dd;
+  --ds-shadow-md: 0 14px 36px rgb(0 0 0 / 0.28);
+}
+
 .sessions-panel {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
