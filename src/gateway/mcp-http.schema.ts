@@ -1,5 +1,4 @@
-import { logWarn } from "../logger.js";
-import { resolveGatewayScopedTools } from "./tool-resolution.js";
+import type { resolveGatewayScopedTools } from "./tool-resolution.js";
 
 export type McpLoopbackTool = ReturnType<typeof resolveGatewayScopedTools>["tools"][number];
 
@@ -8,6 +7,74 @@ export type McpToolSchemaEntry = {
   description: string | undefined;
   inputSchema: Record<string, unknown>;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function schemaFingerprint(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function readLiteralValues(schema: Record<string, unknown>): unknown[] | undefined {
+  if ("const" in schema) {
+    return [schema.const];
+  }
+  if (Array.isArray(schema.enum)) {
+    return schema.enum;
+  }
+  return undefined;
+}
+
+function mergeLiteralSchemas(
+  existing: Record<string, unknown>,
+  incoming: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const existingValues = readLiteralValues(existing);
+  const incomingValues = readLiteralValues(incoming);
+  if (!existingValues || !incomingValues) {
+    return undefined;
+  }
+  const merged: Record<string, unknown> = {
+    ...existing,
+    enum: [...new Set([...existingValues, ...incomingValues])],
+  };
+  delete merged.const;
+  return merged;
+}
+
+function expandAnyOf(schema: unknown): unknown[] {
+  return isRecord(schema) && Array.isArray(schema.anyOf) ? schema.anyOf : [schema];
+}
+
+function mergeSchemaAsAnyOf(existing: unknown, incoming: unknown): Record<string, unknown> {
+  const variants: unknown[] = [];
+  const seen = new Set<string>();
+  for (const schema of [...expandAnyOf(existing), ...expandAnyOf(incoming)]) {
+    const fingerprint = schemaFingerprint(schema);
+    if (seen.has(fingerprint)) {
+      continue;
+    }
+    seen.add(fingerprint);
+    variants.push(schema);
+  }
+  return { anyOf: variants };
+}
+
+function mergePropertySchema(key: string, existing: unknown, incoming: unknown): unknown {
+  if (schemaFingerprint(existing) === schemaFingerprint(incoming)) {
+    return existing;
+  }
+
+  if (isRecord(existing) && isRecord(incoming)) {
+    const mergedLiteral = mergeLiteralSchemas(existing, incoming);
+    if (mergedLiteral) {
+      return mergedLiteral;
+    }
+  }
+
+  return mergeSchemaAsAnyOf(existing, incoming);
+}
 
 function flattenUnionSchema(raw: Record<string, unknown>): Record<string, unknown> {
   const variants = (raw.anyOf ?? raw.oneOf) as Record<string, unknown>[] | undefined;
@@ -24,27 +91,7 @@ function flattenUnionSchema(raw: Record<string, unknown>): Record<string, unknow
           mergedProps[key] = schema;
           continue;
         }
-        const existing = mergedProps[key] as Record<string, unknown>;
-        const incoming = schema as Record<string, unknown>;
-        if (Array.isArray(existing.enum) && Array.isArray(incoming.enum)) {
-          mergedProps[key] = {
-            ...existing,
-            enum: [...new Set([...(existing.enum as unknown[]), ...(incoming.enum as unknown[])])],
-          };
-          continue;
-        }
-        if ("const" in existing && "const" in incoming && existing.const !== incoming.const) {
-          const merged: Record<string, unknown> = {
-            ...existing,
-            enum: [existing.const, incoming.const],
-          };
-          delete merged.const;
-          mergedProps[key] = merged;
-          continue;
-        }
-        logWarn(
-          `mcp loopback: conflicting schema definitions for "${key}", keeping the first variant`,
-        );
+        mergedProps[key] = mergePropertySchema(key, mergedProps[key], schema);
       }
     }
     requiredSets.push(

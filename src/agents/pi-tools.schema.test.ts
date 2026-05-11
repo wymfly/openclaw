@@ -1,7 +1,10 @@
 import { Type } from "@sinclair/typebox";
+import AjvPkg from "ajv";
 import { describe, expect, it, vi } from "vitest";
 import { normalizeToolParameterSchema, normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
+
+const Ajv = AjvPkg as unknown as new (opts?: object) => import("ajv").default;
 
 describe("normalizeToolParameterSchema", () => {
   it("normalizes truly empty schemas to type:object with properties:{}", () => {
@@ -30,6 +33,73 @@ describe("normalizeToolParameterSchema", () => {
       properties: { q: { type: "string" } },
       required: ["q"],
     });
+  });
+
+  it("preserves conflicting union-arm properties as anyOf variants", () => {
+    const normalized = normalizeToolParameterSchema({
+      oneOf: [
+        {
+          type: "object",
+          required: ["action", "docId", "requests"],
+          properties: {
+            action: { const: "update_content" },
+            docId: { type: "string" },
+            requests: {
+              type: "array",
+              items: {
+                type: "object",
+                oneOf: [
+                  {
+                    required: ["insert_text"],
+                    properties: {
+                      insert_text: {
+                        type: "object",
+                        required: ["text"],
+                        properties: { text: { type: "string" } },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+        {
+          type: "object",
+          required: ["action", "requests"],
+          properties: {
+            action: { const: "get_form_statistic" },
+            formId: { type: "string" },
+            requests: {
+              type: "array",
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["repeated_id", "req_type"],
+                properties: {
+                  repeated_id: { type: "string" },
+                  req_type: { type: "integer", enum: [1, 2, 3] },
+                },
+              },
+            },
+          },
+        },
+      ],
+    }) as Record<string, unknown>;
+
+    const properties = normalized.properties as Record<string, Record<string, unknown>>;
+    expect(properties.action?.enum).toEqual(["update_content", "get_form_statistic"]);
+    expect(properties.requests?.anyOf).toHaveLength(2);
+
+    const validate = new Ajv({ strict: false }).compile(normalized);
+    expect(
+      validate({
+        action: "get_form_statistic",
+        formId: "FORMID",
+        requests: [{ repeated_id: "REPEATED_ID", req_type: 2 }],
+      }),
+      JSON.stringify(validate.errors, null, 2),
+    ).toBe(true);
   });
 });
 

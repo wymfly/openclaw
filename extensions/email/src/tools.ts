@@ -14,6 +14,7 @@ import {
   resolveEmailPluginConfig,
   resolveEmailAccountRuntimeConfig,
   resolveEmailSmtpRuntimeConfig,
+  sanitizeAttachmentFilename,
 } from "./config.js";
 import { ImapClient } from "./imap-client.js";
 import {

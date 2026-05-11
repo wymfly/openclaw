@@ -33,11 +33,40 @@ function extractEnumValues(schema: unknown): unknown[] | undefined {
   return undefined;
 }
 
+function schemaFingerprint(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function expandAnyOf(schema: unknown): unknown[] {
+  return schema &&
+    typeof schema === "object" &&
+    Array.isArray((schema as Record<string, unknown>).anyOf)
+    ? ((schema as Record<string, unknown>).anyOf as unknown[])
+    : [schema];
+}
+
+function mergeSchemaAsAnyOf(existing: unknown, incoming: unknown): Record<string, unknown> {
+  const variants: unknown[] = [];
+  const seen = new Set<string>();
+  for (const schema of [...expandAnyOf(existing), ...expandAnyOf(incoming)]) {
+    const fingerprint = schemaFingerprint(schema);
+    if (seen.has(fingerprint)) {
+      continue;
+    }
+    seen.add(fingerprint);
+    variants.push(schema);
+  }
+  return { anyOf: variants };
+}
+
 function mergePropertySchemas(existing: unknown, incoming: unknown): unknown {
   if (!existing) {
     return incoming;
   }
   if (!incoming) {
+    return existing;
+  }
+  if (schemaFingerprint(existing) === schemaFingerprint(incoming)) {
     return existing;
   }
 
@@ -65,7 +94,7 @@ function mergePropertySchemas(existing: unknown, incoming: unknown): unknown {
     return merged;
   }
 
-  return existing;
+  return mergeSchemaAsAnyOf(existing, incoming);
 }
 
 type FlattenableVariantKey = "anyOf" | "oneOf";
