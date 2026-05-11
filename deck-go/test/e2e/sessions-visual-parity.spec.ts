@@ -28,6 +28,10 @@ const SESSIONS_DARK_TOKENS = {
   "--ds-shadow-md": "0 14px 36px rgb(0 0 0 / 0.28)",
 } as const;
 
+// Canonical light --ds-text-1 (from src/design-system/tokens/index.css [data-theme="light"]).
+// The dark scoped override must NOT leak into light theme, so we assert this in @light smoke.
+const LIGHT_CANONICAL_TEXT_1 = "#15171a";
+
 type ParityAssertion = {
   name: string;
   expected: string;
@@ -270,6 +274,42 @@ test.describe("sessions visual parity vs prototype", () => {
       JSON.stringify(verdict, null, 2),
       "utf-8",
     );
+
+    expect(unexpected).toEqual([]);
+  });
+
+  test("light theme: sessions does not regress (text readable, no errors) @light", async ({
+    page,
+  }, testInfo) => {
+    const outputDir = testInfo.outputDir;
+    const unexpected = collectUnexpectedErrors(page);
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openDeck(page, stack.frontendBase, "sessions", stack.accessToken, {
+      locale: "en",
+      nav: "expanded",
+      theme: "light",
+    });
+    await expect(page.getByTestId("sessions-panel")).toBeVisible();
+    await expect(page.getByText("Main Session").first()).toBeVisible();
+    await page.waitForTimeout(500);
+
+    // spacing / radius / fs / line overrides cross-theme — still active under light
+    for (const [token, expected] of Object.entries(SESSIONS_OVERRIDE_TOKENS)) {
+      const actual = await readCssVariable(page, ".sessions-panel", token);
+      expect(actual.trim(), `light ${token}`).toBe(expected);
+    }
+
+    // colors stay canonical light (dark-only override must not bleed through)
+    const lightText1 = await readCssVariable(page, ".sessions-panel", "--ds-text-1");
+    expect(normalize(lightText1), "light --ds-text-1 should be canonical").toBe(
+      LIGHT_CANONICAL_TEXT_1,
+    );
+
+    await page.screenshot({
+      fullPage: false,
+      path: path.join(outputDir, "mock-current-light.png"),
+    });
 
     expect(unexpected).toEqual([]);
   });
