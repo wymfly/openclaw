@@ -22,7 +22,11 @@
 ### 目标
 
 1. sessions 实际页面在 dark theme / 1440px viewport / Overview tab active / 有 selected session 状态下，与 `sessions/prototype.html` 视觉一致度 ≥ 90%。
-2. 改动只动 `deck-go/frontend-new/src/components/panels/sessions/` 内文件，不动其他文件。
+2. 改动只动以下文件/目录：
+   - `deck-go/frontend-new/src/components/panels/sessions/`（CSS / TSX / 测试更新）
+   - 新增 `deck-go/test/e2e/sessions-visual-parity.spec.ts`（prototype parity E2E，仅本 spec 使用）
+   - `deck-go/frontend-handoff/modules/sessions/implementation-notes.md` 追加 visual parity 证据段落
+     不动其他文件；i18n 文件因复用既有 key 不动（见 2.4）。
 3. atoms 在 sessions 上下文里通过 CSS 变量级联自然继承"宽松基线"，不修改 atom 源码。
 
 ### Non-goals
@@ -31,7 +35,7 @@
 - 不修改其他 panel。
 - 不动 sessions 模块的契约、API、mutation、confirmation gate。
 - 不重写 helper 组件（`SessionUsageDetails` / `SessionCompactionHistory` / `SessionSubagentDetails`）的内部结构（它们渲染在 Usage / Compaction / Lineage tab，prototype 没截这些 tab 状态）。
-- 不调 light theme（dark theme 优先，light 留作 follow-up）。
+- 不重新校准 light theme 视觉（sessions light 沿用 canonical 配色 / 阴影）；本 spec 要求 light theme 在 sessions 页面**不回归**（文字仍可读、无 layout overflow、无 console error），但不追求 prototype 视觉对齐——sessions/prototype.html 仅展示 dark 状态。
 
 ## 方法概览
 
@@ -70,9 +74,12 @@
 
 #### 实施要点
 
-- 直接在 `.sessions-panel` 顶部块写覆写，**不**通过 `[data-theme=dark]` 或 media query 区分，dark 优先。
+- **CSS 分两组写**（避免 dark-only 色值污染 light theme）：
+  - 跨主题适用：`spacing / radius / fs / line` 写在 `.sessions-panel { ... }` 内（间距与圆角与主题无关，dark / light 都生效）。
+  - dark-only 适用：`text-1 / text-2 / shadow-md` 写在 `[data-theme="dark"] .sessions-panel { ... }` 内。如果不加 dark guard，sessions 在 light 会把 `--ds-text-1` 从 canonical `#15171a`（深色文字给白底用）改成 `#f3f6fb`（亮色文字），导致 light 白底白字不可读。
+  - light theme：sessions 不写 light-specific override，自然继承 canonical light tokens（text 仍是深色 `#15171a`，shadow 仍是 canonical 柔阴影）。
 - 不另起 `:where(...)` / `data-attr` 这类 wrapper，单纯靠 selector specificity 即可生效。
-- 测试用 `getComputedStyle(.sessions-panel).getPropertyValue('--ds-sp-3')` 断言。
+- 测试在 `dark` 和 `light` 两个 theme 各跑一次 `getComputedStyle(.sessions-panel).getPropertyValue('--ds-sp-3')` / `--ds-text-1` 断言，分别验证：dark 下 spacing + colors 都为 sessions override 值；light 下 spacing 为 sessions override 值、colors 保持 canonical light 值。
 
 ### Section 2: 结构对齐 prototype
 
@@ -80,12 +87,12 @@
 
 #### 2.1 中央列 SelectedWorkbench
 
-| 子块                          | prototype                                                                   | 当前代码                                                                                              | 改动                                                                                                                                                  |
-| ----------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Hero 标题区                   | eyebrow + h2 + meta line + 3 个 status pill（status / runtime / context %） | 同 + history badge + lineage badge                                                                    | 保留 prototype 三个 pill；`history` 数量 badge 和 `lineage` 状态 badge 移到 Inspector Overview tab，不再在中央 Hero 显示                              |
-| Hero 下 stat-grid             | **4 个**：Input / Output / Model / Policy                                   | **6 个**：Input / Output / Total / ContextWindow / ContextPressure / Cost                             | 砍到 4 个。Policy 字段为合成显示：`thinking ${level} \| fast mode ${on/off}`                                                                          |
-| Runtime metadata 独立 section | **不存在**（stat-grid 直接在 Hero 内）                                      | 独立 surface 再次列 6 个 StatTile + status badge + thinking/fastmode note                             | **整段删除**（`SessionsPanel.tsx:827-870`）                                                                                                           |
-| Transcript search/export      | input + 4 button + 1 个 `<pre>` 拼接 transcript code + 2 行 transcript list | input + 4 button + note + selected match Code + `<details open>` ExportPreview + 8 行 transcript list | 删 selected match Code 块；ExportPreview details 改为默认折叠（仅用户点导出后才显示，且不 `open`）；transcript list 从 `slice(0, 8)` 改 `slice(0, 2)` |
+| 子块                          | prototype                                                                   | 当前代码                                                                                              | 改动                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hero 标题区                   | eyebrow + h2 + meta line + 3 个 status pill（status / runtime / context %） | 同 + history badge + lineage badge                                                                    | 中央 Hero **删除** history badge 和 lineage badge；这两个信息搬到 Inspector Overview tab 新增的 Tab summaries row（见 2.3）                                                                                                                                                                                                                                                                                                                           |
+| Hero 下 stat-grid             | **4 个**：Input / Output / Model / Policy                                   | **6 个**：Input / Output / Total / ContextWindow / ContextPressure / Cost                             | 砍到 4 个。Policy 字段为合成显示：`thinking ${level} \| fast mode ${on/off}`                                                                                                                                                                                                                                                                                                                                                                          |
+| Runtime metadata 独立 section | **不存在**（stat-grid 直接在 Hero 内）                                      | 独立 surface 再次列 6 个 StatTile + status badge + thinking/fastmode note                             | **整段删除**（`SessionsPanel.tsx:827-870`）                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Transcript search/export      | input + 4 button + 1 个 `<pre>` 拼接 transcript code + 2 行 transcript list | input + 4 button + note + selected match Code + `<details open>` ExportPreview + 8 行 transcript list | (1) selected match Code 块：保留 DOM，但加 `transcriptSearchQuery.trim() !== ""` 条件渲染——默认状态隐藏（对齐 prototype 截图状态），用户搜索后才出现。(2) ExportPreview `<details>`：去掉默认 `open`，改为用户点导出后才展开。(3) transcript list：**DOM 仍 `slice(0, 8)` 保留功能**，CSS 给 `.sessions-transcript-list` 加 `max-height` 限制（约两行高，例如 88-104px）+ `overflow-y: auto`，首屏视觉 ≈ 2 行，用户可滚动看更多——不删功能、纯视觉对齐 |
 
 #### 2.2 左侧 Inventory row
 
@@ -101,14 +108,19 @@
 
 #### 2.3 右侧 Inspector
 
-- 5 tab 切分（Overview / Usage / Compaction / Lineage / Actions）**保留**——prototype 没截 tab 切换状态，5 tab 是 module-convergence 已确认的 product 决定。
-- Tab 内部结构**不动**；spacing / 圆角 / chrome 由 Section 1 token override 自然撑开。
+- 5 tab 切分（Overview / Usage / Compaction / Lineage / Actions）**保留**——module-convergence 已确认的 product 决定。
+- **Overview tab 新增 Tab summaries row**（对齐 `prototype.html` 第 590-600 行 active=Overview 状态显示的"Tab summaries"surface）：在现有 metadata section 下新增一个 `<div class="sessions-status-row">`，含 4 个 badge pill：
+  - `history ${count}` —— 承接 2.1 中央 Hero 移走的 history count badge
+  - `lineage ${state}` —— 承接 2.1 中央 Hero 移走的 lineage 状态 badge（state 为 `idle` / `loading` / `ready` 中之一，复用既有 `lineageState`）
+  - `usage ${totalTokens} tokens` —— 已有 `selectedTotalTokens` 数据，无新增 fetch
+  - `${compactionCount} checkpoint(s)` —— 已有 `selectedSession.compactionCount` 数据，无新增 fetch
+- Usage / Compaction / Lineage / Actions tab 内部结构**不动**；spacing / 圆角 / chrome 由 Section 1 token override 自然撑开。
 - Actions tab 表单 dense 是 prototype 范围外的真实表单需求，保留现状。
 
 #### 2.4 Top Metrics
 
 - 5 个 metric tile 视觉对齐由 Section 1 token override 自然达成。
-- 例外修复：`Compactions` metric tile 在 `compactionCount === 0` 时的 hint fallback 当前是 `t("runtimeMetadata")`（语义错位），改为 `t("noCheckpoints")` 或等价空态文案。新增对应 i18n key。
+- 例外修复：`Compactions` metric tile 在 `compactionCount === 0` 时的 hint fallback 当前是 `t("runtimeMetadata")`（语义错位），改为**复用既有** `t("compaction.noCheckpoints")`（已存在于 `frontend-new/src/i18n/en.json:2263` 和 `zh.json` 同位的 `sessions.compaction` namespace，文案 "No compaction checkpoints found"）。**不新增 i18n key、不动 i18n 文件**。
 
 #### 2.5 Header
 
@@ -120,9 +132,14 @@
 `SessionsPanel.test.tsx` 当前 13 个测试中受结构改动影响的部分：
 
 - Hero stat 渲染断言：从 6 stat 改为 4 stat。
+- Hero badges 断言：history 与 lineage 两个 badge 不再出现在 Hero status row；它们改为出现在 Inspector Overview tab 的 Tab summaries row。
 - Runtime metadata 独立 section 相关断言：删除或标记为 absent。
-- Transcript ExportPreview default open 断言：改为 default closed。
+- Transcript 区域：
+  - ExportPreview default open 断言：改为 default closed（或默认不存在）。
+  - selected match Code 块：默认（`transcriptSearchQuery` 空）时不可见的断言。
+  - transcript list `<li>` 数量：DOM 上保留 ≤ 8（不再改成 ≤ 2 的硬断言）；新增 `.sessions-transcript-list` 有 `max-height` 计算样式的断言（约束 ≤ 110px）。
 - Inventory row meta 字段数：5 → 4。
+- Inspector Overview tab：新增 Tab summaries row 存在性断言（含 history / lineage / usage / checkpoint 4 个 pill）。
 
 不动的测试：confirmation gate（reset / clear / compact / delete）、mutation 调用、Inspector tab 切换语义、transcript cache 行为。
 
@@ -130,10 +147,16 @@
 
 #### 3.1 视觉验收（主路径）
 
-1. 浏览器打开 `frontend-handoff/modules/sessions/prototype.html`（dark / 1440px），作为对照基线。
-2. 运行 `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual.spec.ts` 捕获 mock-current 新截图。
-3. 把 prototype 截图与 mock-current 新截图并排，生成 side-by-side parity sheet（沿用 module-convergence 阶段的 `.local/sessions-*-parity-report/` 流程）。
-4. 人工 dev server 并排验证：mock 模式（`pnpm dev` in `frontend-new/`）打开 sessions 页面 vs 浏览器另开 prototype.html。
+新增 `deck-go/test/e2e/sessions-visual-parity.spec.ts`，固定 viewport `1440x900`、theme `dark`、locale `en`、nav `expanded`、Overview tab active、有 selected session。spec 内执行：
+
+1. **Prototype 截图**：用 Playwright 加载本地 `file://.../frontend-handoff/modules/sessions/prototype.html`，截 → `<output>/prototype.png`。
+2. **Mock-current 截图**：启动 bundled stack + 导航到 sessions 面板，等待 Inventory ready / Detail ready / Overview tab visible，截 → `<output>/mock-current.png`。
+3. **Parity sheet**：在 spec 末尾拼出 `<output>/sheet.png`（左右并排 prototype + mock-current，等比缩放到同一高度），并把两张原图也作为 tracked artifact 输出。
+4. **结构化 verdict**：spec 把 verdict 写到 `<output>/verdict.json`，字段：`status: "pass" | "pass-with-exceptions" | "fail"`、`score: 0-100`（基于关键区域 DOM 断言通过率）、`acceptedExceptions: Array<{ area, diff, reason, owner }>`。
+5. **持久 evidence**：把 verdict + sheet 路径以 `## Visual parity — 2026-05-11` 段落形式追加到 `deck-go/frontend-handoff/modules/sessions/implementation-notes.md`，对照 frontend-handoff/CLAUDE.md 的 "Mock prototype parity" evidence level。
+6. **人工 dev server 并排验证**（second check）：mock 模式（`pnpm dev` in `frontend-new/`）打开 sessions 页面 vs 浏览器另开 prototype.html，1440 浏览器 viewport、dark/en，确认 verdict 与机器截图判断一致。
+
+现有 `sessions-visual.spec.ts` 保留不动（继续做 interaction state coverage）；本 spec 的 parity 检查是独立新 spec，关注点是 prototype↔mock-current 的视觉一致。
 
 #### 3.2 单元 / 组件测试
 
@@ -151,34 +174,42 @@
 
 视觉对齐：
 
-- 12 项 token override 在 `.sessions-panel` scope 内 `getComputedStyle` 计算值匹配 spec 表格。
+- Token override 在 `.sessions-panel` scope 内 `getComputedStyle` 计算值，分两个 theme 验证：
+  - **dark theme**：完整 12 项匹配 spec 表格（spacing / radius / fs / line / colors / shadow 全部）。
+  - **light theme**：仅 `--ds-sp-2/3/4/5 / --ds-radius-md / --ds-fs-body / --ds-fs-meta / --ds-line` 匹配 sessions override 值；`--ds-text-1 / --ds-text-2 / --ds-shadow-md` 保持 canonical light 值（`#15171a` / `#555a64` / `0 4px 14px rgba(20, 20, 30, 0.08)`），不被 sessions override 覆盖。
 - Hero stat-grid 渲染 4 个 `.sessions-stat` 元素（不是 6 个）。
 - DOM 中不存在「独立 Runtime metadata surface」（heading 文本 `t("runtimeMetadata")` 不再出现作为 stat-grid heading）。
-- Transcript 区域不存在 default-open `<details>` ExportPreview；selected match 单独 Code 块不存在；transcript list 最多渲染 2 个 `<li>`。
+- Hero 上不再渲染 history badge 与 lineage badge；Inspector Overview tab 的 metadata 段下方存在 Tab summaries row，含至少 4 个 badge pill（history / lineage / usage / checkpoint）。
+- Transcript 区域：默认状态（`transcriptSearchQuery` 为空）下 selected match Code 块**不可见**；ExportPreview `<details>` 默认状态下**不存在或处于 closed**（用户点导出后才出现 / open）；transcript list `<li>` 数量 DOM 上 ≤ 8；`.sessions-transcript-list` 计算 `max-height` ≤ 110px（≈2 行视觉高度）+ `overflow-y: auto`。
 - Inventory row 在 `pagedSessions[0]` 下渲染恰好 4 个 meta/note span（不是 5 个）。
-- `Compactions` metric tile 在 `compactionCount === 0` 时 hint 文案不再是 `t("runtimeMetadata")`。
+- `Compactions` metric tile 在 `compactionCount === 0` 时 hint 文案使用 `t("compaction.noCheckpoints")`，不再是 `t("runtimeMetadata")`。
+- light theme 不回归：light 模式下 sessions 页面文字可读（`--ds-text-1` 仍是深色 `#15171a`），无 layout overflow，无 console error / page error / 4xx-5xx BFF response。
 
 测试与命令：
 
 - `cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/sessions/SessionsPanel.test.tsx` 全部通过。
-- `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts` 通过。
-- 人工 side-by-side 视觉 verdict ≥ `pass-with-exceptions`，accepted exceptions 限于 shell chrome / live fixture 时间戳与具体数值差异，不能包含 spacing / chrome / typography / hero-stat-count / runtime-metadata-duplication / transcript-layer-overflow 类条目。
+- `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual.spec.ts --config playwright.config.ts` 通过（既有 interaction state coverage 不回归）。
+- `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual-parity.spec.ts --config playwright.config.ts` 通过（新增 prototype parity spec：固定 1440x900 / dark / en / Overview tab；输出 prototype.png / mock-current.png / sheet.png / verdict.json）。
+- light theme smoke：在 `sessions-visual-parity.spec.ts` 内增加 `@light` 用例，切换 theme 到 light，断言（a）token computed values（见验收门槛）；（b）无 console / pageerror / BFF 4xx-5xx；（c）`page.screenshot()` 输出作为 light theme baseline artifact。
+- 机器化 verdict（`<output>/verdict.json`）`status` 字段 ≥ `pass-with-exceptions`；`acceptedExceptions` 限于 shell chrome / live fixture 时间戳与具体数值差异，不能包含 spacing / chrome / typography / hero-stat-count / runtime-metadata-duplication / transcript-layer-overflow 类条目。
+- `deck-go/frontend-handoff/modules/sessions/implementation-notes.md` 含 `## Visual parity — 2026-05-11` 段落，链接 sheet.png 与 verdict.json 的产生路径，并按 frontend-handoff/CLAUDE.md 的 tracked evidence manifest 形式列字段。
 
 ## 风险
 
-| 风险                                                                               | 缓解                                                                                                                                   |
-| ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| atoms 内 hardcoded `var(--ds-sp-4)` 撑开后按钮在 sessions 里看着比 chat 大一圈     | 这是 prototype 的预期效果；不修复                                                                                                      |
-| 删 Runtime metadata 后用户失去 Cost / ContextWindow / ContextPressure 数据可视入口 | Cost / Context % 仍在 top metrics + Hero badges 显示；ContextWindow 数值在 Inspector → Usage tab 内可查；这是 prototype 视觉的真实取舍 |
-| transcript list 从 8 行降到 2 行后用户感觉看不到全文                               | full transcript 通过 Export / 滚动 selected match 访问；prototype 本身就是 2 行                                                        |
-| light theme 不动可能引入与 dark 不一致的体感                                       | 列为 follow-up；本 spec dark 优先                                                                                                      |
+| 风险                                                                                                                                   | 缓解                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| atoms 内 hardcoded `var(--ds-sp-4)` 撑开后按钮在 sessions 里看着比 chat 大一圈                                                         | 这是 prototype 的预期效果；不修复                                                                                                                                                     |
+| 删 Runtime metadata 后用户失去 Cost / ContextWindow / ContextPressure 数据可视入口                                                     | Cost / Context % 仍在 top metrics + Hero badges 显示；ContextWindow 数值在 Inspector → Usage tab 内可查；这是 prototype 视觉的真实取舍                                                |
+| transcript list CSS 限高让用户**看不出还有更多**消息                                                                                   | 容器加 `overflow-y: auto` + 滚动条样式，且 transcriptMessages.length > 2 时在容器下方加一行轻提示（"scroll for more" 或等价 i18n key）；保留 DOM 8 条数据，搜索、导出仍能访问全部内容 |
+| Inspector Overview 新增 Tab summaries row 后 Overview tab 不再"只显示 metadata"，可能跟 module-convergence 的轻 Overview 期望偏离      | 这是为了承接中央 Hero 移走的两个 badge；Tab summaries row 本身就是 prototype.html active=Overview 状态显示的内容，是"对齐 prototype"的一部分                                          |
+| dark-only color override 写成 `[data-theme="dark"] .sessions-panel`，跟 canonical light theme tokens 优先级关系出错时 light 仍可能漂移 | 验收门槛在 light theme 显式断言 `--ds-text-1` 计算值为 canonical `#15171a` 而不是 `#f3f6fb`；若断言失败说明 specificity 出错，必须修 CSS 选择器                                       |
 
 ## 后续 / Follow-ups
 
 1. **视觉差异根因总结**：本 spec 落地、用户验收满意后，回头写一份独立短文档总结 design system 层的 chat-pilot 视觉基线 vs sessions prototype 宽松基线的差异、产生原因、是否应该把"宽松基线"提升为 canonical（或 dashboard 类 panel 引入 density 分档）。
 2. **light theme 同步**：本次只覆 dark；light theme 同步要在并排人工验收 light + 看清 sessions prototype light 截图（如果存在）后再做。
 3. **其他 panel 是否也有"实际比 prototype 挤"的体感**：用户当前只感知 sessions；其他 panel 实际页面 vs prototype 是否也偏挤待并排验证，不在本 spec 范围。
-4. **Compactions hint 文案 i18n key**：本 spec 新增 `sessions.noCheckpoints`（或语义等价、保持 `sessions.*` 命名空间一致）；如果其他 panel 也有类似空态需求，考虑提到共用 i18n 命名空间。
+4. ~~Compactions hint 文案 i18n key~~ — 本 spec 直接复用既有 `sessions.compaction.noCheckpoints`，不新增 key，此 follow-up 取消。
 
 ## OpenSpec 关联
 
