@@ -135,6 +135,9 @@ describe("createPdfTool", () => {
       expect(tool.name).toBe("pdf");
       expect(tool.label).toBe("PDF");
       expect(tool.description).toContain("PDF documents");
+      expect(tool.description).toContain(`Default PDF model: ${ANTHROPIC_PDF_MODEL}.`);
+      expect(tool.description).toContain("Leave model unset for normal use");
+      expect(tool.description).toContain("Do not switch to an unconfigured provider");
     });
   });
 
@@ -271,6 +274,7 @@ describe("createPdfTool", () => {
     expect(props.pdfs).toBeDefined();
     expect(props.pages).toBeDefined();
     expect(props.model).toBeDefined();
+    expect((props.model as { description?: string }).description).toContain("Leave unset");
     expect(props.maxBytesMb).toBeDefined();
   });
 });

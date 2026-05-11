@@ -61,7 +61,12 @@ export const PdfToolSchema = Type.Object({
       description: 'Page range to process, e.g. "1-5", "1,3,5-7". Defaults to all pages.',
     }),
   ),
-  model: Type.Optional(Type.String()),
+  model: Type.Optional(
+    Type.String({
+      description:
+        "Optional provider/model override. Leave unset unless the user explicitly requests a specific configured model; the default uses agents.defaults.pdfModel.",
+    }),
+  ),
   maxBytesMb: Type.Optional(Type.Number()),
 });
 
@@ -271,8 +276,16 @@ export function createPdfTool(options?: {
       ? Math.floor(maxPagesDefault)
       : DEFAULT_MAX_PAGES;
 
-  const description =
-    "Analyze one or more PDF documents with a model. Supports native PDF analysis for Anthropic and Google models, with text/image extraction fallback for other providers. Use pdf for a single path/URL, or pdfs for multiple (up to 10). Provide a prompt describing what to analyze.";
+  const configuredPdfModel = pdfModelConfig.primary?.trim();
+  const description = [
+    "Analyze one or more PDF documents with the configured PDF model.",
+    configuredPdfModel ? `Default PDF model: ${configuredPdfModel}.` : undefined,
+    "Leave model unset for normal use; only pass model when the user explicitly asks for a different configured provider/model.",
+    "Do not switch to an unconfigured provider for native PDF support. Provider-specific native PDF handling and text/image extraction fallback are selected automatically from configuration.",
+    "Use pdf for a single path/URL, or pdfs for multiple (up to 10). Provide a prompt describing what to analyze.",
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" ");
 
   return {
     label: "PDF",
