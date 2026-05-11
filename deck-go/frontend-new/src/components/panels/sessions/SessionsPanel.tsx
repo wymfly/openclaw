@@ -903,7 +903,7 @@ export function SessionsPanel() {
                       : t("noTranscriptMatches")
                     : t("searchPrompt")}
                 </p>
-                {selectedTranscriptMatch ? (
+                {selectedTranscriptMatch && transcriptSearchQuery.trim() !== "" ? (
                   <Code
                     aria-label="Selected transcript match"
                     className="sessions-code"
@@ -911,7 +911,7 @@ export function SessionsPanel() {
                   />
                 ) : null}
                 {exportPreview ? (
-                  <details className="sessions-export-preview" open>
+                  <details className="sessions-export-preview">
                     <summary>{t("preparedExport", { format: exportPreview.format })}</summary>
                     <Code
                       aria-label={t("preparedExport", { format: exportPreview.format })}

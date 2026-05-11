@@ -368,6 +368,11 @@
   min-width: 0;
 }
 
+.sessions-transcript-list {
+  max-height: 96px;
+  overflow-y: auto;
+}
+
 @media (max-width: 1320px) {
   .sessions-workbench {
     grid-template-columns: minmax(300px, 0.9fr) minmax(520px, 1.1fr);

@@ -977,4 +977,25 @@ describe("SessionsPanel", () => {
     expect(text).toMatch(/Usage/);
     expect(text).toMatch(/Compaction/);
   });
+
+  it("transcript: selected match Code is hidden by default and ExportPreview is not auto-open", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    // 默认 transcriptSearchQuery 为空
+    const transcriptSurface = Array.from(container.querySelectorAll(".sessions-surface")).find(
+      (s) => s.querySelector("h3")?.textContent?.toLowerCase().includes("transcript"),
+    );
+    expect(transcriptSurface).not.toBeUndefined();
+    // selected match Code 默认隐藏
+    expect(transcriptSurface!.querySelector('[aria-label="Selected transcript match"]')).toBeNull();
+    // ExportPreview details 默认不存在或不展开
+    const details = transcriptSurface!.querySelector("details.sessions-export-preview");
+    if (details) {
+      expect((details as HTMLDetailsElement).open).toBe(false);
+    }
+  });
 });
