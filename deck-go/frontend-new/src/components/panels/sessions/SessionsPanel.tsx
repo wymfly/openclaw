@@ -819,6 +819,28 @@ export function SessionsPanel() {
                     ) : null}
                   </div>
                 </div>
+                <div className="sessions-stat-grid">
+                  <StatTile
+                    label={t("tokensIn")}
+                    value={formatCompactNumber(
+                      positiveNumber(selectedSession?.inputTokens ?? undefined),
+                    )}
+                  />
+                  <StatTile
+                    label={t("tokensOut")}
+                    value={formatCompactNumber(
+                      positiveNumber(selectedSession?.outputTokens ?? undefined),
+                    )}
+                  />
+                  <StatTile label={t("model")} value={selectedSession?.model || t("na")} />
+                  <StatTile
+                    label={t("thinkingLevel")}
+                    value={t("thinkingFastMode", {
+                      thinking: selectedSession?.thinkingLevel || t("off"),
+                      fastMode: selectedSession?.fastMode ? t("on") : t("off"),
+                    })}
+                  />
+                </div>
               </section>
 
               {selectedSession ? (

@@ -921,4 +921,25 @@ describe("SessionsPanel", () => {
     expect(statusRowText).not.toMatch(/history/i);
     expect(statusRowText).not.toMatch(/lineage/i);
   });
+
+  it("hero card renders a 4-stat grid (Input / Output / Model / Thinking Level)", async () => {
+    await act(async () => {
+      renderSessionsPanel();
+    });
+    await waitFor(() =>
+      expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+    );
+    const hero = container.querySelector(".sessions-hero");
+    expect(hero).not.toBeNull();
+    const heroStatGrid = hero!.querySelector(".sessions-stat-grid");
+    expect(heroStatGrid).not.toBeNull();
+    const stats = heroStatGrid!.querySelectorAll(".sessions-stat");
+    expect(stats.length).toBe(4);
+    const text = heroStatGrid!.textContent ?? "";
+    // i18n values（sessions namespace）：tokensIn="Input", tokensOut="Output", model="Model", thinkingLevel="Thinking Level"
+    expect(text).toMatch(/Input/);
+    expect(text).toMatch(/Output/);
+    expect(text).toMatch(/Model/);
+    expect(text).toMatch(/Thinking Level/);
+  });
 });
