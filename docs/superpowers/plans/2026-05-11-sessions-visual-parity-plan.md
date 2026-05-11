@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** sessions 面板视觉对齐 `frontend-handoff/modules/sessions/prototype.html`（dark / 1440 / Overview tab active / 有 selected session 状态），≥ 90% 一致度；light theme 不回归；不动 canonical tokens / atoms / 其他 panel / 契约 / mutation。
+**Goal:** sessions 面板视觉对齐 `frontend-handoff/modules/sessions/prototype.html`（dark / 1440 / Overview tab active / 有 selected session 状态）。最终一致度由人工 side-by-side review 给出；本计划只保证 (a) prototype 关键 DOM 形态与 token 应用机器可断言、(b) light theme 不回归、(c) 不动 canonical tokens / atoms / 其他 panel / 契约 / mutation。
 
 **Architecture:** 在 `sessions-panel.css` 内做 scoped CSS 变量 override（spacing / radius / fs / line 跨主题；colors / shadow 走 `[data-theme="dark"]` guard，避免 light 白底白字）。在 `SessionsPanel.tsx` 做 6 项 prototype 对齐改动（删 Hero 多余 badge、stat-grid 6→4、删 Runtime metadata 重复 section、Transcript 区域瘦身、Inspector Overview 加 Tab summaries row、Inventory row 5→4、Compactions hint 文案修复）。新增 `test/e2e/sessions-visual-parity.spec.ts` 作为机器化 verdict 闭环。
 
@@ -28,6 +28,29 @@
 
 **TDD 策略**：JSX 结构改动用 Vitest 单元测试 TDD（快反馈，jsdom 不渲染 CSS）；CSS / 视觉 / token 应用走 Playwright `sessions-visual-parity.spec.ts` 集中验证。
 
+## 测试基础设施约定（必读）
+
+`SessionsPanel.test.tsx` 当前采用 React 19 `createRoot` 直挂模式，**不是** React Testing Library 的 `render` API。本 plan 内所有 Vitest 片段都遵循该既有约定：
+
+- import 用 `import { fireEvent, waitFor } from "@testing-library/react"`（**没有** `screen`）。
+- 没有 `@testing-library/jest-dom`，因此**不要**用 `expect(...).toBeInTheDocument()`；用 `expect(x).not.toBeNull()` 或 `expect(x).toBeTruthy()`。
+- 渲染入口是文件已存在的 `renderSessionsPanel()`（无参数），调用样式：
+
+  ```tsx
+  await act(async () => {
+    renderSessionsPanel();
+  });
+  await waitFor(() => {
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" });
+  });
+  ```
+
+- 选择器走 `container.querySelector(...)` / `container.querySelectorAll(...)`，**不要**用 `screen.getBy*` / `document.querySelector`（`document` 会越界，container 是 beforeEach 创建的隔离节点）。
+- 自定义 session 数据走 `apiMocks.fetchSessions.mockResolvedValueOnce({ sessions: [...] })`（参考 line 295 附近 `sessionsPayload()` 形态）；**不要**用 `renderPanel({ session: ... })` 之类不存在的 helper。
+- 现有默认 fixture 里 `compactionCount: 2`、`Main Session` 是第一个 session。需要零 compaction、空 lineage 等场景的，在 `act` 调用前覆盖对应 mock。
+
+下面 Task 1–7 的 test 片段都按这个约定写。如果实施时遇到 helper 行为变化（renderSessionsPanel 已经从 295 行附近迁走、或 sessionsPayload shape 变化），先读真实 test 文件再调整片段，不要照搬 plan。
+
 ---
 
 ## Task 1: Hero 删除 history / lineage badge
@@ -39,21 +62,21 @@
 
 - [ ] **Step 1: 在 SessionsPanel.test.tsx 加 failing 断言**
 
-在 `SessionsPanel.test.tsx` 现有 describe 块尾部加（前提：测试文件已有 `renderPanel` / `screen` / `await waitFor` 等基础设施，参考其他用例）：
+在 `SessionsPanel.test.tsx` 现有 describe 块尾部加（遵循"测试基础设施约定"）：
 
 ```tsx
 it("removes history and lineage badges from selected hero", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByTestId("sessions-panel")).toBeInTheDocument();
+  await act(async () => {
+    renderSessionsPanel();
   });
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
-  });
-  const hero = document.querySelector(".sessions-hero");
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  const hero = container.querySelector(".sessions-hero");
   expect(hero).not.toBeNull();
-  expect(hero!.querySelector(".sessions-status-row")?.textContent ?? "").not.toMatch(/history/i);
-  expect(hero!.querySelector(".sessions-status-row")?.textContent ?? "").not.toMatch(/lineage/i);
+  const statusRowText = hero!.querySelector(".sessions-status-row")?.textContent ?? "";
+  expect(statusRowText).not.toMatch(/history/i);
+  expect(statusRowText).not.toMatch(/lineage/i);
 });
 ```
 
@@ -125,7 +148,7 @@ Expected: 新加的"removes history and lineage badges"用例 PASS。检查其�
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: remove history/lineage badges from selected hero" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: remove history/lineage badges from selected hero" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -142,20 +165,26 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: remov
 在 `SessionsPanel.test.tsx` 加：
 
 ```tsx
-it("hero card renders a 4-stat grid (Input/Output/Model/Policy) and not 6", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+it("hero card renders a 4-stat grid (Input / Output / Model / Thinking Level)", async () => {
+  await act(async () => {
+    renderSessionsPanel();
   });
-  const hero = document.querySelector(".sessions-hero");
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  const hero = container.querySelector(".sessions-hero");
   expect(hero).not.toBeNull();
   const heroStatGrid = hero!.querySelector(".sessions-stat-grid");
   expect(heroStatGrid).not.toBeNull();
-  expect(heroStatGrid!.querySelectorAll(".sessions-stat").length).toBe(4);
-  expect(heroStatGrid!.textContent ?? "").toMatch(/Input/i);
-  expect(heroStatGrid!.textContent ?? "").toMatch(/Output/i);
-  expect(heroStatGrid!.textContent ?? "").toMatch(/Model/i);
-  expect(heroStatGrid!.textContent ?? "").toMatch(/Policy/i);
+  const stats = heroStatGrid!.querySelectorAll(".sessions-stat");
+  expect(stats.length).toBe(4);
+  const text = heroStatGrid!.textContent ?? "";
+  // i18n values（来自 sessions namespace）：
+  // tokensIn="Input", tokensOut="Output", model="Model", thinkingLevel="Thinking Level"
+  expect(text).toMatch(/Input/);
+  expect(text).toMatch(/Output/);
+  expect(text).toMatch(/Model/);
+  expect(text).toMatch(/Thinking Level/);
 });
 ```
 
@@ -167,47 +196,48 @@ cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/session
 
 Expected: FAIL（Hero 内没有 stat-grid）
 
-- [ ] **Step 3: 修改 SessionsPanel.tsx，在 Hero card 内、`sessions-status-row` 之后新增 4-stat grid**
+- [ ] **Step 3: 修改 SessionsPanel.tsx，在 Hero `<section>` 内 heading 之后插入 4-stat grid**
 
-找到 Task 1 修改后的 Hero `sessions-status-row` 关闭 `</div>`，紧随其后（在 `</section>` 结束 Hero 前）插入：
+Hero 结构（Task 1 之后）是：
+
+```tsx
+<section className="sessions-surface sessions-hero">
+  <div className="sessions-section-heading">
+    <div>{/* eyebrow / h3 / note */}</div>
+    <div className="sessions-status-row">{/* runtime + context badges */}</div>
+  </div>
+</section>
+```
+
+需要把 stat-grid 作为 hero `<section>` 的**第二个直接子**（紧跟 `</div>`（关闭 `.sessions-section-heading`）之后、`</section>` 之前），**不要**把 `<div className="sessions-stat-grid">` 放进 `.sessions-section-heading` 的 flex 行里——否则会变成 heading 行的同行 grid，破坏 prototype 的"标题区一行、统计区一行"布局。
+
+定位 anchor 用 Hero 结尾的 `</section>`（搜 `sessions-status-row` 关闭后第一个 `</section>`），在那一行**之前**插入：
 
 ```tsx
 <div className="sessions-stat-grid">
   <StatTile
-    label={t("inputTokens")}
+    label={t("tokensIn")}
     value={formatCompactNumber(positiveNumber(selectedSession?.inputTokens ?? undefined))}
   />
   <StatTile
-    label={t("outputTokens")}
+    label={t("tokensOut")}
     value={formatCompactNumber(positiveNumber(selectedSession?.outputTokens ?? undefined))}
   />
-  <StatTile label={t("modelLabel")} value={selectedSession?.model || t("na")} />
+  <StatTile label={t("model")} value={selectedSession?.model || t("na")} />
   <StatTile
-    label={t("policyLabel")}
-    value={`${selectedSession?.thinkingLevel || t("off")} | fast ${selectedSession?.fastMode ? t("on") : t("off")}`}
+    label={t("thinkingLevel")}
+    value={t("thinkingFastMode", {
+      thinking: selectedSession?.thinkingLevel || t("off"),
+      fastMode: selectedSession?.fastMode ? t("on") : t("off"),
+    })}
   />
 </div>
 ```
 
-如果 i18n key `modelLabel` / `policyLabel` 不存在，复用既有 key（按本 spec scope 不动 i18n 文件原则）：用 `t("modelOverride")` 替代 `modelLabel`（已存在，文案 "Model override"）、用 `t("fastMode")` 替代 `policyLabel`（已存在，文案 "Fast mode"）。也可以直接硬编码 fallback 文本（`"Model"` / `"Policy"`）——以代码可读优先，**首选**直接英文硬编码（这两个是 prototype 截图里的英文显示，符合 prototype 视觉对齐目标）：
+**i18n key 备注**：
 
-```tsx
-<div className="sessions-stat-grid">
-  <StatTile
-    label="Input"
-    value={formatCompactNumber(positiveNumber(selectedSession?.inputTokens ?? undefined))}
-  />
-  <StatTile
-    label="Output"
-    value={formatCompactNumber(positiveNumber(selectedSession?.outputTokens ?? undefined))}
-  />
-  <StatTile label="Model" value={selectedSession?.model || t("na")} />
-  <StatTile
-    label="Policy"
-    value={`${selectedSession?.thinkingLevel || t("off")} | fast ${selectedSession?.fastMode ? t("on") : t("off")}`}
-  />
-</div>
-```
+- 已存在（sessions namespace）：`tokensIn="Input"`、`tokensOut="Output"`、`model="Model"`、`thinkingLevel="Thinking Level"`、`thinkingFastMode="thinking: {thinking} | fast mode: {fastMode}"`、`on`、`off`、`na`。
+- prototype 上叫 "Policy"，但 sessions namespace 内**没有** `policy` key。本 plan 不扩 i18n scope，因此 Policy 概念落到语义最接近的 `thinkingLevel` label。Task 11 的 `implementation-notes.md` 段落需要把"Policy → Thinking Level"记录为视觉差异说明的 accepted exception。
 
 - [ ] **Step 4: 跑测试通过**
 
@@ -220,7 +250,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add 4-stat grid to hero (Input/Output/Model/Policy)" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: add 4-stat grid to hero (Input/Output/Model/Policy)" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -236,11 +266,14 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add 4
 
 ```tsx
 it("does not render an independent Runtime metadata surface", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+  await act(async () => {
+    renderSessionsPanel();
   });
-  const panel = document.querySelector(".sessions-panel");
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  const panel = container.querySelector(".sessions-panel");
+  expect(panel).not.toBeNull();
   const surfaces = panel!.querySelectorAll(".sessions-surface");
   const runtimeMetadataHeadings = Array.from(surfaces).filter((surface) =>
     surface.querySelector("h3")?.textContent?.toLowerCase().includes("runtime metadata"),
@@ -249,7 +282,7 @@ it("does not render an independent Runtime metadata surface", async () => {
 });
 ```
 
-如果当前 i18n `runtimeMetadata` 值不是 "Runtime metadata"，调整测试匹配（用 `t("runtimeMetadata")` 字面量比较或在测试里直接 import 该 key 值）。先用字面量 "Runtime metadata"，跑一次看实际文案，必要时改成准确字符串。
+注：i18n `sessions.runtimeMetadata` 当前是 "Runtime metadata"（已确认 line 2367），匹配文案稳定。
 
 - [ ] **Step 2: 跑测试失败**
 
@@ -314,7 +347,7 @@ Expected: PASS（包含新测试 + 旧测试无回归。若有旧测试断言 `t
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: drop duplicate Runtime metadata surface from selected workbench" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: drop duplicate Runtime metadata surface from selected workbench" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -329,20 +362,24 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: drop 
 - [ ] **Step 1: 加 failing 断言**
 
 ```tsx
-it("inspector overview tab includes a Tab summaries row (history/lineage/usage/checkpoint)", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+it("inspector overview tab includes a Tab summaries row (history/lineage/usage/compaction)", async () => {
+  await act(async () => {
+    renderSessionsPanel();
   });
-  const overview = document.querySelector("#sessions-inspector-overview");
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  const overview = container.querySelector("#sessions-inspector-overview");
   expect(overview).not.toBeNull();
   const summaryRow = overview!.querySelector(".sessions-status-row");
   expect(summaryRow).not.toBeNull();
   const text = summaryRow!.textContent ?? "";
-  expect(text).toMatch(/history/i);
-  expect(text).toMatch(/lineage/i);
-  expect(text).toMatch(/usage/i);
-  expect(text).toMatch(/checkpoint/i);
+  // i18n values: history="History", inspector.lineage="Lineage", inspector.usage="Usage",
+  // inspector.compaction="Compaction"
+  expect(text).toMatch(/History/);
+  expect(text).toMatch(/Lineage/);
+  expect(text).toMatch(/Usage/);
+  expect(text).toMatch(/Compaction/);
 });
 ```
 
@@ -389,12 +426,18 @@ Expected: FAIL
         })}
       </p>
       <div className="sessions-status-row">
-        <Badge>{`history ${history?.messages?.length ?? 0}`}</Badge>
-        <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
-          {`lineage ${lineageState}`}
+        <Badge>
+          {t("history")}: {history?.messages?.length ?? 0}
         </Badge>
-        <Badge>{`usage ${formatCompactNumber(selectedTotalTokens)} tokens`}</Badge>
-        <Badge>{`${selectedSession?.compactionCount ?? 0} checkpoint(s)`}</Badge>
+        <Badge variant={lineageState === "ready" ? "ok" : "neutral"}>
+          {t("inspector.lineage")}: {t(lineageState)}
+        </Badge>
+        <Badge>
+          {t("inspector.usage")}: {formatCompactNumber(selectedTotalTokens)}
+        </Badge>
+        <Badge>
+          {t("inspector.compaction")}: {selectedSession?.compactionCount ?? 0}
+        </Badge>
       </div>
     </>
   ) : (
@@ -403,7 +446,12 @@ Expected: FAIL
 </section>
 ```
 
-注意：四个 pill 文案直接英文（对齐 prototype 截图里的 "usage 150 tokens / 1 checkpoint / no lineage links" 英文渲染），不动 i18n 文件。
+**i18n key 备注**：
+
+- `sessions.history="History"`（line 2219）
+- `sessions.inspector.lineage="Lineage"` / `inspector.usage="Usage"` / `inspector.compaction="Compaction"`（line 2389-2395 inspector tabs；dotted key 已被 SessionsPanel.tsx line 570 `t(\`inspector.${tab}\`)` 用过，解析路径稳定）
+- `sessions.idle/loading/ready/na`（line 2318-2321）—— lineage state 翻译
+- prototype 上 4 个 pill 视觉是"label + 数字"，用 `label: value` 形式贴 i18n key、不动 i18n 文件、不引入新 key。
 
 - [ ] **Step 4: 跑测试通过**
 
@@ -416,7 +464,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add Tab summaries row to inspector overview" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: add Tab summaries row to inspector overview" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -433,18 +481,20 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add T
 
 ```tsx
 it("transcript: selected match Code is hidden by default and ExportPreview is not auto-open", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+  await act(async () => {
+    renderSessionsPanel();
   });
-  // 默认状态 transcriptSearchQuery 为空
-  const transcriptSurface = Array.from(document.querySelectorAll(".sessions-surface")).find((s) =>
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  // 默认 transcriptSearchQuery 为空
+  const transcriptSurface = Array.from(container.querySelectorAll(".sessions-surface")).find((s) =>
     s.querySelector("h3")?.textContent?.toLowerCase().includes("transcript"),
   );
   expect(transcriptSurface).not.toBeUndefined();
-  // selected match Code 不存在（默认隐藏）
+  // selected match Code 默认隐藏
   expect(transcriptSurface!.querySelector('[aria-label="Selected transcript match"]')).toBeNull();
-  // ExportPreview details 默认不存在或没有 open 属性
+  // ExportPreview details 默认不存在或不展开
   const details = transcriptSurface!.querySelector("details.sessions-export-preview");
   if (details) {
     expect((details as HTMLDetailsElement).open).toBe(false);
@@ -538,7 +588,7 @@ Expected: PASS（新断言通过；旧断言若有"selected match Code 总是渲
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: gate selected match + collapse export preview + scrollable transcript list" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/sessions-panel.css deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: gate selected match + collapse export preview + scrollable transcript list" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/sessions-panel.css deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -553,16 +603,23 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: gate 
 - [ ] **Step 1: 加 failing 断言**
 
 ```tsx
-it("inventory row renders exactly 4 meta/note fields (not 5)", async () => {
-  renderPanel();
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+it("inventory row renders exactly 4 fields (row-top + meta + note + meta)", async () => {
+  await act(async () => {
+    renderSessionsPanel();
   });
-  const firstRow = document.querySelector(".sessions-inventory-list .sessions-inventory-row");
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+  const firstRow = container.querySelector(".sessions-inventory-list .sessions-inventory-row");
   expect(firstRow).not.toBeNull();
-  // 行 1 strong+badge / 行 2 meta / 行 3 note / 行 4 meta，总共 4 个 .sessions-row-top + .sessions-meta + .sessions-note + .sessions-meta = 4 个 span 子级（不含 strong+Badge wrapper）
-  const metaSpans = firstRow!.querySelectorAll(":scope > .sessions-meta, :scope > .sessions-note");
-  expect(metaSpans.length).toBe(3); // .sessions-row-top 算第 1 行（含 strong+Badge）；下面 3 个直接 span（meta+note+meta）
+  // 4 fields = .sessions-row-top + .sessions-meta + .sessions-note + .sessions-meta
+  // 即 row-top 之外还有 3 个直接 span（meta + note + meta）
+  const directSpans = firstRow!.querySelectorAll(
+    ":scope > .sessions-meta, :scope > .sessions-note",
+  );
+  expect(directSpans.length).toBe(3);
+  // 顺便确认 row-top 仍在第 1 行
+  expect(firstRow!.querySelector(":scope > .sessions-row-top")).not.toBeNull();
 });
 ```
 
@@ -652,7 +709,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: collapse inventory row to 4 fields (drop duplicate preview)" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: collapse inventory row to 4 fields (drop duplicate preview)" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -668,22 +725,54 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: colla
 
 ```tsx
 it("Compactions metric hint uses compaction.noCheckpoints when count is zero", async () => {
-  renderPanel({ session: { ...mockSession, compactionCount: 0 } });
-  await waitFor(() => {
-    expect(screen.getByText(/Main Session/i)).toBeInTheDocument();
+  // 在 act 调用前覆盖默认 fetchSessions，把第一个 session 的 compactionCount 改成 0
+  const base = sessionsPayload();
+  apiMocks.fetchSessions.mockResolvedValueOnce({
+    sessions: base.sessions.map((session, index) =>
+      index === 0 ? { ...session, compactionCount: 0 } : session,
+    ),
   });
-  // 找含 "Compactions" 的 MetricTile，其 hint 应是 "No compaction checkpoints found"（en）
-  const tiles = document.querySelectorAll(".sessions-metric");
+
+  await act(async () => {
+    renderSessionsPanel();
+  });
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+
+  const tiles = container.querySelectorAll(".sessions-metric");
   const compactionsTile = Array.from(tiles).find((tile) =>
     tile.textContent?.toLowerCase().includes("compactions"),
   );
   expect(compactionsTile).not.toBeUndefined();
-  expect(compactionsTile!.textContent ?? "").toMatch(/no compaction checkpoints found/i);
-  expect(compactionsTile!.textContent ?? "").not.toMatch(/runtime metadata/i);
+  const tileText = compactionsTile!.textContent ?? "";
+  // i18n: sessions.compaction.noCheckpoints = "No compaction checkpoints found"（line 2283）
+  expect(tileText).toContain("No compaction checkpoints found");
+  expect(tileText.toLowerCase()).not.toContain("runtime metadata");
+});
+
+it("Compactions metric hint uses checkpointAvailable when count > 0", async () => {
+  // 默认 fixture compactionCount=2，无需覆盖 mock
+  await act(async () => {
+    renderSessionsPanel();
+  });
+  await waitFor(() =>
+    expect(apiMocks.fetchSessionDetail).toHaveBeenCalledWith({ sessionKey: "sess-main" }),
+  );
+
+  const tiles = container.querySelectorAll(".sessions-metric");
+  const compactionsTile = Array.from(tiles).find((tile) =>
+    tile.textContent?.toLowerCase().includes("compactions"),
+  );
+  expect(compactionsTile).not.toBeUndefined();
+  const tileText = compactionsTile!.textContent ?? "";
+  // i18n: sessions.checkpointAvailable = "checkpoint available"（line 2348）
+  expect(tileText.toLowerCase()).toContain("checkpoint available");
+  expect(tileText.toLowerCase()).not.toContain("runtime metadata");
 });
 ```
 
-注：测试需要支持 `renderPanel({ session: ... })` 注入零 compaction 的 mock。如果现有 `renderPanel` 不支持自定义 session，按现有测试基础设施（参考其他用例怎么注入 mock）调整：可能需要在 mock provider 层注入。最简方式是让默认 mock 改为 `compactionCount: 0`，或在测试里 mock `useSessionsListQuery` 返回值。
+**注**：两个 it 一起跑，证明 hint 在 count=0 和 count>0 两条路径都不会回退到 `t("runtimeMetadata")`。第一个 it 用 `mockResolvedValueOnce` 覆盖一次性 payload；afterEach 里 `vi.clearAllMocks()` 会清掉 mock 状态。
 
 - [ ] **Step 2: 跑测试失败**
 
@@ -734,7 +823,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: fix compactions metric hint fallback to compaction.noCheckpoints" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
+scripts/committer "sessions: fix compactions metric hint fallback to compaction.noCheckpoints" deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.tsx deck-go/frontend-new/src/components/panels/sessions/SessionsPanel.test.tsx
 ```
 
 ---
@@ -795,7 +884,7 @@ cd deck-go/frontend-new && pnpm dev
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: scoped CSS token overrides for prototype visual parity (dark + cross-theme)" deck-go/frontend-new/src/components/panels/sessions/sessions-panel.css
+scripts/committer "sessions: scoped CSS token overrides for prototype visual parity (dark + cross-theme)" deck-go/frontend-new/src/components/panels/sessions/sessions-panel.css
 ```
 
 ---
@@ -862,7 +951,12 @@ test.describe("sessions visual parity vs prototype", () => {
     const unexpected = collectUnexpectedErrors(page);
     const verdict: ParityVerdict = {
       status: "pass",
-      score: 100,
+      domScore: 100,
+      domScoreNote: "DOM/token assertion pass rate (not a pixel-visual percentage)",
+      visualReview: {
+        status: "pending-human",
+        screenshots: ["prototype.png", "mock-current.png", "sheet.png"],
+      },
       acceptedExceptions: [],
       assertions: [],
     };
@@ -1031,10 +1125,15 @@ test.describe("sessions visual parity vs prototype", () => {
     await page.setViewportSize({ width: 2960, height: 1024 });
     await page.screenshot({ fullPage: true, path: path.join(outputDir, "sheet.png") });
 
-    // 13) Verdict
+    // 13) Verdict — 先按 assertion 结果 fold domScore；console error 单算
+    const totalAssertions = verdict.assertions.length;
+    const passed = verdict.assertions.filter((a) => a.ok).length;
+    verdict.domScore = totalAssertions === 0 ? 0 : Math.round((passed / totalAssertions) * 100);
+    if (passed < totalAssertions) {
+      verdict.status = "fail";
+    }
     if (unexpected.length > 0) {
       verdict.status = "fail";
-      verdict.score = Math.max(0, 100 - unexpected.length * 10);
       verdict.acceptedExceptions.push({
         area: "console / page errors",
         diff: unexpected.join("\n"),
@@ -1042,6 +1141,7 @@ test.describe("sessions visual parity vs prototype", () => {
         owner: "claude",
       });
     }
+    // 始终写 verdict.json（即使后续断言 throw 也覆盖到此处之前的状态）
     await writeFile(
       path.join(outputDir, "verdict.json"),
       JSON.stringify(verdict, null, 2),
@@ -1076,7 +1176,17 @@ type ParityAssertion = {
 
 type ParityVerdict = {
   status: "pass" | "pass-with-exceptions" | "fail";
-  score: number;
+  /** DOM / token assertion pass rate (0-100). Not a pixel-visual percentage. */
+  domScore: number;
+  domScoreNote: string;
+  /** Visual % vs prototype is owned by human side-by-side review. */
+  visualReview: {
+    status: "pending-human" | "accepted" | "accepted-with-exceptions" | "needs-revision";
+    screenshots: string[];
+    reviewer?: string;
+    reviewedAt?: string;
+    notes?: string;
+  };
   acceptedExceptions: Array<{ area: string; diff: string; reason: string; owner: string }>;
   assertions: ParityAssertion[];
 };
@@ -1126,7 +1236,7 @@ Expected: 看到 `prototype.png` / `mock-current.png` / `sheet.png` / `verdict.j
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add prototype parity playwright spec with token/DOM assertions" deck-go/test/e2e/sessions-visual-parity.spec.ts
+scripts/committer "sessions: add prototype parity playwright spec with token/DOM assertions" deck-go/test/e2e/sessions-visual-parity.spec.ts
 ```
 
 ---
@@ -1192,7 +1302,7 @@ Expected: 2 passed（dark parity + light smoke）。如果 light 失败：
 - [ ] **Step 3: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add light theme smoke @light case to parity spec" deck-go/test/e2e/sessions-visual-parity.spec.ts
+scripts/committer "sessions: add light theme smoke @light case to parity spec" deck-go/test/e2e/sessions-visual-parity.spec.ts
 ```
 
 ---
@@ -1213,37 +1323,40 @@ cd /Users/wangym/workspace/agents/openclaw && scripts/committer "sessions: add l
 OpenSpec / spec reference: `docs/superpowers/specs/2026-05-11-sessions-visual-parity-design.md`
 Implementation plan: `docs/superpowers/plans/2026-05-11-sessions-visual-parity-plan.md`
 
-| Field               | Value                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Module              | sessions                                                                                                                  |
-| Evidence level      | `mock-prototype-parity`                                                                                                   |
-| Command             | `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual-parity.spec.ts --config playwright.config.ts`           |
-| Artifact path       | `deck-go/test-results/sessions-visual-parity-*/` (含 `prototype.png` / `mock-current.png` / `sheet.png` / `verdict.json`) |
-| Verdict/status      | （以最后一次成功跑出的 `verdict.json` 的 `status` 为准）                                                                  |
-| Run id              | n/a（本 task 不创建 real seed）                                                                                           |
-| Accepted exceptions | shell chrome 差异 / live fixture 时间戳数值差异（如有）                                                                   |
+| Field                | Value                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Module               | sessions                                                                                                                  |
+| Evidence level       | `mock-prototype-parity`                                                                                                   |
+| Command              | `cd deck-go && pnpm exec playwright test test/e2e/sessions-visual-parity.spec.ts --config playwright.config.ts`           |
+| Artifact path        | `deck-go/test-results/sessions-visual-parity-*/` (含 `prototype.png` / `mock-current.png` / `sheet.png` / `verdict.json`) |
+| Machine status       | `verdict.json.status`（DOM/token assertion 通过则 pass；console/4xx error 则 fail）                                       |
+| Machine DOM score    | `verdict.json.domScore`（DOM/token assertion 通过率；不是视觉百分比）                                                     |
+| Visual review status | `verdict.json.visualReview.status`（人工 side-by-side 填：`accepted` / `accepted-with-exceptions` / `needs-revision`）    |
+| Run id               | n/a（本 task 不创建 real seed）                                                                                           |
+| Accepted exceptions  | shell chrome 差异 / live fixture 时间戳数值差异 / Policy→Thinking Level 文案替换（i18n 无 policy key）                    |
 
 Deterministic fixes 本次完成：
 
-- Hero 删除 history / lineage badges；新增 Hero stat-grid 4 个 stat（Input / Output / Model / Policy）。
+- Hero 删除 history / lineage badges；新增 Hero stat-grid 4 个 stat（`tokensIn` / `tokensOut` / `model` / `thinkingLevel` i18n keys；其中 prototype 的 "Policy" 在 i18n scope 内无对应 key，本次替换为 "Thinking Level" 并记为下文 accepted exception）。
 - 删除独立 Runtime metadata surface（与 Hero stat-grid 重复）。
-- Inspector Overview tab 新增 Tab summaries row（history / lineage / usage / checkpoint 4 个 pill）。
+- Inspector Overview tab 新增 Tab summaries row（`history` / `inspector.lineage` / `inspector.usage` / `inspector.compaction` 4 个 pill）。
 - Transcript：selected match Code 默认隐藏（仅 `transcriptSearchQuery` 非空时显示）；ExportPreview details 去掉默认 `open`；transcript list CSS `max-height ≈ 96px` + `overflow-y: auto`，DOM 仍保留 `slice(0, 8)` 数据。
 - Inventory row 从 5 行字段降到 4 行（删 `previewText` 重复 meta）。
-- Compactions metric tile 在 0 compaction 时 hint fallback 从 `t("runtimeMetadata")` 改为复用既有 `t("compaction.noCheckpoints")`。
+- Compactions metric tile 在 0 compaction 时 hint 从 `t("runtimeMetadata")` 改为复用既有 `t("compaction.noCheckpoints")`。
 - 新增 sessions-panel.css scoped CSS 变量 override：spacing / radius / fs / line 跨主题撑开；colors / shadow 仅在 `[data-theme="dark"]` 下覆盖，light theme 保持 canonical 配色避免白底白字。
-- 新增 `test/e2e/sessions-visual-parity.spec.ts`：固定 1440x900 / dark / en / Overview tab；token computed values 断言、DOM 关键区域断言、prototype + mock-current 双截图、parity sheet 拼图、verdict.json 输出；含 `@light` smoke 用例验证 light theme 不回归。
+- 新增 `test/e2e/sessions-visual-parity.spec.ts`：固定 1440x900 / dark / en / Overview tab；token computed values 断言、DOM 关键区域断言、prototype + mock-current 双截图、parity sheet 拼图、`verdict.json` 输出（含 `domScore` + `visualReview`）；含 `@light` smoke 用例验证 light theme 不回归。
 
 Accepted exceptions：
 
 - prototype.html 是独立单页，sessions 实际页面套在 Deck shell 内（NavRail / TopBar 占据左/上空间），导致 viewport 内 sessions 内容区域比 prototype 1440 略窄；这是 prototype 与生产 shell 的固有差异，不属于本 spec 修复范围。
 - live mock fixture 的 timestamp / 数值（如 token / cost）跟 prototype 硬编码内容不同；这是数据差异而非视觉差异。
+- Hero stat-grid 第 4 个 stat label 用 "Thinking Level"（`sessions.thinkingLevel`）替代 prototype 上的 "Policy"。原因：sessions i18n namespace 内不存在 `policy` key，本 plan 不扩 i18n scope；语义上 `thinkingLevel` + `fastMode` 组合本身就是 session policy，文案差异不影响布局。后续若产品决定回到 "Policy" 文案，需独立 OpenSpec 扩 i18n key（不阻断本 visual parity）。
 ```
 
 - [ ] **Step 2: Commit**
 
 ```bash
-cd /Users/wangym/workspace/agents/openclaw && scripts/committer "handoff/sessions: record visual parity evidence 2026-05-11" deck-go/frontend-handoff/modules/sessions/implementation-notes.md
+scripts/committer "handoff/sessions: record visual parity evidence 2026-05-11" deck-go/frontend-handoff/modules/sessions/implementation-notes.md
 ```
 
 ---
@@ -1284,11 +1397,17 @@ cd deck-go && make frontend-build
 
 Expected: build 通过，无 TypeScript error。
 
-- [ ] **Step 5: 视觉 verdict 检查**
+- [ ] **Step 5: 视觉 verdict 检查（DOM / token 机器侧）**
 
-打开 `deck-go/test-results/sessions-visual-parity-*/verdict.json`，确认 `status` 为 `pass` 或 `pass-with-exceptions`，且 `acceptedExceptions` 内不含 `spacing / chrome / typography / hero-stat-count / runtime-metadata-duplication / transcript-layer-overflow` 类条目（按 spec 3.4 节"accepted exceptions 限于 shell chrome / live fixture 时间戳与具体数值差异"）。
+打开 `deck-go/test-results/sessions-visual-parity-*/verdict.json`，确认：
 
-- [ ] **Step 6: 人工 dev server 并排验证**
+- `status` 为 `pass`（所有 DOM / token assertion 通过、无 console / 4xx 错误）
+- `domScore` = 100（DOM/token assertion 通过率；不是视觉百分比）
+- `assertions[].ok` 全 true
+- `visualReview.status` 为 `pending-human`（机器侧不签收视觉一致度，留待 Step 6 人工对照）
+- `acceptedExceptions` 为空（accepted exceptions 限于 spec 3.4 节列出的 shell chrome / live fixture 时间戳类目，由人工 review 时填）
+
+- [ ] **Step 6: 人工 dev server 并排验证（视觉一致度签收）**
 
 ```bash
 cd deck-go/frontend-new && pnpm dev
@@ -1297,9 +1416,9 @@ cd deck-go/frontend-new && pnpm dev
 浏览器开两个窗口：
 
 1. dev server sessions 页面（dark / 1440 / Overview tab）
-2. `file:///<absolute>/deck-go/frontend-handoff/modules/sessions/prototype.html`
+2. 本地直接打开 `deck-go/frontend-handoff/modules/sessions/prototype.html`
 
-并排目测，确认间距、卡片 chrome、字体、布局密度跟 prototype 接近，并切到 light 模式验证文字可读、无 overflow。
+并排目测，确认间距、卡片 chrome、字体、布局密度跟 prototype 接近，并切到 light 模式验证文字可读、无 overflow。**视觉一致度百分比由本步骤人工填到 `verdict.json` 的 `visualReview.status` + `visualReview.notes`**（或同步到 Task 11 的 `implementation-notes.md`），由 `pending-human` 改为 `accepted` / `accepted-with-exceptions` / `needs-revision`。
 
 ---
 
@@ -1307,11 +1426,12 @@ cd deck-go/frontend-new && pnpm dev
 
 如果实施过程中遇到以下情况，先停下来检查再继续：
 
-- **Vitest 单元测试 `renderPanel` 不支持注入零 compaction mock**：可能需要在 mock provider 层 mock `useSessionsListQuery` 等 hook。如果改 mock 设施比较复杂，把 Task 7 的 unit test 改写成观察现有 default mock 下的渲染（如果 default mock 已经有 `compactionCount > 0`，反过来断言：用 `selectedSession.compactionCount > 0` 时的 hint 不是 `runtime metadata`）。或者把这一项断言只放到 Playwright spec，单元测试只保 hint key 引用正确。
-- **`t("compaction.noCheckpoints")` 在 sessions provider scope 下解析失败**：检查 useTranslations 的 namespace 嵌套规则；可能需要写成 `t("compaction.noCheckpoints")` 或 `useTranslations("sessions.compaction")(t("noCheckpoints"))`。fallback：直接硬编码英文 "No compaction checkpoints found"，或在 follow-up 中扩展 i18n util 支持嵌套 key（不在本 spec 范围）。
-- **playwright `setContent` + `baseURL: file://...` 拼 sheet 加载图像失败**：fallback 是直接跳过 sheet 拼图（只保 prototype.png 和 mock-current.png 两张独立图，verdict.json 引用两个独立文件），把 sheet 标为 follow-up。
-- **Transcript list `max-height: 96px` 经实际目测高度不对（太矮或太高）**：在 Task 8 之后做人工 quick smoke，按实际渲染调整到 88-110px 区间。
+- **`apiMocks.fetchSessions.mockResolvedValueOnce` 覆盖 payload 时 detail/preview mock 没刷新**：Task 7 第一个 it 改了 fetchSessions 返回，但 fetchSessionDetail / fetchSessionPreviews 还是默认值——它们走 sessionKey 索引，对 compactionCount 不敏感，应当正常。如果实施时 detail 拿不到对应 session，扩成对应 mock 也同步覆盖。
+- **`t("inspector.lineage")` 在 sessions provider scope 下解析路径**：`SessionsPanel.tsx` line 570 已经用 `t(\`inspector.${tab}\`)`，证明 dotted key 走通；若实施时新代码用法仍失败，先 `console.log(t("inspector.lineage"))` 定位是 provider 还是 key 路径错。
+- **playwright `setContent` + `baseURL: file://outputDir/` 拼 sheet 加载图像失败**：缺 sheet 不阻断本 plan 验收（prototype.png / mock-current.png 仍单独输出可供人工对照），但要在 verdict.json 写明缺失原因；不要为了凑 sheet 引新依赖（sharp / pixelmatch）。
+- **Transcript list `max-height: 96px` 经实际目测高度不对（太矮或太高）**：在 Task 8 之后做人工 quick smoke，按实际渲染调整到 88-110px 区间，并同步 spec Section 2 风险段。
 - **`SessionsPanel.test.tsx` 既有用例因为新结构大量失败**：spec 2.6 节列了 6 类需要更新的断言；按"removed assertion / updated structure"原则逐项修，commit message 写清楚改动来源。
+- **Hero stat-grid 插入到 `.sessions-section-heading` 内**：见 Task 2 Step 3 提醒——必须插入到 hero `<section>` 内 heading 关闭后、`</section>` 之前，否则 stat-grid 会和 heading 同行。
 
 ---
 
@@ -1321,5 +1441,8 @@ cd deck-go/frontend-new && pnpm dev
 
 - **覆盖**：spec Section 1 (12 项 token override) → Task 8 + 9；Section 2.1 (Hero / stat-grid / Runtime metadata / Transcript) → Task 1 / 2 / 3 / 5；Section 2.2 (Inventory) → Task 6；Section 2.3 (Inspector Overview Tab summaries) → Task 4；Section 2.4 (Compactions hint) → Task 7；Section 2.5 (Header) → spec 已注明不动；Section 2.6 (测试同步) → 散布在 Task 1-7 的 unit test 步骤；Section 3.1-3.4 (验证策略) → Task 9 + 10 + 最终联合验证；Section 风险 (transcript 限高 hint) → 风险预案段已记录可选添加。
 - **无 placeholder**：每个 step 含具体 old/new 代码或命令；无 TBD / TODO。
-- **类型一致**：所有 task 使用 `selectedSession` / `selectedTotalTokens` / `lineageState` / `history.messages.length` / `selectedSession.compactionCount` 这些 SessionsPanel.tsx 既有标识符；新增的 verdict 类型 `ParityVerdict` / `ParityAssertion` 在 Task 9 定义并在 Task 9-10 一致使用。
-- **scope 一致**：所有改动文件落在 spec 第 25-29 行声明的 5 个文件/目录内，未扩散到 atoms、其他 panel、i18n 文件。
+- **类型一致**：所有 task 使用 `selectedSession` / `selectedTotalTokens` / `lineageState` / `history.messages.length` / `selectedSession.compactionCount` 这些 SessionsPanel.tsx 既有标识符；新增的 verdict 类型 `ParityVerdict` / `ParityAssertion` 在 Task 9 定义并在 Task 9-10 一致使用。`ParityVerdict.domScore` 表示 DOM/token assertion 通过率，`ParityVerdict.visualReview` 由人工填，二者分离。
+- **scope 一致**：所有改动文件落在 file structure 表格声明的 5 个文件/目录内，未扩散到 atoms、其他 panel、canonical tokens、i18n 文件、契约、API、mutation；i18n 仅复用既有 key（`tokensIn` / `tokensOut` / `model` / `thinkingLevel` / `thinkingFastMode` / `history` / `inspector.lineage` / `inspector.usage` / `inspector.compaction` / `compaction.noCheckpoints` / `checkpointAvailable` / `idle` / `loading` / `ready` / `na` / `on` / `off`），无新增。
+- **测试基础设施一致**：所有 Vitest 片段遵循"测试基础设施约定"段（`act(async () => renderSessionsPanel())` + `container.querySelector` + `toBeTruthy/not.toBeNull` + `apiMocks.fetchSessions.mockResolvedValueOnce` 注入定制数据），未使用未声明 helper（`renderPanel({ session })` / `screen.getBy*` / `toBeInTheDocument`）。
+- **路径一致**：所有 commit / dev / playwright 命令以 repo root 或 `deck-go/` 为 cwd 的相对路径表达，无本机绝对路径。
+- **视觉度量诚实**：本 plan 不机器化宣称"≥90% 视觉一致度"；机器侧只保 DOM/token assertion + 截图采集，视觉百分比由 Step 6 人工填到 `verdict.json.visualReview` 或 Task 11 implementation-notes。
