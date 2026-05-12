@@ -23,6 +23,56 @@ Core references:
 - Do not edit files covered by security-focused `CODEOWNERS` rules unless a
   listed owner explicitly asked for the change.
 
+## Organization Model
+
+This file is an organization chart, not just a skill routing table. The
+system runs on two roles.
+
+**User = Owner**
+
+- Job: state WHAT to build, answer alignment questions, judge prototypes,
+  sign off on acceptance, pull the brake on design paralysis. Approve any
+  net-new dependency or externally-visible action (creating GitHub labels,
+  force-pushing, dropping a stash, publishing, dependency upgrades that
+  change the lockfile, etc. — see Editing Discipline / Multi-Agent Safety
+  / Security And Safety for the full list).
+- NOT the owner's job: write docs, write code, choose how to implement
+  inside the agreed design.
+
+**Agent decisions WITHOUT owner involvement** (default — agent just does it):
+
+- internal abstractions, naming, file layout among existing dirs
+- library usage among already-installed deps
+- test idioms inside the chosen framework
+- refactor inside files the agent is already touching for the current task
+
+**Agent decisions the owner must APPROVE** (agent surfaces a recommendation
+
+- rationale + 2-3 options when applicable, then waits for owner "ok"):
+
+* adding a NEW dependency
+* picking among competing major frameworks / runtimes / DBs
+* breaking-change protocols (contract / API / schema migrations)
+* anything in Security And Safety / Multi-Agent Safety / Editing
+  Discipline that requires explicit request
+* spawning sub-agents or creating new git worktrees (see "After
+  writing-plans" below)
+
+**Agent = Multi-hat project team**
+
+- PM hat: `mattpocock-skills:grill-with-docs` (alignment, `CONTEXT.md`, ADR)
+- Designer hat: `mattpocock-skills:prototype` (LOGIC TUI or UI variants)
+- Architect hat: OpenSpec proposal/specs/verification (when scope warrants)
+- Project manager hat: `superpowers:writing-plans`
+- Engineer hat: `superpowers:test-driven-development`
+- QA hat: `superpowers:verification-before-completion`
+- Doc hat: handoff document (manually written per C3 — no skill required)
+
+Default assumption: the owner has product vision but limited engineering
+experience. All Human-in-the-loop rules below exist to force the agent to
+STOP and bring the owner in at the right moments — overriding the agent's
+default to ship fast.
+
 ## Skill Routing
 
 Skills are the workflow authority. Use the relevant skill instead of copying
@@ -31,18 +81,23 @@ or inventing parallel process rules in this file.
 Use full skill names in planning and reports; aliases are listed only to help
 match installed local names.
 
-| Situation                                                                                                 | Required route                                                                                                                             |
-| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| New feature, component, behavior, RPC, product decision, or architecture change                           | `superpowers:brainstorming` (alias: `brainstorming`) before implementation                                                                 |
-| Unclear term, durable project concept, or context gap                                                     | `grill-with-docs`; update `CONTEXT.md` as the durable context record                                                                       |
-| UI, interaction, state-machine, or logic uncertainty where seeing/trying options would clarify the answer | `prototype`                                                                                                                                |
-| Bug, test failure, regression, or unexpected behavior                                                     | `diagnose`; add regression coverage with `superpowers:test-driven-development` when fixing                                                 |
-| Multi-step implementation after design is agreed                                                          | `superpowers:writing-plans` (alias: `writing-plans`)                                                                                       |
-| Production behavior change or bug fix                                                                     | `superpowers:test-driven-development` (alias: `test-driven-development`) unless the change is docs-only or mechanically generated          |
-| Independent parallel implementation tasks                                                                 | `superpowers:subagent-driven-development` (alias: `subagent-driven-development`) when it improves throughput and write scopes are disjoint |
-| Architecture boundary review or periodic simplification pass                                              | `improve-codebase-architecture`                                                                                                            |
-| Before claiming work is complete, fixed, or passing                                                       | `superpowers:verification-before-completion` (alias: `verification-before-completion`) and report exact commands and observed results      |
-| Large architecture design, cross-module contract/API/config-source changes, or long-lived governance work | OpenSpec proposal/spec/tasks, then implementation planning                                                                                 |
+### Triggers (user intent → skill chain)
+
+Match the FIRST row that applies. Run the chain in order.
+
+| Situation                                                                                                 | Required route                                                                                                                                                            |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New feature, component, behavior, RPC, product decision, or architecture change                           | `grill-with-docs` first (preferred — `CONTEXT.md` is the durable asset). Use `superpowers:brainstorming` (alias: `brainstorming`) only for trivial alignment-light tasks. |
+| Unclear term, durable project concept, or context gap                                                     | `grill-with-docs`; update `CONTEXT.md` as the durable context record                                                                                                      |
+| UI, interaction, state-machine, or logic uncertainty where seeing/trying options would clarify the answer | `prototype` (per C5 in Human-in-the-loop)                                                                                                                                 |
+| Bug, test failure, regression, or unexpected behavior                                                     | `diagnose` (build feedback loop FIRST); add regression coverage with `superpowers:test-driven-development` when fixing                                                    |
+| Multi-step implementation after design is agreed                                                          | `superpowers:writing-plans` (alias: `writing-plans`)                                                                                                                      |
+| Production behavior change or bug fix                                                                     | `superpowers:test-driven-development` (alias: `test-driven-development`) unless the change is docs-only or mechanically generated                                         |
+| Independent parallel implementation tasks                                                                 | `superpowers:subagent-driven-development` (alias: `subagent-driven-development`) when it improves throughput and write scopes are disjoint                                |
+| Architecture boundary review or periodic simplification pass                                              | `improve-codebase-architecture`                                                                                                                                           |
+| Before claiming work is complete, fixed, or passing                                                       | `superpowers:verification-before-completion` (alias: `verification-before-completion`) and report exact commands and observed results (per C4)                            |
+| Large architecture design, cross-module contract/API/config-source changes, or long-lived governance work | OpenSpec proposal/spec/tasks → `superpowers:writing-plans` (enhance, don't rewrite tasks.md) → execution chain                                                            |
+| Conversation getting long, switching to a fresh session                                                   | `handoff` (per C3)                                                                                                                                                        |
 
 OpenSpec is not the default path for ordinary feature work, bug fixes, module
 cleanup, or UI iteration. Use it only when the work needs a durable proposal,
@@ -50,6 +105,190 @@ formal spec deltas, or multi-change governance.
 
 Do not duplicate skill internals in repo rules. If a skill already defines the
 brainstorm, debug, TDD, plan, review, or verification flow, follow that skill.
+
+### Execution chain (after `writing-plans` produces a plan)
+
+```
+superpowers:using-git-worktrees       # isolate workspace
+  → superpowers:subagent-driven-development  # fresh subagent per task
+      ↳ each task internally:
+          superpowers:test-driven-development
+          superpowers:verification-before-completion
+  → superpowers:requesting-code-review  # self-review before merge
+  → superpowers:finishing-a-development-branch  # complete & integrate
+```
+
+Always prefer `subagent-driven-development` over `executing-plans` — fresh
+subagent per task keeps context clean.
+
+### Hard Rules (cross-cutting, never skip)
+
+1. `CONTEXT.md` is project ground truth. Read it before using any domain
+   term. If a term is missing or ambiguous, raise it — don't guess.
+2. Before claiming any work is "done" / "fixed" / "passing" / "complete":
+   invoke `superpowers:verification-before-completion`, run the actual
+   verification command, show output. No "should pass" / "looks correct".
+3. Before writing production code for new behavior or bug fix: invoke
+   `superpowers:test-driven-development` — failing test first, watch fail,
+   then implement.
+4. Before executing a multi-task implementation plan: invoke
+   `superpowers:using-git-worktrees` to get an isolated workspace.
+5. Before any creative work (new feature/component/behavior/architecture
+   change): run alignment skill first (`grill-with-docs` preferred). Do not
+   write code or scaffold until the owner approves the design.
+
+### Human-in-the-loop Rules (when to STOP and bring the owner in)
+
+These rules override the agent's default to keep going. They are the spine
+of the owner-driven model. Apply them aggressively — bringing the owner in
+late costs 10x more than bringing them in early.
+
+#### C1. Acceptance-First Rule
+
+Inside `grill-with-docs` / `superpowers:brainstorming`, after the user
+resolves ANY concrete behavior, scenario, term, or rule, immediately ask:
+
+> "OK, that's pinned down. Now:
+>
+> - What command / action would I run to verify this works?
+> - What specific output / state would I see if it's correct?
+> - What would I see if it's broken?"
+
+Capture the answer in `CONTEXT.md` (alongside the term, as a "How to verify"
+line), as a draft entry for the eventual `verification.yaml`, or as an
+inline scenario block in the relevant ADR.
+
+DO NOT proceed to the next concept until the current one has at least one
+acceptance check defined. If the owner can't answer, the concept is NOT
+pinned down — go deeper. Do NOT accept "we'll figure it out later".
+
+#### C2. Anti-Paralysis Gate
+
+Inside `grill-with-docs` / `superpowers:brainstorming`, every ~5 questions
+on the current slice, ask:
+
+> "Pause check: do we have enough to write the FIRST failing test for this
+> slice?
+>
+> - Test entry point known? (function/endpoint/event)
+> - Input shape known?
+> - Expected output known?
+> - Verification command known?
+>
+> If yes → STOP grilling, proceed to `superpowers:writing-plans`.
+> If no → which is missing? Focus the next question there only."
+
+DO NOT keep expanding scope. The grill goal for this slice is the
+4-question gate above, not "design the whole feature". Anything not
+load-bearing for the next failing test goes to the next slice.
+
+#### C3. Handoff Rule
+
+When ENDING any `grill-with-docs` / `prototype` /
+`superpowers:brainstorming` session (natural end OR owner wraps up),
+produce a handoff document at:
+
+```
+docs/handoffs/<feature>/handoff-YYYY-MM-DD-<short-name>.md
+```
+
+Required sections:
+
+1. **本轮钉死的方案上下文** — decisions, with location:
+   `ADR-NNNN` / `CONTEXT.md` line / `openspec/changes/<change>/specs/X.md`
+2. **本轮已验证的 acceptance** (if applicable) — command + expected output
+   - actual ✅/❌
+3. **留给下一轮的弹药** — Open Questions + 候选下一步 + 仍需 prototype 的死结
+4. **接手必读** — `CONTEXT.md`, related ADR, OpenSpec proposal, prior
+   handoff path
+
+When STARTING a new `grill-with-docs` / `prototype` /
+`superpowers:brainstorming` on the same feature, the FIRST action is to
+read the most recent handoff under `docs/handoffs/<feature>/`. State its
+contents back in 3-5 lines:
+
+> "上一份 handoff (date) 钉死了 X、Y。
+> 留下 Open Q: A, B。候选下一步: Z。
+> 确认从 Z 开始，还是 redirect？"
+
+DO NOT start new questions or coding until the owner confirms. If no prior
+handoff exists, state "no prior handoff — starting fresh" rather than
+inventing context.
+
+#### C4. Verification-Before-Completion (strengthened)
+
+Before marking ANY task complete OR claiming any verification "passed",
+output to the owner:
+
+- The exact command run
+- First ~20 lines of actual output
+- Pass/fail status
+
+Wait for owner "ok" before continuing. NEVER use phrases like
+"测试都过了" / "应该 ok 了" / "确认无误" / "all green" without the evidence
+block. This is the single most-violated rule, and the source of most
+cargo-cult "verified" claims.
+
+#### C5. Prototype Escalation
+
+While in `grill-with-docs` and the owner shows ANY of these signals:
+
+- "我说不清" / "我画不出来" / "I can't picture it"
+- Asks the same conceptual question 3+ times without converging
+- Question is about state machine concurrency / race condition (e.g.
+  "切 agent 时旧 SSE 怎么处理")
+- Question is about visual layout, interaction density, or multiple
+  layout candidates
+
+STOP grilling and ask:
+
+> "This looks like a question that won't resolve through dialog.
+> Want to drop into `prototype`? (LOGIC for state/logic, UI for visuals)"
+
+DO NOT keep paraphrasing the question with more words. DO NOT silently
+start prototyping. Wait for owner confirmation; the owner picks branch
+and the question being answered.
+
+### Skill Conflict Resolution
+
+When multiple skills could apply, use this precedence:
+
+- **Process > implementation**: `grill-with-docs` and `diagnose` come
+  BEFORE any implementation skill.
+- **`grill-with-docs` > `superpowers:brainstorming` for this project**:
+  `CONTEXT.md` is the durable asset. Use brainstorming only for trivial
+  alignment-light tasks where no domain terms are involved.
+- **`diagnose` > `superpowers:systematic-debugging`** for any debugging
+  work — Phase 1 "build a feedback loop first" is stronger.
+- **OpenSpec precedes `writing-plans`** for architecture-level changes.
+  For non-architecture work, skip OpenSpec entirely.
+
+### Anti-Patterns (the agent will be tempted — don't)
+
+- Skipping alignment because the request "seems simple"
+- Claiming a task is done after writing code, before running tests/lint/
+  build — `verification-before-completion` is non-negotiable (per C4)
+- Writing all tests then all impl (horizontal slicing) — always vertical:
+  one test → one impl → repeat
+- Treating `CONTEXT.md` as documentation that "the owner maintains" — agent
+  updates it inline as terms sharpen, same discipline as `grill-with-docs`
+- "Quick fix" without `diagnose` Phase 1 (build a feedback loop first)
+- Running `executing-plans` directly instead of
+  `subagent-driven-development`
+- Self-extending a `prototype` with tests / persistence / abstractions —
+  breaks throwaway nature; the prototype answers ONE question
+- Same-session running multiple slices without handoff between them
+- Bypassing failed hooks with `--no-verify` (or any equivalent flag)
+- Answering "what does this domain term mean" with training-data
+  assumptions instead of asking the owner
+
+### Skills NOT used in this project (skip even if installed)
+
+- `to-prd`, `to-issues`, `triage` — solo project, no external issue
+  tracker. Specs and plans live in the repo.
+- `setup-matt-pocock-skills` — only needed if introducing an issue tracker.
+- `executing-plans` — superseded by `subagent-driven-development`.
+- `grill-me` — superseded by `grill-with-docs`.
 
 ## Project Context Rules
 
