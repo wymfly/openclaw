@@ -1,15 +1,16 @@
-# frontend-new Codex Guide
+# frontend-new Agent Guide
 
-This file is the Codex-native execution guide for `deck-go/frontend-new/`.
-It adapts the existing Claude Design plus Claude Code handoff protocol into a
-single-agent workflow: Codex owns both the design artifact and the production
-implementation.
+This file is the canonical execution guide for `deck-go/frontend-new/`.
+`CLAUDE.md` is a symlink to this file so Codex and Claude Code share the same
+rules. It adapts the existing Claude Design plus Claude Code handoff protocol
+into a single-agent-capable workflow: the active agent may own both the design
+artifact and the production implementation.
 
 ## Scope
 
 - This guide applies to `frontend-new/` and all child paths.
-- `frontend-new/CLAUDE.md` and `../frontend-handoff/CLAUDE.md` remain useful
-  protocol background, but this file is the operating guide for Codex.
+- `frontend-new/CLAUDE.md` points here. `../frontend-handoff/AGENTS.md` remains
+  useful protocol background for design-to-engineering handoff work.
 - New frontend modules land in `src/components/panels/<module>/`.
 - Do not add new work to legacy `../frontend/` unless the user explicitly asks
   for legacy maintenance.
@@ -95,6 +96,61 @@ For a substantial new panel or redesign, run this sequence in one Codex session:
    frontend verification target requested by the parent guide. For visual work,
    use the dev gallery and the module's visual seed or prototype comparison when
    available.
+
+## Module Completion Evidence
+
+Module completion must be backed by fresh, tracked evidence. Historical
+OpenSpec checkboxes, old session memory, `.local` screenshots, or previous chat
+conclusions are context only; they do not prove current completion.
+
+Use three evidence levels when a module is materially implemented or redesigned:
+
+- **mock functional**: the mock-backed page opens, key interactions work,
+  unexpected console/page/API errors are checked, and screenshots are produced.
+- **mock prototype parity**: the active
+  `../frontend-handoff/modules/<module>/prototype.html` and the current
+  `frontend-new` page are compared in the same viewport, locale, theme, and nav
+  state with a structured verdict.
+- **real Gateway evidence**: the real Gateway/BFF path is exercised. Minimum
+  coverage is shell navigation into the module, light/dark mode, Chinese/English
+  mode, key tabs/drawers/dialogs interactable, browser does not call Gateway
+  directly, unexpected console/page/BFF errors are empty, and safe run-scoped
+  real test data is created when the module supports writes.
+
+Real data should be created through Gateway RPC or Deck BFF routes first. Direct
+seeding of isolated `openclaw.json`, workspace files, sessions, or similar
+OpenClaw data sources is acceptable only in the isolated real-stack test
+environment. Test object names must include the run id, and cleanup must refuse
+to touch objects that do not include that run id. High-impact resources such as
+external accounts, installed skills, device tokens, and user memory may be
+marked `skipped-safe`, but read-path UI and link verification still need to run.
+
+Persist module closure in a tracked manifest, README, or implementation note.
+`.local` artifacts are temporary; tracked evidence must link the command,
+artifact path, verdict/status, run id when applicable, and accepted exceptions.
+`unreviewed` must remain `unreviewed`; do not turn it into visual sign-off by
+wording.
+
+Implemented module handoff README files use:
+
+```markdown
+**Status**: implemented (sha <40-hex-commit-sha>)
+```
+
+They also need a structured `Reverse sign-off` section with final status
+(`accepted`, `accepted-with-exceptions`, `needs-revision`, or `blocked`),
+reviewer, date, prototype reference, production reference, mock functional
+evidence, mock prototype parity evidence, real Gateway evidence, and accepted
+exceptions.
+
+Single-file panels are a maintainability concern, not automatically a protocol
+violation. Treat them as blocking only when the active OpenSpec change, module
+handoff, or maintainability proposal explicitly requires decomposition.
+
+If implementation follows an external review or cross-agent report, create a
+tracked fact baseline first. Classify findings as `accepted`, `corrected`,
+`rejected`, or `deferred-uncertain`, and attach rerunnable commands or file
+references for accepted/corrected items.
 
 For a small visual-only adjustment, use the lite lane:
 

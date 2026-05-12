@@ -93,10 +93,10 @@ the matching sync/check target.
 
 Read deeper frontend protocol files when touching those areas:
 
-- `docs/CLAUDE.md` — deck-go docs map and current project context
-- `frontend-new/CLAUDE.md` — active engineering workspace protocol
-- `frontend-handoff/CLAUDE.md` — design-to-engineering handoff protocol
-- `frontend/CLAUDE.md` — frozen legacy warning and migration context
+- `docs/AGENTS.md` — deck-go docs map and current project context
+- `frontend-new/AGENTS.md` — active engineering workspace protocol
+- `frontend-handoff/AGENTS.md` — design-to-engineering handoff protocol
+- `frontend/AGENTS.md` — frozen legacy warning and migration context
 
 ## Runtime And Dev Scripts
 
