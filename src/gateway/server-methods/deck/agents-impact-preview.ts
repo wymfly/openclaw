@@ -29,32 +29,61 @@ type ImpactOperation =
   | "reset-field"
   | "delete-agent";
 
-function riskSpecificsForOperation(operation: ImpactOperation): string[] {
-  switch (operation) {
-    case "edit-model":
-      return ["Model changes can alter cost, latency, and response behavior for future runs."];
-    case "edit-workspace":
-      return ["Workspace changes alter file, bootstrap, and identity context for future runs."];
-    case "edit-skills":
-      return ["Skill changes alter tool and context injection behavior."];
-    case "edit-subagents":
-      return ["Subagent policy changes alter spawn permissions and child-agent model selection."];
-    case "edit-tools":
-      return ["Tool overrides can allow or block capabilities visible to the agent."];
-    case "edit-delivery":
-      return ["Delivery changes alter event-stream and heartbeat behavior."];
-    case "edit-conversation":
-      return ["Conversation settings change prompt and reply timing behavior."];
-    case "reset-field":
-      return [
-        "Resetting fields restores inheritance from agent defaults or derived Gateway behavior.",
-      ];
-    case "delete-agent":
-      return [
-        "Deleting an agent removes its configuration and may orphan references in routing or sessions.",
-      ];
+const SESSION_IMPACT_UNAVAILABLE_REASON = "session-truth-unavailable";
+
+const RISK_SPECIFICS_BY_OPERATION: Record<
+  ImpactOperation,
+  {
+    legacy: string;
+    key: string;
   }
-  return [];
+> = {
+  "edit-model": {
+    legacy: "Model changes can alter cost, latency, and response behavior for future runs.",
+    key: "impact.risks.editModel",
+  },
+  "edit-workspace": {
+    legacy: "Workspace changes alter file, bootstrap, and identity context for future runs.",
+    key: "impact.risks.editWorkspace",
+  },
+  "edit-skills": {
+    legacy: "Skill changes alter tool and context injection behavior.",
+    key: "impact.risks.editSkills",
+  },
+  "edit-subagents": {
+    legacy: "Subagent policy changes alter spawn permissions and child-agent model selection.",
+    key: "impact.risks.editSubagents",
+  },
+  "edit-tools": {
+    legacy: "Tool overrides can allow or block capabilities visible to the agent.",
+    key: "impact.risks.editTools",
+  },
+  "edit-delivery": {
+    legacy: "Delivery changes alter event-stream and heartbeat behavior.",
+    key: "impact.risks.editDelivery",
+  },
+  "edit-conversation": {
+    legacy: "Conversation settings change prompt and reply timing behavior.",
+    key: "impact.risks.editConversation",
+  },
+  "reset-field": {
+    legacy:
+      "Resetting fields restores inheritance from agent defaults or derived Gateway behavior.",
+    key: "impact.risks.resetField",
+  },
+  "delete-agent": {
+    legacy:
+      "Deleting an agent removes its configuration and may orphan references in routing or sessions.",
+    key: "impact.risks.deleteAgent",
+  },
+};
+
+function riskSpecificsForOperation(operation: ImpactOperation): string[] {
+  return [RISK_SPECIFICS_BY_OPERATION[operation].legacy];
+}
+
+function riskSpecificsI18nForOperation(operation: ImpactOperation) {
+  return [{ key: RISK_SPECIFICS_BY_OPERATION[operation].key }];
 }
 
 function summarizeBinding(binding: {
@@ -81,7 +110,7 @@ async function summarizeWorkspaceFiles(workspaceDir: string) {
       bootstrapPresent: entries.some((entry) => entry.isFile() && entry.name === "BOOTSTRAP.md"),
     };
   } catch {
-    return { total: 0, bootstrapPresent: false, truncated: true };
+    return { total: 0, bootstrapPresent: false };
   }
 }
 
@@ -117,8 +146,6 @@ export const deckAgentsImpactPreviewHandlers: GatewayRequestHandlers = {
       operation,
       impact: {
         bindingCount: bindings.length,
-        sessionCount: 0,
-        activeSubagentCount: 0,
         workspaceFileCount: files.total,
         deleteRemovesFiles: operation === "delete-agent",
         bindings: {
@@ -136,15 +163,14 @@ export const deckAgentsImpactPreviewHandlers: GatewayRequestHandlers = {
           })),
           truncated: bindings.length > 5,
         },
-        sessions: {
-          total: 0,
-          active: 0,
-        },
         files,
         capturedAt: new Date().toISOString(),
-        available: true,
+        available: false,
+        unavailableReason: SESSION_IMPACT_UNAVAILABLE_REASON,
       },
       riskSpecifics: riskSpecificsForOperation(operation),
+      riskSpecificsI18n: riskSpecificsI18nForOperation(operation),
+      // Every current impact-preview caller is a guarded mutation path.
       canProceedWithoutImpact: false,
       baseHash,
     });

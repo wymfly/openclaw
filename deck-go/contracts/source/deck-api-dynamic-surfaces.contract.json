@@ -144,6 +144,13 @@
       "exitCriteria": "Replace with operation-specific proposed DTOs if impact preview supports field-level mutation forms."
     },
     {
+      "surface": "DeckGoAgentRiskSpecific.<type>.vars",
+      "classification": "i18n-template-vars",
+      "owner": "agents",
+      "reason": "Impact risk messages use locale keys with optional template variables; variable shape depends on the operation-specific copy.",
+      "exitCriteria": "Replace with operation-specific risk DTOs if risk copy becomes a structured product model."
+    },
+    {
       "surface": "DeckGoAgentImpactSummary.<type>.bindings.samples.peer",
       "classification": "gateway-status-envelope",
       "owner": "agents",

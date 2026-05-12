@@ -53,6 +53,7 @@ scenarios:
     evidence:
       - "`agents-panel-state.ts` exposes the 11-section enum and legacy hash alias redirect; `agents-panel-state.test.ts` covers section order and alias mapping."
       - "`AgentsPanel.tsx` renders the 11 detail sections, the 7-section defaults editor, source badges, unresolved refs modal, routing link-out, guarded workspace/subagents/delete impact paths, and protected-main banners."
+      - "Post-review fix: `AgentsPanel.tsx` prefers `riskSpecificsI18n` for localized risk copy and shows degraded session-impact state when Gateway session truth is unavailable."
       - "Subagents `requireAgentId` now flows through UI toggle → `updateAgentSubagentConfig` → `subagents.set` payload."
       - "Defaults editor uses `/deck/agents/defaults` product actions for supported AgentDefaultsConfig buckets and omits schema-absent fields."
       - "Focused frontend test command passed 5 files / 27 tests; jsdom canvas warning is expected."
@@ -72,6 +73,7 @@ scenarios:
     evidence:
       - "`make e2e-real-module MODULE=agents` passed 3/3."
       - "Real E2E asserts mutation target is the isolated real-stack `managed-gateway-state/openclaw.json`, not `~/.openclaw/openclaw.json`."
+      - "Post-review real-stack probes confirmed BFF detail and impactPreview preserve Gateway JSON semantics: `impact.available=false`, `unavailableReason=session-truth-unavailable`, no nested `impact.sessions`, and `riskSpecificsI18n` present on preview."
       - "API scenario covered Gateway discovery, typed `deck.agents.detail`, nested `impact`, product actions, defaults cognition set/reset/stale hash, forged out-of-scope rejection with unchanged config, `requireAgentId` round-trip, modelPolicy set/stale path, files and identity reads, and protected main delete rejection."
       - "UI scenarios covered shell navigation into Agents, dark/en and light/zh modes, all 11 detail sections, and stable back navigation."
       - "A Gateway rate-limit response on `modelPolicy.set` was handled by one bounded retry using retry-after; no circuit-breaker gap remains."
@@ -82,5 +84,8 @@ scenarios:
     evidence:
       - "OpenSpec tasks 1.1-9.8 are checked with fresh evidence."
       - "Accepted spec `deck-go-agents-section-ia-convergence` added; touched accepted specs updated to link target shape, config write safety, isolation, and bounded retry rules."
+      - "Post-review accepted spec scenarios now cover localizable risk specifics, explicit session-impact degradation, workspace-file read failure semantics, impactPreview discovery, and L2/L3/L4 risk guardrails."
       - "Implementation report written at `openspec/changes/deck-go-agents-section-ia-convergence/implementation-report.md`."
       - "Prototype refresh follow-up surfaced at `openspec/follow-ups/2026-05-12-agents-section-ia-prototype-refresh.md`."
+      - "Post-review follow-ups surfaced at `openspec/follow-ups/2026-05-12-agents-risk-specifics-i18n.md` and `openspec/follow-ups/2026-05-12-agents-impact-session-truth.md`."
+      - "Generated Go optional JSON passthrough risk surfaced at `openspec/follow-ups/2026-05-12-go-generated-optional-json-semantics.md`."

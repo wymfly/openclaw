@@ -1882,11 +1882,17 @@ export type DeckGoAgentImpactPreviewRequest = {
   baseHash?: string;
 };
 
+export type DeckGoAgentRiskSpecific = {
+  key: string;
+  vars?: Record<string, unknown>;
+};
+
 export type DeckGoAgentImpactPreviewResponse = {
   agentId: string;
   operation: DeckGoAgentImpactPreviewOperation;
   impact: DeckGoAgentImpactSummary;
   riskSpecifics: string[];
+  riskSpecificsI18n?: DeckGoAgentRiskSpecific[];
   canProceedWithoutImpact: boolean;
   baseHash?: string;
 };

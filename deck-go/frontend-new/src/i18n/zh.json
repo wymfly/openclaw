@@ -474,7 +474,19 @@
     },
     "impact": {
       "loading": "正在加载最新影响预览",
-      "noSpecifics": "未返回额外影响细节。"
+      "noSpecifics": "未返回额外影响细节。",
+      "sessionTruthUnavailable": "当前 Gateway 真相面尚未提供会话影响数据。",
+      "risks": {
+        "editModel": "模型变更会影响后续运行的成本、延迟和回复行为。",
+        "editWorkspace": "工作区变更会影响后续运行的文件、引导和身份上下文。",
+        "editSkills": "技能变更会影响工具和上下文注入行为。",
+        "editSubagents": "子智能体策略变更会影响派生权限和子智能体模型选择。",
+        "editTools": "工具覆盖会允许或阻止智能体可见的能力。",
+        "editDelivery": "投递变更会影响事件流和心跳行为。",
+        "editConversation": "会话设置会改变提示词和回复时序行为。",
+        "resetField": "重置字段会恢复为智能体默认值或 Gateway 派生行为。",
+        "deleteAgent": "删除智能体会移除其配置，并可能让路由或会话中的引用失效。"
+      }
     },
     "errors": {
       "listTitle": "无法加载智能体",

@@ -21,6 +21,7 @@ import {
   type DeckGoAgentModelPolicyResponse,
   type DeckGoAgentModelPolicyTarget,
   type DeckGoAgentModelSelection,
+  type DeckGoAgentRiskSpecific,
   type DeckGoAgentSkillsResponse,
   type DeckGoAgentSubagentPermissionOption,
   type DeckGoAgentSystemPromptPreviewResponse,
@@ -100,6 +101,8 @@ const STREAM_OPTIONS = [
   "session.tool",
   "sessions.changed",
 ];
+
+const SESSION_IMPACT_UNAVAILABLE_REASON = "session-truth-unavailable";
 
 const AGENT_DEFAULTS_SECTIONS: Array<{
   id: "overview" | "model" | "workspace" | "skills" | "subagents" | "conversation" | "delivery";
@@ -1822,6 +1825,33 @@ function impactCount(
   return impact?.files?.total ?? impact?.workspaceFileCount;
 }
 
+function isSessionImpactUnavailable(impact: DeckGoAgentImpactSummary | null | undefined) {
+  return (
+    impact?.available === false && impact.unavailableReason === SESSION_IMPACT_UNAVAILABLE_REASON
+  );
+}
+
+function riskTranslationValues(vars?: Record<string, unknown>) {
+  if (!vars) {
+    return undefined;
+  }
+  const values: Record<string, string | number | boolean | null | undefined> = {};
+  for (const [key, value] of Object.entries(vars)) {
+    if (
+      value === null ||
+      value === undefined ||
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      values[key] = value;
+    } else {
+      values[key] = JSON.stringify(value);
+    }
+  }
+  return values;
+}
+
 function OverviewSection({
   agent,
   detail,
@@ -2017,7 +2047,10 @@ function WorkspaceSection({
           {impactQuery.error ? (
             <Banner variant="error">{formatAgentError(impactQuery.error)}</Banner>
           ) : null}
-          <RiskSpecificsList items={impactQuery.data?.riskSpecifics ?? []} />
+          <RiskSpecificsList
+            items={impactQuery.data?.riskSpecifics ?? []}
+            i18nItems={impactQuery.data?.riskSpecificsI18n}
+          />
           {isProtected ? (
             <label className="agent-checkbox-row">
               <input
@@ -2798,7 +2831,10 @@ function SubagentsSection({
               {impactQuery.error ? (
                 <Banner variant="error">{formatAgentError(impactQuery.error)}</Banner>
               ) : null}
-              <RiskSpecificsList items={impactQuery.data?.riskSpecifics ?? []} />
+              <RiskSpecificsList
+                items={impactQuery.data?.riskSpecifics ?? []}
+                i18nItems={impactQuery.data?.riskSpecificsI18n}
+              />
               {isProtected ? (
                 <label className="agent-checkbox-row">
                   <input
@@ -3072,10 +3108,12 @@ function RoutingImpactSection({
 }) {
   const t = useTranslations("agentsPanel");
   const impact = detail?.impact;
+  const sessionsUnavailable = isSessionImpactUnavailable(impact);
   const bindingCount =
     impactCount(impact, "bindings") ?? detail?.bindingCount ?? agent.bindingCount;
-  const sessionCount =
-    impactCount(impact, "sessions") ?? detail?.sessionCount ?? agent.sessionCount;
+  const sessionCount = sessionsUnavailable
+    ? undefined
+    : (impactCount(impact, "sessions") ?? detail?.sessionCount ?? agent.sessionCount);
   const samples = impact?.bindings?.samples ?? [];
   return (
     <SectionCard title={t("sections.routing")} description={t("routing.description")}>
@@ -3099,6 +3137,7 @@ function RoutingImpactSection({
           <strong>{detail?.mainKey ?? agent.mainKey ?? "-"}</strong>
         </div>
       </div>
+      {sessionsUnavailable ? <Banner>{t("impact.sessionTruthUnavailable")}</Banner> : null}
       <div className="agent-option-list">
         {samples.length === 0 ? <p>{t("routing.noSamples")}</p> : null}
         {samples.map((sample) => (
@@ -3143,6 +3182,10 @@ function DangerZoneSection({
 }) {
   const t = useTranslations("agentsPanel");
   const isProtected = detail?.isMainProtected ?? agent.isMainProtected;
+  const sessionsUnavailable = isSessionImpactUnavailable(detail?.impact);
+  const sessionCount = sessionsUnavailable
+    ? undefined
+    : (detail?.sessionCount ?? agent.sessionCount);
   return (
     <SectionCard title={t("sections.danger")} description={t("danger.description")}>
       {isProtected ? (
@@ -3156,7 +3199,7 @@ function DangerZoneSection({
             </div>
             <div>
               <span>{t("columns.sessions")}</span>
-              <strong>{formatMaybeCount(detail?.sessionCount ?? agent.sessionCount)}</strong>
+              <strong>{formatMaybeCount(sessionCount)}</strong>
             </div>
             <div>
               <span>{t("danger.deleteFiles")}</span>
@@ -3169,6 +3212,7 @@ function DangerZoneSection({
               </strong>
             </div>
           </div>
+          {sessionsUnavailable ? <Banner>{t("impact.sessionTruthUnavailable")}</Banner> : null}
           <Banner variant="warn">{t("danger.deleteImpact")}</Banner>
           <footer className="agent-section__actions">
             <Button variant="danger" onClick={onDelete}>
@@ -3440,7 +3484,10 @@ function ConfirmDelete({
             {impactQuery.error ? (
               <Banner variant="error">{formatAgentError(impactQuery.error)}</Banner>
             ) : null}
-            <RiskSpecificsList items={impactQuery.data?.riskSpecifics ?? []} />
+            <RiskSpecificsList
+              items={impactQuery.data?.riskSpecifics ?? []}
+              i18nItems={impactQuery.data?.riskSpecificsI18n}
+            />
             <label>
               <span>{t("delete.confirmIdLabel")}</span>
               <Input
@@ -3474,15 +3521,24 @@ function ConfirmDelete({
   );
 }
 
-function RiskSpecificsList({ items }: { items: string[] }) {
+function RiskSpecificsList({
+  items,
+  i18nItems,
+}: {
+  items: string[];
+  i18nItems?: DeckGoAgentRiskSpecific[];
+}) {
   const t = useTranslations("agentsPanel");
-  if (items.length === 0) {
+  const renderedItems = i18nItems?.length
+    ? i18nItems.map((item) => t(item.key, riskTranslationValues(item.vars)))
+    : items;
+  if (renderedItems.length === 0) {
     return <Banner>{t("impact.noSpecifics")}</Banner>;
   }
   return (
     <ul className="agent-risk-list">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
+      {renderedItems.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
       ))}
     </ul>
   );

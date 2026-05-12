@@ -474,7 +474,19 @@
     },
     "impact": {
       "loading": "Loading fresh impact preview",
-      "noSpecifics": "No additional impact specifics were reported."
+      "noSpecifics": "No additional impact specifics were reported.",
+      "sessionTruthUnavailable": "Session impact is not available from the current Gateway truth surface.",
+      "risks": {
+        "editModel": "Model changes can alter cost, latency, and response behavior for future runs.",
+        "editWorkspace": "Workspace changes alter file, bootstrap, and identity context for future runs.",
+        "editSkills": "Skill changes alter tool and context injection behavior.",
+        "editSubagents": "Subagent policy changes alter spawn permissions and child-agent model selection.",
+        "editTools": "Tool overrides can allow or block capabilities visible to the agent.",
+        "editDelivery": "Delivery changes alter event-stream and heartbeat behavior.",
+        "editConversation": "Conversation settings change prompt and reply timing behavior.",
+        "resetField": "Resetting fields restores inheritance from agent defaults or derived Gateway behavior.",
+        "deleteAgent": "Deleting an agent removes its configuration and may orphan references in routing or sessions."
+      }
     },
     "errors": {
       "listTitle": "Could not load agents",

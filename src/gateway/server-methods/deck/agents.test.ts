@@ -528,6 +528,7 @@ describe("deck.agents.impactPreview.get", () => {
         bindings: { count: number; samples: Array<Record<string, unknown>>; truncated: boolean };
       };
       riskSpecifics: string[];
+      riskSpecificsI18n: Array<{ key: string }>;
       canProceedWithoutImpact: boolean;
       baseHash: string;
     };
@@ -537,7 +538,13 @@ describe("deck.agents.impactPreview.get", () => {
     expect(p.impact.bindings.count).toBe(2);
     expect(p.impact.bindings.samples[0]).toMatchObject({ channel: "discord" });
     expect(p.impact.deleteRemovesFiles).toBe(true);
+    expect(p.impact).toMatchObject({
+      available: false,
+      unavailableReason: "session-truth-unavailable",
+    });
+    expect("sessions" in p.impact).toBe(false);
     expect(p.riskSpecifics[0]).toContain("Deleting an agent");
+    expect(p.riskSpecificsI18n).toEqual([{ key: "impact.risks.deleteAgent" }]);
     expect(p.canProceedWithoutImpact).toBe(false);
     expect(p.baseHash).toBe("hash-abc123");
   });
@@ -568,10 +575,12 @@ describe("deck.agents.impactPreview.get", () => {
       const p = result.payload as {
         operation: string;
         riskSpecifics: string[];
+        riskSpecificsI18n: Array<{ key: string }>;
         canProceedWithoutImpact: boolean;
       };
       expect(p.operation).toBe(operation);
       expect(p.riskSpecifics.length).toBeGreaterThan(0);
+      expect(p.riskSpecificsI18n.length).toBeGreaterThan(0);
       expect(p.canProceedWithoutImpact).toBe(false);
     }
   });

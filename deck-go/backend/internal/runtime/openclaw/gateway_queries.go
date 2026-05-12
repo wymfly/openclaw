@@ -364,8 +364,8 @@ func (q *GatewayQueries) DeckPluginsList(ctx context.Context, params map[string]
 	return q.typed.DeckPluginsList(ctx, typedParams)
 }
 
-func (q *GatewayQueries) DeckAgentsDetail(ctx context.Context, agentID string) (generated.DeckAgentsDetailResult, error) {
-	return q.typed.DeckAgentsDetail(ctx, generated.DeckAgentsDetailParams{AgentId: agentID})
+func (q *GatewayQueries) DeckAgentsDetail(ctx context.Context, agentID string) (any, error) {
+	return q.requester.RequestTyped(ctx, "deck.agents.detail", generated.DeckAgentsDetailParams{AgentId: agentID})
 }
 
 func (q *GatewayQueries) DeckAgentsSkillsGet(ctx context.Context, body map[string]any) (generated.DeckAgentsSkillsGetResult, error) {
@@ -448,12 +448,12 @@ func (q *GatewayQueries) DeckAgentsEventStreamsSet(ctx context.Context, body map
 	return q.typed.DeckAgentsEventStreamsSet(ctx, params)
 }
 
-func (q *GatewayQueries) DeckAgentsImpactPreviewGet(ctx context.Context, body map[string]any) (generated.DeckAgentsImpactPreviewGetResult, error) {
+func (q *GatewayQueries) DeckAgentsImpactPreviewGet(ctx context.Context, body map[string]any) (any, error) {
 	params, err := typedParamsFromMap[generated.DeckAgentsImpactPreviewGetParams](body)
 	if err != nil {
-		return generated.DeckAgentsImpactPreviewGetResult{}, err
+		return nil, err
 	}
-	return q.typed.DeckAgentsImpactPreviewGet(ctx, params)
+	return q.requester.RequestTyped(ctx, "deck.agents.impactPreview.get", params)
 }
 
 func (q *GatewayQueries) DeckCommandsDiscover(ctx context.Context, body map[string]any) (generated.DeckCommandsDiscoverResult, error) {

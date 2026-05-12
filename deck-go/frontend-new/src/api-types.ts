@@ -379,6 +379,7 @@ export type DeckGoAgentDefaultsSetRequest = DeckApi.DeckGoAgentDefaultsSetReques
 export type DeckGoAgentImpactPreviewOperation = DeckApi.DeckGoAgentImpactPreviewOperation;
 export type DeckGoAgentImpactPreviewRequest = DeckApi.DeckGoAgentImpactPreviewRequest;
 export type DeckGoAgentImpactPreviewResponse = DeckApi.DeckGoAgentImpactPreviewResponse;
+export type DeckGoAgentRiskSpecific = DeckApi.DeckGoAgentRiskSpecific;
 export type DeckGoAgentProductActionResponse = DeckApi.DeckGoAgentProductActionResponse;
 export type DeckGoAgentFile = DeckApi.DeckGoAgentFile;
 export type DeckGoAgentFileResponse = DeckApi.DeckGoAgentFileResponse;

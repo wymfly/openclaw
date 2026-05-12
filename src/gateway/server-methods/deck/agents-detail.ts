@@ -26,6 +26,7 @@ const {
 const { loadConfig } = configService;
 
 type EffectiveSource = "agent" | "default" | "derived" | "gateway" | "unknown";
+const SESSION_IMPACT_UNAVAILABLE_REASON = "session-truth-unavailable";
 type EffectiveField = {
   source: EffectiveSource;
   hasOverride: boolean;
@@ -155,7 +156,7 @@ async function summarizeWorkspaceFiles(workspaceDir: string) {
       bootstrapPresent: entries.some((entry) => entry.isFile() && entry.name === "BOOTSTRAP.md"),
     };
   } catch {
-    return { total: 0, bootstrapPresent: false, truncated: true };
+    return { total: 0, bootstrapPresent: false };
   }
 }
 
@@ -186,6 +187,9 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
     const agentBindings = bindings.filter((binding) => binding.agentId === agentId);
     const bindingCount = agentBindings.length;
 
+    // Legacy top-level fields remain required by the current response schema.
+    // The richer impact object marks session truth unavailable instead of
+    // presenting these compatibility placeholders as a complete count.
     const sessionCount = 0;
     const activeSubagentCount = 0;
 
@@ -248,8 +252,6 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
     const workspaceFiles = await summarizeWorkspaceFiles(workspaceDir);
     const impact = {
       bindingCount,
-      sessionCount,
-      activeSubagentCount,
       workspaceFileCount: workspaceFiles.total,
       deleteRemovesFiles: false,
       bindings: {
@@ -267,13 +269,10 @@ export const deckAgentsDetailHandlers: GatewayRequestHandlers = {
         })),
         truncated: bindingCount > 5,
       },
-      sessions: {
-        total: sessionCount,
-        active: activeSubagentCount,
-      },
       files: workspaceFiles,
       capturedAt: new Date().toISOString(),
-      available: true,
+      available: false,
+      unavailableReason: SESSION_IMPACT_UNAVAILABLE_REASON,
     };
     const inherited = {
       workspace: effectiveField({

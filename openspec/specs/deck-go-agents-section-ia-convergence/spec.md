@@ -46,13 +46,34 @@ Agents model-policy writes SHALL call `deck.agents.modelPolicy.set` using target
 
 ### Requirement: Agents impact SHALL be split into cached snapshot and fresh preview
 
-Detail SHALL expose cache-friendly nested `impact.bindings`, `impact.sessions`, and `impact.files` while preserving flat legacy counts. High-risk operations SHALL fetch `deck.agents.impactPreview.get` fresh before enabling confirmation.
+Detail SHALL expose cache-friendly nested `impact.bindings`, `impact.sessions`, and `impact.files` while preserving flat legacy counts when the corresponding truth source exists. High-risk operations SHALL fetch `deck.agents.impactPreview.get` fresh before enabling confirmation. Impact preview risk copy SHALL be localizable through structured keys while preserving the legacy string array for older consumers.
 
 #### Scenario: High-risk confirmation waits for fresh impact
 
 - **WHEN** an L3 or L4 agents operation opens
 - **THEN** the UI SHALL request `impactPreview.get`
 - **AND** confirmation SHALL remain disabled until that response arrives
+
+#### Scenario: Risk specifics are localizable without breaking old clients
+
+- **WHEN** `deck.agents.impactPreview.get` returns a valid response
+- **THEN** the response SHALL include legacy `riskSpecifics: string[]`
+- **AND** it SHALL also include `riskSpecificsI18n?: Array<{ key, vars? }>` for localized UI rendering
+- **AND** the frontend SHALL prefer `riskSpecificsI18n` when present and fall back to `riskSpecifics` when absent
+
+#### Scenario: Missing session truth is represented as degraded, not zero
+
+- **WHEN** the current Gateway surface cannot provide real session impact for an agent
+- **THEN** `impact.available` SHALL be `false`
+- **AND** `impact.unavailableReason` SHALL explain the unavailable truth source
+- **AND** nested `impact.sessions` SHALL be omitted rather than filled with fabricated zero counts
+- **AND** legacy top-level detail count fields MAY remain as compatibility placeholders but SHALL NOT be presented as authoritative nested impact truth
+
+#### Scenario: Workspace read failure is not reported as truncation
+
+- **WHEN** workspace files cannot be read while building an impact summary
+- **THEN** the files summary SHALL NOT set `truncated: true` unless a real truncation limit was applied
+- **AND** degraded impact state SHALL be represented through availability/error semantics instead of false truncation semantics
 
 ### Requirement: Agents unresolved references SHALL be aggregated by Gateway detail
 
@@ -83,6 +104,37 @@ Deck namespace protocol changes SHALL be additive and limited to `deck.ts` plus 
 - **WHEN** `deck.agents.subagents.set` is called with `requireAgentId: true`
 - **THEN** the isolated `openclaw.json` SHALL persist `agents.list[<id>].subagents.requireAgentId = true`
 - **AND** subsequent reads SHALL return that value
+
+#### Scenario: impactPreview is discoverable and validated
+
+- **WHEN** Gateway method discovery runs
+- **THEN** `deck.agents.impactPreview.get` SHALL be registered with params/result schema and method metadata
+- **AND** invalid params SHALL return deterministic validation errors
+- **AND** valid `{ agentId, operation, baseHash? }` params SHALL return typed impact and risk fields
+
+### Requirement: Agents risk guardrails SHALL enforce L2/L3/L4 behavior
+
+Editable agents fields SHALL be classified by risk and guarded accordingly. L2 edits SHALL keep dirty drafts on conflict and require explicit reload/overwrite decisions. L3 edits SHALL require fresh impact plus an acknowledgement checkbox before save. L4 destructive actions SHALL require exact-id confirmation and server-side validation. The protected `main` agent SHALL never render a delete action.
+
+#### Scenario: L3 Save is blocked until checkbox is checked
+
+- **WHEN** a user opens an L3 editor and a fresh impact preview has loaded
+- **THEN** the "I understand" checkbox SHALL be unchecked by default and the Save button disabled
+- **AND** checking the checkbox SHALL enable Save
+- **AND** unchecking it SHALL disable Save again
+
+#### Scenario: L4 destructive delete requires exact agent id
+
+- **WHEN** a user opens the danger section delete dialog for a non-main agent
+- **THEN** Proceed SHALL remain disabled until the typed input exactly matches the agent id
+- **AND** an incorrect id SHALL keep Proceed disabled and show an inline mismatch hint
+- **AND** the BFF SHALL reject any delete request whose `agentId` does not match the URL-bound agent
+
+#### Scenario: Main agent delete is absent
+
+- **WHEN** a user opens the danger section for `main`
+- **THEN** the delete button SHALL not be rendered
+- **AND** the section SHALL explain that `main` is protected as the system/fallback agent
 
 ### Requirement: Real and mock evidence SHALL be layered
 

@@ -511,6 +511,11 @@ const DeckAgentImpactSummarySchema = Type.Object({
   unavailableReason: Type.Optional(Type.String()),
 });
 
+const DeckAgentRiskSpecificSchema = Type.Object({
+  key: Type.String(),
+  vars: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+});
+
 const DeckAgentGuardedEditMetadataSchema = Type.Object({
   field: Type.String(),
   risk: Type.Union([Type.Literal("medium"), Type.Literal("high")]),
@@ -645,6 +650,7 @@ export const DeckAgentsImpactPreviewResultSchema = Type.Object({
   operation: DeckAgentsImpactPreviewOperationSchema,
   impact: DeckAgentImpactSummarySchema,
   riskSpecifics: Type.Array(Type.String()),
+  riskSpecificsI18n: Type.Optional(Type.Array(DeckAgentRiskSpecificSchema)),
   canProceedWithoutImpact: Type.Boolean(),
   baseHash: Type.Optional(Type.String()),
 });

@@ -1782,6 +1782,10 @@ export type DeckAgentsImpactPreviewGetResult = {
     | "edit-workspace"
     | "reset-field";
   riskSpecifics: string[];
+  riskSpecificsI18n?: {
+    key: string;
+    vars?: Record<string, unknown>;
+  }[];
 };
 
 export interface DeckAgentsModelPolicyGetParams {

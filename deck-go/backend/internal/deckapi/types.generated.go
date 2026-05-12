@@ -1635,11 +1635,17 @@ type DeckGoAgentImpactPreviewRequest struct {
 	BaseHash string `json:"baseHash,omitempty"`
 }
 
+type DeckGoAgentRiskSpecific struct {
+	Key string `json:"key"`
+	Vars map[string]any `json:"vars,omitempty"`
+}
+
 type DeckGoAgentImpactPreviewResponse struct {
 	AgentId string `json:"agentId"`
 	Operation DeckGoAgentImpactPreviewOperation `json:"operation"`
 	Impact DeckGoAgentImpactSummary `json:"impact"`
 	RiskSpecifics []string `json:"riskSpecifics"`
+	RiskSpecificsI18n []DeckGoAgentRiskSpecific `json:"riskSpecificsI18n,omitempty"`
 	CanProceedWithoutImpact bool `json:"canProceedWithoutImpact"`
 	BaseHash string `json:"baseHash,omitempty"`
 }

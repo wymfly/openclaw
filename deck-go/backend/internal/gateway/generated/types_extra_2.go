@@ -2,6 +2,14 @@
 
 package generated
 
+type DeviceTokenRotateResult struct {
+	DeviceId    string   `json:"deviceId"`
+	Role        string   `json:"role"`
+	RotatedAtMs int      `json:"rotatedAtMs"`
+	Scopes      []string `json:"scopes"`
+	Token       string   `json:"token"`
+}
+
 type DoctorMemoryBackfillDreamDiaryResult struct {
 	Action                   string   `json:"action"`
 	AgentId                  string   `json:"agentId"`

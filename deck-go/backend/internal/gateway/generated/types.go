@@ -1083,8 +1083,12 @@ type DeckAgentsImpactPreviewGetResult struct {
 		UnavailableReason  string `json:"unavailableReason,omitempty"`
 		WorkspaceFileCount int    `json:"workspaceFileCount,omitempty"`
 	} `json:"impact"`
-	Operation     string   `json:"operation"`
-	RiskSpecifics []string `json:"riskSpecifics"`
+	Operation         string   `json:"operation"`
+	RiskSpecifics     []string `json:"riskSpecifics"`
+	RiskSpecificsI18n []struct {
+		Key  string         `json:"key"`
+		Vars map[string]any `json:"vars,omitempty"`
+	} `json:"riskSpecificsI18n,omitempty"`
 }
 
 type DeckAgentsModelPolicyGetParams struct {
@@ -1788,12 +1792,4 @@ type DeviceTokenRotateParams struct {
 	DeviceId string   `json:"deviceId"`
 	Role     string   `json:"role"`
 	Scopes   []string `json:"scopes,omitempty"`
-}
-
-type DeviceTokenRotateResult struct {
-	DeviceId    string   `json:"deviceId"`
-	Role        string   `json:"role"`
-	RotatedAtMs int      `json:"rotatedAtMs"`
-	Scopes      []string `json:"scopes"`
-	Token       string   `json:"token"`
 }
