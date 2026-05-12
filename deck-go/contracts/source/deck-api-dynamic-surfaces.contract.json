@@ -284,6 +284,13 @@
       "exitCriteria": "Replace with action-discriminated response DTOs when compaction UX requires per-action fields."
     },
     {
+      "surface": "DeckGoCompactionActionResponse.<type>.result",
+      "classification": "action-result-envelope",
+      "owner": "chat",
+      "reason": "Gateway compaction may include an upstream result payload beyond the named product status fields.",
+      "exitCriteria": "Narrow or remove when Gateway publishes a stable compaction result shape for Deck-facing consumers."
+    },
+    {
       "surface": "DeckGoConfigLookupChild.<type>.hint",
       "classification": "gateway-schema-envelope",
       "owner": "config",

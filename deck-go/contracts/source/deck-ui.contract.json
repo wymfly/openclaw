@@ -436,14 +436,18 @@
         "DeckGoChatHistoryResponse",
         "DeckGoChatSendRequest",
         "DeckGoChatSessionClearRequest",
+        "DeckGoChatSessionCreateRequest",
         "DeckGoChatSessionDeleteRequest",
         "DeckGoChatSessionPatchRequest",
         "DeckGoChatSessionResetRequest",
         "DeckGoChatSnapshotResponse",
+        "DeckGoChatSteerRequest",
+        "DeckGoChatSteerResponse",
         "DeckGoCompactionActionResponse",
         "DeckGoCompactionCheckpoint",
         "DeckGoCompactionListResponse",
         "DeckGoContextWeightReport",
+        "DeckGoSessionCreateResponse",
         "DeckGoSessionDetailResponse",
         "DeckGoSessionMeta",
         "DeckGoSessionMutationResponse",
@@ -471,8 +475,10 @@
         "GET /api/usage/sessions",
         "GET /api/usage/sessions/logs",
         "POST /api/deck/subagents",
+        "POST /api/chat/sessions/create",
         "POST /api/chat/send",
         "POST /api/chat/abort",
+        "POST /api/chat/steer",
         "POST /api/chat/sessions/reset",
         "POST /api/chat/sessions/clear",
         "DELETE /api/chat/sessions",
@@ -482,8 +488,10 @@
         "POST /api/chat/session-events"
       ],
       "actions": [
+        "chat.session.create",
         "chat.send",
         "chat.abort",
+        "chat.steer",
         "sessions.refresh",
         "sessions.preview",
         "sessions.detail",
@@ -1935,7 +1943,7 @@
       "endpoint": "POST /api/chat/compact",
       "safety": "destructive",
       "requestDto": "DeckGoChatCompactRequest",
-      "resultDto": "DeckGoSessionMutationResponse",
+      "resultDto": "DeckGoCompactionActionResponse",
       "confirmation": {
         "required": true,
         "message": "Compact this session history?"
@@ -1981,6 +1989,15 @@
       ]
     },
     {
+      "id": "chat.session.create",
+      "label": "Create chat session",
+      "endpoint": "POST /api/chat/sessions/create",
+      "safety": "mutating",
+      "requestDto": "DeckGoChatSessionCreateRequest",
+      "resultDto": "DeckGoSessionCreateResponse",
+      "refresh": ["GET /api/sessions", "GET /api/chat/snapshot"]
+    },
+    {
       "id": "chat.send",
       "label": "Send message",
       "endpoint": "POST /api/chat/send",
@@ -2000,6 +2017,15 @@
         "required": true,
         "message": "Abort the active chat run?"
       },
+      "refresh": ["GET /api/chat/snapshot"]
+    },
+    {
+      "id": "chat.steer",
+      "label": "Steer chat run",
+      "endpoint": "POST /api/chat/steer",
+      "safety": "mutating",
+      "requestDto": "DeckGoChatSteerRequest",
+      "resultDto": "DeckGoChatSteerResponse",
       "refresh": ["GET /api/chat/snapshot"]
     },
     {

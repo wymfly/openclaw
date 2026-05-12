@@ -6,167 +6,169 @@ Source format: `sibling-ui-contract-json`
 
 ## Summary
 
-| Metric                 | Count |
-| ---------------------- | ----: |
-| Domains                |     8 |
-| Field metadata entries |    34 |
-| Actions                |    95 |
-| Validation issues      |     0 |
+| Metric | Count |
+| --- | ---: |
+| Domains | 8 |
+| Field metadata entries | 34 |
+| Actions | 97 |
+| Validation issues | 0 |
 
 ## Domains
 
-| Domain              | Label                              | Status   | DTOs | Endpoints | Actions |
-| ------------------- | ---------------------------------- | -------- | ---: | --------: | ------: |
-| `runtime-settings`  | Runtime and settings               | migrated |   16 |        20 |      13 |
-| `gateway-control`   | Gateway control plane              | partial  |   10 |         9 |       2 |
-| `agents-tools`      | Agents, tools, and model inventory | partial  |   58 |        18 |      38 |
-| `identity-registry` | Canonical identity registry        | migrated |    4 |         3 |       3 |
-| `models-control`    | Model operations control           | partial  |   48 |        16 |      16 |
-| `sessions-chat`     | Sessions and chat                  | partial  |   30 |        18 |      17 |
-| `usage-monitor`     | Usage and monitor                  | partial  |    3 |         7 |       2 |
-| `approvals`         | Approvals                          | partial  |    7 |         7 |       4 |
+| Domain | Label | Status | DTOs | Endpoints | Actions |
+| --- | --- | --- | ---: | ---: | ---: |
+| `runtime-settings` | Runtime and settings | migrated | 16 | 20 | 13 |
+| `gateway-control` | Gateway control plane | partial | 10 | 9 | 2 |
+| `agents-tools` | Agents, tools, and model inventory | partial | 58 | 18 | 38 |
+| `identity-registry` | Canonical identity registry | migrated | 4 | 3 | 3 |
+| `models-control` | Model operations control | partial | 48 | 16 | 16 |
+| `sessions-chat` | Sessions and chat | partial | 34 | 20 | 19 |
+| `usage-monitor` | Usage and monitor | partial | 3 | 7 | 2 |
+| `approvals` | Approvals | partial | 7 | 7 | 4 |
 
 ## Field Metadata
 
-| Field                                           | Label              | Kind         |
-| ----------------------------------------------- | ------------------ | ------------ |
-| `DeckGoRuntimeGatewayStatus.mode`               | Mode               | `mode`       |
-| `DeckGoRuntimeGatewayStatus.status`             | Gateway status     | `status`     |
-| `DeckGoRuntimeGatewayStatus.health`             | Health             | `status`     |
-| `DeckGoRuntimeGatewayStatus.gatewayUrl`         | Gateway URL        | `url`        |
-| `DeckGoRuntimeGatewayStatus.autoStart`          | Auto start         | `boolean`    |
-| `DeckGoRuntimeGatewayStatus.latencyP50`         | P50 latency        | `duration`   |
-| `DeckGoRuntimeEndpointResponse.tokenConfigured` | Token configured   | `boolean`    |
-| `DeckGoRuntimeEndpointResponse.source`          | Source             | `status`     |
-| `DeckGoSettings.accessTokenConfigured`          | Access token       | `secret`     |
-| `DeckGoPairedDevice.deviceId`                   | Device ID          | `identifier` |
-| `DeckGoPairedDevice.displayName`                | Device name        | `text`       |
-| `DeckGoPairedDevice.platform`                   | Platform           | `text`       |
-| `DeckGoPairedDevice.remoteIp`                   | Remote IP          | `identifier` |
-| `DeckGoPendingDeviceRequest.requestId`          | Request ID         | `identifier` |
-| `DeckGoDeviceTokenSummary.role`                 | Token role         | `identifier` |
-| `DeckGoRuntimeConfiguredModel.provider`         | Provider           | `text`       |
-| `DeckGoRuntimeConfiguredModel.authStatus`       | Auth status        | `status`     |
-| `DeckGoRuntimeConfiguredModel.editable`         | Editable           | `boolean`    |
-| `DeckGoGatewayDescribeMethod.scope`             | Required scope     | `text`       |
-| `DeckGoSessionMeta.status`                      | Session status     | `status`     |
-| `DeckGoSessionMeta.updatedAt`                   | Updated            | `timestamp`  |
-| `DeckGoSessionMeta.runtimeMs`                   | Runtime            | `duration`   |
-| `DeckGoSessionMeta.estimatedCostUsd`            | Estimated cost     | `currency`   |
-| `DeckGoTranscriptMessage.role`                  | Role               | `status`     |
-| `DeckGoSessionPreviewEntry.status`              | Preview status     | `status`     |
-| `DeckGoUsageSessionEntry.updatedAt`             | Usage updated      | `timestamp`  |
-| `DeckGoUsageSessionLogEntry.role`               | Log role           | `status`     |
-| `DeckGoCompactionCheckpoint.createdAt`          | Checkpoint created | `timestamp`  |
-| `DeckGoChannelThroughputBucket.time`            | Time               | `timestamp`  |
-| `DeckGoChannelThroughputResponse.messagesIn`    | Messages in        | `number`     |
-| `DeckGoChannelThroughputResponse.messagesOut`   | Messages out       | `number`     |
-| `DeckGoPluginApprovalEntry.status`              | Approval status    | `status`     |
-| `DeckGoPluginApprovalEntry.decision`            | Decision           | `status`     |
-| `DeckGoPluginApprovalEntry.expiresAtMs`         | Expires            | `timestamp`  |
+| Field | Label | Kind |
+| --- | --- | --- |
+| `DeckGoRuntimeGatewayStatus.mode` | Mode | `mode` |
+| `DeckGoRuntimeGatewayStatus.status` | Gateway status | `status` |
+| `DeckGoRuntimeGatewayStatus.health` | Health | `status` |
+| `DeckGoRuntimeGatewayStatus.gatewayUrl` | Gateway URL | `url` |
+| `DeckGoRuntimeGatewayStatus.autoStart` | Auto start | `boolean` |
+| `DeckGoRuntimeGatewayStatus.latencyP50` | P50 latency | `duration` |
+| `DeckGoRuntimeEndpointResponse.tokenConfigured` | Token configured | `boolean` |
+| `DeckGoRuntimeEndpointResponse.source` | Source | `status` |
+| `DeckGoSettings.accessTokenConfigured` | Access token | `secret` |
+| `DeckGoPairedDevice.deviceId` | Device ID | `identifier` |
+| `DeckGoPairedDevice.displayName` | Device name | `text` |
+| `DeckGoPairedDevice.platform` | Platform | `text` |
+| `DeckGoPairedDevice.remoteIp` | Remote IP | `identifier` |
+| `DeckGoPendingDeviceRequest.requestId` | Request ID | `identifier` |
+| `DeckGoDeviceTokenSummary.role` | Token role | `identifier` |
+| `DeckGoRuntimeConfiguredModel.provider` | Provider | `text` |
+| `DeckGoRuntimeConfiguredModel.authStatus` | Auth status | `status` |
+| `DeckGoRuntimeConfiguredModel.editable` | Editable | `boolean` |
+| `DeckGoGatewayDescribeMethod.scope` | Required scope | `text` |
+| `DeckGoSessionMeta.status` | Session status | `status` |
+| `DeckGoSessionMeta.updatedAt` | Updated | `timestamp` |
+| `DeckGoSessionMeta.runtimeMs` | Runtime | `duration` |
+| `DeckGoSessionMeta.estimatedCostUsd` | Estimated cost | `currency` |
+| `DeckGoTranscriptMessage.role` | Role | `status` |
+| `DeckGoSessionPreviewEntry.status` | Preview status | `status` |
+| `DeckGoUsageSessionEntry.updatedAt` | Usage updated | `timestamp` |
+| `DeckGoUsageSessionLogEntry.role` | Log role | `status` |
+| `DeckGoCompactionCheckpoint.createdAt` | Checkpoint created | `timestamp` |
+| `DeckGoChannelThroughputBucket.time` | Time | `timestamp` |
+| `DeckGoChannelThroughputResponse.messagesIn` | Messages in | `number` |
+| `DeckGoChannelThroughputResponse.messagesOut` | Messages out | `number` |
+| `DeckGoPluginApprovalEntry.status` | Approval status | `status` |
+| `DeckGoPluginApprovalEntry.decision` | Decision | `status` |
+| `DeckGoPluginApprovalEntry.expiresAtMs` | Expires | `timestamp` |
 
 ## Actions
 
-| Action                             | Label                                    | Endpoint                                          | Safety        |
-| ---------------------------------- | ---------------------------------------- | ------------------------------------------------- | ------------- |
-| `runtime.gateway.refresh`          | Refresh runtime                          | `GET /api/runtime/gateway`                        | `read`        |
-| `gateway.refresh`                  | Refresh Gateway diagnostics              | `GET /api/gateway/health`                         | `read`        |
-| `gateway.batch.readOnly`           | Run read-only Gateway batch              | `POST /api/v1/runtimes/{runtimeId}/gateway/batch` | `mutating`    |
-| `identity.refresh`                 | Refresh identity registry                | `GET /api/deck/identity`                          | `read`        |
-| `identity.link`                    | Link identity peer                       | `POST /api/deck/identity`                         | `mutating`    |
-| `identity.unlink`                  | Unlink identity peer                     | `POST /api/deck/identity`                         | `destructive` |
-| `models.refresh`                   | Refresh model operations                 | `GET /api/models/config`                          | `read`        |
-| `models.config.lookup`             | Lookup model config schema               | `POST /api/config/schema-lookup`                  | `read`        |
-| `models.config.save`               | Save model config                        | `PATCH /api/models/config`                        | `mutating`    |
-| `models.provider.edit`             | Edit model provider                      | `PATCH /api/models/config`                        | `mutating`    |
-| `models.catalog.apply`             | Apply catalog provider                   | `PATCH /api/models/config`                        | `mutating`    |
-| `models.fallbacks.save`            | Save model fallbacks                     | `PATCH /api/models/config`                        | `mutating`    |
-| `models.allowlist.save`            | Save model allowlist                     | `PATCH /api/models/config`                        | `mutating`    |
-| `models.auth.probe`                | Probe model auth                         | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc`   | `read`        |
-| `models.config.detail`             | Load Models config detail                | `GET /api/models/config/detail`                   | `read`        |
-| `models.providers.upsert`          | Create or edit a model provider          | `POST /api/models/providers/upsert`               | `mutating`    |
-| `models.providers.delete-preview`  | Preview provider delete impact           | `POST /api/models/providers/delete-preview`       | `read`        |
-| `models.providers.delete`          | Delete a model provider                  | `POST /api/models/providers/delete`               | `mutating`    |
-| `models.models.upsert`             | Create or edit a model entry             | `POST /api/models/models/upsert`                  | `mutating`    |
-| `models.models.delete-preview`     | Preview model delete impact              | `POST /api/models/models/delete-preview`          | `read`        |
-| `models.models.delete`             | Delete a model entry                     | `POST /api/models/models/delete`                  | `mutating`    |
-| `models.mode.set`                  | Set catalog mode (merge/replace)         | `POST /api/models/mode/set`                       | `mutating`    |
-| `runtime.gateway.start`            | Start Gateway                            | `POST /api/runtime/gateway/start`                 | `mutating`    |
-| `runtime.gateway.stop`             | Stop Gateway                             | `POST /api/runtime/gateway/stop`                  | `destructive` |
-| `runtime.endpoint.save`            | Save endpoint                            | `PUT /api/runtime/endpoint`                       | `mutating`    |
-| `runtime.endpoint.test`            | Test endpoint                            | `POST /api/runtime/endpoint:test`                 | `read`        |
-| `settings.save`                    | Save settings                            | `PUT /api/settings`                               | `mutating`    |
-| `settings.testConnection`          | Test connection                          | `POST /api/settings/test-connection`              | `read`        |
-| `devices.refresh`                  | Refresh paired devices                   | `GET /api/devices`                                | `read`        |
-| `devices.approve`                  | Approve device request                   | `POST /api/devices/approve`                       | `mutating`    |
-| `devices.reject`                   | Reject device request                    | `POST /api/devices/reject`                        | `mutating`    |
-| `devices.remove`                   | Remove paired device                     | `POST /api/devices/remove`                        | `destructive` |
-| `devices.token.rotate`             | Rotate device token                      | `POST /api/devices/token/rotate`                  | `destructive` |
-| `devices.token.revoke`             | Revoke device token                      | `POST /api/devices/token/revoke`                  | `destructive` |
-| `agents.refresh`                   | Refresh agents                           | `GET /api/deck/agents`                            | `read`        |
-| `agents.create`                    | Create agent                             | `POST /api/agents`                                | `mutating`    |
-| `agents.update`                    | Update agent                             | `PATCH /api/agents/{agentId}`                     | `mutating`    |
-| `agents.delete`                    | Delete agent                             | `DELETE /api/agents`                              | `destructive` |
-| `agents.cognition.get`             | Load agent cognition settings            | `POST /api/deck/agents`                           | `read`        |
-| `agents.cognition.set`             | Save agent cognition settings            | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.workspace.get`             | Load agent workspace settings            | `POST /api/deck/agents`                           | `read`        |
-| `agents.workspace.set`             | Save agent workspace settings            | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.conversation.get`          | Load agent conversation settings         | `POST /api/deck/agents`                           | `read`        |
-| `agents.conversation.set`          | Save agent conversation settings         | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.delivery.get`              | Load agent delivery settings             | `POST /api/deck/agents`                           | `read`        |
-| `agents.delivery.set`              | Save agent delivery settings             | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.toolsOverride.get`         | Load agent tool overrides                | `POST /api/deck/agents`                           | `read`        |
-| `agents.toolsOverride.set`         | Save agent tool overrides                | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.defaults.workspace.get`    | Load agent defaults workspace settings   | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.workspace.set`    | Save agent defaults workspace settings   | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.cognition.get`    | Load agent defaults cognition settings   | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.cognition.set`    | Save agent defaults cognition settings   | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.skills.get`       | Load agent default skills                | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.skills.set`       | Save agent default skills                | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.subagents.get`    | Load agent default subagent policy       | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.subagents.set`    | Save agent default subagent policy       | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.conversation.get` | Load agent default conversation settings | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.conversation.set` | Save agent default conversation settings | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.eventStreams.get` | Load agent default event streams         | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.eventStreams.set` | Save agent default event streams         | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.defaults.delivery.get`     | Load agent default delivery settings     | `POST /api/deck/agents/defaults`                  | `read`        |
-| `agents.defaults.delivery.set`     | Save agent default delivery settings     | `POST /api/deck/agents/defaults`                  | `mutating`    |
-| `agents.impactPreview.get`         | Preview agent change impact              | `POST /api/deck/agents`                           | `read`        |
-| `agents.skills.save`               | Save agent skills                        | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.subagents.save`            | Save agent subagent policy               | `POST /api/deck/agents`                           | `mutating`    |
-| `subagents.refresh`                | Refresh subagent runs                    | `GET /api/deck/subagents`                         | `read`        |
-| `subagents.lineage`                | Load subagent lineage                    | `POST /api/deck/subagents`                        | `read`        |
-| `subagents.steer`                  | Steer subagent run                       | `POST /api/deck/subagents`                        | `mutating`    |
-| `subagents.kill`                   | Kill subagent run                        | `POST /api/deck/subagents`                        | `destructive` |
-| `agents.eventStreams.save`         | Save agent event streams                 | `POST /api/deck/agents`                           | `mutating`    |
-| `agents.files.save`                | Save agent file                          | `POST /api/agents/{agentId}/files`                | `mutating`    |
-| `tools.catalog.refresh`            | Refresh tools                            | `POST /api/tools/catalog`                         | `read`        |
-| `sessions.refresh`                 | Refresh sessions                         | `GET /api/sessions`                               | `read`        |
-| `sessions.preview`                 | Preview sessions                         | `POST /api/chat/sessions/preview`                 | `read`        |
-| `sessions.detail`                  | Load session detail                      | `GET /api/sessions/{sessionKey}`                  | `read`        |
-| `sessions.history`                 | Load transcript history                  | `GET /api/chat/history`                           | `read`        |
-| `sessions.usage`                   | Load session usage                       | `GET /api/usage/sessions`                         | `read`        |
-| `sessions.usage.logs`              | Load session usage logs                  | `GET /api/usage/sessions/logs`                    | `read`        |
-| `sessions.lineage`                 | Load subagent lineage                    | `POST /api/deck/subagents`                        | `read`        |
-| `sessions.reset`                   | Reset session                            | `POST /api/chat/sessions/reset`                   | `destructive` |
-| `sessions.clear`                   | Clear session                            | `POST /api/chat/sessions/clear`                   | `destructive` |
-| `sessions.delete`                  | Delete session                           | `DELETE /api/chat/sessions`                       | `destructive` |
-| `sessions.patch`                   | Patch session                            | `POST /api/chat/sessions/patch`                   | `mutating`    |
-| `sessions.compact`                 | Compact session                          | `POST /api/chat/compact`                          | `destructive` |
-| `sessions.compaction.list`         | List compaction checkpoints              | `POST /api/chat/compaction`                       | `read`        |
-| `sessions.compaction.branch`       | Branch compaction checkpoint             | `POST /api/chat/compaction`                       | `mutating`    |
-| `sessions.compaction.restore`      | Restore compaction checkpoint            | `POST /api/chat/compaction`                       | `destructive` |
-| `chat.send`                        | Send message                             | `POST /api/chat/send`                             | `mutating`    |
-| `chat.abort`                       | Abort run                                | `POST /api/chat/abort`                            | `destructive` |
-| `usage.refresh`                    | Refresh usage                            | `GET /api/usage/sessions`                         | `read`        |
-| `monitor.runs.refresh`             | Refresh monitor runs                     | `GET /api/monitor/runs`                           | `read`        |
-| `approvals.refresh`                | Refresh approvals                        | `GET /api/approvals/pending`                      | `read`        |
-| `approvals.policy.save`            | Save approval policy                     | `PUT /api/approvals/policy`                       | `mutating`    |
-| `approval.decide`                  | Decide approval                          | `POST /api/approvals`                             | `destructive` |
-| `pluginApproval.decide`            | Decide plugin approval                   | `POST /api/approvals/plugins`                     | `destructive` |
+| Action | Label | Endpoint | Safety |
+| --- | --- | --- | --- |
+| `runtime.gateway.refresh` | Refresh runtime | `GET /api/runtime/gateway` | `read` |
+| `gateway.refresh` | Refresh Gateway diagnostics | `GET /api/gateway/health` | `read` |
+| `gateway.batch.readOnly` | Run read-only Gateway batch | `POST /api/v1/runtimes/{runtimeId}/gateway/batch` | `mutating` |
+| `identity.refresh` | Refresh identity registry | `GET /api/deck/identity` | `read` |
+| `identity.link` | Link identity peer | `POST /api/deck/identity` | `mutating` |
+| `identity.unlink` | Unlink identity peer | `POST /api/deck/identity` | `destructive` |
+| `models.refresh` | Refresh model operations | `GET /api/models/config` | `read` |
+| `models.config.lookup` | Lookup model config schema | `POST /api/config/schema-lookup` | `read` |
+| `models.config.save` | Save model config | `PATCH /api/models/config` | `mutating` |
+| `models.provider.edit` | Edit model provider | `PATCH /api/models/config` | `mutating` |
+| `models.catalog.apply` | Apply catalog provider | `PATCH /api/models/config` | `mutating` |
+| `models.fallbacks.save` | Save model fallbacks | `PATCH /api/models/config` | `mutating` |
+| `models.allowlist.save` | Save model allowlist | `PATCH /api/models/config` | `mutating` |
+| `models.auth.probe` | Probe model auth | `POST /api/v1/runtimes/{runtimeId}/gateway/rpc` | `read` |
+| `models.config.detail` | Load Models config detail | `GET /api/models/config/detail` | `read` |
+| `models.providers.upsert` | Create or edit a model provider | `POST /api/models/providers/upsert` | `mutating` |
+| `models.providers.delete-preview` | Preview provider delete impact | `POST /api/models/providers/delete-preview` | `read` |
+| `models.providers.delete` | Delete a model provider | `POST /api/models/providers/delete` | `mutating` |
+| `models.models.upsert` | Create or edit a model entry | `POST /api/models/models/upsert` | `mutating` |
+| `models.models.delete-preview` | Preview model delete impact | `POST /api/models/models/delete-preview` | `read` |
+| `models.models.delete` | Delete a model entry | `POST /api/models/models/delete` | `mutating` |
+| `models.mode.set` | Set catalog mode (merge/replace) | `POST /api/models/mode/set` | `mutating` |
+| `runtime.gateway.start` | Start Gateway | `POST /api/runtime/gateway/start` | `mutating` |
+| `runtime.gateway.stop` | Stop Gateway | `POST /api/runtime/gateway/stop` | `destructive` |
+| `runtime.endpoint.save` | Save endpoint | `PUT /api/runtime/endpoint` | `mutating` |
+| `runtime.endpoint.test` | Test endpoint | `POST /api/runtime/endpoint:test` | `read` |
+| `settings.save` | Save settings | `PUT /api/settings` | `mutating` |
+| `settings.testConnection` | Test connection | `POST /api/settings/test-connection` | `read` |
+| `devices.refresh` | Refresh paired devices | `GET /api/devices` | `read` |
+| `devices.approve` | Approve device request | `POST /api/devices/approve` | `mutating` |
+| `devices.reject` | Reject device request | `POST /api/devices/reject` | `mutating` |
+| `devices.remove` | Remove paired device | `POST /api/devices/remove` | `destructive` |
+| `devices.token.rotate` | Rotate device token | `POST /api/devices/token/rotate` | `destructive` |
+| `devices.token.revoke` | Revoke device token | `POST /api/devices/token/revoke` | `destructive` |
+| `agents.refresh` | Refresh agents | `GET /api/deck/agents` | `read` |
+| `agents.create` | Create agent | `POST /api/agents` | `mutating` |
+| `agents.update` | Update agent | `PATCH /api/agents/{agentId}` | `mutating` |
+| `agents.delete` | Delete agent | `DELETE /api/agents` | `destructive` |
+| `agents.cognition.get` | Load agent cognition settings | `POST /api/deck/agents` | `read` |
+| `agents.cognition.set` | Save agent cognition settings | `POST /api/deck/agents` | `mutating` |
+| `agents.workspace.get` | Load agent workspace settings | `POST /api/deck/agents` | `read` |
+| `agents.workspace.set` | Save agent workspace settings | `POST /api/deck/agents` | `mutating` |
+| `agents.conversation.get` | Load agent conversation settings | `POST /api/deck/agents` | `read` |
+| `agents.conversation.set` | Save agent conversation settings | `POST /api/deck/agents` | `mutating` |
+| `agents.delivery.get` | Load agent delivery settings | `POST /api/deck/agents` | `read` |
+| `agents.delivery.set` | Save agent delivery settings | `POST /api/deck/agents` | `mutating` |
+| `agents.toolsOverride.get` | Load agent tool overrides | `POST /api/deck/agents` | `read` |
+| `agents.toolsOverride.set` | Save agent tool overrides | `POST /api/deck/agents` | `mutating` |
+| `agents.defaults.workspace.get` | Load agent defaults workspace settings | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.workspace.set` | Save agent defaults workspace settings | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.cognition.get` | Load agent defaults cognition settings | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.cognition.set` | Save agent defaults cognition settings | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.skills.get` | Load agent default skills | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.skills.set` | Save agent default skills | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.subagents.get` | Load agent default subagent policy | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.subagents.set` | Save agent default subagent policy | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.conversation.get` | Load agent default conversation settings | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.conversation.set` | Save agent default conversation settings | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.eventStreams.get` | Load agent default event streams | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.eventStreams.set` | Save agent default event streams | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.defaults.delivery.get` | Load agent default delivery settings | `POST /api/deck/agents/defaults` | `read` |
+| `agents.defaults.delivery.set` | Save agent default delivery settings | `POST /api/deck/agents/defaults` | `mutating` |
+| `agents.impactPreview.get` | Preview agent change impact | `POST /api/deck/agents` | `read` |
+| `agents.skills.save` | Save agent skills | `POST /api/deck/agents` | `mutating` |
+| `agents.subagents.save` | Save agent subagent policy | `POST /api/deck/agents` | `mutating` |
+| `subagents.refresh` | Refresh subagent runs | `GET /api/deck/subagents` | `read` |
+| `subagents.lineage` | Load subagent lineage | `POST /api/deck/subagents` | `read` |
+| `subagents.steer` | Steer subagent run | `POST /api/deck/subagents` | `mutating` |
+| `subagents.kill` | Kill subagent run | `POST /api/deck/subagents` | `destructive` |
+| `agents.eventStreams.save` | Save agent event streams | `POST /api/deck/agents` | `mutating` |
+| `agents.files.save` | Save agent file | `POST /api/agents/{agentId}/files` | `mutating` |
+| `tools.catalog.refresh` | Refresh tools | `POST /api/tools/catalog` | `read` |
+| `sessions.refresh` | Refresh sessions | `GET /api/sessions` | `read` |
+| `sessions.preview` | Preview sessions | `POST /api/chat/sessions/preview` | `read` |
+| `sessions.detail` | Load session detail | `GET /api/sessions/{sessionKey}` | `read` |
+| `sessions.history` | Load transcript history | `GET /api/chat/history` | `read` |
+| `sessions.usage` | Load session usage | `GET /api/usage/sessions` | `read` |
+| `sessions.usage.logs` | Load session usage logs | `GET /api/usage/sessions/logs` | `read` |
+| `sessions.lineage` | Load subagent lineage | `POST /api/deck/subagents` | `read` |
+| `sessions.reset` | Reset session | `POST /api/chat/sessions/reset` | `destructive` |
+| `sessions.clear` | Clear session | `POST /api/chat/sessions/clear` | `destructive` |
+| `sessions.delete` | Delete session | `DELETE /api/chat/sessions` | `destructive` |
+| `sessions.patch` | Patch session | `POST /api/chat/sessions/patch` | `mutating` |
+| `sessions.compact` | Compact session | `POST /api/chat/compact` | `destructive` |
+| `sessions.compaction.list` | List compaction checkpoints | `POST /api/chat/compaction` | `read` |
+| `sessions.compaction.branch` | Branch compaction checkpoint | `POST /api/chat/compaction` | `mutating` |
+| `sessions.compaction.restore` | Restore compaction checkpoint | `POST /api/chat/compaction` | `destructive` |
+| `chat.session.create` | Create chat session | `POST /api/chat/sessions/create` | `mutating` |
+| `chat.send` | Send message | `POST /api/chat/send` | `mutating` |
+| `chat.abort` | Abort run | `POST /api/chat/abort` | `destructive` |
+| `chat.steer` | Steer chat run | `POST /api/chat/steer` | `mutating` |
+| `usage.refresh` | Refresh usage | `GET /api/usage/sessions` | `read` |
+| `monitor.runs.refresh` | Refresh monitor runs | `GET /api/monitor/runs` | `read` |
+| `approvals.refresh` | Refresh approvals | `GET /api/approvals/pending` | `read` |
+| `approvals.policy.save` | Save approval policy | `PUT /api/approvals/policy` | `mutating` |
+| `approval.decide` | Decide approval | `POST /api/approvals` | `destructive` |
+| `pluginApproval.decide` | Decide plugin approval | `POST /api/approvals/plugins` | `destructive` |
 
 ## Validation Issues
 
 | Path | Issue |
-| ---- | ----- |
-| n/a  | n/a   |
+| --- | --- |
+| n/a | n/a |

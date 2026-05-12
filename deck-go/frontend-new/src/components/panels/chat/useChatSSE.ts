@@ -29,12 +29,28 @@ const STREAM_RECOVERY_QUERY_PARAM = "__deck_recover";
 const STREAM_RECOVERY_RELOAD_AT_KEY = "deckGoStreamRecoveryReloadAt";
 const TRANSIENT_STREAM_RECONNECT_GRACE_MS = 1_200;
 const CHAT_LIVE_PROJECTION_CONTRACT = getLiveProjectionContract("chat-session");
+const CHAT_STREAM_CURSOR_KEY = CHAT_LIVE_PROJECTION_CONTRACT.cursorStorageKey;
 
 interface CanvasCommand {
   action: string;
   params?: Record<string, unknown>;
   evalId?: string;
   javaScript?: string;
+}
+
+function readChatStreamCursor(): string {
+  if (!CHAT_STREAM_CURSOR_KEY || typeof window === "undefined") {
+    return "";
+  }
+  return window.localStorage.getItem(CHAT_STREAM_CURSOR_KEY)?.trim() || "";
+}
+
+function writeChatStreamCursor(value: string | undefined): void {
+  const next = value?.trim();
+  if (!CHAT_STREAM_CURSOR_KEY || !next || typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(CHAT_STREAM_CURSOR_KEY, next);
 }
 
 function persistSessionProjection(sessionKey: string) {
@@ -365,6 +381,7 @@ export function useChatSSE() {
     void deckStream("/api/stream", {
       signal: controller.signal,
       reconnect: true,
+      lastEventId: readChatStreamCursor(),
       onOpen() {
         markConnected();
         if (pendingBrowserRecoveryRef.current) {
@@ -376,6 +393,7 @@ export function useChatSSE() {
         markReconnecting();
       },
       onEvent(event) {
+        writeChatStreamCursor(event.id);
         if (!event.event || !event.data) {
           return;
         }

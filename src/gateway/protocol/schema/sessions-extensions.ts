@@ -269,6 +269,7 @@ export const SessionsCompactResultSchema = Type.Object(
     archived: Type.Optional(Type.Array(Type.String())),
     kept: Type.Optional(Type.Integer({ minimum: 0 })),
     reason: Type.Optional(Type.String()),
+    result: Type.Optional(Type.Unknown()),
   },
   { additionalProperties: false },
 );

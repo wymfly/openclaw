@@ -6,51 +6,51 @@ Source: `deck-go/contracts/source/deck-config-write-safety.contract.json`
 
 ## Summary
 
-| Metric                   | Value |
-| ------------------------ | ----: |
-| Writes                   |    28 |
-| Gateway-backed           |    13 |
-| Deck-derived             |    14 |
-| Deck-local               |     1 |
-| BaseHash client-required |    20 |
-| BaseHash backend-derived |     2 |
-| Idempotency supported    |     0 |
-| Rollback supported       |     0 |
-| Audit supported          |     0 |
-| Errors                   |     0 |
+| Metric | Value |
+| --- | ---: |
+| Writes | 28 |
+| Gateway-backed | 13 |
+| Deck-derived | 14 |
+| Deck-local | 1 |
+| BaseHash client-required | 20 |
+| BaseHash backend-derived | 2 |
+| Idempotency supported | 0 |
+| Rollback supported | 0 |
+| Audit supported | 0 |
+| Errors | 0 |
 
 ## Writes
 
-| ID                                 | Owner       | Route                             | Action                      | Class            | BaseHash          | Response Hash        | Conflict                           | Idempotency   | Rollback      | Audit      | Gateway                                                 |
-| ---------------------------------- | ----------- | --------------------------------- | --------------------------- | ---------------- | ----------------- | -------------------- | ---------------------------------- | ------------- | ------------- | ---------- | ------------------------------------------------------- |
-| `agents.cognition.set`             | `agents`    | `POST /api/deck/agents`           | `cognition.set`             | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.config.patch`              | `agents`    | `POST /api/deck/agents`           | `config.patch`              | `deck-derived`   | `backend-derived` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.conversation.set`          | `agents`    | `POST /api/deck/agents`           | `conversation.set`          | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.cognition.set`    | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.cognition.set`    | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.conversation.set` | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.conversation.set` | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.delivery.set`     | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.delivery.set`     | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.eventStreams.set` | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.eventStreams.set` | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.skills.set`       | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.skills.set`       | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.subagents.set`    | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.subagents.set`    | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.defaults.workspace.set`    | `agents`    | `POST /api/deck/agents/defaults`  | `defaults.workspace.set`    | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.delivery.set`              | `agents`    | `POST /api/deck/agents`           | `delivery.set`              | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.event-streams.set`         | `agents`    | `POST /api/deck/agents`           | `eventStreams.set`          | `gateway-backed` | `client-required` | `config-hash`        | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `deck.agents.eventStreams.set`                          |
-| `agents.skills.set`                | `agents`    | `POST /api/deck/agents`           | `skills.set`                | `gateway-backed` | `client-required` | `config-hash`        | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `deck.agents.skills.set`                                |
-| `agents.subagents.set`             | `agents`    | `POST /api/deck/agents`           | `subagents.set`             | `gateway-backed` | `client-required` | `config-hash`        | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `deck.agents.subagents.set`                             |
-| `agents.toolsOverride.set`         | `agents`    | `POST /api/deck/agents`           | `toolsOverride.set`         | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `agents.workspace.set`             | `agents`    | `POST /api/deck/agents`           | `workspace.set`             | `deck-derived`   | `client-required` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `agents.update, config.get, config.patch, config.apply` |
-| `approvals.policy.update`          | `approvals` | `PUT /api/approvals/policy`       | `policy.update`             | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `exec.approvals.set`                                    |
-| `channels.config.patch`            | `channels`  | `PATCH /api/channels/{channelId}` | `channel.patch`             | `deck-derived`   | `backend-derived` | `next-hash`          | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch`                              |
-| `config.apply`                     | `config`    | `POST /api/config/apply`          | `apply`                     | `gateway-backed` | `client-optional` | `compatibility-hash` | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `config.apply`                                          |
-| `config.patch`                     | `config`    | `POST /api/config/patch`          | `patch`                     | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.patch`                                          |
-| `identity.link`                    | `identity`  | `POST /api/deck/identity`         | `link`                      | `gateway-backed` | `client-required` | `config-hash`        | `frontend-refreshes-after-failure` | `unsupported` | `unsupported` | `deferred` | `deck.identity.link`                                    |
-| `identity.unlink`                  | `identity`  | `POST /api/deck/identity`         | `unlink`                    | `gateway-backed` | `client-required` | `config-hash`        | `frontend-refreshes-after-failure` | `unsupported` | `unsupported` | `deferred` | `deck.identity.unlink`                                  |
-| `models.config.save`               | `models`    | `PATCH /api/models/config`        | `models.config.save`        | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `config.patch`                                          |
-| `routing.add`                      | `routing`   | `POST /api/deck/routing`          | `add`                       | `gateway-backed` | `client-required` | `config-hash`        | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `deck.routing.add`                                      |
-| `routing.dm-scope.patch`           | `routing`   | `POST /api/config/patch`          | `routing.dmScope.patch`     | `gateway-backed` | `client-required` | `compatibility-hash` | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `config.patch`                                          |
-| `routing.remove`                   | `routing`   | `POST /api/deck/routing`          | `remove`                    | `gateway-backed` | `client-required` | `config-hash`        | `frontend-preserves-local`         | `unsupported` | `unsupported` | `deferred` | `deck.routing.remove`                                   |
-| `settings.save`                    | `settings`  | `PUT /api/settings`               | `settings.save`             | `deck-local`     | `not-applicable`  | `local-version`      | `not-applicable`                   | `unsupported` | `unsupported` | `deferred` | `n/a`                                                   |
-| `skills.update`                    | `skills`    | `PATCH /api/skills/{skillKey}`    | `skills.update`             | `gateway-backed` | `not-applicable`  | `no-hash`            | `upstream-error-preserved`         | `unsupported` | `unsupported` | `deferred` | `skills.update`                                         |
+| ID | Owner | Route | Action | Class | BaseHash | Response Hash | Conflict | Idempotency | Rollback | Audit | Gateway |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `agents.cognition.set` | `agents` | `POST /api/deck/agents` | `cognition.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.config.patch` | `agents` | `POST /api/deck/agents` | `config.patch` | `deck-derived` | `backend-derived` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.conversation.set` | `agents` | `POST /api/deck/agents` | `conversation.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.cognition.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.cognition.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.conversation.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.conversation.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.delivery.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.delivery.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.eventStreams.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.eventStreams.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.skills.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.skills.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.subagents.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.subagents.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.defaults.workspace.set` | `agents` | `POST /api/deck/agents/defaults` | `defaults.workspace.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.delivery.set` | `agents` | `POST /api/deck/agents` | `delivery.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.event-streams.set` | `agents` | `POST /api/deck/agents` | `eventStreams.set` | `gateway-backed` | `client-required` | `config-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `deck.agents.eventStreams.set` |
+| `agents.skills.set` | `agents` | `POST /api/deck/agents` | `skills.set` | `gateway-backed` | `client-required` | `config-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `deck.agents.skills.set` |
+| `agents.subagents.set` | `agents` | `POST /api/deck/agents` | `subagents.set` | `gateway-backed` | `client-required` | `config-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `deck.agents.subagents.set` |
+| `agents.toolsOverride.set` | `agents` | `POST /api/deck/agents` | `toolsOverride.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `agents.workspace.set` | `agents` | `POST /api/deck/agents` | `workspace.set` | `deck-derived` | `client-required` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `agents.update, config.get, config.patch, config.apply` |
+| `approvals.policy.update` | `approvals` | `PUT /api/approvals/policy` | `policy.update` | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `exec.approvals.set` |
+| `channels.config.patch` | `channels` | `PATCH /api/channels/{channelId}` | `channel.patch` | `deck-derived` | `backend-derived` | `next-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.get, config.patch` |
+| `config.apply` | `config` | `POST /api/config/apply` | `apply` | `gateway-backed` | `client-optional` | `compatibility-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `config.apply` |
+| `config.patch` | `config` | `POST /api/config/patch` | `patch` | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.patch` |
+| `identity.link` | `identity` | `POST /api/deck/identity` | `link` | `gateway-backed` | `client-required` | `config-hash` | `frontend-refreshes-after-failure` | `unsupported` | `unsupported` | `deferred` | `deck.identity.link` |
+| `identity.unlink` | `identity` | `POST /api/deck/identity` | `unlink` | `gateway-backed` | `client-required` | `config-hash` | `frontend-refreshes-after-failure` | `unsupported` | `unsupported` | `deferred` | `deck.identity.unlink` |
+| `models.config.save` | `models` | `PATCH /api/models/config` | `models.config.save` | `gateway-backed` | `client-optional` | `compatibility-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `config.patch` |
+| `routing.add` | `routing` | `POST /api/deck/routing` | `add` | `gateway-backed` | `client-required` | `config-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `deck.routing.add` |
+| `routing.dm-scope.patch` | `routing` | `POST /api/config/patch` | `routing.dmScope.patch` | `gateway-backed` | `client-required` | `compatibility-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `config.patch` |
+| `routing.remove` | `routing` | `POST /api/deck/routing` | `remove` | `gateway-backed` | `client-required` | `config-hash` | `frontend-preserves-local` | `unsupported` | `unsupported` | `deferred` | `deck.routing.remove` |
+| `settings.save` | `settings` | `PUT /api/settings` | `settings.save` | `deck-local` | `not-applicable` | `local-version` | `not-applicable` | `unsupported` | `unsupported` | `deferred` | `n/a` |
+| `skills.update` | `skills` | `PATCH /api/skills/{skillKey}` | `skills.update` | `gateway-backed` | `not-applicable` | `no-hash` | `upstream-error-preserved` | `unsupported` | `unsupported` | `deferred` | `skills.update` |
 
 ## Evidence
 

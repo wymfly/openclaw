@@ -71,7 +71,7 @@ function contextWeightSummary(
   const toolsRecord = objectValue(report.tools);
   const workspaceFiles = arrayValue(report.injectedWorkspaceFiles);
   const files = workspaceFiles.reduce(
-    (sum, file) => sum + numericValue(objectValue(file).injectedChars),
+    (sum: number, file) => sum + numericValue(objectValue(file).injectedChars),
     0,
   );
   const skills = numericValue(skillsRecord.promptChars);

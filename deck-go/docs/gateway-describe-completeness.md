@@ -16,51 +16,51 @@ Authority: Generated from src/gateway/method-registry-data.ts and deck-go/contra
 
 ## Untyped Methods
 
-| Method                           | Documented |
-| -------------------------------- | ---------- |
-| `agent`                          | no         |
-| `browser.request`                | no         |
-| `chat.inject`                    | no         |
-| `config.openFile`                | no         |
-| `connect`                        | no         |
-| `exec.approval.get`              | no         |
-| `gateway.identity.get`           | no         |
-| `last-heartbeat`                 | no         |
-| `message.action`                 | no         |
-| `node.canvas.capability.refresh` | no         |
-| `node.event`                     | no         |
-| `node.invoke.result`             | no         |
-| `node.pending.ack`               | no         |
-| `node.pending.drain`             | no         |
-| `node.pending.pull`              | no         |
-| `plugin.approval.waitDecision`   | no         |
-| `poll`                           | no         |
-| `push.test`                      | no         |
-| `secrets.reload`                 | no         |
-| `secrets.resolve`                | no         |
-| `send`                           | no         |
-| `sessions.resolve`               | no         |
-| `set-heartbeats`                 | no         |
-| `system-event`                   | no         |
-| `system-presence`                | no         |
-| `tts.convert`                    | no         |
-| `tts.disable`                    | no         |
-| `tts.enable`                     | no         |
-| `tts.providers`                  | no         |
-| `tts.setProvider`                | no         |
-| `tts.status`                     | no         |
-| `update.run`                     | no         |
-| `voicewake.get`                  | no         |
-| `voicewake.set`                  | no         |
-| `wake`                           | no         |
-| `web.login.start`                | no         |
-| `web.login.wait`                 | no         |
+| Method | Documented |
+| --- | --- |
+| `agent` | no |
+| `browser.request` | no |
+| `chat.inject` | no |
+| `config.openFile` | no |
+| `connect` | no |
+| `exec.approval.get` | no |
+| `gateway.identity.get` | no |
+| `last-heartbeat` | no |
+| `message.action` | no |
+| `node.canvas.capability.refresh` | no |
+| `node.event` | no |
+| `node.invoke.result` | no |
+| `node.pending.ack` | no |
+| `node.pending.drain` | no |
+| `node.pending.pull` | no |
+| `plugin.approval.waitDecision` | no |
+| `poll` | no |
+| `push.test` | no |
+| `secrets.reload` | no |
+| `secrets.resolve` | no |
+| `send` | no |
+| `sessions.resolve` | no |
+| `set-heartbeats` | no |
+| `system-event` | no |
+| `system-presence` | no |
+| `tts.convert` | no |
+| `tts.disable` | no |
+| `tts.enable` | no |
+| `tts.providers` | no |
+| `tts.setProvider` | no |
+| `tts.status` | no |
+| `update.run` | no |
+| `voicewake.get` | no |
+| `voicewake.set` | no |
+| `wake` | no |
+| `web.login.start` | no |
+| `web.login.wait` | no |
 
 ## Methods Without Result Schema
 
-| Method                    | Params Schema | Documented |
-| ------------------------- | ------------- | ---------- |
-| `plugin.approval.request` | yes           | no         |
+| Method | Params Schema | Documented |
+| --- | --- | --- |
+| `plugin.approval.request` | yes | no |
 
 ## Events Without Payload Schema
 

@@ -94,6 +94,43 @@ describe("useChatSSE visibility eviction", () => {
     expect(useChatStore.getState().sseStatus).toBe("connecting");
   });
 
+  it("starts the chat stream from the stored live projection cursor", async () => {
+    window.localStorage.setItem("deckGoLiveProjection:chat-session:lastEventId", "42");
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<HookHost />);
+    });
+
+    const streamOptions = vi.mocked(deckStream).mock.calls[0]?.[1];
+    expect(streamOptions?.lastEventId).toBe("42");
+  });
+
+  it("persists incoming chat stream event ids to the live projection cursor", async () => {
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<HookHost />);
+    });
+
+    const streamOptions = vi.mocked(deckStream).mock.calls[0]?.[1];
+    streamOptions?.onEvent?.({
+      id: "43",
+      event: "chat",
+      data: JSON.stringify({
+        sessionKey: "sess-1",
+        runId: "run-1",
+        state: "delta",
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: "cursor" }],
+          timestamp: 123,
+        },
+      }),
+    });
+
+    expect(window.localStorage.getItem("deckGoLiveProjection:chat-session:lastEventId")).toBe("43");
+  });
+
   it("calls evictStale(DEFAULT_EVICT_IDLE_MS) when page goes hidden", async () => {
     const spy = vi.spyOn(useChatStore.getState(), "evictStale");
 

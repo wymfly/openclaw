@@ -605,8 +605,8 @@ claude  # or codex
 | 2     | **Goal 1**: AGENTS.md rewrite   | ✅ Done 2026-05-12 | Codex                            | Rewritten as long-lived project context + skill-routing standard; 旧 OpenSpec/验收矩阵/反思长规则只保留在 backup             |
 | 3     | **Goal 2**: chat surface audit  | ✅ Done 2026-05-12 | Codex                            | `docs/realignment/chat-surface-inventory.md` written; awaiting user review before Phase 4                                    |
 | 4     | **Goal 2**: chat brainstorming  | ✅ Done 2026-05-12 | Codex                            | `docs/superpowers/specs/2026-05-12-chat-control-reference-design.md` approved; chat is reference module, not presumed broken |
-| 5     | **Goal 2**: chat vertical slice | 🟡 In progress     | Codex                            | Start with Phase 5 defect confirmation gate before implementation                                                            |
-| 6     | **Goal 2**: 8 个剩余核心模块    | ⏸ Pending          | next session                     | After Phase 5: agents → sessions → subagents → channels → plugins → models → memory → skills                                 |
+| 5     | **Goal 2**: chat vertical slice | ✅ Done 2026-05-12 | Codex                            | C1/C2/C3 fixed and verified with contract-gate + chat real Gateway E2E                                                       |
+| 6     | **Goal 2**: 8 个剩余核心模块    | ⏸ Pending          | next session                     | Start Phase 6 with agents as the first module after user review                                                              |
 | 7     | **Goal 2**: architecture review | ⏸ Pending          | next session                     | After Phase 6 ≥ 5 modules                                                                                                    |
 
 ### Cancelled phases (from v1)

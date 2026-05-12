@@ -767,6 +767,11 @@ export type DeckGoCompactionListResponse = {
 export type DeckGoCompactionActionResponse = Record<string, unknown> & {
   ok?: boolean;
   key?: string;
+  compacted?: boolean;
+  archived?: string[];
+  kept?: number;
+  reason?: string;
+  result?: unknown;
 };
 
 export type DeckGoSkillStatus = "ready" | "needs-setup" | "disabled";

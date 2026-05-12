@@ -384,7 +384,13 @@
     ]
   },
   "events": {
-    "withPayloadSchema": ["agent", "chat", "session.message", "session.tool", "sessions.changed"],
+    "withPayloadSchema": [
+      "agent",
+      "chat",
+      "session.message",
+      "session.tool",
+      "sessions.changed"
+    ],
     "withoutPayloadSchema": [
       "connect.challenge",
       "cron",

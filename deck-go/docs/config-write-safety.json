@@ -23,7 +23,10 @@
       "route": "POST /api/deck/agents",
       "action": "cognition.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -46,7 +49,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.list[id].thinkingDefault",
         "agents.list[id].verboseDefault",
@@ -54,7 +59,11 @@
         "agents.list[id].fastModeDefault",
         "agents.list[id].memorySearch"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -63,20 +72,29 @@
       "route": "POST /api/deck/agents",
       "action": "config.patch",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "backend-derived",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
       ],
-      "frontendRefs": ["none: backend-only compatibility action; no active frontend facade"],
-      "mockEvidence": ["deck-go/backend/internal/server/gateway_routes_test.go"],
+      "frontendRefs": [
+        "none: backend-only compatibility action; no active frontend facade"
+      ],
+      "mockEvidence": [
+        "deck-go/backend/internal/server/gateway_routes_test.go"
+      ],
       "realEvidence": [
         "deferred: backend-only compatibility action is covered by config write safety and does not need direct L2 mutation in this proposal"
       ],
@@ -88,7 +106,10 @@
       "route": "POST /api/deck/agents",
       "action": "conversation.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -111,13 +132,19 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.list[id].systemPromptOverride",
         "agents.list[id].humanDelay",
         "agents.list[id].groupChat"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -126,7 +153,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.cognition.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -149,7 +179,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.defaults.thinkingDefault",
         "agents.defaults.verboseDefault",
@@ -162,7 +194,11 @@
         "agents.defaults.blockStreamingCoalesce",
         "agents.defaults.memorySearch"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -171,7 +207,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.conversation.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -194,7 +233,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.defaults.systemPromptOverride",
         "agents.defaults.humanDelay",
@@ -208,7 +249,11 @@
         "agents.defaults.typingIntervalSeconds",
         "agents.defaults.typingMode"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -217,7 +262,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.delivery.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -240,9 +288,18 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.defaults.channels.eventStreams", "agents.defaults.heartbeat"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.defaults.channels.eventStreams",
+        "agents.defaults.heartbeat"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -251,7 +308,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.eventStreams.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -274,9 +334,17 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.defaults.channels.eventStreams"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.defaults.channels.eventStreams"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -285,7 +353,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.skills.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -308,9 +379,17 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.defaults.skills"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.defaults.skills"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -319,7 +398,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.subagents.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -342,9 +424,17 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.defaults.subagents"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.defaults.subagents"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -353,7 +443,10 @@
       "route": "POST /api/deck/agents/defaults",
       "action": "defaults.workspace.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -376,7 +469,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.defaults.workspace",
         "agents.defaults.sandbox",
@@ -397,7 +492,11 @@
         "agents.defaults.llm",
         "agents.defaults.maxConcurrent"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -406,7 +505,10 @@
       "route": "POST /api/deck/agents",
       "action": "delivery.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -429,9 +531,18 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.list[id].channels.eventStreams", "agents.list[id].heartbeat"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.list[id].channels.eventStreams",
+        "agents.list[id].heartbeat"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -440,14 +551,18 @@
       "route": "POST /api/deck/agents",
       "action": "eventStreams.set",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.agents.eventStreams.set"],
+      "gatewayMethods": [
+        "deck.agents.eventStreams.set"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -459,7 +574,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -468,14 +585,18 @@
       "route": "POST /api/deck/agents",
       "action": "skills.set",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.agents.skills.set"],
+      "gatewayMethods": [
+        "deck.agents.skills.set"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -501,14 +622,18 @@
       "route": "POST /api/deck/agents",
       "action": "subagents.set",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.agents.subagents.set"],
+      "gatewayMethods": [
+        "deck.agents.subagents.set"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -520,7 +645,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -529,7 +656,10 @@
       "route": "POST /api/deck/agents",
       "action": "toolsOverride.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -552,9 +682,17 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
-      "pathAllowlist": ["agents.list[id].tools"],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
+      "pathAllowlist": [
+        "agents.list[id].tools"
+      ],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "routeGoverned": true
     },
     {
@@ -563,7 +701,12 @@
       "route": "POST /api/deck/agents",
       "action": "workspace.set",
       "classification": "deck-derived",
-      "gatewayMethods": ["agents.update", "config.get", "config.patch", "config.apply"],
+      "gatewayMethods": [
+        "agents.update",
+        "config.get",
+        "config.patch",
+        "config.apply"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
@@ -586,7 +729,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/agents-real-gateway.spec.ts"
+      ],
       "pathAllowlist": [
         "agents.list[id].workspace",
         "agents.list[id].agentDir",
@@ -596,7 +741,11 @@
         "agents.list[id].embeddedPi",
         "agents.list[id].params"
       ],
-      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "rejectionScenarios": [
+        "models.providers",
+        "bindings",
+        "tools"
+      ],
       "sideEffectRule": "workspace path changes must route through agents.update before applying advanced config patch.",
       "routeGoverned": true
     },
@@ -606,14 +755,18 @@
       "route": "PUT /api/approvals/policy",
       "action": "policy.update",
       "classification": "gateway-backed",
-      "gatewayMethods": ["exec.approvals.set"],
+      "gatewayMethods": [
+        "exec.approvals.set"
+      ],
       "baseHashMode": "client-optional",
       "responseHashMode": "compatibility-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -625,7 +778,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/approvals/ApprovalsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/approvals-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/approvals-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -634,14 +789,19 @@
       "route": "PATCH /api/channels/{channelId}",
       "action": "channel.patch",
       "classification": "deck-derived",
-      "gatewayMethods": ["config.get", "config.patch"],
+      "gatewayMethods": [
+        "config.get",
+        "config.patch"
+      ],
       "baseHashMode": "backend-derived",
       "responseHashMode": "next-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -653,7 +813,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/channels/ChannelsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/channels-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/channels-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -662,14 +824,18 @@
       "route": "POST /api/config/apply",
       "action": "apply",
       "classification": "gateway-backed",
-      "gatewayMethods": ["config.apply"],
+      "gatewayMethods": [
+        "config.apply"
+      ],
       "baseHashMode": "client-optional",
       "responseHashMode": "compatibility-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/config.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -678,8 +844,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/config/ConfigPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/config/ConfigPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -688,21 +858,31 @@
       "route": "POST /api/config/patch",
       "action": "patch",
       "classification": "gateway-backed",
-      "gatewayMethods": ["config.patch"],
+      "gatewayMethods": [
+        "config.patch"
+      ],
       "baseHashMode": "client-optional",
       "responseHashMode": "compatibility-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/config.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
       ],
-      "frontendRefs": ["deck-go/frontend-new/src/api.ts"],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/config-real-gateway.spec.ts"],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/config-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -711,14 +891,18 @@
       "route": "POST /api/deck/identity",
       "action": "link",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.identity.link"],
+      "gatewayMethods": [
+        "deck.identity.link"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-refreshes-after-failure",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -730,7 +914,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -739,14 +925,18 @@
       "route": "POST /api/deck/identity",
       "action": "unlink",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.identity.unlink"],
+      "gatewayMethods": [
+        "deck.identity.unlink"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-refreshes-after-failure",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -758,7 +948,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/identity/IdentityPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/identity-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/identity-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -767,14 +959,18 @@
       "route": "PATCH /api/models/config",
       "action": "models.config.save",
       "classification": "gateway-backed",
-      "gatewayMethods": ["config.patch"],
+      "gatewayMethods": [
+        "config.patch"
+      ],
       "baseHashMode": "client-optional",
       "responseHashMode": "compatibility-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -783,8 +979,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/models/ModelsPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/models-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/models/ModelsPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/models-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -793,14 +993,18 @@
       "route": "POST /api/deck/routing",
       "action": "add",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.routing.add"],
+      "gatewayMethods": [
+        "deck.routing.add"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -809,8 +1013,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/routing-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -819,14 +1027,18 @@
       "route": "POST /api/config/patch",
       "action": "routing.dmScope.patch",
       "classification": "gateway-backed",
-      "gatewayMethods": ["config.patch"],
+      "gatewayMethods": [
+        "config.patch"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "compatibility-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/config.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -835,8 +1047,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/routing-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -845,14 +1061,18 @@
       "route": "POST /api/deck/routing",
       "action": "remove",
       "classification": "gateway-backed",
-      "gatewayMethods": ["deck.routing.remove"],
+      "gatewayMethods": [
+        "deck.routing.remove"
+      ],
       "baseHashMode": "client-required",
       "responseHashMode": "config-hash",
       "conflictBehavior": "frontend-preserves-local",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -861,8 +1081,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/routing-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/routing/RoutingPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/routing-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -878,8 +1102,12 @@
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
-      "backendRefs": ["deck-go/backend/internal/server/settings.go"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/settings.go"
+      ],
       "frontendRefs": [
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.tsx"
@@ -887,7 +1115,9 @@
       "mockEvidence": [
         "deck-go/frontend-new/src/components/panels/settings/SettingsPanel.test.tsx"
       ],
-      "realEvidence": ["deck-go/test/e2e/settings-real-gateway.spec.ts"],
+      "realEvidence": [
+        "deck-go/test/e2e/settings-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     },
     {
@@ -896,14 +1126,18 @@
       "route": "PATCH /api/skills/{skillKey}",
       "action": "skills.update",
       "classification": "gateway-backed",
-      "gatewayMethods": ["skills.update"],
+      "gatewayMethods": [
+        "skills.update"
+      ],
       "baseHashMode": "not-applicable",
       "responseHashMode": "no-hash",
       "conflictBehavior": "upstream-error-preserved",
       "idempotencyStatus": "unsupported",
       "rollbackStatus": "unsupported",
       "auditStatus": "deferred",
-      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts"
+      ],
       "backendRefs": [
         "deck-go/backend/internal/server/inventory.go",
         "deck-go/backend/internal/runtime/openclaw/gateway_queries.go"
@@ -912,8 +1146,12 @@
         "deck-go/frontend-new/src/api.ts",
         "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.tsx"
       ],
-      "mockEvidence": ["deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx"],
-      "realEvidence": ["deck-go/test/e2e/skills-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/skills/SkillsPanel.test.tsx"
+      ],
+      "realEvidence": [
+        "deck-go/test/e2e/skills-real-gateway.spec.ts"
+      ],
       "routeGoverned": true
     }
   ]

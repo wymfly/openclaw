@@ -841,6 +841,7 @@ type SessionsCompactResult struct {
 	Key       string   `json:"key"`
 	Ok        bool     `json:"ok"`
 	Reason    string   `json:"reason,omitempty"`
+	Result    any      `json:"result,omitempty"`
 }
 
 type SessionsCompactionBranchParams struct {

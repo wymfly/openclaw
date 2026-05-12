@@ -705,6 +705,11 @@ type DeckGoCompactionListResponse struct {
 type DeckGoCompactionActionResponse struct {
 	Ok bool `json:"ok,omitempty"`
 	Key string `json:"key,omitempty"`
+	Compacted bool `json:"compacted,omitempty"`
+	Archived []string `json:"archived,omitempty"`
+	Kept float64 `json:"kept,omitempty"`
+	Reason string `json:"reason,omitempty"`
+	Result any `json:"result,omitempty"`
 }
 
 type DeckGoSkillStatus string

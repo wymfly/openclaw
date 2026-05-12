@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T08:26:19.000Z",
+  "generatedAt": "2026-05-12T14:08:05.165Z",
   "summary": {
     "apiFunctions": 194,
     "classifiedEndpointRows": 159,
@@ -19,9 +19,9 @@
     "unclassifiedEndpoints": 0,
     "undocumentedDynamicSurfaceLines": 1648,
     "endpointsWithFrontendCallers": 97,
-    "uiMetadataActions": 95,
-    "uiMetadataCoveredDtos": 176,
-    "uiMetadataCoveredEndpoints": 87,
+    "uiMetadataActions": 97,
+    "uiMetadataCoveredDtos": 180,
+    "uiMetadataCoveredEndpoints": 89,
     "uiMetadataDomains": 8,
     "uiMetadataFieldEntries": 34,
     "uiMetadataIssues": 0,
@@ -479,6 +479,11 @@
         "safety": "destructive"
       },
       {
+        "endpoint": "POST /api/chat/sessions/create",
+        "id": "chat.session.create",
+        "safety": "mutating"
+      },
+      {
         "endpoint": "POST /api/chat/send",
         "id": "chat.send",
         "safety": "mutating"
@@ -487,6 +492,11 @@
         "endpoint": "POST /api/chat/abort",
         "id": "chat.abort",
         "safety": "destructive"
+      },
+      {
+        "endpoint": "POST /api/chat/steer",
+        "id": "chat.steer",
+        "safety": "mutating"
       },
       {
         "endpoint": "GET /api/usage/sessions",
@@ -584,10 +594,13 @@
       "DeckGoChatHistoryResponse",
       "DeckGoChatSendRequest",
       "DeckGoChatSessionClearRequest",
+      "DeckGoChatSessionCreateRequest",
       "DeckGoChatSessionDeleteRequest",
       "DeckGoChatSessionPatchRequest",
       "DeckGoChatSessionResetRequest",
       "DeckGoChatSnapshotResponse",
+      "DeckGoChatSteerRequest",
+      "DeckGoChatSteerResponse",
       "DeckGoCompactionActionResponse",
       "DeckGoCompactionCheckpoint",
       "DeckGoCompactionListResponse",
@@ -667,6 +680,7 @@
       "DeckGoSelfDeviceResponse",
       "DeckGoServerEvent",
       "DeckGoSessionAbortResponse",
+      "DeckGoSessionCreateResponse",
       "DeckGoSessionDetailResponse",
       "DeckGoSessionMeta",
       "DeckGoSessionMutationResponse",
@@ -753,9 +767,11 @@
       "POST /api/chat/send",
       "POST /api/chat/session-events",
       "POST /api/chat/sessions/clear",
+      "POST /api/chat/sessions/create",
       "POST /api/chat/sessions/patch",
       "POST /api/chat/sessions/preview",
       "POST /api/chat/sessions/reset",
+      "POST /api/chat/steer",
       "POST /api/config/schema-lookup",
       "POST /api/deck/agents",
       "POST /api/deck/agents/defaults",
@@ -847,7 +863,10 @@
         "migrationStatus": "migrated"
       },
       {
-        "actions": ["gateway.refresh", "gateway.batch.readOnly"],
+        "actions": [
+          "gateway.refresh",
+          "gateway.batch.readOnly"
+        ],
         "dtos": [
           "DeckGoActivityResponse",
           "DeckGoGatewayBatchRequest",
@@ -999,7 +1018,11 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": ["identity.refresh", "identity.link", "identity.unlink"],
+        "actions": [
+          "identity.refresh",
+          "identity.link",
+          "identity.unlink"
+        ],
         "dtos": [
           "DeckGoAgentIdentityResponse",
           "DeckGoIdentityLink",
@@ -1106,8 +1129,10 @@
       },
       {
         "actions": [
+          "chat.session.create",
           "chat.send",
           "chat.abort",
+          "chat.steer",
           "sessions.refresh",
           "sessions.preview",
           "sessions.detail",
@@ -1131,14 +1156,18 @@
           "DeckGoChatHistoryResponse",
           "DeckGoChatSendRequest",
           "DeckGoChatSessionClearRequest",
+          "DeckGoChatSessionCreateRequest",
           "DeckGoChatSessionDeleteRequest",
           "DeckGoChatSessionPatchRequest",
           "DeckGoChatSessionResetRequest",
           "DeckGoChatSnapshotResponse",
+          "DeckGoChatSteerRequest",
+          "DeckGoChatSteerResponse",
           "DeckGoCompactionActionResponse",
           "DeckGoCompactionCheckpoint",
           "DeckGoCompactionListResponse",
           "DeckGoContextWeightReport",
+          "DeckGoSessionCreateResponse",
           "DeckGoSessionDetailResponse",
           "DeckGoSessionMeta",
           "DeckGoSessionMutationResponse",
@@ -1166,8 +1195,10 @@
           "GET /api/usage/sessions",
           "GET /api/usage/sessions/logs",
           "POST /api/deck/subagents",
+          "POST /api/chat/sessions/create",
           "POST /api/chat/send",
           "POST /api/chat/abort",
+          "POST /api/chat/steer",
           "POST /api/chat/sessions/reset",
           "POST /api/chat/sessions/clear",
           "DELETE /api/chat/sessions",
@@ -1180,7 +1211,10 @@
         "migrationStatus": "partial"
       },
       {
-        "actions": ["usage.refresh", "monitor.runs.refresh"],
+        "actions": [
+          "usage.refresh",
+          "monitor.runs.refresh"
+        ],
         "dtos": [
           "DeckGoChannelThroughputBucket",
           "DeckGoChannelThroughputResponse",
@@ -1280,7 +1314,9 @@
       "other": 1
     }
   },
-  "missingTypes": ["DeckGoModelModeSetResponse"],
+  "missingTypes": [
+    "DeckGoModelModeSetResponse"
+  ],
   "endpoints": [
     {
       "file": "deck-go/backend/internal/server/activity_monitor.go",
@@ -2520,7 +2556,7 @@
     {
       "endpoint": "GET /api/stream",
       "file": "deck-go/frontend-new/src/components/panels/chat/useChatSSE.ts",
-      "line": 365,
+      "line": 381,
       "literal": "/api/stream",
       "symbol": "metas"
     },

@@ -3404,6 +3404,7 @@ export interface SessionsCompactResult {
   key: string;
   ok: boolean;
   reason?: string;
+  result?: unknown;
 }
 
 export interface SessionsCompactionBranchParams {
