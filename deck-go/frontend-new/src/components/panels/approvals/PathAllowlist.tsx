@@ -1,3 +1,4 @@
+import { PanelPill } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 
 export function PathAllowlist(props: {
@@ -13,9 +14,9 @@ export function PathAllowlist(props: {
     <>
       <p className="approvals-panel__eyebrow">{t("pathAllowlist")}</p>
       {props.paths.length > 0 ? (
-        <div className="approvals-panel__pill-row">
+        <div className="approvals-panel__chip-row">
           {props.paths.map((path) => (
-            <span key={path} className="approvals-panel__pill">
+            <PanelPill key={path}>
               <code>{path}</code>
               <button
                 className="approvals-panel__button is-danger"
@@ -24,7 +25,7 @@ export function PathAllowlist(props: {
               >
                 {t("removePath")}
               </button>
-            </span>
+            </PanelPill>
           ))}
         </div>
       ) : (

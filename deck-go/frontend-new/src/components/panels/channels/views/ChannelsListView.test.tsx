@@ -99,7 +99,7 @@ describe("ChannelsListView", () => {
       }),
     );
     expect(container.querySelector(".list-view")).toBeTruthy();
-    expect(container.querySelector(".kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
     expect(container.querySelector(".toolbar__search")).toBeTruthy();
     expect(container.querySelector(".row__head")).toBeTruthy();
     expect(buttonByText("newChannel")?.hasAttribute("disabled")).toBe(true);

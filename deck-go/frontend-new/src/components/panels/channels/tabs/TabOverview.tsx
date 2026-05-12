@@ -1,10 +1,10 @@
 import { IconArrowR } from "../../../../design-system/icons";
+import { PanelMetric } from "../../../../design-system/patterns";
 import {
   channelProbeLabel,
   diagnosticClassName,
   displayAccountName,
 } from "../lib/channel-selectors";
-import { MetricTile } from "../parts/MetricTile";
 import type {
   ChannelInventoryItem,
   ChannelTabId,
@@ -52,22 +52,22 @@ export function TabOverview(props: {
           </div>
         </header>
         <div className="tile-row">
-          <MetricTile
+          <PanelMetric
             label={t("messagesInStat")}
             value={throughputMessagesIn}
             hint={throughputWindow}
           />
-          <MetricTile
+          <PanelMetric
             label={t("messagesOutStat")}
             value={throughputMessagesOut}
             hint={throughputWindow}
           />
-          <MetricTile
+          <PanelMetric
             label={t("probeLatencyStat")}
             value={channelLatencyMs != null ? `${channelLatencyMs}ms` : t("notAvailable")}
             hint={probeResult ? channelProbeLabel(probeResult, t) : t("probeResult")}
           />
-          <MetricTile
+          <PanelMetric
             label={t("accountsStat")}
             value={channel.accounts.length}
             hint={t("alertsBadge", { count: alerts.length })}

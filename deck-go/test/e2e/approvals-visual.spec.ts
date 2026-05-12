@@ -75,7 +75,7 @@ test.describe("approvals mock visual handoff alignment", () => {
     await page.getByLabel("new approval allowlist path").fill("/tmp/openclaw-main");
     await page.getByRole("button", { name: "Add path" }).click();
     await expect(
-      page.locator(".approvals-panel__pill", { hasText: "/tmp/openclaw-main" }).first(),
+      page.locator(".ds-panel-pill", { hasText: "/tmp/openclaw-main" }).first(),
     ).toBeVisible();
     await page.getByRole("button", { name: "Save policy" }).click();
     await waitForGatewayMethod(stack.requestLog, "exec.approvals.set");

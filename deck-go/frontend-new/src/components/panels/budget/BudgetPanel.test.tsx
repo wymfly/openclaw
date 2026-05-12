@@ -129,9 +129,10 @@ describe("BudgetPanel", () => {
     await waitFor(() => expect(apiMocks.fetchBudgetRules).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Budget ready"));
 
-    expect(container.querySelector(".budget-panel")).toBeTruthy();
+    expect(container.querySelector('.ds-panel-root[data-testid="budget-panel"]')).toBeTruthy();
     expect(container.querySelector(".budget-panel__workspace")).toBeTruthy();
-    expect(container.querySelector(".budget-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
+    expect(container.querySelectorAll(".ds-panel-metric")).toHaveLength(4);
     expect(container.querySelector(".budget-panel__definition")).toBeTruthy();
     expect(apiMocks.evaluateBudgetRules).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain("Spend and token guardrails");

@@ -26,6 +26,16 @@ import {
   IconSearch,
   IconX,
 } from "../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelPillTone,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { AddBinDialog } from "./AddBinDialog";
 import { InstallSkillWizard } from "./InstallSkillWizard";
@@ -358,217 +368,222 @@ export function SkillsPanel() {
   };
 
   return (
-    <section className="skills-panel" data-testid="skills-panel">
-      <header className="skills-panel__page-header">
-        <div>
-          <p className="skills-panel__eyebrow">{t("catalogEyebrow")}</p>
-          <h1 className="skills-panel__title">{t("title")}</h1>
-          <p className="skills-panel__description">{t("productDescription")}</p>
-        </div>
-        <div className="skills-panel__header-pills">
-          <button
-            className="skills-panel__button is-primary"
-            type="button"
-            onClick={() => setActiveDialog("install")}
-          >
-            {t("installFromClawHub")}
-          </button>
-          <button
-            className="skills-panel__button"
-            type="button"
-            onClick={() => navigateToPanel(ui, "approvals")}
-          >
-            {t("approvalsPending", { count: approvalCount })}
-          </button>
-        </div>
-      </header>
-
-      <div className="skills-panel__kpi-strip">
-        <Metric label={t("installedKpi")} value={skills.length} />
-        <Metric
-          label={t("readyKpi")}
-          value={skills.filter((skill) => skill.status === "ready").length}
-        />
-        <Metric
-          label={t("needsSetupKpi")}
-          value={skills.filter((skill) => skill.status === "needs-setup").length}
-        />
-        <Metric label={t("managedKpi")} value={managedSkills.length} />
-        <Metric
-          label={t("agentUsage")}
-          value={skills.reduce((sum, skill) => sum + skill.agentUsage.count, 0)}
-        />
-        <Metric label={t("disabledKpi")} value={skills.filter((skill) => !skill.enabled).length} />
-      </div>
-
-      <div className="skills-panel__toolbar">
-        <label className="skills-panel__search">
-          <IconSearch size={16} />
-          <input
-            aria-label={t("searchSkills")}
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("searchInstalledLong")}
-          />
-        </label>
-        <SegmentedGroup label={t("statusLabel")}>
-          {SKILL_STATUS_FILTERS.map((status) => (
-            <button
-              key={status}
-              className={`skills-panel__segment ${statusFilter === status ? "is-active" : ""}`}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-            >
-              {status === "all" ? t("all") : t(`statusFilters.${status}`)} {statusCounts[status]}
-            </button>
-          ))}
-        </SegmentedGroup>
-        <SegmentedGroup label={t("sourceLabel")}>
-          {availableSourceFilters.map((source) => (
-            <button
-              key={source}
-              className={`skills-panel__segment ${sourceFilter === source ? "is-active" : ""}`}
-              type="button"
-              onClick={() => setSourceFilter(source)}
-            >
-              {source === "all" ? t("sourceFilters.all") : t(`sourceFilters.${source}`)}{" "}
-              {sourceCounts[source] ?? 0}
-            </button>
-          ))}
-        </SegmentedGroup>
-        <button
-          className="skills-panel__button"
-          type="button"
-          onClick={() => void refresh(selectedSkill?.key)}
-        >
-          <IconRefresh size={14} />
-          {t("refreshSkills")}
-        </button>
-      </div>
-
-      {displayError ? <p className="skills-panel__note is-danger">{displayError}</p> : null}
-
-      <div className="skills-panel__workbench">
-        <SkillList
-          loadState={loadState}
-          activeCriteria={activeCriteria}
-          selectedSkillKey={visibleSelectedSkill?.key ?? ""}
-          skills={visibleSkills}
-          sourceCount={skills.length}
-          onClearFilters={() => {
-            setQuery("");
-            setStatusFilter("all");
-            setSourceFilter("all");
-          }}
-          onSelect={setSelectedSkillKey}
-        />
-        {visibleSelectedSkill ? (
-          <SkillDetail
-            managedSkills={managedSkills}
-            selectedSkill={visibleSelectedSkill}
-            ui={ui}
-            actionState={actionState}
-            onOpenBin={() => setActiveDialog("bin")}
-            onOpenEnv={() => setActiveDialog("env")}
-            onOpenSecret={() => setActiveDialog("secret")}
-            onOpenUpdateAll={() => setActiveDialog("updateAll")}
-            onToggle={(enabled) => void runToggle(visibleSelectedSkill, enabled)}
-          />
-        ) : (
-          <p className="skills-panel__note">{t("selectSkillHint")}</p>
-        )}
-      </div>
-
-      <SkillSecretDialog
-        open={activeDialog === "secret"}
-        actionState={actionState}
-        skill={selectedSkill}
-        onClose={() => setActiveDialog(null)}
-        onSave={(apiKey) => void runSecretSave(apiKey)}
-        onClear={() => void runSecretClear()}
-      />
-
-      {activeDialog === "env" && selectedSkill ? (
-        <div className="skills-panel__modal-backdrop" role="presentation">
-          <section
-            className="skills-panel__modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("editEnv")}
-          >
-            <div className="skills-panel__modal-head">
-              <div>
-                <p className="skills-panel__eyebrow">L1</p>
-                <h2>{t("editEnv")}</h2>
-              </div>
-              <button
-                className="skills-panel__button"
-                type="button"
-                onClick={() => setActiveDialog(null)}
-              >
-                {t("close")}
-              </button>
-            </div>
-            <p className="skills-panel__note">
-              {t("envImpactHint", { count: selectedSkill.agentUsage.count })}
-            </p>
-            <SkillEnvKeyValueEditor
-              rows={envRows}
-              keyLabel={t("envKey")}
-              valueLabel={t("envValue")}
-              rawLabel={t("showRawJson")}
-              onRowsChange={setEnvRows}
-            />
-            <div className="skills-panel__modal-actions">
-              <button
-                className="skills-panel__button"
-                type="button"
-                onClick={() => setActiveDialog(null)}
-              >
-                {t("cancel")}
-              </button>
+    <PanelRoot data-testid="skills-panel" density="compact">
+      <div className="skills-panel">
+        <PanelSectionHeader
+          eyebrow={t("catalogEyebrow")}
+          title={t("title")}
+          description={t("productDescription")}
+          actions={
+            <PanelStatusRow align="end">
               <button
                 className="skills-panel__button is-primary"
                 type="button"
-                disabled={envRowsHaveInvalidKeys(envRows) || actionState !== "idle"}
-                onClick={() => void runEnvSave()}
+                onClick={() => setActiveDialog("install")}
               >
-                {t("saveEnv")}
+                {t("installFromClawHub")}
               </button>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
-      {activeDialog === "bin" && selectedSkill ? (
-        <AddBinDialog
-          actionState={actionState}
-          selectedSkill={selectedSkill}
-          onClose={() => setActiveDialog(null)}
-          onInstall={(installId) => void runInstallRecipe(installId)}
+              <button
+                className="skills-panel__button"
+                type="button"
+                onClick={() => navigateToPanel(ui, "approvals")}
+              >
+                {t("approvalsPending", { count: approvalCount })}
+              </button>
+            </PanelStatusRow>
+          }
         />
-      ) : null}
 
-      <InstallSkillWizard
-        open={activeDialog === "install"}
-        actionState={actionState}
-        setupMessage={installSetupMessage}
-        skills={skills}
-        hubDetail={hubDetail}
-        onClose={() => setActiveDialog(null)}
-        onPreview={previewWizardSlug}
-        onInstall={runWizardInstall}
-      />
+        <KpiStrip columns={6} aria-label={t("title")}>
+          <Metric label={t("installedKpi")} value={skills.length} />
+          <Metric
+            label={t("readyKpi")}
+            value={skills.filter((skill) => skill.status === "ready").length}
+          />
+          <Metric
+            label={t("needsSetupKpi")}
+            value={skills.filter((skill) => skill.status === "needs-setup").length}
+          />
+          <Metric label={t("managedKpi")} value={managedSkills.length} />
+          <Metric
+            label={t("agentUsage")}
+            value={skills.reduce((sum, skill) => sum + skill.agentUsage.count, 0)}
+          />
+          <Metric
+            label={t("disabledKpi")}
+            value={skills.filter((skill) => !skill.enabled).length}
+          />
+        </KpiStrip>
 
-      <SkillUpdateAllClawHubDrawer
-        open={activeDialog === "updateAll"}
-        managedSkills={managedSkills}
-        actionState={actionState}
-        onClose={() => setActiveDialog(null)}
-        onConfirm={() => void runUpdateAll()}
-      />
-    </section>
+        <div className="skills-panel__toolbar">
+          <label className="skills-panel__search">
+            <IconSearch size={16} />
+            <input
+              aria-label={t("searchSkills")}
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("searchInstalledLong")}
+            />
+          </label>
+          <SegmentedGroup label={t("statusLabel")}>
+            {SKILL_STATUS_FILTERS.map((status) => (
+              <button
+                key={status}
+                className={`skills-panel__segment ${statusFilter === status ? "is-active" : ""}`}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+              >
+                {status === "all" ? t("all") : t(`statusFilters.${status}`)} {statusCounts[status]}
+              </button>
+            ))}
+          </SegmentedGroup>
+          <SegmentedGroup label={t("sourceLabel")}>
+            {availableSourceFilters.map((source) => (
+              <button
+                key={source}
+                className={`skills-panel__segment ${sourceFilter === source ? "is-active" : ""}`}
+                type="button"
+                onClick={() => setSourceFilter(source)}
+              >
+                {source === "all" ? t("sourceFilters.all") : t(`sourceFilters.${source}`)}{" "}
+                {sourceCounts[source] ?? 0}
+              </button>
+            ))}
+          </SegmentedGroup>
+          <button
+            className="skills-panel__button"
+            type="button"
+            onClick={() => void refresh(selectedSkill?.key)}
+          >
+            <IconRefresh size={14} />
+            {t("refreshSkills")}
+          </button>
+        </div>
+
+        {displayError ? <p className="skills-panel__note is-danger">{displayError}</p> : null}
+
+        <div className="skills-panel__workbench">
+          <SkillList
+            loadState={loadState}
+            activeCriteria={activeCriteria}
+            selectedSkillKey={visibleSelectedSkill?.key ?? ""}
+            skills={visibleSkills}
+            sourceCount={skills.length}
+            onClearFilters={() => {
+              setQuery("");
+              setStatusFilter("all");
+              setSourceFilter("all");
+            }}
+            onSelect={setSelectedSkillKey}
+          />
+          {visibleSelectedSkill ? (
+            <SkillDetail
+              managedSkills={managedSkills}
+              selectedSkill={visibleSelectedSkill}
+              ui={ui}
+              actionState={actionState}
+              onOpenBin={() => setActiveDialog("bin")}
+              onOpenEnv={() => setActiveDialog("env")}
+              onOpenSecret={() => setActiveDialog("secret")}
+              onOpenUpdateAll={() => setActiveDialog("updateAll")}
+              onToggle={(enabled) => void runToggle(visibleSelectedSkill, enabled)}
+            />
+          ) : (
+            <p className="skills-panel__note">{t("selectSkillHint")}</p>
+          )}
+        </div>
+
+        <SkillSecretDialog
+          open={activeDialog === "secret"}
+          actionState={actionState}
+          skill={selectedSkill}
+          onClose={() => setActiveDialog(null)}
+          onSave={(apiKey) => void runSecretSave(apiKey)}
+          onClear={() => void runSecretClear()}
+        />
+
+        {activeDialog === "env" && selectedSkill ? (
+          <div className="skills-panel__modal-backdrop" role="presentation">
+            <section
+              className="skills-panel__modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("editEnv")}
+            >
+              <div className="skills-panel__modal-head">
+                <div>
+                  <p className="skills-panel__eyebrow">L1</p>
+                  <h2>{t("editEnv")}</h2>
+                </div>
+                <button
+                  className="skills-panel__button"
+                  type="button"
+                  onClick={() => setActiveDialog(null)}
+                >
+                  {t("close")}
+                </button>
+              </div>
+              <p className="skills-panel__note">
+                {t("envImpactHint", { count: selectedSkill.agentUsage.count })}
+              </p>
+              <SkillEnvKeyValueEditor
+                rows={envRows}
+                keyLabel={t("envKey")}
+                valueLabel={t("envValue")}
+                rawLabel={t("showRawJson")}
+                onRowsChange={setEnvRows}
+              />
+              <div className="skills-panel__modal-actions">
+                <button
+                  className="skills-panel__button"
+                  type="button"
+                  onClick={() => setActiveDialog(null)}
+                >
+                  {t("cancel")}
+                </button>
+                <button
+                  className="skills-panel__button is-primary"
+                  type="button"
+                  disabled={envRowsHaveInvalidKeys(envRows) || actionState !== "idle"}
+                  onClick={() => void runEnvSave()}
+                >
+                  {t("saveEnv")}
+                </button>
+              </div>
+            </section>
+          </div>
+        ) : null}
+
+        {activeDialog === "bin" && selectedSkill ? (
+          <AddBinDialog
+            actionState={actionState}
+            selectedSkill={selectedSkill}
+            onClose={() => setActiveDialog(null)}
+            onInstall={(installId) => void runInstallRecipe(installId)}
+          />
+        ) : null}
+
+        <InstallSkillWizard
+          open={activeDialog === "install"}
+          actionState={actionState}
+          setupMessage={installSetupMessage}
+          skills={skills}
+          hubDetail={hubDetail}
+          onClose={() => setActiveDialog(null)}
+          onPreview={previewWizardSlug}
+          onInstall={runWizardInstall}
+        />
+
+        <SkillUpdateAllClawHubDrawer
+          open={activeDialog === "updateAll"}
+          managedSkills={managedSkills}
+          actionState={actionState}
+          onClose={() => setActiveDialog(null)}
+          onConfirm={() => void runUpdateAll()}
+        />
+      </div>
+    </PanelRoot>
   );
 }
 
@@ -660,40 +675,46 @@ function SkillDetail(props: {
 
   return (
     <article className="skills-panel__detail">
-      <header className="skills-panel__detail-hero">
-        <div className="skills-panel__detail-main">
+      <PanelSurface tone="elevated">
+        <div className="skills-panel__selected-layout">
           <span className="skills-panel__glyph is-large" aria-hidden="true">
             {glyph}
           </span>
-          <div>
-            <div className="skills-panel__detail-title-row">
-              <h1 className="skills-panel__title">{skill.name}</h1>
-              <StatusPill status={skill.status} />
-              <SourcePill source={skill.source} />
-            </div>
-            <p className="skills-panel__meta-line">
-              <code>{skill.key}</code>
-              <span>{skill.sourceRaw || t("unknown")}</span>
-              <span>{t("agentUsageCount", { count: skill.agentUsage.count })}</span>
-            </p>
-          </div>
+          <PanelSectionHeader
+            title={skill.name}
+            meta={
+              <PanelStatusRow>
+                <StatusPill status={skill.status} />
+                <SourcePill source={skill.source} />
+              </PanelStatusRow>
+            }
+            description={
+              <span className="skills-panel__meta-line">
+                <code>{skill.key}</code>
+                <span>{skill.sourceRaw || t("unknown")}</span>
+                <span>{t("agentUsageCount", { count: skill.agentUsage.count })}</span>
+              </span>
+            }
+            actions={
+              <PanelStatusRow align="end">
+                {hasAgentImpact ? (
+                  <PanelPill tone="warning">
+                    {t("agentImpactHint", { count: skill.agentUsage.count })}
+                  </PanelPill>
+                ) : null}
+                <button
+                  className={`skills-panel__button ${skill.enabled ? "is-danger" : "is-primary"}`}
+                  type="button"
+                  disabled={props.actionState !== "idle"}
+                  onClick={() => props.onToggle(!skill.enabled)}
+                >
+                  {skill.enabled ? t("disable") : t("enable")}
+                </button>
+              </PanelStatusRow>
+            }
+          />
         </div>
-        <div className="skills-panel__detail-actions">
-          {hasAgentImpact ? (
-            <span className="skills-panel__pill is-warn">
-              {t("agentImpactHint", { count: skill.agentUsage.count })}
-            </span>
-          ) : null}
-          <button
-            className={`skills-panel__button ${skill.enabled ? "is-danger" : "is-primary"}`}
-            type="button"
-            disabled={props.actionState !== "idle"}
-            onClick={() => props.onToggle(!skill.enabled)}
-          >
-            {skill.enabled ? t("disable") : t("enable")}
-          </button>
-        </div>
-      </header>
+      </PanelSurface>
 
       <nav className="skills-panel__section-nav" aria-label={t("skillSections")}>
         {[
@@ -751,9 +772,9 @@ function SkillDetail(props: {
         </Section>
 
         <Section id="apiKeySection" eyebrow="L2" title={t("sections.apiKeySection")}>
-          <p className={`skills-panel__pill ${skill.apiKeyConfigured ? "is-good" : ""}`}>
+          <PanelPill tone={skill.apiKeyConfigured ? "positive" : "default"}>
             {skill.apiKeyConfigured ? t("apiKeyConfigured") : t("apiKeyNotConfigured")}
-          </p>
+          </PanelPill>
           <p className="skills-panel__note">{t("apiKeyHintUnsupported")}</p>
           <div className="skills-panel__modal-actions">
             <button className="skills-panel__button" type="button" onClick={props.onOpenSecret}>
@@ -816,38 +837,28 @@ function SkillDetail(props: {
 
 function Section(props: { id: string; eyebrow: string; title: string; children: ReactNode }) {
   return (
-    <section className="skills-panel__section" id={props.id}>
-      <div className="skills-panel__section-head">
-        <div>
-          <p className="skills-panel__eyebrow">{props.eyebrow}</p>
-          <h2>{props.title}</h2>
-        </div>
-      </div>
+    <PanelSurface id={props.id}>
+      <PanelSectionHeader eyebrow={props.eyebrow} title={props.title} />
       {props.children}
-    </section>
+    </PanelSurface>
   );
 }
 
 function Metric(props: { label: string; value: string | number }) {
-  return (
-    <div className="skills-panel__metric">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
+  return <PanelMetric label={props.label} value={props.value} />;
 }
 
 function StatusPill(props: { status: DeckGoSkillEntry["status"] }) {
   const t = useTranslations("skills");
   const Icon =
     props.status === "ready" ? IconCheck : props.status === "needs-setup" ? IconAlert : IconX;
+  const tone: PanelPillTone =
+    props.status === "ready" ? "positive" : props.status === "needs-setup" ? "warning" : "default";
   return (
-    <span
-      className={`skills-panel__pill ${props.status === "ready" ? "is-good" : props.status === "needs-setup" ? "is-warn" : ""}`}
-    >
+    <PanelPill tone={tone}>
       <Icon size={13} />
       {t(`statusFilters.${props.status}`)}
-    </span>
+    </PanelPill>
   );
 }
 

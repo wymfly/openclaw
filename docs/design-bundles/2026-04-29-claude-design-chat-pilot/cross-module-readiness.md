@@ -79,6 +79,37 @@ Still local after promotion:
 - Logs: filter bar, log rows, live tape, selected-line details, stack/raw
   payload rendering, parser compatibility, and export preview.
 
+## Cockpit Rollout Program - 2026-05-11
+
+Head OpenSpec change: `openspec/changes/deck-go-panel-cockpit-rollout-program/`.
+
+Program matrix:
+`docs/design-bundles/2026-04-29-claude-design-chat-pilot/cockpit-rollout-readiness-matrix.md`.
+
+The head change audited every current panel under
+`deck-go/frontend-new/src/components/panels/` and keeps Chat as a special
+surface rather than an automatic cockpit migration target. The resulting
+classification is:
+
+- `direct-fit`: Alerts, Budget, Logs, Sessions, Threads, Usage.
+- `partial-fit`: Activity, Agents, Approvals, Channels, Cron, Identity, Nodes,
+  Plugins, Skills, Subagents, Webhooks.
+- `needs-new-pattern`: API Explorer, Gateway, Memory, Models, Routing.
+- `stay-local`: Chat, Config, Docs, Settings.
+
+Governance decision:
+
+- Batch A should start with Budget and Alerts, with Threads included only if the
+  child change keeps relationship-map and handoff surfaces local.
+- Later batches should group panels by anatomy and risk rather than by
+  navigation order.
+- `needs-new-pattern` panels require a separate reuse-analysis proposal before
+  expanding cockpit APIs.
+- Global token value changes, atom API changes, new shared patterns, backend/BFF
+  changes, Gateway/contract changes, generated artifact updates, and dependency
+  changes remain separate proposals. They are not allowed as incidental cleanup
+  inside cockpit rollout batches.
+
 ---
 
 ## Worklist (cross-cutting blockers)
@@ -473,13 +504,13 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ### Skills panel
 
-**Status:** in progress under OpenSpec change `frontend-skills-hifi-contract-redesign`.
+**Status:** cockpit chrome migrated by `deck-go-cockpit-rollout-batch-d-integration-inventory`; original hifi redesign reference remains `frontend-skills-hifi-contract-redesign`.
 
 **Readiness verdict:** High after implementation. The Skills high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, card, code/json, status, and table-like local layout tokens. No canonical atom/token was introduced.
 
-**Local molecules retained:** skill metric tile, skill inventory row, selected-skill hero, missing requirement evidence strip, config editor surface, install option row, ClawHub catalog row, ClawHub detail surface, agent skill matrix cell, and raw action evidence disclosure.
+**Local molecules retained:** skill inventory row, missing requirement evidence strip, config editor surface, install option row, ClawHub catalog row, ClawHub detail surface, agent skill matrix cell, and raw action evidence disclosure.
 
-**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, action/result seam, and raw payload detail. Skills validates these patterns for skill/catalog/config/matrix operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+**Repeated from prior modules:** Batch D moved the repeated panel header, KPI/metric strip, status pills, section surfaces, and selected-skill shell into cockpit patterns. Selectable rows, action/result seams, ClawHub install/config surfaces, and raw payload detail remain local until a dedicated design-system proposal defines shared APIs.
 
 **Skills-specific molecules:** missing requirement evidence, config editor, install option rows, ClawHub package rows, and matrix cells are candidates for later Control/Integrations patterns only after budget/alerts/plugins/config validate the same API shape. Real ClawHub network access, binary dependency verification, credential persistence, marketplace trust, and production install safety remain outside this mock/local visual pass.
 
@@ -515,13 +546,13 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ### Plugins panel
 
-**Status:** in progress under OpenSpec change `frontend-plugins-hifi-contract-redesign`.
+**Status:** cockpit chrome migrated by `deck-go-cockpit-rollout-batch-d-integration-inventory`; original hifi redesign reference remains `frontend-plugins-hifi-contract-redesign`.
 
 **Readiness verdict:** High after implementation. The Plugins high-fidelity pass reused canonical typography, color, spacing, radius, button, badge/pill, status, code/json, and compact card tokens. No canonical atom/token was introduced.
 
-**Local molecules retained:** plugin metric tile, plugin inventory row, selected-plugin hero, capability/action evidence surface, activation evidence surface, diagnostic surface, related-channel handoff strip, lifecycle limitation notice, and raw payload disclosure.
+**Local molecules retained:** plugin inventory row, capability/action evidence surface, activation evidence surface, diagnostic surface, related-channel handoff strip, lifecycle limitation notice, and raw payload disclosure.
 
-**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, handoff/action seam, diagnostic surface, and raw payload disclosure. Plugins validates these patterns for Control/Integrations inventory, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+**Repeated from prior modules:** Batch D moved the repeated panel header, KPI/metric strip, status pills, section surfaces, and selected-plugin shell into cockpit patterns. Selectable rows, handoff/action seams, diagnostics, lifecycle notices, and raw payload disclosure remain local until a dedicated design-system proposal defines shared APIs.
 
 **Plugins-specific molecules:** plugin capability/action evidence, activation evidence, related-channel handoffs, hidden-channel warnings, and lifecycle limitation notices are candidates for later Integrations/Control patterns only after identity/config/nodes validate the same API shape. Real install/uninstall, enable/disable, reload, marketplace trust, package signatures, and production activation assurance remain outside this mock/local visual pass.
 
@@ -557,13 +588,13 @@ Per spec requirement 2 (`design-system-cross-module-readiness`), the following i
 
 ### Nodes panel
 
-**Status:** in progress under OpenSpec change `frontend-nodes-hifi-contract-redesign`.
+**Status:** cockpit chrome migrated by `deck-go-cockpit-rollout-batch-d-integration-inventory`; original hifi redesign reference remains `frontend-nodes-hifi-contract-redesign`.
 
 **Readiness verdict:** High after implementation. The Nodes high-fidelity pass reused canonical typography, color, spacing, radius, button, form, badge/pill, code/json, status, and compact card tokens. No canonical atom/token was introduced.
 
-**Local molecules retained:** node metric tile, inventory row, pending pairing row, selected-node hero, lifecycle strip, guarded pairing action row, dynamic command envelope, pending-work queue form, capability/command chip cluster, permission chip cluster, and raw payload/action disclosure.
+**Local molecules retained:** node inventory row, pending pairing row, lifecycle strip, guarded pairing action row, dynamic command envelope, pending-work queue form, capability/command chip cluster, permission chip cluster, and raw payload/action disclosure.
 
-**Repeated from prior modules:** metric tile, compact workbench header, two-column workbench rhythm, selectable row, selected evidence/detail sidecar, guarded mutation/action surface, and raw payload disclosure. Nodes validates these patterns for trust and remote-control operations, but the implementation keeps them local until a dedicated design-system proposal defines shared APIs.
+**Repeated from prior modules:** Batch D moved repeated metrics, status pills, panel surfaces, and selected node/pairing shell into cockpit patterns. Selectable rows, lifecycle strips, guarded remote-control action surfaces, pairing flows, and raw payload disclosure remain local until a dedicated design-system proposal defines shared APIs.
 
 **Nodes-specific molecules:** lifecycle strips, pairing request rows, remote action forms, dynamic command envelopes, pending-work guards, and permission/capability chip clusters are candidates for later Control/Device patterns only after docs or another remote-control-heavy module validates the same API shape. Automatic pairing approval, trust proofing, typed command schema authoring, token generation, remote shell streaming, file transfer, location visualization, and production remote-control safety assurance remain outside this mock/local visual pass.
 

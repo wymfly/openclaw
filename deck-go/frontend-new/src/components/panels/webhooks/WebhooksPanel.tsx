@@ -10,6 +10,17 @@ import {
   webhookDeliveriesQueryOptions,
   webhooksListQueryOptions,
 } from "../../../data/modules/webhooks";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelMetricTone,
+  type PanelPillTone,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 import {
@@ -58,17 +69,17 @@ function webhookHealth(webhook: DeckGoWebhook) {
   return "healthy";
 }
 
-function toneForHealth(health: string) {
+function pillToneForHealth(health: string): PanelPillTone {
   if (health === "healthy") {
-    return "is-good";
+    return "positive";
   }
   if (health === "degraded") {
-    return "is-warn";
+    return "warning";
   }
   if (health === "failing") {
-    return "is-danger";
+    return "danger";
   }
-  return "";
+  return "default";
 }
 
 function safeWebhookPayload(webhook: DeckGoWebhook) {
@@ -340,14 +351,14 @@ export function WebhooksPanel() {
   };
 
   return (
-    <section className="webhooks-panel" data-testid="webhooks-panel">
-      <header className="webhooks-panel__topbar">
-        <div className="webhooks-panel__title-stack">
-          <p className="webhooks-panel__eyebrow">{t("automation")}</p>
-          <h1 className="webhooks-panel__title">{t("title")}</h1>
-          <p className="webhooks-panel__description">{t("panelDescription")}</p>
-        </div>
-        <div className="webhooks-panel__kpis">
+    <PanelRoot data-testid="webhooks-panel" density="compact">
+      <div className="webhooks-panel">
+        <PanelSectionHeader
+          eyebrow={t("automation")}
+          title={t("title")}
+          description={t("panelDescription")}
+        />
+        <KpiStrip columns={4} aria-label={t("automation")}>
           <WebhookKpi label={t("total")} value={webhooks.length} />
           <WebhookKpi label={t("enabled")} value={enabledCount} />
           <WebhookKpi
@@ -356,223 +367,228 @@ export function WebhooksPanel() {
             value={failingCount}
           />
           <WebhookKpi label={t("successRate")} value={successRate} />
-        </div>
-      </header>
+        </KpiStrip>
 
-      <main className="webhooks-panel__workspace">
-        <aside className="webhooks-panel__list-pane">
-          <div className="webhooks-panel__list-head">
-            <div>
-              <p className="webhooks-panel__eyebrow">{t("receivers")}</p>
-              <h2>{t("receiverInventory")}</h2>
-            </div>
-            <button
-              className="webhooks-panel__button is-primary"
-              type="button"
-              onClick={openCreate}
-            >
-              {t("addWebhook")}
-            </button>
-          </div>
+        <main className="webhooks-panel__workspace">
+          <PanelSurface>
+            <aside className="webhooks-panel__list-pane">
+              <div className="webhooks-panel__list-head">
+                <PanelSectionHeader
+                  headingLevel={3}
+                  eyebrow={t("receivers")}
+                  title={t("receiverInventory")}
+                />
+                <button
+                  className="webhooks-panel__button is-primary"
+                  type="button"
+                  onClick={openCreate}
+                >
+                  {t("addWebhook")}
+                </button>
+              </div>
 
-          <div className="webhooks-panel__status-row">
-            <span
-              className={`webhooks-panel__pill ${loadState === "ready" ? "is-good" : "is-warn"}`}
-            >
-              {t("statusPrefix")} {t(loadState)}
-            </span>
-            <span className="webhooks-panel__pill">
-              {t("configuredCount", { count: webhooks.length })}
-            </span>
-            <button
-              className="webhooks-panel__button"
-              type="button"
-              onClick={() => void refresh(selectedWebhookId)}
-            >
-              {t("refreshWebhooks")}
-            </button>
-          </div>
-
-          <label className="webhooks-panel__field">
-            <span>{t("searchWebhooks")}</span>
-            <input
-              className="webhooks-panel__input"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("searchPlaceholder")}
-            />
-          </label>
-
-          <div className="webhooks-panel__segments" role="tablist" aria-label={t("filters")}>
-            {FILTERS.map((nextFilter) => (
-              <button
-                className={filter === nextFilter ? "is-active" : ""}
-                key={nextFilter}
-                type="button"
-                onClick={() => setFilter(nextFilter)}
-              >
-                {t(`filter.${nextFilter}`)} {filterCounts[nextFilter]}
-              </button>
-            ))}
-          </div>
-
-          {error ? <p className="webhooks-panel__note is-danger">{error}</p> : null}
-
-          {filteredWebhooks.length === 0 ? (
-            <div className="webhooks-panel__empty">
-              <strong>{webhooks.length === 0 ? t("noWebhooks") : t("noWebhooksMatch")}</strong>
-              <p>{webhooks.length === 0 ? t("emptyDescription") : t("emptyFilterDescription")}</p>
-              {webhooks.length > 0 ? (
-                <p>
-                  {[
-                    query.trim() ? t("criteriaSearch", { value: query.trim() }) : "",
-                    filter !== "all" ? t("criteriaFilter", { value: t(`filter.${filter}`) }) : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" | ")}
-                </p>
-              ) : null}
-              {webhooks.length > 0 ? (
+              <PanelStatusRow>
+                <PanelPill tone={loadState === "ready" ? "positive" : "warning"}>
+                  {t("statusPrefix")} {t(loadState)}
+                </PanelPill>
+                <PanelPill>{t("configuredCount", { count: webhooks.length })}</PanelPill>
                 <button
                   className="webhooks-panel__button"
                   type="button"
-                  onClick={() => {
-                    setQuery("");
-                    setFilter("all");
-                  }}
+                  onClick={() => void refresh(selectedWebhookId)}
                 >
-                  {t("clearFilters")}
+                  {t("refreshWebhooks")}
                 </button>
-              ) : null}
-            </div>
-          ) : (
-            <ul className="webhooks-panel__list">
-              {filteredWebhooks.map((webhook) => {
-                const health = webhookHealth(webhook);
-                return (
-                  <li key={webhook.id}>
-                    <button
-                      className={`webhooks-panel__receiver ${
-                        selectedWebhook?.id === webhook.id ? "is-selected" : ""
-                      }`}
-                      type="button"
-                      onClick={() => selectWebhook(webhook.id)}
-                    >
-                      <div>
-                        <strong>{webhook.name}</strong>
-                        <p>{webhook.url}</p>
-                        <span>
-                          {t("lastStatus")}: {metricValue(webhook.lastStatus, t("notAvailable"))} ·{" "}
-                          {t("failures")}: {webhook.consecutiveFailures}
-                        </span>
-                      </div>
-                      <div className="webhooks-panel__receiver-meta">
-                        <span className={`webhooks-panel__pill ${toneForHealth(health)}`}>
-                          {t(`health.${health}`)}
-                        </span>
-                        <small>{t("eventCount", { count: webhook.events.length })}</small>
-                      </div>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </aside>
+              </PanelStatusRow>
 
-        <section className="webhooks-panel__detail-pane">
-          {selectedWebhook ? (
-            <>
-              <WebhookDetailHeader
-                actionState={actionState}
-                degradedCount={degradedCount}
-                deliveries={deliveries}
-                onDelete={() => setConfirmingDelete(selectedWebhook)}
-                onEdit={openEdit}
-                onTest={() => void testAction()}
-                selectedWebhook={selectedWebhook}
-              />
+              <label className="webhooks-panel__field">
+                <span>{t("searchWebhooks")}</span>
+                <input
+                  className="webhooks-panel__input"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t("searchPlaceholder")}
+                />
+              </label>
 
-              <div className="webhooks-panel__tabs" role="tablist" aria-label={t("detailTabs")}>
-                {DETAIL_TABS.map((tab) => (
+              <div className="webhooks-panel__segments" role="tablist" aria-label={t("filters")}>
+                {FILTERS.map((nextFilter) => (
                   <button
-                    className={detailTab === tab ? "is-active" : ""}
-                    key={tab}
+                    className={filter === nextFilter ? "is-active" : ""}
+                    key={nextFilter}
                     type="button"
-                    onClick={() => setDetailTab(tab)}
+                    onClick={() => setFilter(nextFilter)}
                   >
-                    {t(`tab.${tab}`)}
+                    {t(`filter.${nextFilter}`)} {filterCounts[nextFilter]}
                   </button>
                 ))}
               </div>
 
-              {detailTab === "overview" ? (
-                <OverviewTab selectedWebhook={selectedWebhook} deliveries={deliveries} />
-              ) : null}
-              {detailTab === "deliveries" ? (
-                <DeliveriesTab
-                  deliveries={deliveries}
-                  expandedDeliveryId={expandedDeliveryId}
-                  onToggle={(deliveryId) =>
-                    setExpandedDeliveryId((current) => (current === deliveryId ? "" : deliveryId))
-                  }
-                />
-              ) : null}
-              {detailTab === "settings" ? <SettingsTab selectedWebhook={selectedWebhook} /> : null}
-              {detailTab === "gaps" ? <CapabilityGaps /> : null}
+              {error ? <p className="webhooks-panel__note is-danger">{error}</p> : null}
 
-              {actionResult ? (
-                <div className="webhooks-panel__surface">
-                  <JsonDetails title={t("lastWebhookAction")} payload={actionResult} />
+              {filteredWebhooks.length === 0 ? (
+                <div className="webhooks-panel__empty">
+                  <strong>{webhooks.length === 0 ? t("noWebhooks") : t("noWebhooksMatch")}</strong>
+                  <p>
+                    {webhooks.length === 0 ? t("emptyDescription") : t("emptyFilterDescription")}
+                  </p>
+                  {webhooks.length > 0 ? (
+                    <p>
+                      {[
+                        query.trim() ? t("criteriaSearch", { value: query.trim() }) : "",
+                        filter !== "all"
+                          ? t("criteriaFilter", { value: t(`filter.${filter}`) })
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </p>
+                  ) : null}
+                  {webhooks.length > 0 ? (
+                    <button
+                      className="webhooks-panel__button"
+                      type="button"
+                      onClick={() => {
+                        setQuery("");
+                        setFilter("all");
+                      }}
+                    >
+                      {t("clearFilters")}
+                    </button>
+                  ) : null}
                 </div>
-              ) : null}
-            </>
-          ) : (
-            <div className="webhooks-panel__empty is-detail">
-              <strong>{t("noWebhooks")}</strong>
-              <p>{t("emptyDescription")}</p>
-              <button
-                className="webhooks-panel__button is-primary"
-                type="button"
-                onClick={openCreate}
-              >
-                {t("addWebhook")}
-              </button>
+              ) : (
+                <ul className="webhooks-panel__list">
+                  {filteredWebhooks.map((webhook) => {
+                    const health = webhookHealth(webhook);
+                    return (
+                      <li key={webhook.id}>
+                        <button
+                          className={`webhooks-panel__receiver ${
+                            selectedWebhook?.id === webhook.id ? "is-selected" : ""
+                          }`}
+                          type="button"
+                          onClick={() => selectWebhook(webhook.id)}
+                        >
+                          <div>
+                            <strong>{webhook.name}</strong>
+                            <p>{webhook.url}</p>
+                            <span>
+                              {t("lastStatus")}:{" "}
+                              {metricValue(webhook.lastStatus, t("notAvailable"))} · {t("failures")}
+                              : {webhook.consecutiveFailures}
+                            </span>
+                          </div>
+                          <div className="webhooks-panel__receiver-meta">
+                            <PanelPill tone={pillToneForHealth(health)}>
+                              {t(`health.${health}`)}
+                            </PanelPill>
+                            <small>{t("eventCount", { count: webhook.events.length })}</small>
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </aside>
+          </PanelSurface>
+
+          <PanelSurface as="section">
+            <div className="webhooks-panel__detail-pane">
+              {selectedWebhook ? (
+                <>
+                  <WebhookDetailHeader
+                    actionState={actionState}
+                    degradedCount={degradedCount}
+                    deliveries={deliveries}
+                    onDelete={() => setConfirmingDelete(selectedWebhook)}
+                    onEdit={openEdit}
+                    onTest={() => void testAction()}
+                    selectedWebhook={selectedWebhook}
+                  />
+
+                  <div className="webhooks-panel__tabs" role="tablist" aria-label={t("detailTabs")}>
+                    {DETAIL_TABS.map((tab) => (
+                      <button
+                        className={detailTab === tab ? "is-active" : ""}
+                        key={tab}
+                        type="button"
+                        onClick={() => setDetailTab(tab)}
+                      >
+                        {t(`tab.${tab}`)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {detailTab === "overview" ? (
+                    <OverviewTab selectedWebhook={selectedWebhook} deliveries={deliveries} />
+                  ) : null}
+                  {detailTab === "deliveries" ? (
+                    <DeliveriesTab
+                      deliveries={deliveries}
+                      expandedDeliveryId={expandedDeliveryId}
+                      onToggle={(deliveryId) =>
+                        setExpandedDeliveryId((current) =>
+                          current === deliveryId ? "" : deliveryId,
+                        )
+                      }
+                    />
+                  ) : null}
+                  {detailTab === "settings" ? (
+                    <SettingsTab selectedWebhook={selectedWebhook} />
+                  ) : null}
+                  {detailTab === "gaps" ? <CapabilityGaps /> : null}
+
+                  {actionResult ? (
+                    <PanelSurface>
+                      <JsonDetails title={t("lastWebhookAction")} payload={actionResult} />
+                    </PanelSurface>
+                  ) : null}
+                </>
+              ) : (
+                <div className="webhooks-panel__empty is-detail">
+                  <strong>{t("noWebhooks")}</strong>
+                  <p>{t("emptyDescription")}</p>
+                  <button
+                    className="webhooks-panel__button is-primary"
+                    type="button"
+                    onClick={openCreate}
+                  >
+                    {t("addWebhook")}
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </section>
-      </main>
+          </PanelSurface>
+        </main>
 
-      {builderOpen ? (
-        <WebhookBuilderModal
-          draft={draft}
-          editing={Boolean(editingWebhook)}
-          saving={actionState === "creating" || actionState === "updating"}
-          onCancel={closeBuilder}
-          onChange={setDraft}
-          onSave={() => void saveAction()}
-        />
-      ) : null}
+        {builderOpen ? (
+          <WebhookBuilderModal
+            draft={draft}
+            editing={Boolean(editingWebhook)}
+            saving={actionState === "creating" || actionState === "updating"}
+            onCancel={closeBuilder}
+            onChange={setDraft}
+            onSave={() => void saveAction()}
+          />
+        ) : null}
 
-      {confirmingDelete ? (
-        <DeleteConfirm
-          deleting={actionState === "deleting"}
-          webhook={confirmingDelete}
-          onCancel={() => setConfirmingDelete(null)}
-          onDelete={() => void deleteAction()}
-        />
-      ) : null}
-    </section>
+        {confirmingDelete ? (
+          <DeleteConfirm
+            deleting={actionState === "deleting"}
+            webhook={confirmingDelete}
+            onCancel={() => setConfirmingDelete(null)}
+            onDelete={() => void deleteAction()}
+          />
+        ) : null}
+      </div>
+    </PanelRoot>
   );
 }
 
-function WebhookKpi(props: { label: string; value: string | number; tone?: "danger" }) {
-  return (
-    <div className={`webhooks-panel__kpi ${props.tone ? `is-${props.tone}` : ""}`}>
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
+function WebhookKpi(props: { label: string; value: string | number; tone?: PanelMetricTone }) {
+  return <PanelMetric label={props.label} tone={props.tone} value={props.value} />;
 }
 
 function WebhookDetailHeader({
@@ -597,51 +613,50 @@ function WebhookDetailHeader({
   const latestDelivery = deliveries[0] ?? null;
 
   return (
-    <article className="webhooks-panel__hero-card">
-      <div className="webhooks-panel__hero-main">
-        <p className="webhooks-panel__eyebrow">{t("selectedWebhook")}</p>
-        <h2>{selectedWebhook.name}</h2>
-        <p>{selectedWebhook.url}</p>
-        <div className="webhooks-panel__pill-row">
-          <span className={`webhooks-panel__pill ${toneForHealth(health)}`}>
-            {t(`health.${health}`)}
-          </span>
-          <span className="webhooks-panel__pill">
-            {t("eventCount", { count: selectedWebhook.events.length })}
-          </span>
-          <span className="webhooks-panel__pill">
-            {t("degradedCount", { count: degradedCount })}
-          </span>
+    <PanelSurface tone="elevated">
+      <div className="webhooks-panel__selected-layout">
+        <PanelSectionHeader
+          headingLevel={3}
+          eyebrow={t("selectedWebhook")}
+          title={selectedWebhook.name}
+          description={selectedWebhook.url}
+          meta={
+            <PanelStatusRow>
+              <PanelPill tone={pillToneForHealth(health)}>{t(`health.${health}`)}</PanelPill>
+              <PanelPill>{t("eventCount", { count: selectedWebhook.events.length })}</PanelPill>
+              <PanelPill>{t("degradedCount", { count: degradedCount })}</PanelPill>
+            </PanelStatusRow>
+          }
+        />
+        <div className="webhooks-panel__selected-actions">
+          <WebhookKpi
+            label={t("lastStatus")}
+            value={metricValue(selectedWebhook.lastStatus, t("notAvailable"))}
+          />
+          <WebhookKpi label={t("failures")} value={selectedWebhook.consecutiveFailures} />
+          <WebhookKpi
+            label={t("lastDelivery")}
+            value={latestDelivery ? latestDelivery.eventType : t("notAvailable")}
+          />
+          <div className="webhooks-panel__actions">
+            <button className="webhooks-panel__button" type="button" onClick={onEdit}>
+              {t("editWebhook")}
+            </button>
+            <button
+              className="webhooks-panel__button is-primary"
+              disabled={actionState === "testing"}
+              type="button"
+              onClick={onTest}
+            >
+              {actionState === "testing" ? t("testing") : t("testDelivery")}
+            </button>
+            <button className="webhooks-panel__button is-danger" type="button" onClick={onDelete}>
+              {t("deleteWebhook")}
+            </button>
+          </div>
         </div>
       </div>
-      <div className="webhooks-panel__hero-actions">
-        <WebhookKpi
-          label={t("lastStatus")}
-          value={metricValue(selectedWebhook.lastStatus, t("notAvailable"))}
-        />
-        <WebhookKpi label={t("failures")} value={selectedWebhook.consecutiveFailures} />
-        <WebhookKpi
-          label={t("lastDelivery")}
-          value={latestDelivery ? latestDelivery.eventType : t("notAvailable")}
-        />
-        <div className="webhooks-panel__actions">
-          <button className="webhooks-panel__button" type="button" onClick={onEdit}>
-            {t("editWebhook")}
-          </button>
-          <button
-            className="webhooks-panel__button is-primary"
-            disabled={actionState === "testing"}
-            type="button"
-            onClick={onTest}
-          >
-            {actionState === "testing" ? t("testing") : t("testDelivery")}
-          </button>
-          <button className="webhooks-panel__button is-danger" type="button" onClick={onDelete}>
-            {t("deleteWebhook")}
-          </button>
-        </div>
-      </div>
-    </article>
+    </PanelSurface>
   );
 }
 
@@ -656,7 +671,7 @@ function OverviewTab({
   const failures = deliveries.filter((delivery) => !delivery.success).length;
   return (
     <div className="webhooks-panel__tab-panel">
-      <div className="webhooks-panel__metrics">
+      <KpiStrip columns={4} aria-label={t("overview")}>
         <WebhookKpi label={t("deliveries")} value={deliveries.length} />
         <WebhookKpi
           label={t("failed")}
@@ -671,20 +686,18 @@ function OverviewTab({
           label={t("secret")}
           value={selectedWebhook.secret ? t("redacted") : t("notAvailable")}
         />
-      </div>
-      <div className="webhooks-panel__surface">
+      </KpiStrip>
+      <PanelSurface>
         <p className="webhooks-panel__label">{t("events")}</p>
-        <div className="webhooks-panel__pill-row">
+        <div className="webhooks-panel__chip-row">
           {selectedWebhook.events.map((eventName) => (
-            <span className="webhooks-panel__pill" key={eventName}>
-              {eventName}
-            </span>
+            <PanelPill key={eventName}>{eventName}</PanelPill>
           ))}
         </div>
-      </div>
-      <div className="webhooks-panel__surface">
+      </PanelSurface>
+      <PanelSurface>
         <JsonDetails title={t("webhookPayload")} payload={safeWebhookPayload(selectedWebhook)} />
-      </div>
+      </PanelSurface>
     </div>
   );
 }
@@ -723,18 +736,16 @@ function DeliveriesTab({
                 <strong>{delivery.eventType}</strong>
                 <p>{delivery.createdAt}</p>
               </div>
-              <span className="webhooks-panel__pill">
+              <PanelPill>
                 {t("statusCodeShort")} {metricValue(delivery.statusCode, t("notAvailable"))}
-              </span>
-              <span className="webhooks-panel__pill">
+              </PanelPill>
+              <PanelPill>
                 {t("duration")}{" "}
                 {delivery.durationMs != null ? `${delivery.durationMs}ms` : t("notAvailable")}
-              </span>
-              <span
-                className={`webhooks-panel__pill ${delivery.success ? "is-good" : "is-danger"}`}
-              >
+              </PanelPill>
+              <PanelPill tone={delivery.success ? "positive" : "danger"}>
                 {delivery.success ? t("success") : t("failed")}
-              </span>
+              </PanelPill>
             </button>
             {expanded ? (
               <div className="webhooks-panel__delivery-expanded">
@@ -769,7 +780,7 @@ function SettingsTab({ selectedWebhook }: { selectedWebhook: DeckGoWebhook }) {
   const t = useTranslations("webhooks");
   return (
     <div className="webhooks-panel__tab-panel">
-      <div className="webhooks-panel__surface">
+      <PanelSurface>
         <p className="webhooks-panel__label">{t("configuration")}</p>
         <dl className="webhooks-panel__definition-list">
           <dt>{t("webhookId")}</dt>
@@ -783,7 +794,7 @@ function SettingsTab({ selectedWebhook }: { selectedWebhook: DeckGoWebhook }) {
           <dt>{t("updatedAt")}</dt>
           <dd>{selectedWebhook.updatedAt}</dd>
         </dl>
-      </div>
+      </PanelSurface>
     </div>
   );
 }
@@ -792,7 +803,7 @@ function CapabilityGaps() {
   const t = useTranslations("webhooks");
   return (
     <div className="webhooks-panel__tab-panel">
-      <div className="webhooks-panel__surface">
+      <PanelSurface>
         <p className="webhooks-panel__label">{t("contractGaps")}</p>
         <ul className="webhooks-panel__gap-list">
           <li>{t("gapRetry")}</li>
@@ -800,7 +811,7 @@ function CapabilityGaps() {
           <li>{t("gapEventCatalog")}</li>
           <li>{t("gapStats")}</li>
         </ul>
-      </div>
+      </PanelSurface>
     </div>
   );
 }

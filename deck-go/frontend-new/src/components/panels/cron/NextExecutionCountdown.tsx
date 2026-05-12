@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PanelPill } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 
 function formatRemaining(ms: number): string {
@@ -34,14 +35,14 @@ export function NextExecutionCountdown(props: { nextRunAtMs?: number; disabled?:
   }, [props.disabled, props.nextRunAtMs, now]);
 
   if (props.disabled) {
-    return <span className="cron-panel__pill">{t("disabled")}</span>;
+    return <PanelPill>{t("disabled")}</PanelPill>;
   }
   if (props.nextRunAtMs == null) {
-    return <span className="cron-panel__pill">--</span>;
+    return <PanelPill>--</PanelPill>;
   }
   const remaining = props.nextRunAtMs - now;
   if (remaining <= 0) {
-    return <span className="cron-panel__pill is-positive">{t("imminent")}</span>;
+    return <PanelPill tone="positive">{t("imminent")}</PanelPill>;
   }
-  return <span className="cron-panel__pill">{formatRemaining(remaining)}</span>;
+  return <PanelPill>{formatRemaining(remaining)}</PanelPill>;
 }

@@ -1,7 +1,12 @@
 import type { RefObject } from "react";
 import { IconInfo, IconPlus, IconRefresh, IconSearch } from "../../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelSectionHeader,
+  PanelStatusRow,
+} from "../../../../design-system/patterns";
 import { ChannelInventoryRow } from "../parts/ChannelInventoryRow";
-import { MetricTile } from "../parts/MetricTile";
 import type {
   ChannelFilter,
   ChannelInventoryItem,
@@ -53,56 +58,58 @@ export function ChannelsListView(props: {
 
   return (
     <main className="view list-view">
-      <header className="list-view__head">
-        <div>
-          <p className="channels-panel__eyebrow">{t("operationsTrail")}</p>
-          <h1 className="list-view__title">{t("title")}</h1>
-          <p className="list-view__subtitle">{t("inventoryDescription")}</p>
-        </div>
-        <div className="list-view__actions">
-          <button className="btn btn--ghost" type="button" onClick={onRefresh}>
-            <IconRefresh />
-            {t("refreshChannels")}
-          </button>
-          <button
-            className="btn btn--primary"
-            type="button"
-            disabled
-            title={t("createChannelUnavailable")}
-          >
-            <IconPlus />
-            {t("newChannel")}
-          </button>
-        </div>
-      </header>
+      <PanelSectionHeader
+        eyebrow={t("operationsTrail")}
+        title={t("title")}
+        description={t("inventoryDescription")}
+        actions={
+          <PanelStatusRow align="end">
+            <button className="btn btn--ghost" type="button" onClick={onRefresh}>
+              <IconRefresh />
+              {t("refreshChannels")}
+            </button>
+            <button
+              className="btn btn--primary"
+              type="button"
+              disabled
+              title={t("createChannelUnavailable")}
+            >
+              <IconPlus />
+              {t("newChannel")}
+            </button>
+          </PanelStatusRow>
+        }
+      />
 
-      <div className="kpi-strip" role="group" aria-label={t("inventoryKpis")}>
-        <MetricTile
+      <KpiStrip columns={5} role="group" aria-label={t("inventoryKpis")}>
+        <PanelMetric
           label={t("channelsStat")}
           value={items.length}
           hint={t("enabledCount", { count: totals.enabled })}
         />
-        <MetricTile
+        <PanelMetric
           label={t("accountsStat")}
           value={totals.totalAccounts}
           hint={t("acrossProviders")}
         />
-        <MetricTile
+        <PanelMetric
           label={t("alertsBadge", { count: totals.alerts })}
           value={totals.alerts}
           hint={t("accountsNeedingAttention")}
+          tone={totals.alerts > 0 ? "warning" : "positive"}
         />
-        <MetricTile
+        <PanelMetric
           label={t("unhealthyStat")}
           value={totals.degraded}
           hint={t("enabledProbeFailed")}
+          tone={totals.degraded > 0 ? "danger" : "positive"}
         />
-        <MetricTile
+        <PanelMetric
           label={t("throughput")}
           value={totals.messagesIn}
           hint={t("messagesOutSummary", { count: totals.messagesOut })}
         />
-      </div>
+      </KpiStrip>
 
       <div className="toolbar">
         <label className="toolbar__search">

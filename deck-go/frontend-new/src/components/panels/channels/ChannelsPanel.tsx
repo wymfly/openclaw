@@ -11,6 +11,7 @@ import {
 import { routingBindingsQueryOptions } from "../../../data/modules/routing";
 import { navigateToPlugin, navigateToRouting } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import { PanelRoot } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { LogoutDialog } from "./dialogs/LogoutDialog";
 import { TestResultDialog } from "./dialogs/TestResultDialog";
@@ -424,67 +425,69 @@ export function ChannelsPanel() {
   };
 
   return (
-    <section className="channels-panel" data-testid="channels-panel">
-      {view === "detail" && selectedItem ? (
-        <ChannelsDetailView
-          channel={selectedItem}
-          availableTabs={availableTabs}
-          selectedTab={selectedTab}
-          probeResult={selectedProbeResult}
-          actionState={actionState}
-          error={error}
-          payloadTimestamp={payload?.ts}
-          actionResult={actionResult}
-          t={t}
-          onTabChange={setActiveTab}
-          onBack={() => setView("list")}
-          onRunProbe={() => void runChannelTest()}
-          onRequestLogout={() => setLogoutDialogOpen(true)}
-        >
-          {renderTabBody()}
-        </ChannelsDetailView>
-      ) : (
-        <ChannelsListView
-          items={channelItems}
-          filteredItems={filteredItems}
-          totals={totals}
-          filter={filter}
-          filterCounts={filterCounts}
-          availableFilters={availableFilters}
-          searchQuery={searchQuery}
-          searchInputRef={searchRef}
-          loadState={loadState}
-          error={error}
-          selectedChannelId={selectedItem?.id}
-          payloadTimestamp={payload?.ts}
-          t={t}
-          onSearchChange={setSearchQuery}
-          onFilterChange={setFilter}
-          onClearFilters={() => {
-            setSearchQuery("");
-            setFilter("all");
-          }}
-          onRefresh={() => void refresh(selectedItem?.id)}
-          onSelect={(channelId) => openDetail(channelId)}
-        />
-      )}
-      {testResultDialogOpen && selectedProbeResult ? (
-        <TestResultDialog
-          channelLabel={selectedItem?.label ?? selectedProbeResult.channelId}
-          result={selectedProbeResult}
-          t={t}
-          onClose={() => setTestResultDialogOpen(false)}
-        />
-      ) : null}
-      {logoutDialogOpen && selectedItem ? (
-        <LogoutDialog
-          channelId={selectedItem.id}
-          actionState={actionState}
-          t={t}
-          onCancel={() => setLogoutDialogOpen(false)}
-          onConfirm={() => void runLogout()}
-        />
-      ) : null}
-    </section>
+    <PanelRoot data-testid="channels-panel" density="compact">
+      <div className="channels-panel">
+        {view === "detail" && selectedItem ? (
+          <ChannelsDetailView
+            channel={selectedItem}
+            availableTabs={availableTabs}
+            selectedTab={selectedTab}
+            probeResult={selectedProbeResult}
+            actionState={actionState}
+            error={error}
+            payloadTimestamp={payload?.ts}
+            actionResult={actionResult}
+            t={t}
+            onTabChange={setActiveTab}
+            onBack={() => setView("list")}
+            onRunProbe={() => void runChannelTest()}
+            onRequestLogout={() => setLogoutDialogOpen(true)}
+          >
+            {renderTabBody()}
+          </ChannelsDetailView>
+        ) : (
+          <ChannelsListView
+            items={channelItems}
+            filteredItems={filteredItems}
+            totals={totals}
+            filter={filter}
+            filterCounts={filterCounts}
+            availableFilters={availableFilters}
+            searchQuery={searchQuery}
+            searchInputRef={searchRef}
+            loadState={loadState}
+            error={error}
+            selectedChannelId={selectedItem?.id}
+            payloadTimestamp={payload?.ts}
+            t={t}
+            onSearchChange={setSearchQuery}
+            onFilterChange={setFilter}
+            onClearFilters={() => {
+              setSearchQuery("");
+              setFilter("all");
+            }}
+            onRefresh={() => void refresh(selectedItem?.id)}
+            onSelect={(channelId) => openDetail(channelId)}
+          />
+        )}
+        {testResultDialogOpen && selectedProbeResult ? (
+          <TestResultDialog
+            channelLabel={selectedItem?.label ?? selectedProbeResult.channelId}
+            result={selectedProbeResult}
+            t={t}
+            onClose={() => setTestResultDialogOpen(false)}
+          />
+        ) : null}
+        {logoutDialogOpen && selectedItem ? (
+          <LogoutDialog
+            channelId={selectedItem.id}
+            actionState={actionState}
+            t={t}
+            onCancel={() => setLogoutDialogOpen(false)}
+            onConfirm={() => void runLogout()}
+          />
+        ) : null}
+      </div>
+    </PanelRoot>
   );
 }

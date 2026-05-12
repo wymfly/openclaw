@@ -21,6 +21,15 @@ import {
   IconTrash,
   IconUnlink,
 } from "../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { IdentityList } from "./IdentityList";
 import { LinkDialog, type IdentityLinkInput } from "./LinkDialog";
@@ -229,284 +238,295 @@ export function IdentityPanel() {
   }, [t]);
 
   return (
-    <section className="identity-panel" data-testid="identity-panel">
-      <header className="identity-app__topbar">
-        <div className="identity-app__brand">
-          <p className="identity-app__eyebrow">deck-go</p>
-          <h2>{t("title")}</h2>
-          <p>
-            {t("description")} · <code>GET /api/deck/identity</code>
-          </p>
-        </div>
-
-        <div className="identity-app__topbar-meta">
-          <HashChip label="baseHash" value={configHash} />
-          <span className="identity-app__bootstrap" title={t("bffOnlyTitle")}>
-            <IconShield size={12} />
-            <span>{t("bffOnly")}</span>
-          </span>
-          <button
-            className="identity-panel__button identity-panel__button--icon"
-            disabled={loadState === "loading"}
-            type="button"
-            onClick={() => void refresh(selectedCanonical ?? undefined)}
-          >
-            <IconRefresh size={14} />
-            <span>{t("refresh")}</span>
-          </button>
-        </div>
-      </header>
-
-      <div className="identity-panel__metrics" aria-label={t("relationshipInventory")}>
-        <div className="identity-panel__metric">
-          <span>{t("canonicals")}</span>
-          <strong>{t("canonicalCount", { count: links.length })}</strong>
-        </div>
-        <div className="identity-panel__metric">
-          <span>{t("peers")}</span>
-          <strong>{t("peerCount", { count: totalPeers })}</strong>
-        </div>
-        <div className="identity-panel__metric">
-          <span>{t("channels")}</span>
-          <strong>{channels.length ? channels.join(", ") : t("none")}</strong>
-        </div>
-        <div className={`identity-panel__metric ${configHash ? "is-positive" : "is-warning"}`}>
-          <span>{t("hashState")}</span>
-          <strong>{configHash ? t("hashReady") : t("hashMissing")}</strong>
-        </div>
-      </div>
-
-      {error || loadError ? <p className="identity-panel__error">{error || loadError}</p> : null}
-      {lastAction ? (
-        <div className="identity-panel__notice">
-          <strong>{t("lastAction")}</strong>
-          <p>{lastAction}</p>
-        </div>
-      ) : null}
-
-      <div className="identity-app__layout">
-        <IdentityList
-          configHash={configHash}
-          links={links}
-          loading={loadState === "loading"}
-          query={query}
-          selectedCanonical={selectedCanonical}
-          onCreateUnsupported={showUnsupportedMutation}
-          onQueryChange={setQuery}
-          onRefresh={() => void refresh(selectedCanonical ?? undefined)}
-          onSelect={setSelectedCanonical}
+    <PanelRoot data-testid="identity-panel" density="compact">
+      <div className="identity-panel">
+        <PanelSectionHeader
+          eyebrow="deck-go"
+          title={t("title")}
+          description={
+            <>
+              {t("description")} ·{" "}
+              <code className="identity-panel__endpoint">GET /api/deck/identity</code>
+            </>
+          }
+          actions={
+            <PanelStatusRow align="end">
+              <HashChip label="baseHash" value={configHash} />
+              <PanelPill aria-label={t("bffOnlyTitle")}>
+                <IconShield size={12} />
+                <span>{t("bffOnly")}</span>
+              </PanelPill>
+              <button
+                className="identity-panel__button identity-panel__button--icon"
+                disabled={loadState === "loading"}
+                type="button"
+                onClick={() => void refresh(selectedCanonical ?? undefined)}
+              >
+                <IconRefresh size={14} />
+                <span>{t("refresh")}</span>
+              </button>
+            </PanelStatusRow>
+          }
         />
 
-        <main className="identity-app__main">
-          {loadState === "loading" && links.length === 0 ? (
-            <section className="canonical-detail canonical-detail--empty">
-              <div className="canonical-detail__empty-card">
-                <h3>{tc("loading")}</h3>
-                <p>{t("contractSource")}</p>
-              </div>
-            </section>
-          ) : null}
+        <KpiStrip columns={4} aria-label={t("relationshipInventory")}>
+          <PanelMetric
+            label={t("canonicals")}
+            value={t("canonicalCount", { count: links.length })}
+          />
+          <PanelMetric label={t("peers")} value={t("peerCount", { count: totalPeers })} />
+          <PanelMetric
+            label={t("channels")}
+            value={channels.length ? channels.join(", ") : t("none")}
+          />
+          <PanelMetric
+            label={t("hashState")}
+            value={configHash ? t("hashReady") : t("hashMissing")}
+            tone={configHash ? "positive" : "warning"}
+          />
+        </KpiStrip>
 
-          {loadState !== "loading" && links.length === 0 ? (
-            <section className="canonical-detail canonical-detail--empty">
-              <div className="canonical-detail__empty-card">
-                <h3>{t("noLinks")}</h3>
-                <p>{t("emptyDescription")}</p>
-              </div>
-            </section>
-          ) : null}
+        {error || loadError ? <p className="identity-panel__error">{error || loadError}</p> : null}
+        {lastAction ? (
+          <div className="identity-panel__notice">
+            <strong>{t("lastAction")}</strong>
+            <p>{lastAction}</p>
+          </div>
+        ) : null}
 
-          {links.length > 0 && !selectedLink ? (
-            <section className="canonical-detail canonical-detail--empty">
-              <div className="canonical-detail__empty-card">
-                <h3>{t("selectIdentity")}</h3>
-                <p>{t("chooseCanonical")}</p>
-              </div>
-            </section>
-          ) : null}
+        <div className="identity-app__layout">
+          <IdentityList
+            configHash={configHash}
+            links={links}
+            loading={loadState === "loading"}
+            query={query}
+            selectedCanonical={selectedCanonical}
+            onCreateUnsupported={showUnsupportedMutation}
+            onQueryChange={setQuery}
+            onRefresh={() => void refresh(selectedCanonical ?? undefined)}
+            onSelect={setSelectedCanonical}
+          />
 
-          {selectedLink ? (
-            <section className="canonical-detail">
-              <header className="canonical-detail__hero">
-                <div className="canonical-detail__hero-left">
-                  <p className="canonical-detail__eyebrow">{t("canonical")}</p>
-                  <h1 className="canonical-detail__title">
-                    {agentProfile?.emoji ? (
-                      <span className="canonical-detail__emoji" aria-hidden="true">
-                        {agentProfile.emoji}
+          <main className="identity-app__main">
+            {loadState === "loading" && links.length === 0 ? (
+              <section className="canonical-detail canonical-detail--empty">
+                <PanelSurface tone="muted">
+                  <h3>{tc("loading")}</h3>
+                  <p>{t("contractSource")}</p>
+                </PanelSurface>
+              </section>
+            ) : null}
+
+            {loadState !== "loading" && links.length === 0 ? (
+              <section className="canonical-detail canonical-detail--empty">
+                <PanelSurface tone="muted">
+                  <h3>{t("noLinks")}</h3>
+                  <p>{t("emptyDescription")}</p>
+                </PanelSurface>
+              </section>
+            ) : null}
+
+            {links.length > 0 && !selectedLink ? (
+              <section className="canonical-detail canonical-detail--empty">
+                <PanelSurface tone="muted">
+                  <h3>{t("selectIdentity")}</h3>
+                  <p>{t("chooseCanonical")}</p>
+                </PanelSurface>
+              </section>
+            ) : null}
+
+            {selectedLink ? (
+              <section className="canonical-detail">
+                <PanelSurface tone="elevated">
+                  <PanelSectionHeader
+                    eyebrow={t("canonical")}
+                    headingLevel={3}
+                    title={
+                      <span className="canonical-detail__title-inline">
+                        {agentProfile?.emoji ? (
+                          <span className="canonical-detail__emoji" aria-hidden="true">
+                            {agentProfile.emoji}
+                          </span>
+                        ) : null}
+                        <span>{selectedLink.canonical}</span>
                       </span>
-                    ) : null}
-                    <span>{selectedLink.canonical}</span>
-                  </h1>
-                  <p className="canonical-detail__hint">
-                    {agentProfile?.name
-                      ? t("agentProfileHint", { name: agentProfile.name })
-                      : t("selectedDescription")}
-                  </p>
-                  <div className="canonical-detail__hero-meta">
-                    <span className="identity-panel__pill is-positive">
-                      {t("peerCount", { count: selectedLink.peers.length })}
-                    </span>
-                    <span className="identity-panel__pill">
-                      {t("channelCount", { count: selectedChannels.length })}
-                    </span>
-                    <HashChip label="baseHash" value={configHash} />
-                  </div>
-                </div>
-                <div className="canonical-detail__hero-actions">
-                  <button
-                    className="identity-panel__button identity-panel__button--icon is-primary"
-                    type="button"
-                    onClick={() => {
-                      setDialogError("");
-                      setShowDialog(true);
-                    }}
-                  >
-                    <IconLink size={14} />
-                    <span>{t("linkPeer")}</span>
-                  </button>
-                  <button
-                    className="identity-panel__button identity-panel__button--icon"
-                    title={t("unsupportedRename")}
-                    type="button"
-                    onClick={showUnsupportedMutation}
-                  >
-                    <IconEdit size={14} />
-                    <span>{t("rename")}</span>
-                  </button>
-                  <button
-                    className="identity-panel__button identity-panel__button--icon is-danger"
-                    title={t("unsupportedDelete")}
-                    type="button"
-                    onClick={showUnsupportedMutation}
-                  >
-                    <IconTrash size={14} />
-                    <span>{t("delete")}</span>
-                  </button>
-                </div>
-              </header>
+                    }
+                    description={
+                      agentProfile?.name
+                        ? t("agentProfileHint", { name: agentProfile.name })
+                        : t("selectedDescription")
+                    }
+                    meta={
+                      <PanelStatusRow>
+                        <PanelPill tone="positive">
+                          {t("peerCount", { count: selectedLink.peers.length })}
+                        </PanelPill>
+                        <PanelPill>
+                          {t("channelCount", { count: selectedChannels.length })}
+                        </PanelPill>
+                        <HashChip label="baseHash" value={configHash} />
+                      </PanelStatusRow>
+                    }
+                    actions={
+                      <PanelStatusRow align="end">
+                        <button
+                          className="identity-panel__button identity-panel__button--icon is-primary"
+                          type="button"
+                          onClick={() => {
+                            setDialogError("");
+                            setShowDialog(true);
+                          }}
+                        >
+                          <IconLink size={14} />
+                          <span>{t("linkPeer")}</span>
+                        </button>
+                        <button
+                          className="identity-panel__button identity-panel__button--icon"
+                          title={t("unsupportedRename")}
+                          type="button"
+                          onClick={showUnsupportedMutation}
+                        >
+                          <IconEdit size={14} />
+                          <span>{t("rename")}</span>
+                        </button>
+                        <button
+                          className="identity-panel__button identity-panel__button--icon is-danger"
+                          title={t("unsupportedDelete")}
+                          type="button"
+                          onClick={showUnsupportedMutation}
+                        >
+                          <IconTrash size={14} />
+                          <span>{t("delete")}</span>
+                        </button>
+                      </PanelStatusRow>
+                    }
+                  />
+                </PanelSurface>
 
-              <section
-                className={`canonical-detail__banner ${configHash ? "is-ready" : "is-warn"}`}
-              >
-                <IconAlert size={15} />
-                <div>
-                  <strong>{t("mutationSafety")}</strong>
-                  <p>
-                    {configHash
-                      ? t("mutationSafetyDescription", { hash: configHash })
-                      : t("mutationSafetyBlocked")}
-                  </p>
-                </div>
-              </section>
-
-              <section className="canonical-detail__section">
-                <header className="canonical-detail__section-head">
-                  <div>
-                    <h3>{t("peerMappings")}</h3>
-                    <p>{t("peerMappingsDescription")}</p>
+                <PanelSurface tone={configHash ? "default" : "warning"}>
+                  <div className="canonical-detail__banner">
+                    <IconAlert size={15} />
+                    <div>
+                      <strong>{t("mutationSafety")}</strong>
+                      <p>
+                        {configHash
+                          ? t("mutationSafetyDescription", { hash: configHash })
+                          : t("mutationSafetyBlocked")}
+                      </p>
+                    </div>
                   </div>
-                  <span className="identity-panel__pill">
-                    {t("peerCount", { count: selectedLink.peers.length })}
-                  </span>
-                </header>
+                </PanelSurface>
 
-                {selectedLink.peers.length === 0 ? (
-                  <div className="peer-empty">
-                    <p className="peer-empty__title">{t("noPeersDetailed")}</p>
-                    <p className="peer-empty__hint">{t("guardedSlotDescription")}</p>
-                  </div>
-                ) : (
-                  <div className="peer-list">
-                    {selectedLink.peers.map((peer) => {
-                      const currentPeerKey = peerKey(selectedLink.canonical, peer);
-                      return (
-                        <article className="peer-row" key={currentPeerKey}>
-                          <div className="peer-row__left">
-                            <div className={`peer-row__avatar peer-row__avatar--${peer.channel}`}>
-                              <span>{peer.channel.slice(0, 2).toUpperCase()}</span>
-                            </div>
-                            <div className="peer-row__id">
-                              <div className="peer-row__id-line">
-                                <ChannelPill channel={peer.channel} />
-                                <code className="peer-row__peer-id">{peer.peerId}</code>
+                <PanelSurface>
+                  <PanelSectionHeader
+                    headingLevel={3}
+                    title={t("peerMappings")}
+                    description={t("peerMappingsDescription")}
+                    meta={
+                      <PanelPill>{t("peerCount", { count: selectedLink.peers.length })}</PanelPill>
+                    }
+                  />
+
+                  {selectedLink.peers.length === 0 ? (
+                    <div className="peer-empty">
+                      <p className="peer-empty__title">{t("noPeersDetailed")}</p>
+                      <p className="peer-empty__hint">{t("guardedSlotDescription")}</p>
+                    </div>
+                  ) : (
+                    <div className="peer-list">
+                      {selectedLink.peers.map((peer) => {
+                        const currentPeerKey = peerKey(selectedLink.canonical, peer);
+                        return (
+                          <article className="peer-row" key={currentPeerKey}>
+                            <div className="peer-row__left">
+                              <div className={`peer-row__avatar peer-row__avatar--${peer.channel}`}>
+                                <span>{peer.channel.slice(0, 2).toUpperCase()}</span>
                               </div>
-                              <p>
-                                {t("peerRelation", {
-                                  canonical: selectedLink.canonical,
-                                  channel: peer.channel,
-                                  peerId: peer.peerId,
-                                })}
-                              </p>
+                              <div className="peer-row__id">
+                                <div className="peer-row__id-line">
+                                  <ChannelPill channel={peer.channel} />
+                                  <code className="peer-row__peer-id">{peer.peerId}</code>
+                                </div>
+                                <p>
+                                  {t("peerRelation", {
+                                    canonical: selectedLink.canonical,
+                                    channel: peer.channel,
+                                    peerId: peer.peerId,
+                                  })}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="peer-row__meta">
-                            <div className="peer-row__meta-row">
-                              <IconClock size={12} />
-                              <span>{t("lastSeenUnavailable")}</span>
+                            <div className="peer-row__meta">
+                              <div className="peer-row__meta-row">
+                                <IconClock size={12} />
+                                <span>{t("lastSeenUnavailable")}</span>
+                              </div>
+                              <div className="peer-row__meta-row">
+                                <IconShield size={12} />
+                                <span>{t("activityProjectionUnavailable")}</span>
+                              </div>
                             </div>
-                            <div className="peer-row__meta-row">
-                              <IconShield size={12} />
-                              <span>{t("activityProjectionUnavailable")}</span>
+                            <div className="peer-row__actions">
+                              <button
+                                aria-label={`Unlink ${peer.channel}:${peer.peerId}`}
+                                className="identity-panel__button identity-panel__button--icon"
+                                disabled={pendingUnlinkKey === currentPeerKey}
+                                type="button"
+                                onClick={() =>
+                                  void handleUnlink(
+                                    selectedLink.canonical,
+                                    peer.channel,
+                                    peer.peerId,
+                                  )
+                                }
+                              >
+                                <IconUnlink size={14} />
+                                <span>
+                                  {pendingUnlinkKey === currentPeerKey ? tc("saving") : t("unlink")}
+                                </span>
+                              </button>
                             </div>
-                          </div>
-                          <div className="peer-row__actions">
-                            <button
-                              aria-label={`Unlink ${peer.channel}:${peer.peerId}`}
-                              className="identity-panel__button identity-panel__button--icon"
-                              disabled={pendingUnlinkKey === currentPeerKey}
-                              type="button"
-                              onClick={() =>
-                                void handleUnlink(selectedLink.canonical, peer.channel, peer.peerId)
-                              }
-                            >
-                              <IconUnlink size={14} />
-                              <span>
-                                {pendingUnlinkKey === currentPeerKey ? tc("saving") : t("unlink")}
-                              </span>
-                            </button>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </PanelSurface>
 
-              <section className="canonical-detail__section">
-                <header className="canonical-detail__section-head">
-                  <div>
-                    <h3>{t("recentMutations")}</h3>
-                    <p>{t("recentMutationsDescription")}</p>
+                <PanelSurface>
+                  <PanelSectionHeader
+                    headingLevel={3}
+                    title={t("recentMutations")}
+                    description={t("recentMutationsDescription")}
+                  />
+                  <div className="peer-empty">
+                    <p className="peer-empty__title">{t("recentMutationsUnavailable")}</p>
+                    <p className="peer-empty__hint">{t("recentMutationsProjection")}</p>
                   </div>
-                </header>
-                <div className="peer-empty">
-                  <p className="peer-empty__title">{t("recentMutationsUnavailable")}</p>
-                  <p className="peer-empty__hint">{t("recentMutationsProjection")}</p>
-                </div>
-              </section>
+                </PanelSurface>
 
-              <details className="identity-panel__raw">
-                <summary>{t("rawPayload")}</summary>
-                <pre>{selectedPayload}</pre>
-              </details>
-            </section>
-          ) : null}
-        </main>
+                <details className="identity-panel__raw">
+                  <summary>{t("rawPayload")}</summary>
+                  <pre>{selectedPayload}</pre>
+                </details>
+              </section>
+            ) : null}
+          </main>
+        </div>
+
+        <LinkDialog
+          configHash={configHash}
+          defaultCanonical={selectedLink?.canonical ?? ""}
+          error={dialogError}
+          open={showDialog}
+          submitting={submittingLink}
+          onClose={() => {
+            setDialogError("");
+            setShowDialog(false);
+          }}
+          onSubmit={(input) => void handleLink(input)}
+        />
       </div>
-
-      <LinkDialog
-        configHash={configHash}
-        defaultCanonical={selectedLink?.canonical ?? ""}
-        error={dialogError}
-        open={showDialog}
-        submitting={submittingLink}
-        onClose={() => {
-          setDialogError("");
-          setShowDialog(false);
-        }}
-        onSubmit={(input) => void handleLink(input)}
-      />
-    </section>
+    </PanelRoot>
   );
 }

@@ -214,12 +214,12 @@ describe("NodesPanel", () => {
     await waitFor(() => expect(container.textContent).toContain("shell: allowed"));
     expect(container.textContent).toContain("camera: denied");
     expect(container.querySelector(".nodes-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".nodes-panel__card")).toHaveLength(2);
     expect(container.querySelectorAll(".nodes-panel__body")).toHaveLength(2);
-    expect(container.querySelector(".nodes-panel__pill-row")).toBeTruthy();
-    expect(container.querySelector(".nodes-panel__metrics")).toBeTruthy();
-    expect(container.querySelector(".nodes-panel__detail-metrics")).toBeTruthy();
-    expect(container.querySelectorAll(".nodes-panel__surface").length).toBeGreaterThanOrEqual(6);
+    expect(container.querySelector(".nodes-panel__chip-row")).toBeTruthy();
+    expect(container.querySelectorAll(".ds-kpi-strip").length).toBeGreaterThanOrEqual(2);
+    expect(container.querySelectorAll(".nodes-panel__local-block").length).toBeGreaterThanOrEqual(
+      6,
+    );
     expect(container.querySelectorAll(".nodes-panel__list")).toHaveLength(2);
     expect(container.querySelectorAll(".nodes-panel__row").length).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".nodes-panel__actions").length).toBeGreaterThanOrEqual(5);
@@ -227,8 +227,8 @@ describe("NodesPanel", () => {
     expect(container.querySelectorAll(".nodes-panel__input").length).toBeGreaterThanOrEqual(5);
     expect(container.querySelector(".nodes-panel__textarea")).toBeTruthy();
     expect(container.querySelector(".nodes-panel__check")).toBeTruthy();
-    expect(container.querySelector(".nodes-panel__surface-grid")).toBeTruthy();
-    expect(container.querySelector(".nodes-panel__hero")).toBeTruthy();
+    expect(container.querySelector(".nodes-panel__local-grid")).toBeTruthy();
+    expect(container.querySelector('.ds-panel-surface[data-tone="elevated"]')).toBeTruthy();
 
     const selectedButton = Array.from(container.querySelectorAll("button")).find((button) =>
       button.className.includes("is-selected"),

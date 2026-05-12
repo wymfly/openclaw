@@ -39,6 +39,17 @@ import {
   IconShield,
   IconX,
 } from "../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelMetricTone,
+  type PanelPillTone,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import "./plugins-panel.css";
 
@@ -150,6 +161,20 @@ function statusTone(status: string | undefined) {
     return "warn";
   }
   return "muted";
+}
+
+function panelToneForStatus(status: string | undefined): PanelPillTone {
+  const tone = statusTone(status);
+  if (tone === "ok") {
+    return "positive";
+  }
+  if (tone === "err") {
+    return "danger";
+  }
+  if (tone === "warn") {
+    return "warning";
+  }
+  return "default";
 }
 
 function diagnosticTone(level: string | undefined) {
@@ -364,74 +389,76 @@ export function PluginsPanel() {
   };
 
   return (
-    <section className="plugins-panel" data-testid="plugins-panel">
-      {view === "detail" && selectedPlugin ? (
-        <PluginsDetailView
-          accessChannels={accessChannels}
-          availableChannels={availableChannels}
-          detailTab={detailTab}
-          handoffMessage={handoffMessage}
-          plugin={selectedPlugin}
-          t={t}
-          onBack={() => setView("list")}
-          onOpenAccess={(channelId) => {
-            navigateToChannelAccess(ui, { channelId });
-            setHandoffMessage(t("openedAccess", { channel: channelId }));
-          }}
-          onOpenChannel={(channelId) => {
-            navigateToChannel(ui, { channelId });
-            setHandoffMessage(t("openedChannel", { channel: channelId }));
-          }}
-          onOpenDiagnostic={(diagnostic) => setDialog({ kind: "diagnostic", diagnostic })}
-          onOpenManifest={() => setDialog({ kind: "manifest" })}
-          onOpenRaw={() => setDialog({ kind: "raw" })}
-          onOpenRouting={(channelId) => {
-            navigateToRouting(ui, { channelId });
-            setHandoffMessage(t("openedRouting", { channel: channelId }));
-          }}
-          onTab={setDetailTab}
-        />
-      ) : (
-        <PluginsListView
-          capability={capability}
-          capabilityFilters={capabilityFilters}
-          error={error}
-          filteredPlugins={filteredPlugins}
-          kindFilter={kindFilter}
-          loadState={loadState}
-          noRows={noRows}
-          originFilter={originFilter}
-          origins={origins}
-          plugins={plugins}
-          query={query}
-          scopeLabel={scopeLabel}
-          searchRef={searchRef}
-          selectedPluginId={selectedPlugin?.id ?? ""}
-          t={t}
-          tc={tc}
-          onCapabilityFilter={setKindFilter}
-          onClearFilters={() => {
-            setQuery("");
-            setOriginFilter("all");
-            setKindFilter("all");
-          }}
-          onOpenDetail={openDetail}
-          onOriginFilter={setOriginFilter}
-          onQuery={setQuery}
-          onRefresh={refresh}
-          onScope={handleScope}
-        />
-      )}
+    <PanelRoot data-testid="plugins-panel" density="compact">
+      <div className="plugins-panel">
+        {view === "detail" && selectedPlugin ? (
+          <PluginsDetailView
+            accessChannels={accessChannels}
+            availableChannels={availableChannels}
+            detailTab={detailTab}
+            handoffMessage={handoffMessage}
+            plugin={selectedPlugin}
+            t={t}
+            onBack={() => setView("list")}
+            onOpenAccess={(channelId) => {
+              navigateToChannelAccess(ui, { channelId });
+              setHandoffMessage(t("openedAccess", { channel: channelId }));
+            }}
+            onOpenChannel={(channelId) => {
+              navigateToChannel(ui, { channelId });
+              setHandoffMessage(t("openedChannel", { channel: channelId }));
+            }}
+            onOpenDiagnostic={(diagnostic) => setDialog({ kind: "diagnostic", diagnostic })}
+            onOpenManifest={() => setDialog({ kind: "manifest" })}
+            onOpenRaw={() => setDialog({ kind: "raw" })}
+            onOpenRouting={(channelId) => {
+              navigateToRouting(ui, { channelId });
+              setHandoffMessage(t("openedRouting", { channel: channelId }));
+            }}
+            onTab={setDetailTab}
+          />
+        ) : (
+          <PluginsListView
+            capability={capability}
+            capabilityFilters={capabilityFilters}
+            error={error}
+            filteredPlugins={filteredPlugins}
+            kindFilter={kindFilter}
+            loadState={loadState}
+            noRows={noRows}
+            originFilter={originFilter}
+            origins={origins}
+            plugins={plugins}
+            query={query}
+            scopeLabel={scopeLabel}
+            searchRef={searchRef}
+            selectedPluginId={selectedPlugin?.id ?? ""}
+            t={t}
+            tc={tc}
+            onCapabilityFilter={setKindFilter}
+            onClearFilters={() => {
+              setQuery("");
+              setOriginFilter("all");
+              setKindFilter("all");
+            }}
+            onOpenDetail={openDetail}
+            onOriginFilter={setOriginFilter}
+            onQuery={setQuery}
+            onRefresh={refresh}
+            onScope={handleScope}
+          />
+        )}
 
-      {selectedPlugin ? (
-        <PluginDialogs
-          dialog={dialog}
-          plugin={selectedPlugin}
-          t={t}
-          onClose={() => setDialog({ kind: "none" })}
-        />
-      ) : null}
-    </section>
+        {selectedPlugin ? (
+          <PluginDialogs
+            dialog={dialog}
+            plugin={selectedPlugin}
+            t={t}
+            onClose={() => setDialog({ kind: "none" })}
+          />
+        ) : null}
+      </div>
+    </PanelRoot>
   );
 }
 
@@ -465,16 +492,12 @@ function PluginsListView(props: {
   const criteria = activePluginCriteria(t, props.query, props.originFilter, props.kindFilter);
   return (
     <div className="list-view">
-      <header className="page-header">
-        <div className="page-header__title">
-          <h2>{t("title")}</h2>
-          <p>{t("description")}</p>
-          <p className="page-header__meta">
-            {t("scope")}: {props.scopeLabel}
-          </p>
-        </div>
-        <div className="page-header__hint">{t("keyboardHint")}</div>
-      </header>
+      <PanelSectionHeader
+        title={t("title")}
+        description={t("description")}
+        meta={<PanelPill>{`${t("scope")}: ${props.scopeLabel}`}</PanelPill>}
+        actions={<PanelPill>{t("keyboardHint")}</PanelPill>}
+      />
 
       <PluginsKpiStrip plugins={props.plugins} t={t} />
 
@@ -590,7 +613,7 @@ function PluginsKpiStrip({
   t: PluginTranslator;
 }) {
   return (
-    <div className="kpi-strip">
+    <KpiStrip columns={6} aria-label={t("runtimeInventory")}>
       <KpiTile label={t("plugins")} sub={t("runtimeInventory")} value={String(plugins.length)} />
       <KpiTile
         label={t("activated")}
@@ -614,20 +637,13 @@ function PluginsKpiStrip({
         value={String(countPluginsWithCapability(plugins, "tool"))}
       />
       <KpiTile label={t("asOf")} sub={t("lastDescribe")} value={new Date().toLocaleTimeString()} />
-    </div>
+    </KpiStrip>
   );
 }
 
 function KpiTile(props: { label: string; sub: string; tone?: "err"; value: string }) {
-  return (
-    <div className="kpi">
-      <div className="kpi__label">{props.label}</div>
-      <div className={`kpi__value${props.tone ? ` kpi__value--${props.tone}` : ""}`}>
-        {props.value}
-      </div>
-      <div className="kpi__sub">{props.sub}</div>
-    </div>
-  );
+  const tone: PanelMetricTone = props.tone === "err" ? "danger" : "default";
+  return <PanelMetric hint={props.sub} label={props.label} tone={tone} value={props.value} />;
 }
 
 function SegmentedControl(props: {
@@ -807,49 +823,51 @@ function PluginsDetailView(props: {
   const t = props.t;
   return (
     <div className="detail">
-      <header className="hero">
-        <button className="back-btn" type="button" onClick={props.onBack}>
-          <IconArrowL size={15} />
-          {t("backToPlugins")}
-        </button>
-        <div className="hero__main">
+      <PanelSurface tone="elevated">
+        <div className="plugins-panel__selected-layout">
           <div
             className={`plugin-glyph plugin-glyph--large plugin-glyph--${props.plugin.origin || "unknown"}`}
           >
             {pluginGlyphLabel(props.plugin)}
           </div>
-          <div className="hero__title-stack">
-            <div className="hero__title-row">
-              <h2>{props.plugin.name || props.plugin.id}</h2>
-              <span className={`pill pill--${statusTone(props.plugin.status)}`}>
-                {props.plugin.status || t("unknown")}
-              </span>
-              <span className={`origin-pill origin-pill--${props.plugin.origin || "unknown"}`}>
-                {props.plugin.origin || t("unknown")}
-              </span>
-            </div>
-            <div className="hero__meta">
-              <span className="kbd">{props.plugin.id}</span>
-              <span>{t("versionPrefix", { version: props.plugin.version || "n/a" })}</span>
-              <PluginCapabilityChips
-                kinds={props.plugin.capabilityKinds}
-                noneLabel={t("none")}
-                t={t}
-              />
-            </div>
-          </div>
+          <PanelSectionHeader
+            title={props.plugin.name || props.plugin.id}
+            headingLevel={2}
+            description={`${props.plugin.id} · ${t("versionPrefix", {
+              version: props.plugin.version || "n/a",
+            })}`}
+            meta={
+              <PanelStatusRow>
+                <PanelPill tone={panelToneForStatus(props.plugin.status)}>
+                  {props.plugin.status || t("unknown")}
+                </PanelPill>
+                <PanelPill>{props.plugin.origin || t("unknown")}</PanelPill>
+                <PluginCapabilityChips
+                  kinds={props.plugin.capabilityKinds}
+                  noneLabel={t("none")}
+                  t={t}
+                />
+              </PanelStatusRow>
+            }
+            actions={
+              <PanelStatusRow align="end">
+                <button className="back-btn" type="button" onClick={props.onBack}>
+                  <IconArrowL size={15} />
+                  {t("backToPlugins")}
+                </button>
+                <button className="btn btn--ghost" type="button" onClick={props.onOpenManifest}>
+                  <IconBook size={15} />
+                  {t("manifest")}
+                </button>
+                <button className="btn btn--ghost" type="button" onClick={props.onOpenRaw}>
+                  <IconFile size={15} />
+                  {t("raw")}
+                </button>
+              </PanelStatusRow>
+            }
+          />
         </div>
-        <div className="hero__actions">
-          <button className="btn btn--ghost" type="button" onClick={props.onOpenManifest}>
-            <IconBook size={15} />
-            {t("manifest")}
-          </button>
-          <button className="btn btn--ghost" type="button" onClick={props.onOpenRaw}>
-            <IconFile size={15} />
-            {t("raw")}
-          </button>
-        </div>
-      </header>
+      </PanelSurface>
 
       {props.handoffMessage ? <p className="banner banner--info">{props.handoffMessage}</p> : null}
 
@@ -914,7 +932,7 @@ function OverviewTab(props: {
 }) {
   const t = props.t;
   return (
-    <div className="section section--overview">
+    <PanelSurface>
       <div className="section__head">
         <h3>{t("identity")}</h3>
       </div>
@@ -972,16 +990,16 @@ function OverviewTab(props: {
         onOpenChannel={props.onOpenChannel}
         onOpenRouting={props.onOpenRouting}
       />
-    </div>
+    </PanelSurface>
   );
 }
 
 function StatePill({ enabled, t }: { enabled: boolean; t: PluginTranslator }) {
   return (
-    <span className={`pill pill--${enabled ? "ok" : "muted"}`}>
+    <PanelPill tone={enabled ? "positive" : "default"}>
       {enabled ? <IconCheck size={13} /> : <IconX size={13} />}
       {enabled ? t("yes") : t("no")}
-    </span>
+    </PanelPill>
   );
 }
 
@@ -1005,7 +1023,7 @@ function CapabilitiesTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginT
     "qrCodeAuth",
   ];
   return (
-    <div className="section section--cap">
+    <PanelSurface>
       <ChipSection
         icon="channel"
         label={t("channelsExposed")}
@@ -1041,7 +1059,7 @@ function CapabilitiesTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginT
         value={formatList(props.plugin.capabilityKinds, noneLabel)}
       />
       <FieldRow label={t("deckActions")} value={formatDeckActions(deckActions, noneLabel)} />
-    </div>
+    </PanelSurface>
   );
 }
 
@@ -1081,17 +1099,17 @@ function DiagnosticsTab(props: {
   const diagnostics = props.plugin.diagnostics ?? [];
   if (diagnostics.length === 0) {
     return (
-      <div className="section section--diag">
+      <PanelSurface>
         <div className="empty-block empty-block--ok">
           <IconCheck size={16} />
           <strong>{props.t("noDiagnostics")}</strong>
           <p>{props.t("noDiagnosticsBody")}</p>
         </div>
-      </div>
+      </PanelSurface>
     );
   }
   return (
-    <div className="section section--diag">
+    <PanelSurface>
       <div className="diag-list">
         {diagnostics.map((diagnostic, index) => {
           const tone = diagnosticTone(diagnostic.level);
@@ -1109,7 +1127,7 @@ function DiagnosticsTab(props: {
           );
         })}
       </div>
-    </div>
+    </PanelSurface>
   );
 }
 
@@ -1142,7 +1160,7 @@ function ActivationTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTra
     },
   ];
   return (
-    <div className="section section--act">
+    <PanelSurface>
       <div className="section__head">
         <h3>{t("stateChain")}</h3>
       </div>
@@ -1170,13 +1188,13 @@ function ActivationTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTra
         <IconInfo size={15} />
         {t("activationExplanation")}
       </div>
-    </div>
+    </PanelSurface>
   );
 }
 
 function ManifestTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTranslator }) {
   return (
-    <div className="section section--manifest">
+    <PanelSurface>
       <div className="section__head">
         <h3>{props.t("manifestProjection")}</h3>
       </div>
@@ -1185,14 +1203,14 @@ function ManifestTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTrans
         {props.t("manifestProjectionDescription")}
       </div>
       <JsonCode value={syntheticManifest(props.plugin)} />
-    </div>
+    </PanelSurface>
   );
 }
 
 function AuditTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTranslator }) {
   const hasActivation = props.plugin.activationSource || props.plugin.activationReason;
   return (
-    <div className="section section--audit">
+    <PanelSurface>
       <div className="section__head">
         <h3>{props.t("activationAudit")}</h3>
         <span className="muted small">{props.t("projectionOnly")}</span>
@@ -1221,7 +1239,7 @@ function AuditTab(props: { plugin: DeckGoPluginInventoryEntry; t: PluginTranslat
         <IconInfo size={15} />
         {props.t("auditProjectionDescription")}
       </div>
-    </div>
+    </PanelSurface>
   );
 }
 
@@ -1250,7 +1268,7 @@ function RelatedChannelActions(props: {
   );
   const routingChannel = visibleChannels[0];
   return (
-    <div className="section">
+    <PanelSurface>
       <div className="section__head">
         <h3>{props.t("relatedChannels")}</h3>
       </div>
@@ -1267,7 +1285,7 @@ function RelatedChannelActions(props: {
             </button>
           ))
         ) : (
-          <span className="pill pill--muted">{props.t("noVisibleChannels")}</span>
+          <PanelPill>{props.t("noVisibleChannels")}</PanelPill>
         )}
         {routingChannel ? (
           <button
@@ -1294,7 +1312,7 @@ function RelatedChannelActions(props: {
           {props.t("channelVisibilityWarning", { channels: hiddenChannels.join(", ") })}
         </p>
       ) : null}
-    </div>
+    </PanelSurface>
   );
 }
 

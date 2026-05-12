@@ -17,7 +17,6 @@ import { ChannelGlyph } from "./ChannelGlyph";
 import { ChannelInventoryRow } from "./ChannelInventoryRow";
 import { ChannelProbeResultBadge } from "./ChannelProbeResultBadge";
 import { ChannelThroughputChart } from "./ChannelThroughputChart";
-import { MetricTile } from "./MetricTile";
 
 const t: ChannelTranslator = ((key: string, values?: Record<string, unknown>) => {
   if (!values) {
@@ -67,18 +66,6 @@ describe("channels parts", () => {
     expect(glyph?.textContent).toBe("TE");
     expect(glyph?.getAttribute("data-channel")).toBe("telegram");
     expect(glyph?.getAttribute("aria-hidden")).toBe("true");
-  });
-
-  it("MetricTile renders label, value, and optional hint", async () => {
-    await render(createElement(MetricTile, { label: "Channels", value: 3, hint: "Operational" }));
-    expect(container.textContent).toContain("Channels");
-    expect(container.textContent).toContain("3");
-    expect(container.textContent).toContain("Operational");
-  });
-
-  it("MetricTile omits hint when not provided", async () => {
-    await render(createElement(MetricTile, { label: "Accounts", value: "12" }));
-    expect(container.querySelector(".kpi__hint")).toBeNull();
   });
 
   it("ChannelProbeResultBadge shows success state with latency", async () => {

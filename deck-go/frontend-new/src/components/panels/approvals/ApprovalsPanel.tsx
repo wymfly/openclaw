@@ -18,6 +18,15 @@ import {
 } from "../../../data/modules/approvals";
 import { navigateToAgent, navigateToSession } from "../../../deck-ui/panel-navigation";
 import { useDeckUI } from "../../../deck-ui/ui-store";
+import {
+  KpiStrip,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelPillTone,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 import { formatOptionalDate, isPluginApprovalExpired } from "./approval-model";
@@ -194,6 +203,20 @@ function decisionLabel(t: ReturnType<typeof useTranslations>, decision: Approval
 
 function recordDecisionLabel(t: ReturnType<typeof useTranslations>, decision: ApprovalDecision) {
   return decisionLabel(t, decision).toLowerCase();
+}
+
+function toneForEntryKind(kind: QueueEntry["kind"]): PanelPillTone {
+  return kind === "exec" ? "warning" : "positive";
+}
+
+function toneForDecision(decision: ApprovalDecision): PanelPillTone {
+  if (decision === "deny") {
+    return "danger";
+  }
+  if (decision === "allow-always") {
+    return "positive";
+  }
+  return "default";
 }
 
 export function ApprovalsPanel() {
@@ -592,491 +615,494 @@ export function ApprovalsPanel() {
         : t("noPendingKind");
 
   return (
-    <section className="approvals-panel" data-testid="approvals-panel">
-      <header className="approvals-panel__topbar">
-        <div className="approvals-panel__title-stack">
-          <p className="approvals-panel__eyebrow">{t("securityOps")}</p>
-          <h1 className="approvals-panel__title">{t("title")}</h1>
-          <p className="approvals-panel__description">
-            {t("panelDescription")} {t("policyHash")}: {policyResponse?.hash || t("notAvailable")}
-          </p>
-        </div>
-        <div className="approvals-panel__topbar-actions">
-          <button className="approvals-panel__button" type="button" onClick={() => void refresh()}>
-            {t("refreshApprovals")}
-          </button>
-          <button
-            className="approvals-panel__button is-primary"
-            type="button"
-            onClick={() => setPolicyOpen(true)}
-          >
-            {t("approvalPolicyEditor")}
-          </button>
-        </div>
-      </header>
-
-      <div className="approvals-panel__kpis">
-        <ApprovalMetric label={t("loadState")} value={`${t("approvalsLabel")} ${loadState}`} />
-        <ApprovalMetric label={t("pendingExec")} value={pendingApprovals.length} />
-        <ApprovalMetric label={t("pendingPlugin")} value={activePluginApprovals.length} />
-        <ApprovalMetric label={t("allowlist")} value={policy?.allowlist.length ?? 0} />
-        <ApprovalMetric
-          label={t("agentOverrides")}
-          value={Object.keys(policy?.agents ?? {}).length}
-        />
-      </div>
-
-      <div className="approvals-panel__workspace">
-        <article className="approvals-panel__card approvals-panel__queue">
-          <div className="approvals-panel__card-head">
-            <div>
-              <p className="approvals-panel__eyebrow">{t("pending")}</p>
-              <h2 className="approvals-panel__title is-compact">{t("decisionInbox")}</h2>
-            </div>
-            <span className={`approvals-panel__pill ${loadState === "ready" ? "is-good" : ""}`}>
-              {queueEntries.length} {t("visible")}
-            </span>
-          </div>
-          <div className="approvals-panel__body">
-            <div
-              className="approvals-panel__filters"
-              role="tablist"
-              aria-label={t("approvalKindFilter")}
-            >
-              {(["all", "exec", "plugins"] as ApprovalKindFilter[]).map((filter) => (
-                <button
-                  key={filter}
-                  className={`approvals-panel__button ${kindFilter === filter ? "is-primary" : ""}`}
-                  role="tab"
-                  aria-selected={kindFilter === filter}
-                  type="button"
-                  onClick={() => setKindFilter(filter)}
-                >
-                  {filter === "all"
-                    ? `${t("allApprovals")} ${allQueueEntries.length}`
-                    : filter === "exec"
-                      ? `${t("execApprovals")} ${pendingApprovals.length}`
-                      : `${t("pluginApprovals")} ${activePluginApprovals.length}`}
-                </button>
-              ))}
-            </div>
-            <label className="approvals-panel__field">
-              <span>{t("search")}</span>
-              <input
-                aria-label="search approvals"
-                className="approvals-panel__input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("searchPlaceholder")}
-              />
-            </label>
-            {error ? <p className="approvals-panel__note is-danger">{error}</p> : null}
-            {queueEntries.length > 0 ? (
-              <ul className="approvals-panel__list" role="list" aria-label={t("pendingApprovals")}>
-                {queueEntries.map((entry) => {
-                  const selected =
-                    surface === entry.kind &&
-                    (entry.kind === "exec"
-                      ? selectedApprovalId === entry.id
-                      : selectedPluginApprovalId === entry.id);
-                  return (
-                    <li key={`${entry.kind}:${entry.id}`} role="listitem">
-                      <button
-                        type="button"
-                        className={`approvals-panel__row is-${entry.kind} ${selected ? "is-selected" : ""}`}
-                        onClick={() => selectEntry(entry)}
-                      >
-                        <div className="approvals-panel__row-main">
-                          <div className="approvals-panel__row-head">
-                            <span
-                              className={`approvals-panel__pill ${
-                                entry.kind === "exec" ? "is-warn" : "is-good"
-                              }`}
-                            >
-                              {entry.kind === "exec" ? t("exec") : t("plugin")}
-                            </span>
-                            <span className="approvals-panel__pill">
-                              {formatRemaining(entry.expiresAtMs, nowMs, t("notAvailable"))}
-                            </span>
-                          </div>
-                          <strong>{entry.title}</strong>
-                          <p className="approvals-panel__meta">
-                            {entry.subtitle} | {entry.id} |{" "}
-                            {formatRelativeAge(entry.createdAtMs, nowMs, t("notAvailable"))}
-                          </p>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            ) : (
-              <div className="approvals-panel__note">
-                <p>{queueEmptyCopy}</p>
-                {allQueueEntries.length > 0 ? <p>{approvalCriteria}</p> : null}
-                {allQueueEntries.length > 0 ? (
-                  <button
-                    className="approvals-panel__button"
-                    type="button"
-                    onClick={() => {
-                      setKindFilter("all");
-                      setQuery("");
-                    }}
-                  >
-                    {t("clearFilters")}
-                  </button>
-                ) : null}
-              </div>
-            )}
-          </div>
-        </article>
-
-        <article className="approvals-panel__card approvals-panel__detail">
-          <div className="approvals-panel__card-head">
-            <div>
-              <p className="approvals-panel__eyebrow">{t("selectedApproval")}</p>
-              <h2 className="approvals-panel__title is-compact">
-                {selectedEntry?.title ?? t("selectedApproval")}
-              </h2>
-            </div>
-            {selectedEntry ? (
-              <span
-                className={`approvals-panel__pill ${
-                  selectedEntry.kind === "exec" ? "is-warn" : "is-good"
-                }`}
+    <PanelRoot data-testid="approvals-panel" density="compact">
+      <div className="approvals-panel">
+        <PanelSectionHeader
+          eyebrow={t("securityOps")}
+          title={t("title")}
+          description={`${t("panelDescription")} ${t("policyHash")}: ${
+            policyResponse?.hash || t("notAvailable")
+          }`}
+          actions={
+            <PanelStatusRow align="end">
+              <button
+                className="approvals-panel__button"
+                type="button"
+                onClick={() => void refresh()}
               >
-                {selectedEntry.kind === "exec" ? t("exec") : t("plugin")}
-              </span>
-            ) : null}
-          </div>
-          <div className="approvals-panel__body approvals-panel__detail-stack">
-            {selectedEntry ? (
-              <>
-                <div className="approvals-panel__hero">
-                  <div>
-                    <p className="approvals-panel__eyebrow">
-                      {selectedEntry.kind === "exec" ? t("command") : t("pluginApproval")}
-                    </p>
-                    <strong>{selectedEntry.title}</strong>
-                    <p className="approvals-panel__note">
-                      {t("id")}: {selectedEntry.id}
-                    </p>
-                  </div>
-                  <div className="approvals-panel__pill-row">
-                    <span className="approvals-panel__pill">
-                      {t("created")}:{" "}
-                      {formatOptionalDate(selectedEntry.createdAtMs, t("notAvailable"))}
-                    </span>
-                    <span className="approvals-panel__pill">
-                      {t("expires")}:{" "}
-                      {formatRemaining(selectedEntry.expiresAtMs, nowMs, t("notAvailable"))}
-                    </span>
-                  </div>
-                </div>
+                {t("refreshApprovals")}
+              </button>
+              <button
+                className="approvals-panel__button is-primary"
+                type="button"
+                onClick={() => setPolicyOpen(true)}
+              >
+                {t("approvalPolicyEditor")}
+              </button>
+            </PanelStatusRow>
+          }
+        />
 
+        <KpiStrip columns={5} aria-label={t("approvalsLabel")}>
+          <ApprovalMetric label={t("loadState")} value={`${t("approvalsLabel")} ${loadState}`} />
+          <ApprovalMetric label={t("pendingExec")} value={pendingApprovals.length} />
+          <ApprovalMetric label={t("pendingPlugin")} value={activePluginApprovals.length} />
+          <ApprovalMetric label={t("allowlist")} value={policy?.allowlist.length ?? 0} />
+          <ApprovalMetric
+            label={t("agentOverrides")}
+            value={Object.keys(policy?.agents ?? {}).length}
+          />
+        </KpiStrip>
+
+        <div className="approvals-panel__workspace">
+          <PanelSurface as="article">
+            <div className="approvals-panel__queue">
+              <PanelSectionHeader
+                eyebrow={t("pending")}
+                title={t("decisionInbox")}
+                headingLevel={2}
+                meta={
+                  <PanelPill tone={loadState === "ready" ? "positive" : "default"}>
+                    {queueEntries.length} {t("visible")}
+                  </PanelPill>
+                }
+              />
+              <div className="approvals-panel__body">
                 <div
-                  className="approvals-panel__tabs"
+                  className="approvals-panel__filters"
                   role="tablist"
-                  aria-label={t("approvalDetailTabs")}
+                  aria-label={t("approvalKindFilter")}
                 >
-                  {detailTabs.map((tab) => (
+                  {(["all", "exec", "plugins"] as ApprovalKindFilter[]).map((filter) => (
                     <button
-                      key={tab}
-                      className={`approvals-panel__button ${detailTab === tab ? "is-primary" : ""}`}
+                      key={filter}
+                      className={`approvals-panel__button ${kindFilter === filter ? "is-primary" : ""}`}
                       role="tab"
-                      aria-selected={detailTab === tab}
+                      aria-selected={kindFilter === filter}
                       type="button"
-                      onClick={() => setDetailTab(tab)}
+                      onClick={() => setKindFilter(filter)}
                     >
-                      {t(`tab${tab[0].toUpperCase()}${tab.slice(1)}`)}
+                      {filter === "all"
+                        ? `${t("allApprovals")} ${allQueueEntries.length}`
+                        : filter === "exec"
+                          ? `${t("execApprovals")} ${pendingApprovals.length}`
+                          : `${t("pluginApprovals")} ${activePluginApprovals.length}`}
                     </button>
                   ))}
                 </div>
-
-                {detailTab === "overview" ? (
-                  <div className="approvals-panel__metrics">
-                    <ApprovalMetric
-                      label={t("agent")}
-                      value={
-                        selectedEntry.kind === "exec"
-                          ? selectedEntry.payload.agentId || t("notAvailable")
-                          : selectedEntry.payload.pluginId || t("notAvailable")
-                      }
-                    />
-                    <ApprovalMetric
-                      label={t("session")}
-                      value={
-                        selectedEntry.kind === "exec"
-                          ? selectedEntry.payload.sessionKey || t("notAvailable")
-                          : selectedEntry.payload.status || t("pendingBadge")
-                      }
-                    />
-                    <ApprovalMetric
-                      label={t("run")}
-                      value={
-                        selectedEntry.kind === "exec"
-                          ? selectedEntry.payload.runId || t("notAvailable")
-                          : selectedEntry.payload.decision || t("pendingBadge")
-                      }
-                    />
-                    <ApprovalMetric
-                      label={t("requestedAt")}
-                      value={formatRelativeAge(selectedEntry.createdAtMs, nowMs, t("notAvailable"))}
-                    />
-                  </div>
-                ) : null}
-
-                {detailTab === "argv" && selectedEntry.kind === "exec" ? (
-                  <div className="approvals-panel__surface">
-                    <JsonDetails
-                      title={t("approvalArgv")}
-                      payload={{
-                        cwd: selectedEntry.payload.cwd ?? null,
-                        commandArgv: selectedEntry.payload.commandArgv ?? [],
-                      }}
-                    />
-                  </div>
-                ) : null}
-
-                {detailTab === "plan" && selectedEntry.kind === "exec" ? (
-                  <div className="approvals-panel__surface">
-                    <p className="approvals-panel__eyebrow">{t("tabPlan")}</p>
-                    <p className="approvals-panel__note">{t("planUnsupported")}</p>
-                    <JsonDetails
-                      title={t("decisionScope")}
-                      payload={{
-                        command: selectedEntry.payload.command,
-                        commandArgv: selectedEntry.payload.commandArgv ?? [],
-                        cwd: selectedEntry.payload.cwd ?? null,
-                        agentId: selectedEntry.payload.agentId ?? null,
-                        sessionKey: selectedEntry.payload.sessionKey ?? null,
-                        runId: selectedEntry.payload.runId ?? null,
-                      }}
-                    />
-                  </div>
-                ) : null}
-
-                {detailTab === "scopes" && selectedEntry.kind === "plugins" ? (
-                  <div className="approvals-panel__surface">
-                    <p className="approvals-panel__eyebrow">{t("tabScopes")}</p>
-                    <p className="approvals-panel__note">{t("pluginScopesUnsupported")}</p>
-                    <JsonDetails
-                      title={t("decisionScope")}
-                      payload={{
-                        pluginId: selectedEntry.payload.pluginId ?? null,
-                        command: selectedEntry.payload.command ?? null,
-                        status: selectedEntry.payload.status ?? null,
-                      }}
-                    />
-                  </div>
-                ) : null}
-
-                {detailTab === "source" && selectedEntry.kind === "plugins" ? (
-                  <div className="approvals-panel__surface">
-                    <JsonDetails
-                      title={t("pluginApprovalSource")}
-                      payload={{
-                        pluginId: selectedEntry.payload.pluginId ?? null,
-                        command: selectedEntry.payload.command ?? null,
-                        description: selectedEntry.payload.description ?? null,
-                        status: selectedEntry.payload.status ?? null,
-                        decision: selectedEntry.payload.decision ?? null,
-                      }}
-                    />
-                  </div>
-                ) : null}
-
-                {detailTab === "activity" ? (
-                  <div className="approvals-panel__surface">
-                    <p className="approvals-panel__eyebrow">{t("activity")}</p>
-                    <p className="approvals-panel__note">{t("recentDecisionsUnsupported")}</p>
-                  </div>
-                ) : null}
-
-                {selectedEntry.kind === "exec" ? (
-                  <div className="approvals-panel__actions">
-                    {selectedEntry.payload.agentId ? (
-                      <button
-                        className="approvals-panel__button"
-                        type="button"
-                        onClick={() => navigateToAgent(ui, selectedEntry.payload.agentId ?? "")}
-                      >
-                        {t("openApprovalAgent")}
-                      </button>
-                    ) : null}
-                    {selectedEntry.payload.sessionKey ? (
-                      <button
-                        className="approvals-panel__button"
-                        type="button"
-                        onClick={() =>
-                          navigateToSession(ui, selectedEntry.payload.sessionKey ?? "")
-                        }
-                      >
-                        {t("openApprovalSession")}
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                <div className="approvals-panel__surface approvals-panel__decision-bar">
-                  <label className="approvals-panel__field">
-                    <span>{t("decisionReason")}</span>
-                    <input
-                      aria-label="approval decision reason unsupported"
-                      className="approvals-panel__input"
-                      disabled
-                      value=""
-                      placeholder={t("decisionReasonUnsupported")}
-                      readOnly
-                    />
-                  </label>
-                  <div className="approvals-panel__actions">
-                    {(["deny", "allow-once", "allow-always"] as ApprovalDecision[]).map(
-                      (decision) => (
-                        <button
-                          key={decision}
-                          className={`approvals-panel__button ${
-                            decision === "deny"
-                              ? "is-danger"
-                              : decision === "allow-always"
-                                ? "is-primary"
-                                : ""
-                          }`}
-                          type="button"
-                          onClick={() => void runSelectedDecision(decision)}
-                          disabled={decisionDisabled}
-                        >
-                          {actionState === decision
-                            ? t("submittingDecision")
-                            : decisionLabel(t, decision)}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                </div>
-
-                <div className="approvals-panel__surface">
-                  <JsonDetails
-                    title={
-                      selectedEntry.kind === "exec"
-                        ? t("approvalPayload")
-                        : t("pluginApprovalPayload")
-                    }
-                    payload={selectedEntry.payload}
+                <label className="approvals-panel__field">
+                  <span>{t("search")}</span>
+                  <input
+                    aria-label="search approvals"
+                    className="approvals-panel__input"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t("searchPlaceholder")}
                   />
-                </div>
-              </>
-            ) : (
-              <p className="approvals-panel__note">{t("choosePendingApproval")}</p>
-            )}
-
-            {policy ? (
-              <div className="approvals-panel__surface">
-                <JsonDetails title={t("policyPayload")} payload={policy} />
-              </div>
-            ) : null}
-            {actionResult ? (
-              <div className="approvals-panel__surface">
-                <JsonDetails title={t("lastApprovalAction")} payload={actionResult} />
-              </div>
-            ) : null}
-          </div>
-        </article>
-      </div>
-
-      <footer className="approvals-panel__card approvals-panel__recent">
-        <div className="approvals-panel__card-head">
-          <div>
-            <p className="approvals-panel__eyebrow">{t("activity")}</p>
-            <h2 className="approvals-panel__title is-compact">{t("recentDecisions")}</h2>
-          </div>
-          <span className="approvals-panel__pill">
-            {recentDecisionEvidence.length} {t("visible")}
-          </span>
-        </div>
-        <div className="approvals-panel__body">
-          {recentDecisionEvidence.length > 0 ? (
-            <ul className="approvals-panel__recent-list" role="list">
-              {recentDecisionEvidence.map((entry) => (
-                <li
-                  key={`${entry.id}:${entry.decidedAtMs}`}
-                  className="approvals-panel__recent-row"
-                >
-                  <span
-                    className={`approvals-panel__pill ${
-                      entry.decision === "deny"
-                        ? "is-danger"
-                        : entry.decision === "allow-always"
-                          ? "is-good"
-                          : ""
-                    }`}
+                </label>
+                {error ? <p className="approvals-panel__note is-danger">{error}</p> : null}
+                {queueEntries.length > 0 ? (
+                  <ul
+                    className="approvals-panel__list"
+                    role="list"
+                    aria-label={t("pendingApprovals")}
                   >
-                    {recordDecisionLabel(t, entry.decision)}
-                  </span>
-                  <span
-                    className={`approvals-panel__pill ${
-                      entry.kind === "exec" ? "is-warn" : "is-good"
-                    }`}
-                  >
-                    {entry.kind === "exec" ? t("exec") : t("plugin")}
-                  </span>
-                  <strong>{entry.title}</strong>
-                  <span className="approvals-panel__meta">{entry.actor}</span>
-                  <span className="approvals-panel__meta">
-                    {formatRelativeAge(entry.decidedAtMs, nowMs, t("notAvailable"))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="approvals-panel__note">{t("recentDecisionsEmpty")}</p>
-          )}
-          <p className="approvals-panel__note">{t("recentDecisionsUnsupported")}</p>
-        </div>
-      </footer>
-
-      {policyOpen ? (
-        <div className="approvals-panel__modal-backdrop" role="presentation">
-          <div
-            className="approvals-panel__modal"
-            role="dialog"
-            aria-modal="true"
-            aria-label={t("approvalPolicyEditor")}
-          >
-            <div className="approvals-panel__card-head">
-              <div>
-                <p className="approvals-panel__eyebrow">{t("policy")}</p>
-                <h2 className="approvals-panel__title is-compact">{t("approvalPolicyEditor")}</h2>
+                    {queueEntries.map((entry) => {
+                      const selected =
+                        surface === entry.kind &&
+                        (entry.kind === "exec"
+                          ? selectedApprovalId === entry.id
+                          : selectedPluginApprovalId === entry.id);
+                      return (
+                        <li key={`${entry.kind}:${entry.id}`} role="listitem">
+                          <button
+                            type="button"
+                            className={`approvals-panel__row is-${entry.kind} ${selected ? "is-selected" : ""}`}
+                            onClick={() => selectEntry(entry)}
+                          >
+                            <div className="approvals-panel__row-main">
+                              <div className="approvals-panel__row-head">
+                                <PanelPill tone={toneForEntryKind(entry.kind)}>
+                                  {entry.kind === "exec" ? t("exec") : t("plugin")}
+                                </PanelPill>
+                                <PanelPill>
+                                  {formatRemaining(entry.expiresAtMs, nowMs, t("notAvailable"))}
+                                </PanelPill>
+                              </div>
+                              <strong>{entry.title}</strong>
+                              <p className="approvals-panel__meta">
+                                {entry.subtitle} | {entry.id} |{" "}
+                                {formatRelativeAge(entry.createdAtMs, nowMs, t("notAvailable"))}
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="approvals-panel__note">
+                    <p>{queueEmptyCopy}</p>
+                    {allQueueEntries.length > 0 ? <p>{approvalCriteria}</p> : null}
+                    {allQueueEntries.length > 0 ? (
+                      <button
+                        className="approvals-panel__button"
+                        type="button"
+                        onClick={() => {
+                          setKindFilter("all");
+                          setQuery("");
+                        }}
+                      >
+                        {t("clearFilters")}
+                      </button>
+                    ) : null}
+                  </div>
+                )}
               </div>
-              <button
-                aria-label={t("closePolicyEditor")}
-                className="approvals-panel__button"
-                type="button"
-                onClick={() => setPolicyOpen(false)}
-                disabled={policySaveState !== "idle"}
-              >
-                {t("close")}
-              </button>
             </div>
-            <PolicyEditor
-              structuredPolicyDraft={structuredPolicyDraft}
-              policyDraft={policyDraft}
-              newAgentId={newAgentId}
-              newAllowlistPath={newAllowlistPath}
-              policySaveState={policySaveState}
-              onAddAgent={addAgentOverride}
-              onAddAllowlistPath={addAllowlistPath}
-              onPolicyDraftChange={setPolicyDraft}
-              onNewAgentIdChange={setNewAgentId}
-              onNewAllowlistPathChange={setNewAllowlistPath}
-              onRemoveAgent={removeAgentOverride}
-              onRemoveAllowlistPath={removeAllowlistPath}
-              onSave={() => void savePolicyDraft()}
-              onStructuredPolicyChange={updatePolicyDraft}
-            />
-          </div>
+          </PanelSurface>
+
+          <PanelSurface as="article">
+            <div className="approvals-panel__detail">
+              <PanelSectionHeader
+                eyebrow={t("selectedApproval")}
+                title={selectedEntry?.title ?? t("selectedApproval")}
+                headingLevel={2}
+                meta={
+                  selectedEntry ? (
+                    <PanelPill tone={toneForEntryKind(selectedEntry.kind)}>
+                      {selectedEntry.kind === "exec" ? t("exec") : t("plugin")}
+                    </PanelPill>
+                  ) : null
+                }
+              />
+              <div className="approvals-panel__body approvals-panel__detail-stack">
+                {selectedEntry ? (
+                  <>
+                    <PanelSurface tone="elevated">
+                      <PanelSectionHeader
+                        eyebrow={selectedEntry.kind === "exec" ? t("command") : t("pluginApproval")}
+                        title={selectedEntry.title}
+                        headingLevel={3}
+                        description={`${t("id")}: ${selectedEntry.id}`}
+                        meta={
+                          <PanelStatusRow>
+                            <PanelPill>
+                              {t("created")}:{" "}
+                              {formatOptionalDate(selectedEntry.createdAtMs, t("notAvailable"))}
+                            </PanelPill>
+                            <PanelPill>
+                              {t("expires")}:{" "}
+                              {formatRemaining(selectedEntry.expiresAtMs, nowMs, t("notAvailable"))}
+                            </PanelPill>
+                          </PanelStatusRow>
+                        }
+                      />
+                    </PanelSurface>
+
+                    <div
+                      className="approvals-panel__tabs"
+                      role="tablist"
+                      aria-label={t("approvalDetailTabs")}
+                    >
+                      {detailTabs.map((tab) => (
+                        <button
+                          key={tab}
+                          className={`approvals-panel__button ${detailTab === tab ? "is-primary" : ""}`}
+                          role="tab"
+                          aria-selected={detailTab === tab}
+                          type="button"
+                          onClick={() => setDetailTab(tab)}
+                        >
+                          {t(`tab${tab[0].toUpperCase()}${tab.slice(1)}`)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {detailTab === "overview" ? (
+                      <KpiStrip columns={4}>
+                        <ApprovalMetric
+                          label={t("agent")}
+                          value={
+                            selectedEntry.kind === "exec"
+                              ? selectedEntry.payload.agentId || t("notAvailable")
+                              : selectedEntry.payload.pluginId || t("notAvailable")
+                          }
+                        />
+                        <ApprovalMetric
+                          label={t("session")}
+                          value={
+                            selectedEntry.kind === "exec"
+                              ? selectedEntry.payload.sessionKey || t("notAvailable")
+                              : selectedEntry.payload.status || t("pendingBadge")
+                          }
+                        />
+                        <ApprovalMetric
+                          label={t("run")}
+                          value={
+                            selectedEntry.kind === "exec"
+                              ? selectedEntry.payload.runId || t("notAvailable")
+                              : selectedEntry.payload.decision || t("pendingBadge")
+                          }
+                        />
+                        <ApprovalMetric
+                          label={t("requestedAt")}
+                          value={formatRelativeAge(
+                            selectedEntry.createdAtMs,
+                            nowMs,
+                            t("notAvailable"),
+                          )}
+                        />
+                      </KpiStrip>
+                    ) : null}
+
+                    {detailTab === "argv" && selectedEntry.kind === "exec" ? (
+                      <PanelSurface>
+                        <JsonDetails
+                          title={t("approvalArgv")}
+                          payload={{
+                            cwd: selectedEntry.payload.cwd ?? null,
+                            commandArgv: selectedEntry.payload.commandArgv ?? [],
+                          }}
+                        />
+                      </PanelSurface>
+                    ) : null}
+
+                    {detailTab === "plan" && selectedEntry.kind === "exec" ? (
+                      <PanelSurface>
+                        <p className="approvals-panel__eyebrow">{t("tabPlan")}</p>
+                        <p className="approvals-panel__note">{t("planUnsupported")}</p>
+                        <JsonDetails
+                          title={t("decisionScope")}
+                          payload={{
+                            command: selectedEntry.payload.command,
+                            commandArgv: selectedEntry.payload.commandArgv ?? [],
+                            cwd: selectedEntry.payload.cwd ?? null,
+                            agentId: selectedEntry.payload.agentId ?? null,
+                            sessionKey: selectedEntry.payload.sessionKey ?? null,
+                            runId: selectedEntry.payload.runId ?? null,
+                          }}
+                        />
+                      </PanelSurface>
+                    ) : null}
+
+                    {detailTab === "scopes" && selectedEntry.kind === "plugins" ? (
+                      <PanelSurface>
+                        <p className="approvals-panel__eyebrow">{t("tabScopes")}</p>
+                        <p className="approvals-panel__note">{t("pluginScopesUnsupported")}</p>
+                        <JsonDetails
+                          title={t("decisionScope")}
+                          payload={{
+                            pluginId: selectedEntry.payload.pluginId ?? null,
+                            command: selectedEntry.payload.command ?? null,
+                            status: selectedEntry.payload.status ?? null,
+                          }}
+                        />
+                      </PanelSurface>
+                    ) : null}
+
+                    {detailTab === "source" && selectedEntry.kind === "plugins" ? (
+                      <PanelSurface>
+                        <JsonDetails
+                          title={t("pluginApprovalSource")}
+                          payload={{
+                            pluginId: selectedEntry.payload.pluginId ?? null,
+                            command: selectedEntry.payload.command ?? null,
+                            description: selectedEntry.payload.description ?? null,
+                            status: selectedEntry.payload.status ?? null,
+                            decision: selectedEntry.payload.decision ?? null,
+                          }}
+                        />
+                      </PanelSurface>
+                    ) : null}
+
+                    {detailTab === "activity" ? (
+                      <PanelSurface>
+                        <p className="approvals-panel__eyebrow">{t("activity")}</p>
+                        <p className="approvals-panel__note">{t("recentDecisionsUnsupported")}</p>
+                      </PanelSurface>
+                    ) : null}
+
+                    {selectedEntry.kind === "exec" ? (
+                      <div className="approvals-panel__actions">
+                        {selectedEntry.payload.agentId ? (
+                          <button
+                            className="approvals-panel__button"
+                            type="button"
+                            onClick={() => navigateToAgent(ui, selectedEntry.payload.agentId ?? "")}
+                          >
+                            {t("openApprovalAgent")}
+                          </button>
+                        ) : null}
+                        {selectedEntry.payload.sessionKey ? (
+                          <button
+                            className="approvals-panel__button"
+                            type="button"
+                            onClick={() =>
+                              navigateToSession(ui, selectedEntry.payload.sessionKey ?? "")
+                            }
+                          >
+                            {t("openApprovalSession")}
+                          </button>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <div className="approvals-panel__decision-bar">
+                      <PanelSurface>
+                        <label className="approvals-panel__field">
+                          <span>{t("decisionReason")}</span>
+                          <input
+                            aria-label="approval decision reason unsupported"
+                            className="approvals-panel__input"
+                            disabled
+                            value=""
+                            placeholder={t("decisionReasonUnsupported")}
+                            readOnly
+                          />
+                        </label>
+                        <div className="approvals-panel__actions">
+                          {(["deny", "allow-once", "allow-always"] as ApprovalDecision[]).map(
+                            (decision) => (
+                              <button
+                                key={decision}
+                                className={`approvals-panel__button ${
+                                  decision === "deny"
+                                    ? "is-danger"
+                                    : decision === "allow-always"
+                                      ? "is-primary"
+                                      : ""
+                                }`}
+                                type="button"
+                                onClick={() => void runSelectedDecision(decision)}
+                                disabled={decisionDisabled}
+                              >
+                                {actionState === decision
+                                  ? t("submittingDecision")
+                                  : decisionLabel(t, decision)}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </PanelSurface>
+                    </div>
+
+                    <PanelSurface>
+                      <JsonDetails
+                        title={
+                          selectedEntry.kind === "exec"
+                            ? t("approvalPayload")
+                            : t("pluginApprovalPayload")
+                        }
+                        payload={selectedEntry.payload}
+                      />
+                    </PanelSurface>
+                  </>
+                ) : (
+                  <p className="approvals-panel__note">{t("choosePendingApproval")}</p>
+                )}
+
+                {policy ? (
+                  <PanelSurface>
+                    <JsonDetails title={t("policyPayload")} payload={policy} />
+                  </PanelSurface>
+                ) : null}
+                {actionResult ? (
+                  <PanelSurface>
+                    <JsonDetails title={t("lastApprovalAction")} payload={actionResult} />
+                  </PanelSurface>
+                ) : null}
+              </div>
+            </div>
+          </PanelSurface>
         </div>
-      ) : null}
-    </section>
+
+        <PanelSurface as="section">
+          <div className="approvals-panel__recent">
+            <PanelSectionHeader
+              eyebrow={t("activity")}
+              title={t("recentDecisions")}
+              headingLevel={2}
+              meta={
+                <PanelPill>
+                  {recentDecisionEvidence.length} {t("visible")}
+                </PanelPill>
+              }
+            />
+            <div className="approvals-panel__body">
+              {recentDecisionEvidence.length > 0 ? (
+                <ul className="approvals-panel__recent-list" role="list">
+                  {recentDecisionEvidence.map((entry) => (
+                    <li
+                      key={`${entry.id}:${entry.decidedAtMs}`}
+                      className="approvals-panel__recent-row"
+                    >
+                      <PanelPill tone={toneForDecision(entry.decision)}>
+                        {recordDecisionLabel(t, entry.decision)}
+                      </PanelPill>
+                      <PanelPill tone={entry.kind === "exec" ? "warning" : "positive"}>
+                        {entry.kind === "exec" ? t("exec") : t("plugin")}
+                      </PanelPill>
+                      <strong>{entry.title}</strong>
+                      <span className="approvals-panel__meta">{entry.actor}</span>
+                      <span className="approvals-panel__meta">
+                        {formatRelativeAge(entry.decidedAtMs, nowMs, t("notAvailable"))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="approvals-panel__note">{t("recentDecisionsEmpty")}</p>
+              )}
+              <p className="approvals-panel__note">{t("recentDecisionsUnsupported")}</p>
+            </div>
+          </div>
+        </PanelSurface>
+
+        {policyOpen ? (
+          <div className="approvals-panel__modal-backdrop" role="presentation">
+            <div
+              className="approvals-panel__modal"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t("approvalPolicyEditor")}
+            >
+              <PanelSectionHeader
+                eyebrow={t("policy")}
+                title={t("approvalPolicyEditor")}
+                headingLevel={2}
+                actions={
+                  <button
+                    aria-label={t("closePolicyEditor")}
+                    className="approvals-panel__button"
+                    type="button"
+                    onClick={() => setPolicyOpen(false)}
+                    disabled={policySaveState !== "idle"}
+                  >
+                    {t("close")}
+                  </button>
+                }
+              />
+              <PolicyEditor
+                structuredPolicyDraft={structuredPolicyDraft}
+                policyDraft={policyDraft}
+                newAgentId={newAgentId}
+                newAllowlistPath={newAllowlistPath}
+                policySaveState={policySaveState}
+                onAddAgent={addAgentOverride}
+                onAddAllowlistPath={addAllowlistPath}
+                onPolicyDraftChange={setPolicyDraft}
+                onNewAgentIdChange={setNewAgentId}
+                onNewAllowlistPathChange={setNewAllowlistPath}
+                onRemoveAgent={removeAgentOverride}
+                onRemoveAllowlistPath={removeAllowlistPath}
+                onSave={() => void savePolicyDraft()}
+                onStructuredPolicyChange={updatePolicyDraft}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </PanelRoot>
   );
 }

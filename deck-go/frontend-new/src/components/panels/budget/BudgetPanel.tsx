@@ -9,9 +9,22 @@ import {
   useDeleteBudgetRuleMutation,
   useUpdateBudgetRuleMutation,
 } from "../../../data/modules/budget";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
-import { BudgetMetric } from "./BudgetMetric";
-import { budgetProgressPercent, budgetStatusClass, formatBudgetValue } from "./BudgetStatus";
+import {
+  budgetProgressPercent,
+  budgetStatusClass,
+  budgetStatusTone,
+  formatBudgetValue,
+} from "./BudgetStatus";
 import { RuleForm, type BudgetRuleInput } from "./RuleForm";
 import { RuleList } from "./RuleList";
 import "./budget-panel.css";
@@ -311,190 +324,192 @@ export function BudgetPanel() {
   };
 
   return (
-    <section className="budget-panel" data-testid="budget-panel">
-      <header className="budget-panel__header">
-        <div className="budget-panel__title-stack">
-          <p className="budget-panel__eyebrow">{t("eyebrow")}</p>
-          <h2 className="budget-panel__title">{t("title")}</h2>
-          <p className="budget-panel__description">{t("subtitle")}</p>
-        </div>
-        <div className="budget-panel__header-actions">
-          <button
-            className="budget-panel__button"
-            type="button"
-            disabled={loadState === "loading"}
-            onClick={() => void refresh(selectedRuleId ?? undefined)}
-          >
-            {t("refresh")}
-          </button>
-          <button className="budget-panel__button is-primary" type="button" onClick={handleCreate}>
-            {tc("create")}
-          </button>
-        </div>
-      </header>
+    <PanelRoot data-testid="budget-panel" density="compact">
+      <PanelSectionHeader
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("subtitle")}
+        actions={
+          <div className="budget-panel__actions">
+            <button
+              className="budget-panel__button"
+              type="button"
+              disabled={loadState === "loading"}
+              onClick={() => void refresh(selectedRuleId ?? undefined)}
+            >
+              {t("refresh")}
+            </button>
+            <button
+              className="budget-panel__button is-primary"
+              type="button"
+              onClick={handleCreate}
+            >
+              {tc("create")}
+            </button>
+          </div>
+        }
+      />
 
-      <div className="budget-panel__metrics">
-        <BudgetMetric
+      <KpiStrip columns={4} aria-label={t("status")}>
+        <PanelMetric
           label={t("okMetric")}
           value={String(okCount)}
-          tone={okCount > 0 ? "positive" : "neutral"}
+          tone={okCount > 0 ? "positive" : "default"}
         />
-        <BudgetMetric label={t("warningMetric")} value={String(warningCount)} tone="warning" />
-        <BudgetMetric
+        <PanelMetric label={t("warningMetric")} value={String(warningCount)} tone="warning" />
+        <PanelMetric
           label={t("overMetric")}
           value={String(overCount)}
-          tone={overCount > 0 ? "danger" : "neutral"}
+          tone={overCount > 0 ? "danger" : "default"}
         />
-        <BudgetMetric label={t("ruleMetric")} value={String(rules.length)} tone="neutral" />
-      </div>
+        <PanelMetric label={t("ruleMetric")} value={String(rules.length)} />
+      </KpiStrip>
 
       {error ? <p className="budget-panel__error">{error}</p> : null}
 
       <div className="budget-panel__workspace">
-        <aside className="budget-panel__card">
-          <div className="budget-panel__card-head">
-            <div>
-              <h3 className="budget-panel__card-title">{t("ruleInventory")}</h3>
-              <p className="budget-panel__meta">
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </p>
-            </div>
-            <div className="budget-panel__pill-row">
-              <span className={`budget-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </span>
-              <span className="budget-panel__pill">{t("ruleCount", { count: rules.length })}</span>
-            </div>
-          </div>
+        <PanelSurface>
+          <PanelSectionHeader
+            headingLevel={3}
+            title={t("ruleInventory")}
+            description={loadState === "loading" ? tc("loading") : t(loadState)}
+            actions={
+              <PanelStatusRow align="end">
+                <PanelPill tone={loadState === "ready" ? "positive" : "default"}>
+                  {loadState === "loading" ? tc("loading") : t(loadState)}
+                </PanelPill>
+                <PanelPill>{t("ruleCount", { count: rules.length })}</PanelPill>
+              </PanelStatusRow>
+            }
+          />
 
-          <div className="budget-panel__body">
-            <div className="budget-panel__filters" aria-label={t("filterRules")}>
-              <div className="budget-panel__filter-tabs" role="tablist">
-                {STATUS_FILTERS.map((filter) => (
-                  <button
-                    key={filter}
-                    type="button"
-                    role="tab"
-                    aria-selected={statusFilter === filter}
-                    className={`budget-panel__filter-tab ${
-                      statusFilter === filter ? "is-selected" : ""
-                    } ${filter !== "all" ? `is-${filter}` : ""}`}
-                    onClick={() => setStatusFilter(filter)}
-                  >
-                    {t(`${filter}Filter`)} <span>{statusCounts[filter]}</span>
-                  </button>
-                ))}
-              </div>
-              <label className="budget-panel__search">
-                <span>{t("searchRules")}</span>
-                <input
-                  ref={searchRef}
-                  aria-label="budget rule search"
-                  className="budget-panel__input"
-                  type="search"
-                  value={ruleQuery}
-                  placeholder={t("searchPlaceholder")}
-                  onChange={(event) => setRuleQuery(event.target.value)}
-                />
-              </label>
+          <div className="budget-panel__filters" aria-label={t("filterRules")}>
+            <div className="budget-panel__filter-tabs" role="tablist">
+              {STATUS_FILTERS.map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === filter}
+                  className={`budget-panel__filter-tab ${
+                    statusFilter === filter ? "is-selected" : ""
+                  } ${filter !== "all" ? `is-${filter}` : ""}`}
+                  onClick={() => setStatusFilter(filter)}
+                >
+                  {t(`${filter}Filter`)} <span>{statusCounts[filter]}</span>
+                </button>
+              ))}
             </div>
-            {loadState === "loading" && rules.length === 0 ? (
-              <p className="budget-panel__empty">{tc("loading")}</p>
-            ) : (
-              <RuleList
-                rules={filteredRules}
-                evaluations={evaluations}
-                selectedRuleId={selectedRuleId}
-                onSelect={handleSelect}
-                activeCriteria={
-                  rules.length > 0 && filteredRules.length === 0 ? activeCriteria : ""
-                }
-                clearLabel={t("clearFilters")}
-                emptyLabel={rules.length === 0 ? t("noRules") : t("noMatchingRules")}
-                onClearFilters={() => {
-                  setRuleQuery("");
-                  setStatusFilter("all");
-                }}
+            <label className="budget-panel__search">
+              <span>{t("searchRules")}</span>
+              <input
+                ref={searchRef}
+                aria-label="budget rule search"
+                className="budget-panel__input"
+                type="search"
+                value={ruleQuery}
+                placeholder={t("searchPlaceholder")}
+                onChange={(event) => setRuleQuery(event.target.value)}
               />
-            )}
+            </label>
           </div>
-        </aside>
+          {loadState === "loading" && rules.length === 0 ? (
+            <p className="budget-panel__empty">{tc("loading")}</p>
+          ) : (
+            <RuleList
+              rules={filteredRules}
+              evaluations={evaluations}
+              selectedRuleId={selectedRuleId}
+              onSelect={handleSelect}
+              activeCriteria={rules.length > 0 && filteredRules.length === 0 ? activeCriteria : ""}
+              clearLabel={t("clearFilters")}
+              emptyLabel={rules.length === 0 ? t("noRules") : t("noMatchingRules")}
+              onClearFilters={() => {
+                setRuleQuery("");
+                setStatusFilter("all");
+              }}
+            />
+          )}
+        </PanelSurface>
 
         <main className="budget-panel__column">
-          <section className="budget-panel__card">
-            <div className="budget-panel__card-head">
-              <div>
-                <h3 className="budget-panel__card-title">{t("selectedRule")}</h3>
-                <p className="budget-panel__meta">
-                  {selectedRule ? t("guardrailEvidence") : t("emptyDescription")}
-                </p>
-              </div>
-              {selectedRule ? (
-                <div className="budget-panel__actions">
-                  <button
-                    className="budget-panel__button is-primary"
-                    type="button"
-                    onClick={() => handleEdit(selectedRule)}
-                  >
-                    {tc("edit")}
-                  </button>
-                  <button
-                    className="budget-panel__button"
-                    disabled={saving}
-                    type="button"
-                    onClick={() => setDialog({ type: "toggle", rule: selectedRule })}
-                  >
-                    {selectedRule.enabled ? t("disableRule") : t("enableRule")}
-                  </button>
-                  <button
-                    className="budget-panel__button is-danger"
-                    disabled={saving}
-                    type="button"
-                    onClick={() => setDialog({ type: "delete", rule: selectedRule })}
-                  >
-                    {tc("delete")}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            <div className="budget-panel__body budget-panel__detail-stack">
+          <PanelSurface>
+            <PanelSectionHeader
+              headingLevel={3}
+              title={t("selectedRule")}
+              description={selectedRule ? t("guardrailEvidence") : t("emptyDescription")}
+              actions={
+                selectedRule ? (
+                  <div className="budget-panel__actions">
+                    <button
+                      className="budget-panel__button is-primary"
+                      type="button"
+                      onClick={() => handleEdit(selectedRule)}
+                    >
+                      {tc("edit")}
+                    </button>
+                    <button
+                      className="budget-panel__button"
+                      disabled={saving}
+                      type="button"
+                      onClick={() => setDialog({ type: "toggle", rule: selectedRule })}
+                    >
+                      {selectedRule.enabled ? t("disableRule") : t("enableRule")}
+                    </button>
+                    <button
+                      className="budget-panel__button is-danger"
+                      disabled={saving}
+                      type="button"
+                      onClick={() => setDialog({ type: "delete", rule: selectedRule })}
+                    >
+                      {tc("delete")}
+                    </button>
+                  </div>
+                ) : null
+              }
+            />
+            <div className="budget-panel__detail-stack">
               {selectedRule ? (
                 <>
-                  <div className="budget-panel__hero">
-                    <div>
-                      <p className="budget-panel__eyebrow">{t("budgetRule")}</p>
-                      <strong>{selectedRule.name}</strong>
-                      <p className="budget-panel__meta">
-                        {t(scopeLabelKey(selectedRule))} · {targetLabel(selectedRule, t("global"))}{" "}
-                        · {t(selectedRule.period)}
-                      </p>
-                      <p className="budget-panel__meta">
-                        id: <code>{selectedRule.id}</code> · {t("updatedAt")}:{" "}
-                        {selectedRule.updatedAt || t("notAvailable")}
-                      </p>
-                    </div>
-                    <div className="budget-panel__pill-row">
-                      <span
-                        className={`budget-panel__pill ${
-                          selectedEvaluation
-                            ? budgetStatusClass(selectedEvaluation.status)
-                            : "is-muted"
-                        }`}
-                      >
-                        {selectedEvaluation ? t(selectedEvaluation.status) : t("notEvaluated")}
-                      </span>
-                      <span className="budget-panel__pill">
-                        {selectedRule.enabled ? t("enabled") : t("disabled")}
-                      </span>
-                    </div>
-                  </div>
+                  <PanelSurface as="div" tone="muted">
+                    <PanelSectionHeader
+                      headingLevel={3}
+                      eyebrow={t("budgetRule")}
+                      title={selectedRule.name}
+                      description={
+                        <>
+                          {t(scopeLabelKey(selectedRule))} ·{" "}
+                          {targetLabel(selectedRule, t("global"))} · {t(selectedRule.period)}
+                          <br />
+                          id: <code>{selectedRule.id}</code> · {t("updatedAt")}:{" "}
+                          {selectedRule.updatedAt || t("notAvailable")}
+                        </>
+                      }
+                      actions={
+                        <PanelStatusRow align="end">
+                          <PanelPill
+                            tone={
+                              selectedEvaluation
+                                ? budgetStatusTone(selectedEvaluation.status)
+                                : "default"
+                            }
+                          >
+                            {selectedEvaluation ? t(selectedEvaluation.status) : t("notEvaluated")}
+                          </PanelPill>
+                          <PanelPill>
+                            {selectedRule.enabled ? t("enabled") : t("disabled")}
+                          </PanelPill>
+                        </PanelStatusRow>
+                      }
+                    />
+                  </PanelSurface>
 
                   <div className="budget-panel__summary">
-                    <div className="budget-panel__surface">
+                    <PanelSurface as="div" tone="muted">
                       <p className="budget-panel__label">{t("status")}</p>
                       <strong>{selectedEvaluation ? t(selectedEvaluation.status) : "—"}</strong>
-                    </div>
-                    <div className="budget-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="budget-panel__label">{t("current")}</p>
                       <strong>
                         {selectedEvaluation
@@ -504,8 +519,8 @@ export function BudgetPanel() {
                             )
                           : t("notAvailable")}
                       </strong>
-                    </div>
-                    <div className="budget-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="budget-panel__label">{t("warnThreshold")}</p>
                       <strong>
                         {formatBudgetValue(selectedRule.warnThreshold, selectedRule.dimension)}
@@ -518,8 +533,8 @@ export function BudgetPanel() {
                           % {t("ofWarn")}
                         </span>
                       ) : null}
-                    </div>
-                    <div className="budget-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="budget-panel__label">{t("overThreshold")}</p>
                       <strong>
                         {formatBudgetValue(selectedRule.overThreshold, selectedRule.dimension)}
@@ -532,7 +547,7 @@ export function BudgetPanel() {
                           % {t("ofOver")}
                         </span>
                       ) : null}
-                    </div>
+                    </PanelSurface>
                   </div>
 
                   <section className="budget-panel__section">
@@ -620,10 +635,10 @@ export function BudgetPanel() {
                   </section>
                 </>
               ) : (
-                <div className="budget-panel__surface">
+                <PanelSurface as="div" tone="muted">
                   <h3 className="budget-panel__card-title">{t("noRules")}</h3>
                   <p className="budget-panel__note">{t("emptyDescription")}</p>
-                </div>
+                </PanelSurface>
               )}
               {lastAction ? (
                 <p className="budget-panel__note">
@@ -631,7 +646,7 @@ export function BudgetPanel() {
                 </p>
               ) : null}
             </div>
-          </section>
+          </PanelSurface>
         </main>
       </div>
       {dialog ? (
@@ -644,7 +659,7 @@ export function BudgetPanel() {
           onDelete={handleDelete}
         />
       ) : null}
-    </section>
+    </PanelRoot>
   );
 }
 

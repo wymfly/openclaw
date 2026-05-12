@@ -14,8 +14,18 @@ import {
   useNodesListQuery,
   useRenameNodeMutation,
 } from "../../../data/modules/nodes";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelPillTone,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
-import { JsonDetails, ShellStat } from "../../shared/ShellComponents";
+import { JsonDetails } from "../../shared/ShellComponents";
 import "./nodes-panel.css";
 
 type PanelState = "idle" | "loading" | "ready";
@@ -175,6 +185,20 @@ function actionStateFor(action: PendingNodeAction): ActionState {
     default:
       return "idle";
   }
+}
+
+function statusTone(enabled: boolean): PanelPillTone {
+  return enabled ? "positive" : "default";
+}
+
+function lifecyclePillTone(tone: NodeLifecycleSummary["tone"]): PanelPillTone {
+  if (tone === "success") {
+    return "positive";
+  }
+  if (tone === "warning") {
+    return "warning";
+  }
+  return "default";
 }
 
 export function NodesPanel() {
@@ -528,215 +552,424 @@ export function NodesPanel() {
     actionResult ? <JsonDetails title={t("lastNodeAction")} payload={actionResult} /> : null;
 
   return (
-    <section className="nodes-panel" data-testid="nodes-panel">
-      <div className="nodes-panel__column">
-        <article className="nodes-panel__card">
-          <div className="nodes-panel__card-head">
-            <h2 className="nodes-panel__card-title">{t("nodesList")}</h2>
-            <button
-              className="nodes-panel__button"
-              type="button"
-              onClick={() => void refresh(selectedNodeId)}
-            >
-              {t("refreshNodes")}
-            </button>
-          </div>
-          <p className="nodes-panel__description">{t("managementDescription")}</p>
-          <div className="nodes-panel__body">
-            <div className="nodes-panel__pill-row">
-              <span
-                className={`nodes-panel__pill ${loadState === "ready" ? "is-positive" : "is-muted"}`}
-              >
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </span>
-              <span className="nodes-panel__pill">{t("nodeCount", { count: nodes.length })}</span>
-              <span className="nodes-panel__pill">
-                {t("pendingCount", { count: pending.length })}
-              </span>
-            </div>
-            <div className="nodes-panel__metrics">
-              <ShellStat label={t("nodesStat")} value={nodes.length} />
-              <ShellStat label={t("connectedStat")} value={connectedCount} />
-              <ShellStat label={t("pairedStat")} value={pairedCount} />
-              <ShellStat label={t("pendingRequests")} value={pending.length} />
-            </div>
-            {error ? <p className="nodes-panel__error">{error}</p> : null}
-            {pending.length > 0 ? (
-              <div className="nodes-panel__surface">
-                <p className="nodes-panel__label">{t("pendingPairing")}</p>
+    <PanelRoot data-testid="nodes-panel" density="compact">
+      <div className="nodes-panel">
+        <div className="nodes-panel__column">
+          <PanelSurface>
+            <PanelSectionHeader
+              title={t("nodesList")}
+              description={t("managementDescription")}
+              actions={
+                <button
+                  className="nodes-panel__button"
+                  type="button"
+                  onClick={() => void refresh(selectedNodeId)}
+                >
+                  {t("refreshNodes")}
+                </button>
+              }
+            />
+            <div className="nodes-panel__body">
+              <PanelStatusRow>
+                <PanelPill tone={statusTone(loadState === "ready")}>
+                  {loadState === "loading" ? tc("loading") : t(loadState)}
+                </PanelPill>
+                <PanelPill>{t("nodeCount", { count: nodes.length })}</PanelPill>
+                <PanelPill>{t("pendingCount", { count: pending.length })}</PanelPill>
+              </PanelStatusRow>
+              <KpiStrip columns={4} aria-label={t("nodesList")}>
+                <PanelMetric label={t("nodesStat")} value={nodes.length} />
+                <PanelMetric label={t("connectedStat")} value={connectedCount} />
+                <PanelMetric label={t("pairedStat")} value={pairedCount} />
+                <PanelMetric label={t("pendingRequests")} value={pending.length} />
+              </KpiStrip>
+              {error ? <p className="nodes-panel__error">{error}</p> : null}
+              {pending.length > 0 ? (
+                <div className="nodes-panel__local-block">
+                  <p className="nodes-panel__label">{t("pendingPairing")}</p>
+                  <ul className="nodes-panel__list">
+                    {pending.map((request) => {
+                      const orphan = !nodes.some((node) => node.nodeId === request.nodeId);
+                      return (
+                        <li key={request.requestId}>
+                          <button
+                            type="button"
+                            className={`nodes-panel__row ${selectedRequest?.requestId === request.requestId ? "is-selected" : ""}`}
+                            onClick={() => selectNodeId(request.nodeId)}
+                            aria-pressed={selectedRequest?.requestId === request.requestId}
+                          >
+                            <strong>{request.displayName || request.nodeId}</strong>
+                            <div className="nodes-panel__meta">
+                              {t("request")}: {request.requestId} | {t("repair")}:{" "}
+                              {request.isRepair ? t("yes") : t("no")}
+                            </div>
+                            {orphan ? (
+                              <div className="nodes-panel__meta">{t("orphanRequestHint")}</div>
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ) : null}
+              {nodes.length === 0 ? (
+                <p className="nodes-panel__empty">{t("emptyDescription")}</p>
+              ) : (
                 <ul className="nodes-panel__list">
-                  {pending.map((request) => {
-                    const orphan = !nodes.some((node) => node.nodeId === request.nodeId);
-                    return (
-                      <li key={request.requestId}>
-                        <button
-                          type="button"
-                          className={`nodes-panel__row ${selectedRequest?.requestId === request.requestId ? "is-selected" : ""}`}
-                          onClick={() => selectNodeId(request.nodeId)}
-                          aria-pressed={selectedRequest?.requestId === request.requestId}
-                        >
-                          <strong>{request.displayName || request.nodeId}</strong>
-                          <div className="nodes-panel__meta">
-                            {t("request")}: {request.requestId} | {t("repair")}:{" "}
-                            {request.isRepair ? t("yes") : t("no")}
-                          </div>
-                          {orphan ? (
-                            <div className="nodes-panel__meta">{t("orphanRequestHint")}</div>
+                  {nodes.map((node) => (
+                    <li key={node.nodeId}>
+                      <button
+                        type="button"
+                        className={`nodes-panel__row ${selectedNode?.nodeId === node.nodeId ? "is-selected" : ""}`}
+                        onClick={() => selectNodeId(node.nodeId)}
+                        aria-pressed={selectedNode?.nodeId === node.nodeId}
+                      >
+                        <strong>{node.displayName || node.nodeId}</strong>
+                        <div className="nodes-panel__meta">
+                          {t("platform")}: {node.platform || t("notAvailable")} | {t("connected")}:{" "}
+                          {node.connected ? t("yes") : t("no")}
+                        </div>
+                        <div className="nodes-panel__meta">
+                          {t("paired")}: {node.paired ? t("yes") : t("no")}
+                        </div>
+                        <div className="nodes-panel__chip-row">
+                          <span
+                            className={`nodes-panel__chip is-platform-${formatPlatform(node.platform)}`}
+                          >
+                            {node.platform || t("unknown")}
+                          </span>
+                          {node.caps.slice(0, 2).map((capability) => (
+                            <span className="nodes-panel__chip is-muted" key={capability}>
+                              {capability}
+                            </span>
+                          ))}
+                          {node.caps.length > 2 ? (
+                            <span className="nodes-panel__chip is-muted">
+                              +{node.caps.length - 2}
+                            </span>
                           ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
+                        </div>
+                      </button>
+                    </li>
+                  ))}
                 </ul>
-              </div>
-            ) : null}
-            {nodes.length === 0 ? (
-              <p className="nodes-panel__empty">{t("emptyDescription")}</p>
-            ) : (
-              <ul className="nodes-panel__list">
-                {nodes.map((node) => (
-                  <li key={node.nodeId}>
+              )}
+            </div>
+          </PanelSurface>
+        </div>
+
+        <div className="nodes-panel__column nodes-panel__column--main">
+          <PanelSurface>
+            <PanelSectionHeader
+              title={t("selectedNode")}
+              description={t("selectedNodeDescription")}
+            />
+            <div className="nodes-panel__body">
+              {selectedNode ? (
+                <>
+                  <PanelSurface tone="elevated">
+                    <PanelSectionHeader
+                      eyebrow={t("node")}
+                      title={selectedNode.displayName || selectedNode.nodeId}
+                      description={`${selectedNode.nodeId} | ${
+                        selectedNode.platform || t("unknownPlatform")
+                      }`}
+                      meta={
+                        <PanelStatusRow>
+                          <PanelPill tone={statusTone(selectedNode.connected)}>
+                            {selectedNode.connected ? t("connected") : t("offline")}
+                          </PanelPill>
+                          <PanelPill tone={statusTone(selectedNode.paired)}>
+                            {selectedNode.paired ? t("paired") : t("unpaired")}
+                          </PanelPill>
+                        </PanelStatusRow>
+                      }
+                    />
+                  </PanelSurface>
+                  {renderConfirmRow()}
+                  {renderActionResult()}
+                  <KpiStrip columns={4} aria-label={t("selectedNode")}>
+                    <PanelMetric
+                      label={t("version")}
+                      value={selectedNode.version || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("remoteIp")}
+                      value={selectedNode.remoteIp || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("coreVersion")}
+                      value={selectedNode.coreVersion || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("uiVersion")}
+                      value={selectedNode.uiVersion || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("deviceFamily")}
+                      value={selectedNode.deviceFamily || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("model")}
+                      value={selectedNode.modelIdentifier || t("notAvailable")}
+                    />
+                    <PanelMetric
+                      label={t("connectedAt")}
+                      value={formatNodeTimestamp(selectedNode.connectedAtMs)}
+                    />
+                    <PanelMetric
+                      label={t("pathEnv")}
+                      value={selectedNode.pathEnv || t("notAvailable")}
+                    />
+                  </KpiStrip>
+                  {lifecycle ? (
+                    <div className="nodes-panel__local-block">
+                      <PanelStatusRow>
+                        <PanelPill tone={lifecyclePillTone(lifecycle.tone)}>
+                          {t(lifecycle.titleKey)}
+                        </PanelPill>
+                      </PanelStatusRow>
+                      <p className="nodes-panel__meta">{t(lifecycle.descriptionKey)}</p>
+                      <p className="nodes-panel__meta">
+                        {t("lifecycleNextStepLabel")}: {t(lifecycle.nextStepKey)}
+                      </p>
+                    </div>
+                  ) : null}
+                  <div className="nodes-panel__actions">
+                    <input
+                      className="nodes-panel__input"
+                      value={renameValue}
+                      onChange={(event) => setRenameValue(event.target.value)}
+                      placeholder={t("renamePlaceholder")}
+                      aria-label={t("nodeDisplayName")}
+                    />
                     <button
+                      className="nodes-panel__button"
                       type="button"
-                      className={`nodes-panel__row ${selectedNode?.nodeId === node.nodeId ? "is-selected" : ""}`}
-                      onClick={() => selectNodeId(node.nodeId)}
-                      aria-pressed={selectedNode?.nodeId === node.nodeId}
+                      onClick={queueRenameAction}
+                      disabled={actionBusy || !renameDirty}
                     >
-                      <strong>{node.displayName || node.nodeId}</strong>
-                      <div className="nodes-panel__meta">
-                        {t("platform")}: {node.platform || t("notAvailable")} | {t("connected")}:{" "}
-                        {node.connected ? t("yes") : t("no")}
-                      </div>
-                      <div className="nodes-panel__meta">
-                        {t("paired")}: {node.paired ? t("yes") : t("no")}
-                      </div>
-                      <div className="nodes-panel__pill-row">
-                        <span
-                          className={`nodes-panel__pill is-platform-${formatPlatform(node.platform)}`}
+                      {actionState === "renaming" ? t("renaming") : t("rename")}
+                    </button>
+                    {selectedRequest ? (
+                      <>
+                        <button
+                          className="nodes-panel__button is-primary"
+                          type="button"
+                          onClick={() => queuePairingAction("approve")}
+                          disabled={actionBusy}
                         >
-                          {node.platform || t("unknown")}
-                        </span>
-                        {node.caps.slice(0, 2).map((capability) => (
-                          <span className="nodes-panel__pill is-muted" key={capability}>
-                            {capability}
+                          {actionState === "approving" ? t("approving") : t("approvePairing")}
+                        </button>
+                        <button
+                          className="nodes-panel__button is-danger"
+                          type="button"
+                          onClick={() => queuePairingAction("reject")}
+                          disabled={actionBusy}
+                        >
+                          {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
+                        </button>
+                      </>
+                    ) : null}
+                    {!selectedRequest && !selectedNode.paired ? (
+                      <button
+                        className="nodes-panel__button"
+                        type="button"
+                        onClick={queueRequestPairingAction}
+                        disabled={actionBusy}
+                      >
+                        {actionState === "requesting" ? t("requesting") : t("requestPairing")}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="nodes-panel__actions">
+                    <input
+                      className="nodes-panel__input"
+                      value={verifyToken}
+                      onChange={(event) => setVerifyToken(event.target.value)}
+                      placeholder={t("pairingTokenPlaceholder")}
+                      aria-label={t("pairingTokenLabel")}
+                    />
+                    <button
+                      className="nodes-panel__button"
+                      type="button"
+                      onClick={queueVerifyPairingAction}
+                      disabled={actionBusy || !verifyReady}
+                    >
+                      {actionState === "verifying" ? t("verifying") : t("verifyPairing")}
+                    </button>
+                  </div>
+                  <div className="nodes-panel__local-block">
+                    <p className="nodes-panel__label">{t("invokeNodeCommand")}</p>
+                    <p className="nodes-panel__meta">{t("invokeDescription")}</p>
+                    <div className="nodes-panel__actions">
+                      <select
+                        aria-label={t("nodeCommand")}
+                        className="nodes-panel__input"
+                        disabled={selectedNode.commands.length === 0}
+                        onChange={(event) => setInvokeCommand(event.target.value)}
+                        value={selectedInvokeCommand}
+                      >
+                        {selectedNode.commands.length === 0 ? (
+                          <option value="">{t("noCommandsAdvertised")}</option>
+                        ) : (
+                          selectedNode.commands.map((command) => (
+                            <option key={command} value={command}>
+                              {command}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      <input
+                        aria-label={t("nodeInvokeTimeout")}
+                        className="nodes-panel__input"
+                        onChange={(event) => setInvokeTimeoutMs(event.target.value)}
+                        placeholder={t("timeoutMs")}
+                        value={invokeTimeoutMs}
+                      />
+                    </div>
+                    <textarea
+                      aria-label={t("nodeInvokeParamsJson")}
+                      className="nodes-panel__textarea"
+                      onChange={(event) => setInvokeParamsJson(event.target.value)}
+                      rows={4}
+                      value={invokeParamsJson}
+                    />
+                    <div className="nodes-panel__actions">
+                      <button
+                        className="nodes-panel__button is-primary"
+                        disabled={
+                          actionBusy || !selectedInvokeCommand || selectedNode.commands.length === 0
+                        }
+                        onClick={queueInvokeAction}
+                        type="button"
+                      >
+                        {actionState === "invoking" ? t("invoking") : t("invokeCommand")}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="nodes-panel__local-block">
+                    <p className="nodes-panel__label">{t("pendingWork")}</p>
+                    <p className="nodes-panel__meta">{t("pendingWorkDescription")}</p>
+                    <div className="nodes-panel__actions">
+                      <select
+                        aria-label={t("pendingWorkType")}
+                        className="nodes-panel__input"
+                        onChange={(event) =>
+                          setPendingWorkType(event.target.value as DeckGoNodePendingWorkType)
+                        }
+                        value={pendingWorkType}
+                      >
+                        <option value="status.request">status.request</option>
+                        <option value="location.request">location.request</option>
+                      </select>
+                      <select
+                        aria-label={t("pendingWorkPriority")}
+                        className="nodes-panel__input"
+                        onChange={(event) =>
+                          setPendingPriority(event.target.value as DeckGoNodePendingWorkPriority)
+                        }
+                        value={pendingPriority}
+                      >
+                        <option value="normal">normal</option>
+                        <option value="high">high</option>
+                      </select>
+                      <label className="nodes-panel__check">
+                        <input
+                          checked={pendingWake}
+                          onChange={(event) => setPendingWake(event.target.checked)}
+                          type="checkbox"
+                        />
+                        <span>{t("wakeIfOffline")}</span>
+                      </label>
+                    </div>
+                    <div className="nodes-panel__actions">
+                      <button
+                        className="nodes-panel__button"
+                        disabled={actionBusy}
+                        onClick={queuePendingWorkAction}
+                        type="button"
+                      >
+                        {actionState === "enqueueing" ? t("queueing") : t("queuePendingWork")}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="nodes-panel__local-grid">
+                    <div className="nodes-panel__local-block">
+                      <p className="nodes-panel__label">{t("capabilities")}</p>
+                      {selectedNode.caps.length > 0 ? (
+                        <div className="nodes-panel__chip-row">
+                          {selectedNode.caps.map((capability) => (
+                            <span className="nodes-panel__chip" key={capability}>
+                              {capability}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="nodes-panel__empty">{t("noCapabilities")}</p>
+                      )}
+                    </div>
+                    <div className="nodes-panel__local-block">
+                      <p className="nodes-panel__label">{t("commands")}</p>
+                      {selectedNode.commands.length > 0 ? (
+                        <div className="nodes-panel__chip-row">
+                          {selectedNode.commands.map((command) => (
+                            <span className="nodes-panel__chip" key={command}>
+                              {command}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="nodes-panel__empty">{t("noCommands")}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="nodes-panel__local-block">
+                    <p className="nodes-panel__label">{t("permissions")}</p>
+                    {selectedPermissions.length > 0 ? (
+                      <div className="nodes-panel__chip-row">
+                        {selectedPermissions.map(([permission, enabled]) => (
+                          <span
+                            className={`nodes-panel__chip ${enabled ? "is-positive" : "is-muted"}`}
+                            key={permission}
+                          >
+                            {permission}: {enabled ? t("allowed") : t("denied")}
                           </span>
                         ))}
-                        {node.caps.length > 2 ? (
-                          <span className="nodes-panel__pill is-muted">
-                            +{node.caps.length - 2}
-                          </span>
-                        ) : null}
                       </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </article>
-      </div>
-
-      <div className="nodes-panel__column nodes-panel__column--main">
-        <article className="nodes-panel__card">
-          <div className="nodes-panel__card-head">
-            <h2 className="nodes-panel__card-title">{t("selectedNode")}</h2>
-          </div>
-          <p className="nodes-panel__description">{t("selectedNodeDescription")}</p>
-          <div className="nodes-panel__body">
-            {selectedNode ? (
-              <>
-                <div className="nodes-panel__hero">
-                  <div>
-                    <p className="nodes-panel__eyebrow">{t("node")}</p>
-                    <strong>{selectedNode.displayName || selectedNode.nodeId}</strong>
-                    <p className="nodes-panel__meta">
-                      {selectedNode.nodeId} | {selectedNode.platform || t("unknownPlatform")}
-                    </p>
+                    ) : (
+                      <p className="nodes-panel__empty">{t("noPermissions")}</p>
+                    )}
                   </div>
-                  <div className="nodes-panel__pill-row">
-                    <span className="nodes-panel__pill">
-                      {selectedNode.connected ? t("connected") : t("offline")}
-                    </span>
-                    <span className="nodes-panel__pill">
-                      {selectedNode.paired ? t("paired") : t("unpaired")}
-                    </span>
-                  </div>
-                </div>
-                {renderConfirmRow()}
-                {renderActionResult()}
-                <div className="nodes-panel__detail-metrics">
-                  <ShellStat
-                    label={t("version")}
-                    value={selectedNode.version || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("remoteIp")}
-                    value={selectedNode.remoteIp || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("coreVersion")}
-                    value={selectedNode.coreVersion || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("uiVersion")}
-                    value={selectedNode.uiVersion || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("deviceFamily")}
-                    value={selectedNode.deviceFamily || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("model")}
-                    value={selectedNode.modelIdentifier || t("notAvailable")}
-                  />
-                  <ShellStat
-                    label={t("connectedAt")}
-                    value={formatNodeTimestamp(selectedNode.connectedAtMs)}
-                  />
-                  <ShellStat
-                    label={t("pathEnv")}
-                    value={selectedNode.pathEnv || t("notAvailable")}
-                  />
-                </div>
-                {lifecycle ? (
-                  <div className="nodes-panel__surface">
-                    <div className="nodes-panel__pill-row">
-                      <span
-                        className={`nodes-panel__pill ${
-                          lifecycle.tone === "success"
-                            ? "is-positive"
-                            : lifecycle.tone === "warning"
-                              ? "is-warning"
-                              : "is-muted"
-                        }`}
-                      >
-                        {t(lifecycle.titleKey)}
-                      </span>
-                    </div>
-                    <p className="nodes-panel__meta">{t(lifecycle.descriptionKey)}</p>
-                    <p className="nodes-panel__meta">
-                      {t("lifecycleNextStepLabel")}: {t(lifecycle.nextStepKey)}
-                    </p>
-                  </div>
-                ) : null}
-                <div className="nodes-panel__actions">
-                  <input
-                    className="nodes-panel__input"
-                    value={renameValue}
-                    onChange={(event) => setRenameValue(event.target.value)}
-                    placeholder={t("renamePlaceholder")}
-                    aria-label={t("nodeDisplayName")}
-                  />
-                  <button
-                    className="nodes-panel__button"
-                    type="button"
-                    onClick={queueRenameAction}
-                    disabled={actionBusy || !renameDirty}
-                  >
-                    {actionState === "renaming" ? t("renaming") : t("rename")}
-                  </button>
+                  <JsonDetails title={t("nodePayload")} payload={selectedNode} />
                   {selectedRequest ? (
-                    <>
+                    <JsonDetails title={t("pairingRequest")} payload={selectedRequest} />
+                  ) : null}
+                </>
+              ) : selectedRequest ? (
+                <>
+                  <PanelSurface tone="elevated">
+                    <PanelSectionHeader
+                      eyebrow={t("pairingRequest")}
+                      title={selectedRequest.displayName || selectedRequest.nodeId}
+                      description={`${t("request")}: ${selectedRequest.requestId}`}
+                      meta={
+                        <PanelStatusRow>
+                          <PanelPill tone="warning">
+                            {selectedRequest.isRepair ? t("repair") : t("requestKindPending")}
+                          </PanelPill>
+                          <PanelPill>{selectedRequest.platform || t("unknown")}</PanelPill>
+                        </PanelStatusRow>
+                      }
+                    />
+                  </PanelSurface>
+                  {renderConfirmRow()}
+                  {renderActionResult()}
+                  <div className="nodes-panel__local-block">
+                    <p className="nodes-panel__label">{t("pairingAction")}</p>
+                    <p className="nodes-panel__meta">{t("orphanPairingDescription")}</p>
+                    <div className="nodes-panel__actions">
                       <button
                         className="nodes-panel__button is-primary"
                         type="button"
@@ -753,234 +986,17 @@ export function NodesPanel() {
                       >
                         {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
                       </button>
-                    </>
-                  ) : null}
-                  {!selectedRequest && !selectedNode.paired ? (
-                    <button
-                      className="nodes-panel__button"
-                      type="button"
-                      onClick={queueRequestPairingAction}
-                      disabled={actionBusy}
-                    >
-                      {actionState === "requesting" ? t("requesting") : t("requestPairing")}
-                    </button>
-                  ) : null}
-                </div>
-                <div className="nodes-panel__actions">
-                  <input
-                    className="nodes-panel__input"
-                    value={verifyToken}
-                    onChange={(event) => setVerifyToken(event.target.value)}
-                    placeholder={t("pairingTokenPlaceholder")}
-                    aria-label={t("pairingTokenLabel")}
-                  />
-                  <button
-                    className="nodes-panel__button"
-                    type="button"
-                    onClick={queueVerifyPairingAction}
-                    disabled={actionBusy || !verifyReady}
-                  >
-                    {actionState === "verifying" ? t("verifying") : t("verifyPairing")}
-                  </button>
-                </div>
-                <div className="nodes-panel__surface">
-                  <p className="nodes-panel__label">{t("invokeNodeCommand")}</p>
-                  <p className="nodes-panel__meta">{t("invokeDescription")}</p>
-                  <div className="nodes-panel__actions">
-                    <select
-                      aria-label={t("nodeCommand")}
-                      className="nodes-panel__input"
-                      disabled={selectedNode.commands.length === 0}
-                      onChange={(event) => setInvokeCommand(event.target.value)}
-                      value={selectedInvokeCommand}
-                    >
-                      {selectedNode.commands.length === 0 ? (
-                        <option value="">{t("noCommandsAdvertised")}</option>
-                      ) : (
-                        selectedNode.commands.map((command) => (
-                          <option key={command} value={command}>
-                            {command}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                    <input
-                      aria-label={t("nodeInvokeTimeout")}
-                      className="nodes-panel__input"
-                      onChange={(event) => setInvokeTimeoutMs(event.target.value)}
-                      placeholder={t("timeoutMs")}
-                      value={invokeTimeoutMs}
-                    />
-                  </div>
-                  <textarea
-                    aria-label={t("nodeInvokeParamsJson")}
-                    className="nodes-panel__textarea"
-                    onChange={(event) => setInvokeParamsJson(event.target.value)}
-                    rows={4}
-                    value={invokeParamsJson}
-                  />
-                  <div className="nodes-panel__actions">
-                    <button
-                      className="nodes-panel__button is-primary"
-                      disabled={
-                        actionBusy || !selectedInvokeCommand || selectedNode.commands.length === 0
-                      }
-                      onClick={queueInvokeAction}
-                      type="button"
-                    >
-                      {actionState === "invoking" ? t("invoking") : t("invokeCommand")}
-                    </button>
-                  </div>
-                </div>
-                <div className="nodes-panel__surface">
-                  <p className="nodes-panel__label">{t("pendingWork")}</p>
-                  <p className="nodes-panel__meta">{t("pendingWorkDescription")}</p>
-                  <div className="nodes-panel__actions">
-                    <select
-                      aria-label={t("pendingWorkType")}
-                      className="nodes-panel__input"
-                      onChange={(event) =>
-                        setPendingWorkType(event.target.value as DeckGoNodePendingWorkType)
-                      }
-                      value={pendingWorkType}
-                    >
-                      <option value="status.request">status.request</option>
-                      <option value="location.request">location.request</option>
-                    </select>
-                    <select
-                      aria-label={t("pendingWorkPriority")}
-                      className="nodes-panel__input"
-                      onChange={(event) =>
-                        setPendingPriority(event.target.value as DeckGoNodePendingWorkPriority)
-                      }
-                      value={pendingPriority}
-                    >
-                      <option value="normal">normal</option>
-                      <option value="high">high</option>
-                    </select>
-                    <label className="nodes-panel__check">
-                      <input
-                        checked={pendingWake}
-                        onChange={(event) => setPendingWake(event.target.checked)}
-                        type="checkbox"
-                      />
-                      <span>{t("wakeIfOffline")}</span>
-                    </label>
-                  </div>
-                  <div className="nodes-panel__actions">
-                    <button
-                      className="nodes-panel__button"
-                      disabled={actionBusy}
-                      onClick={queuePendingWorkAction}
-                      type="button"
-                    >
-                      {actionState === "enqueueing" ? t("queueing") : t("queuePendingWork")}
-                    </button>
-                  </div>
-                </div>
-                <div className="nodes-panel__surface-grid">
-                  <div className="nodes-panel__surface">
-                    <p className="nodes-panel__label">{t("capabilities")}</p>
-                    {selectedNode.caps.length > 0 ? (
-                      <div className="nodes-panel__pill-row">
-                        {selectedNode.caps.map((capability) => (
-                          <span className="nodes-panel__pill" key={capability}>
-                            {capability}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="nodes-panel__empty">{t("noCapabilities")}</p>
-                    )}
-                  </div>
-                  <div className="nodes-panel__surface">
-                    <p className="nodes-panel__label">{t("commands")}</p>
-                    {selectedNode.commands.length > 0 ? (
-                      <div className="nodes-panel__pill-row">
-                        {selectedNode.commands.map((command) => (
-                          <span className="nodes-panel__pill" key={command}>
-                            {command}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="nodes-panel__empty">{t("noCommands")}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="nodes-panel__surface">
-                  <p className="nodes-panel__label">{t("permissions")}</p>
-                  {selectedPermissions.length > 0 ? (
-                    <div className="nodes-panel__pill-row">
-                      {selectedPermissions.map(([permission, enabled]) => (
-                        <span
-                          className={`nodes-panel__pill ${enabled ? "is-positive" : "is-muted"}`}
-                          key={permission}
-                        >
-                          {permission}: {enabled ? t("allowed") : t("denied")}
-                        </span>
-                      ))}
                     </div>
-                  ) : (
-                    <p className="nodes-panel__empty">{t("noPermissions")}</p>
-                  )}
-                </div>
-                <JsonDetails title={t("nodePayload")} payload={selectedNode} />
-                {selectedRequest ? (
+                  </div>
                   <JsonDetails title={t("pairingRequest")} payload={selectedRequest} />
-                ) : null}
-              </>
-            ) : selectedRequest ? (
-              <>
-                <div className="nodes-panel__hero">
-                  <div>
-                    <p className="nodes-panel__eyebrow">{t("pairingRequest")}</p>
-                    <strong>{selectedRequest.displayName || selectedRequest.nodeId}</strong>
-                    <p className="nodes-panel__meta">
-                      {t("request")}: {selectedRequest.requestId}
-                    </p>
-                  </div>
-                  <div className="nodes-panel__pill-row">
-                    <span className="nodes-panel__pill">
-                      {selectedRequest.isRepair ? t("repair") : t("requestKindPending")}
-                    </span>
-                    <span className="nodes-panel__pill">
-                      {selectedRequest.platform || t("unknown")}
-                    </span>
-                  </div>
-                </div>
-                {renderConfirmRow()}
-                {renderActionResult()}
-                <div className="nodes-panel__surface">
-                  <p className="nodes-panel__label">{t("pairingAction")}</p>
-                  <p className="nodes-panel__meta">{t("orphanPairingDescription")}</p>
-                  <div className="nodes-panel__actions">
-                    <button
-                      className="nodes-panel__button is-primary"
-                      type="button"
-                      onClick={() => queuePairingAction("approve")}
-                      disabled={actionBusy}
-                    >
-                      {actionState === "approving" ? t("approving") : t("approvePairing")}
-                    </button>
-                    <button
-                      className="nodes-panel__button is-danger"
-                      type="button"
-                      onClick={() => queuePairingAction("reject")}
-                      disabled={actionBusy}
-                    >
-                      {actionState === "rejecting" ? t("rejecting") : t("rejectPairing")}
-                    </button>
-                  </div>
-                </div>
-                <JsonDetails title={t("pairingRequest")} payload={selectedRequest} />
-              </>
-            ) : (
-              <p className="nodes-panel__empty">{t("chooseNodeOrPairing")}</p>
-            )}
-          </div>
-        </article>
+                </>
+              ) : (
+                <p className="nodes-panel__empty">{t("chooseNodeOrPairing")}</p>
+              )}
+            </div>
+          </PanelSurface>
+        </div>
       </div>
-    </section>
+    </PanelRoot>
   );
 }

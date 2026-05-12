@@ -283,7 +283,7 @@ describe("SubagentsPanel", () => {
     expect(container.textContent).toContain("Reviewer Agent");
     expect(container.textContent).toContain("Selected run");
     expect(container.querySelector('[data-testid="subagents-panel"]')).toBeTruthy();
-    expect(container.querySelector(".kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
     expect(container.querySelectorAll(".row").length).toBeGreaterThanOrEqual(4);
 
     clickButtonByText("Open child agent");

@@ -1,4 +1,11 @@
 import { IconArrowL } from "../../../../design-system/icons";
+import {
+  PanelPill,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+  type PanelPillTone,
+} from "../../../../design-system/patterns";
 import { JsonDetails } from "../../../shared/ShellComponents";
 import { channelProbeLabel, channelProbeTone } from "../lib/channel-selectors";
 import { ChannelGlyph } from "../parts/ChannelGlyph";
@@ -10,6 +17,22 @@ import type {
   ChannelTranslator,
   DeckGoChannelTestResponse,
 } from "../types";
+
+function cockpitPillTone(classTone: string): PanelPillTone {
+  if (classTone === "is-positive") {
+    return "positive";
+  }
+  if (classTone === "is-warning") {
+    return "warning";
+  }
+  if (classTone === "is-danger") {
+    return "danger";
+  }
+  if (classTone === "is-info") {
+    return "accent";
+  }
+  return "default";
+}
 
 export function ChannelsDetailView(props: {
   channel: ChannelInventoryItem;
@@ -54,59 +77,66 @@ export function ChannelsDetailView(props: {
         <span className="detail__back-trail">/ {channel.label}</span>
       </div>
 
-      <header className="hero">
-        <ChannelGlyph id={channel.id} label={channel.label} />
-        <div>
-          <h1 className="hero__title">
-            {channel.label}
-            <small>{channel.id}</small>
-          </h1>
-          <p className="hero__sub">
-            {channel.detailLabel || t("notAvailable")}
-            {channel.meta?.pluginId ? ` / ${channel.meta.pluginId}` : ""}
-            {channel.defaultAccountId ? ` / ${channel.defaultAccountId}` : ""}
-          </p>
-          <div className="hero__meta">
-            <span className={`deckgo-pill ${channel.enabled ? "is-positive" : "is-muted"}`}>
-              {channel.enabled ? t("enabled") : t("disabled")}
-            </span>
-            <span className="deckgo-pill">
-              {t("accountsBadge", { count: channel.accounts.length })}
-            </span>
-            <span
-              className={`deckgo-pill ${channel.alertCount > 0 ? "is-warning" : "is-positive"}`}
-            >
-              {t("alertsBadge", { count: channel.alertCount })}
-            </span>
-            {probeResult ? (
-              <span className={`deckgo-pill ${channelProbeTone(probeResult)}`}>
-                {channelProbeLabel(probeResult, t)}
+      <PanelSurface tone="elevated">
+        <div className="hero">
+          <ChannelGlyph id={channel.id} label={channel.label} />
+          <PanelSectionHeader
+            headingLevel={3}
+            title={
+              <span className="hero__title-inline">
+                <span>{channel.label}</span>
+                <small>{channel.id}</small>
               </span>
-            ) : null}
-            {channel.meta?.pluginOrigin ? (
-              <span className="deckgo-pill">{channel.meta.pluginOrigin}</span>
-            ) : null}
-          </div>
+            }
+            description={
+              <>
+                {channel.detailLabel || t("notAvailable")}
+                {channel.meta?.pluginId ? ` / ${channel.meta.pluginId}` : ""}
+                {channel.defaultAccountId ? ` / ${channel.defaultAccountId}` : ""}
+              </>
+            }
+            meta={
+              <PanelStatusRow>
+                <PanelPill tone={channel.enabled ? "positive" : "default"}>
+                  {channel.enabled ? t("enabled") : t("disabled")}
+                </PanelPill>
+                <PanelPill>{t("accountsBadge", { count: channel.accounts.length })}</PanelPill>
+                <PanelPill tone={channel.alertCount > 0 ? "warning" : "positive"}>
+                  {t("alertsBadge", { count: channel.alertCount })}
+                </PanelPill>
+                {probeResult ? (
+                  <PanelPill tone={cockpitPillTone(channelProbeTone(probeResult))}>
+                    {channelProbeLabel(probeResult, t)}
+                  </PanelPill>
+                ) : null}
+                {channel.meta?.pluginOrigin ? (
+                  <PanelPill>{channel.meta.pluginOrigin}</PanelPill>
+                ) : null}
+              </PanelStatusRow>
+            }
+            actions={
+              <PanelStatusRow align="end">
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={actionState !== "idle"}
+                  onClick={onRunProbe}
+                >
+                  {actionState === "testing" ? t("testingChannel") : t("testChannel")}
+                </button>
+                <button
+                  className="btn btn--danger"
+                  type="button"
+                  disabled={!channel.enabled || actionState !== "idle"}
+                  onClick={onRequestLogout}
+                >
+                  {actionState === "logging-out" ? t("loggingOut") : t("logoutChannel")}
+                </button>
+              </PanelStatusRow>
+            }
+          />
         </div>
-        <div className="hero__actions">
-          <button
-            className="btn"
-            type="button"
-            disabled={actionState !== "idle"}
-            onClick={onRunProbe}
-          >
-            {actionState === "testing" ? t("testingChannel") : t("testChannel")}
-          </button>
-          <button
-            className="btn btn--danger"
-            type="button"
-            disabled={!channel.enabled || actionState !== "idle"}
-            onClick={onRequestLogout}
-          >
-            {actionState === "logging-out" ? t("loggingOut") : t("logoutChannel")}
-          </button>
-        </div>
-      </header>
+      </PanelSurface>
 
       {error ? <p className="deckgo-note deck-ui-channels-error">{error}</p> : null}
 

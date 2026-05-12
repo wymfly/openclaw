@@ -182,16 +182,14 @@ describe("ApprovalsPanel", () => {
     expect(container.textContent).not.toContain("rm stale");
     expect(container.textContent).toContain("Runrun-main");
     expect(container.querySelector(".approvals-panel")).toBeTruthy();
-    expect(container.querySelectorAll(".approvals-panel__card").length).toBeGreaterThanOrEqual(3);
+    expect(container.querySelectorAll(".ds-panel-surface").length).toBeGreaterThanOrEqual(3);
     expect(container.querySelectorAll(".approvals-panel__row").length).toBe(3);
     expect(container.querySelectorAll(".approvals-panel__input").length).toBeGreaterThanOrEqual(2);
     expect(container.querySelectorAll(".approvals-panel__button").length).toBeGreaterThanOrEqual(
       10,
     );
-    expect(container.querySelectorAll(".approvals-panel__hero").length).toBe(1);
-    expect(container.querySelectorAll(".approvals-panel__surface").length).toBeGreaterThanOrEqual(
-      2,
-    );
+    expect(container.querySelectorAll('.ds-panel-surface[data-tone="elevated"]').length).toBe(1);
+    expect(container.querySelectorAll(".ds-panel-surface").length).toBeGreaterThanOrEqual(2);
     expect(container.textContent).toContain("Recent decisions");
     expect(container.querySelector('input[aria-label="search approvals"]')).toBeTruthy();
 

@@ -1,4 +1,10 @@
 import type { DeckGoBudgetEvaluation, DeckGoBudgetRule } from "../../../api";
+import {
+  PanelPill,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 
 export function budgetStatusTone(status: DeckGoBudgetEvaluation["status"]) {
@@ -50,19 +56,17 @@ export function BudgetStatus(props: { evaluations: DeckGoBudgetEvaluation[] }) {
   }
 
   return (
-    <section className="budget-panel__surface" aria-label={t("status")}>
-      <div className="budget-panel__card-head">
-        <h3 className="budget-panel__card-title">{t("status")}</h3>
-      </div>
-      <div className="budget-panel__body budget-panel__status-list">
+    <PanelSurface aria-label={t("status")}>
+      <PanelSectionHeader headingLevel={3} title={t("status")} />
+      <div className="budget-panel__status-list">
         {props.evaluations.map((evaluation) => (
           <article className="budget-panel__status-card" key={evaluation.ruleId}>
-            <div className="budget-panel__status-head">
+            <PanelStatusRow>
               <strong>{evaluation.ruleName}</strong>
-              <span className={`budget-panel__pill ${budgetStatusClass(evaluation.status)}`}>
+              <PanelPill tone={budgetStatusTone(evaluation.status)}>
                 {t(evaluation.status)}
-              </span>
-            </div>
+              </PanelPill>
+            </PanelStatusRow>
             <progress
               className={`budget-panel__progress ${budgetStatusClass(evaluation.status)}`}
               max={100}
@@ -93,6 +97,6 @@ export function BudgetStatus(props: { evaluations: DeckGoBudgetEvaluation[] }) {
           </article>
         ))}
       </div>
-    </section>
+    </PanelSurface>
   );
 }

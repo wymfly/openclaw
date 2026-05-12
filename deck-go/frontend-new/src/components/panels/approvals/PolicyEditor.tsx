@@ -1,4 +1,5 @@
 import type { DeckGoApprovalPolicy } from "../../../api";
+import { PanelSectionHeader, PanelSurface } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { PathAllowlist } from "./PathAllowlist";
 import { PolicyDefaultsControls } from "./PolicyDefaultsControls";
@@ -23,8 +24,12 @@ export function PolicyEditor(props: {
   const policy = props.structuredPolicyDraft;
 
   return (
-    <div className="approvals-panel__surface">
-      <p className="approvals-panel__eyebrow">{t("approvalPolicyEditor")}</p>
+    <PanelSurface>
+      <PanelSectionHeader
+        eyebrow={t("policy")}
+        title={t("approvalPolicyEditor")}
+        headingLevel={3}
+      />
       {policy ? (
         <>
           <p className="approvals-panel__eyebrow">{t("globalDefaults")}</p>
@@ -39,7 +44,7 @@ export function PolicyEditor(props: {
             <div className="approvals-panel__agent-list">
               {Object.entries(policy.agents).map(([agentId, agentDefaults]) => (
                 <div key={agentId} className="approvals-panel__policy-card">
-                  <div className="approvals-panel__card-head">
+                  <div className="approvals-panel__policy-card-head">
                     <strong>{agentId}</strong>
                     <button
                       className="approvals-panel__button is-danger"
@@ -120,6 +125,6 @@ export function PolicyEditor(props: {
           {props.policySaveState === "saving" ? t("savingPolicy") : t("savePolicy")}
         </button>
       </div>
-    </div>
+    </PanelSurface>
   );
 }

@@ -192,7 +192,7 @@ describe("PluginsPanel", () => {
     await waitForInventory();
 
     expect(container.querySelector(".list-view")).toBeTruthy();
-    expect(container.querySelector(".kpi-strip")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
     expect(container.querySelector(".toolbar")).toBeTruthy();
     expect(container.querySelector(".row-head")?.textContent).toContain("Plugin");
     expect(container.textContent).toContain("Inventory Scope: workspace");

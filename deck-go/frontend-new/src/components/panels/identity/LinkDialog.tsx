@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { IconHash, IconLink, IconX } from "../../../design-system/icons";
+import { PanelPill } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 
 export type IdentityLinkInput = {
@@ -89,12 +90,10 @@ export function LinkDialog(props: {
                 : t("mutationSafetyBlocked")}
             </p>
           </div>
-          <span
-            className={`identity-panel__pill ${props.configHash ? "is-positive" : "is-warning"}`}
-          >
+          <PanelPill tone={props.configHash ? "positive" : "warning"}>
             <IconHash size={12} />
             {props.configHash || t("hashMissing")}
-          </span>
+          </PanelPill>
         </div>
 
         <label className="identity-panel__field">

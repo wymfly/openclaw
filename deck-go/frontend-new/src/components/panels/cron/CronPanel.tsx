@@ -16,6 +16,14 @@ import {
   useRunCronJobMutation,
   useUpdateCronJobMutation,
 } from "../../../data/modules/cron";
+import {
+  KpiStrip,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 import { JsonDetails } from "../../shared/ShellComponents";
 import {
@@ -307,18 +315,39 @@ export function CronPanel() {
   };
 
   return (
-    <section className="cron-panel" data-testid="cron-panel">
-      <header className="cron-panel__topbar">
-        <div className="cron-panel__brand">
-          <p className="cron-panel__eyebrow">{t("topbarEyebrow")}</p>
-          <h2 className="cron-panel__title">{t("title")}</h2>
-          <p className="cron-panel__description">
-            {t("panelDescription")} {t("schedulerState")}:{" "}
-            <code>{status?.running ? t("running") : t("idle")}</code> · {t("nextRun")}:{" "}
-            <code>{formatCronDate(status?.nextRunAtMs)}</code>
-          </p>
-        </div>
-        <div className="cron-panel__kpis" aria-label={t("kpiLabel")}>
+    <PanelRoot data-testid="cron-panel" density="compact">
+      <div className="cron-panel">
+        <PanelSectionHeader
+          eyebrow={t("topbarEyebrow")}
+          title={t("title")}
+          description={
+            <>
+              {t("panelDescription")} {t("schedulerState")}:{" "}
+              <code>{status?.running ? t("running") : t("idle")}</code> · {t("nextRun")}:{" "}
+              <code>{formatCronDate(status?.nextRunAtMs)}</code>
+            </>
+          }
+          actions={
+            <PanelStatusRow align="end">
+              <button
+                className="cron-panel__button is-primary"
+                type="button"
+                onClick={() => setBuilder({ mode: "create", draft: DEFAULT_DRAFT })}
+              >
+                {t("addJob")}
+              </button>
+              <button
+                className="cron-panel__button"
+                type="button"
+                onClick={() => void refresh(selectedJobId)}
+                disabled={loadState === "loading"}
+              >
+                {loadState === "loading" ? t("refreshing") : t("refresh")}
+              </button>
+            </PanelStatusRow>
+          }
+        />
+        <KpiStrip columns={4} aria-label={t("kpiLabel")}>
           <CronMetric label={t("totalJobs")} value={jobs.length} />
           <CronMetric
             label={t("enabledCount")}
@@ -331,193 +360,187 @@ export function CronPanel() {
             tone={loadedErrorCount > 0 ? "danger" : "positive"}
             value={loadedErrorCount}
           />
-        </div>
-        <div className="cron-panel__topbar-actions">
-          <button
-            className="cron-panel__button is-primary"
-            type="button"
-            onClick={() => setBuilder({ mode: "create", draft: DEFAULT_DRAFT })}
-          >
-            {t("addJob")}
-          </button>
-          <button
-            className="cron-panel__button"
-            type="button"
-            onClick={() => void refresh(selectedJobId)}
-            disabled={loadState === "loading"}
-          >
-            {loadState === "loading" ? t("refreshing") : t("refresh")}
-          </button>
-        </div>
-      </header>
+        </KpiStrip>
 
-      {error ? <p className="cron-panel__banner is-danger">{error}</p> : null}
+        {error ? <p className="cron-panel__banner is-danger">{error}</p> : null}
 
-      <main className="cron-panel__main">
-        <article className="cron-panel__card cron-panel__jobs-card">
-          <div className="cron-panel__card-head">
-            <div>
-              <p className="cron-panel__eyebrow">{t("inventory")}</p>
-              <h3 className="cron-panel__card-title">{t("scheduledJobs")}</h3>
-            </div>
-            <span className={`cron-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
-              {statusText(t, loadState)}
-            </span>
-          </div>
-          <div className="cron-panel__filters">
-            <div className="cron-panel__segmented" role="tablist" aria-label={t("enabledFilter")}>
-              {(["all", "enabled", "disabled"] as const).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  role="tab"
-                  aria-selected={enabledFilter === filter}
-                  className={`cron-panel__segmented-button ${enabledFilter === filter ? "is-active" : ""}`}
-                  onClick={() => setEnabledFilter(filter)}
-                >
-                  {t(`filters.${filter}`)}
-                  <CountPill
-                    value={
-                      filter === "all"
-                        ? jobs.length
-                        : jobs.filter((job) => job.enabled === (filter === "enabled")).length
-                    }
-                  />
-                </button>
-              ))}
-            </div>
-            <label className="cron-panel__search">
-              <span>{t("search")}</span>
-              <input
-                className="cron-panel__input"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={t("searchPlaceholder")}
+        <main className="cron-panel__main">
+          <PanelSurface as="article">
+            <div className="cron-panel__jobs-card">
+              <PanelSectionHeader
+                eyebrow={t("inventory")}
+                title={t("scheduledJobs")}
+                headingLevel={3}
+                meta={
+                  <PanelStatusRow align="end">
+                    <PanelPill tone={loadState === "ready" ? "positive" : "default"}>
+                      {statusText(t, loadState)}
+                    </PanelPill>
+                  </PanelStatusRow>
+                }
               />
-            </label>
-            <label className="cron-panel__sort">
-              <span>{t("sortLabel")}</span>
-              <select
-                className="cron-panel__select"
-                value={sortBy}
-                onChange={(event) => setSortBy(event.target.value as SortKey)}
-              >
-                <option value="nextRunAtMs">{t("sort.nextRunAtMs")}</option>
-                <option value="updatedAtMs">{t("sort.updatedAtMs")}</option>
-                <option value="name">{t("sort.name")}</option>
-              </select>
-            </label>
-          </div>
-          <div className="cron-panel__table" role="table" aria-label={t("scheduledJobs")}>
-            <div className="cron-panel__table-head" role="row">
-              <span role="columnheader">{t("job")}</span>
-              <span role="columnheader">{t("schedule")}</span>
-              <span role="columnheader">{t("nextRun")}</span>
-              <span role="columnheader">{t("lastRun")}</span>
-              <span role="columnheader">{t("target")}</span>
-              <span role="columnheader">{t("state")}</span>
-            </div>
-            {visibleJobs.length === 0 ? (
-              <div className="cron-panel__empty">
-                <p>{jobs.length === 0 ? t("noJobs") : t("noMatches")}</p>
-                {jobs.length > 0 ? <p>{activeCriteria}</p> : null}
-                {jobs.length > 0 ? (
-                  <button
-                    className="cron-panel__button"
-                    type="button"
-                    onClick={() => {
-                      setQuery("");
-                      setEnabledFilter("all");
-                    }}
+              <div className="cron-panel__filters">
+                <div
+                  className="cron-panel__segmented"
+                  role="tablist"
+                  aria-label={t("enabledFilter")}
+                >
+                  {(["all", "enabled", "disabled"] as const).map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      role="tab"
+                      aria-selected={enabledFilter === filter}
+                      className={`cron-panel__segmented-button ${enabledFilter === filter ? "is-active" : ""}`}
+                      onClick={() => setEnabledFilter(filter)}
+                    >
+                      {t(`filters.${filter}`)}
+                      <CountPill
+                        value={
+                          filter === "all"
+                            ? jobs.length
+                            : jobs.filter((job) => job.enabled === (filter === "enabled")).length
+                        }
+                      />
+                    </button>
+                  ))}
+                </div>
+                <label className="cron-panel__search">
+                  <span>{t("search")}</span>
+                  <input
+                    className="cron-panel__input"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t("searchPlaceholder")}
+                  />
+                </label>
+                <label className="cron-panel__sort">
+                  <span>{t("sortLabel")}</span>
+                  <select
+                    className="cron-panel__select"
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value as SortKey)}
                   >
-                    {t("clearFilters")}
-                  </button>
-                ) : null}
+                    <option value="nextRunAtMs">{t("sort.nextRunAtMs")}</option>
+                    <option value="updatedAtMs">{t("sort.updatedAtMs")}</option>
+                    <option value="name">{t("sort.name")}</option>
+                  </select>
+                </label>
               </div>
-            ) : (
-              visibleJobs.map((job) => {
-                const rowLastRun = selectedJobId === job.id ? selectedLastRun : undefined;
-                return (
-                  <button
-                    key={job.id}
-                    type="button"
-                    role="row"
-                    aria-selected={selectedJobId === job.id}
-                    className={`cron-panel__job-row ${selectedJobId === job.id ? "is-selected" : ""} ${!job.enabled ? "is-disabled" : ""}`}
-                    onClick={() => {
-                      setSelectedJobId(job.id);
-                      setDetailTab("overview");
-                    }}
-                  >
-                    <span role="cell" className="cron-panel__job-name">
-                      <strong>{job.name}</strong>
-                      <code>{job.id}</code>
-                    </span>
-                    <span role="cell">{summarizeSchedule(job)}</span>
-                    <span role="cell">
-                      {job.enabled ? formatCronDate(job.nextRunAtMs) : t("disabled")}
-                    </span>
-                    <span role="cell">{rowLastRun ? t(rowLastRun.status) : t("never")}</span>
-                    <span role="cell">{job.sessionTarget || t("notAvailable")}</span>
-                    <span role="cell">
-                      <span className={`cron-panel__pill ${job.enabled ? "is-positive" : ""}`}>
-                        {job.enabled ? t("enabled") : t("disabled")}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </article>
-
-        <article className="cron-panel__card cron-panel__detail-card">
-          {selectedJob ? (
-            <CronJobDetail
-              actionResult={actionResult}
-              actionState={actionState}
-              detailTab={detailTab}
-              job={selectedJob}
-              lastRun={selectedLastRun}
-              runs={runs}
-              status={status}
-              setDetailTab={setDetailTab}
-              onDelete={() => setDeleteCandidate(selectedJob)}
-              onEdit={() =>
-                setBuilder({ mode: "edit", job: selectedJob, draft: draftFromJob(selectedJob) })
-              }
-              onRun={() => void runAction()}
-              onToggle={() => void toggleSelected()}
-            />
-          ) : (
-            <div className="cron-panel__empty-state">
-              <p className="cron-panel__eyebrow">{t("selectedJob")}</p>
-              <h3 className="cron-panel__card-title">{t("selectJobHint")}</h3>
-              <p className="cron-panel__description">{t("emptyDetailDescription")}</p>
+              <div className="cron-panel__table" role="table" aria-label={t("scheduledJobs")}>
+                <div className="cron-panel__table-head" role="row">
+                  <span role="columnheader">{t("job")}</span>
+                  <span role="columnheader">{t("schedule")}</span>
+                  <span role="columnheader">{t("nextRun")}</span>
+                  <span role="columnheader">{t("lastRun")}</span>
+                  <span role="columnheader">{t("target")}</span>
+                  <span role="columnheader">{t("state")}</span>
+                </div>
+                {visibleJobs.length === 0 ? (
+                  <div className="cron-panel__empty">
+                    <p>{jobs.length === 0 ? t("noJobs") : t("noMatches")}</p>
+                    {jobs.length > 0 ? <p>{activeCriteria}</p> : null}
+                    {jobs.length > 0 ? (
+                      <button
+                        className="cron-panel__button"
+                        type="button"
+                        onClick={() => {
+                          setQuery("");
+                          setEnabledFilter("all");
+                        }}
+                      >
+                        {t("clearFilters")}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : (
+                  visibleJobs.map((job) => {
+                    const rowLastRun = selectedJobId === job.id ? selectedLastRun : undefined;
+                    return (
+                      <button
+                        key={job.id}
+                        type="button"
+                        role="row"
+                        aria-selected={selectedJobId === job.id}
+                        className={`cron-panel__job-row ${selectedJobId === job.id ? "is-selected" : ""} ${!job.enabled ? "is-disabled" : ""}`}
+                        onClick={() => {
+                          setSelectedJobId(job.id);
+                          setDetailTab("overview");
+                        }}
+                      >
+                        <span role="cell" className="cron-panel__job-name">
+                          <strong>{job.name}</strong>
+                          <code>{job.id}</code>
+                        </span>
+                        <span role="cell">{summarizeSchedule(job)}</span>
+                        <span role="cell">
+                          {job.enabled ? formatCronDate(job.nextRunAtMs) : t("disabled")}
+                        </span>
+                        <span role="cell">{rowLastRun ? t(rowLastRun.status) : t("never")}</span>
+                        <span role="cell">{job.sessionTarget || t("notAvailable")}</span>
+                        <span role="cell">
+                          <PanelPill tone={job.enabled ? "positive" : "default"}>
+                            {job.enabled ? t("enabled") : t("disabled")}
+                          </PanelPill>
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          )}
-        </article>
-      </main>
+          </PanelSurface>
 
-      {builder ? (
-        <CronBuilderDialog
-          actionState={actionState}
-          builder={builder}
-          setBuilder={setBuilder}
-          onClose={() => setBuilder(null)}
-          onSave={() => void saveBuilder()}
-        />
-      ) : null}
+          <PanelSurface as="article">
+            <div className="cron-panel__detail-card">
+              {selectedJob ? (
+                <CronJobDetail
+                  actionResult={actionResult}
+                  actionState={actionState}
+                  detailTab={detailTab}
+                  job={selectedJob}
+                  lastRun={selectedLastRun}
+                  runs={runs}
+                  status={status}
+                  setDetailTab={setDetailTab}
+                  onDelete={() => setDeleteCandidate(selectedJob)}
+                  onEdit={() =>
+                    setBuilder({ mode: "edit", job: selectedJob, draft: draftFromJob(selectedJob) })
+                  }
+                  onRun={() => void runAction()}
+                  onToggle={() => void toggleSelected()}
+                />
+              ) : (
+                <div className="cron-panel__empty-state">
+                  <p className="cron-panel__eyebrow">{t("selectedJob")}</p>
+                  <h3 className="cron-panel__dialog-title">{t("selectJobHint")}</h3>
+                  <p className="cron-panel__description">{t("emptyDetailDescription")}</p>
+                </div>
+              )}
+            </div>
+          </PanelSurface>
+        </main>
 
-      {deleteCandidate ? (
-        <DeleteConfirmDialog
-          actionState={actionState}
-          job={deleteCandidate}
-          onCancel={() => setDeleteCandidate(null)}
-          onConfirm={() => void deleteAction()}
-        />
-      ) : null}
-    </section>
+        {builder ? (
+          <CronBuilderDialog
+            actionState={actionState}
+            builder={builder}
+            setBuilder={setBuilder}
+            onClose={() => setBuilder(null)}
+            onSave={() => void saveBuilder()}
+          />
+        ) : null}
+
+        {deleteCandidate ? (
+          <DeleteConfirmDialog
+            actionState={actionState}
+            job={deleteCandidate}
+            onCancel={() => setDeleteCandidate(null)}
+            onConfirm={() => void deleteAction()}
+          />
+        ) : null}
+      </div>
+    </PanelRoot>
   );
 }
 
@@ -539,57 +562,61 @@ function CronJobDetail(props: {
 
   return (
     <>
-      <div className="cron-panel__detail-hero">
-        <div>
-          <p className="cron-panel__eyebrow">{t("selectedJob")}</p>
-          <h3 className="cron-panel__detail-title">{props.job.name}</h3>
-          <p className="cron-panel__description">{props.job.description || t("noDescription")}</p>
-        </div>
-        <div className="cron-panel__pill-row">
-          <span className={`cron-panel__pill ${props.job.enabled ? "is-positive" : ""}`}>
-            {props.job.enabled ? t("enabled") : t("disabled")}
-          </span>
-          {props.job.failureAlert ? (
-            <span className="cron-panel__pill is-warning">{t("failureAlerts")}</span>
-          ) : null}
-          <span className="cron-panel__pill">{props.job.id}</span>
-        </div>
-      </div>
-
-      <div className="cron-panel__detail-actions">
-        <button
-          className="cron-panel__button is-primary"
-          type="button"
-          onClick={props.onRun}
-          disabled={!props.job.enabled || props.actionState !== "idle"}
-        >
-          {props.actionState === "running" ? t("running") : t("runNow")}
-        </button>
-        <button
-          className="cron-panel__button"
-          type="button"
-          onClick={props.onToggle}
-          disabled={props.actionState !== "idle"}
-        >
-          {props.job.enabled ? t("disableJob") : t("enableJob")}
-        </button>
-        <button
-          className="cron-panel__button"
-          type="button"
-          onClick={props.onEdit}
-          disabled={props.actionState !== "idle"}
-        >
-          {t("editJob")}
-        </button>
-        <button
-          className="cron-panel__button is-danger"
-          type="button"
-          onClick={props.onDelete}
-          disabled={props.actionState !== "idle"}
-        >
-          {t("deleteJob")}
-        </button>
-      </div>
+      <PanelSurface tone="elevated">
+        <PanelSectionHeader
+          eyebrow={t("selectedJob")}
+          title={props.job.name}
+          headingLevel={3}
+          description={props.job.description || t("noDescription")}
+          meta={
+            <PanelStatusRow>
+              <PanelPill tone={props.job.enabled ? "positive" : "default"}>
+                {props.job.enabled ? t("enabled") : t("disabled")}
+              </PanelPill>
+              {props.job.failureAlert ? (
+                <PanelPill tone="warning">{t("failureAlerts")}</PanelPill>
+              ) : null}
+              <PanelPill>{props.job.id}</PanelPill>
+            </PanelStatusRow>
+          }
+          actions={
+            <div className="cron-panel__detail-actions">
+              <button
+                className="cron-panel__button is-primary"
+                type="button"
+                onClick={props.onRun}
+                disabled={!props.job.enabled || props.actionState !== "idle"}
+              >
+                {props.actionState === "running" ? t("running") : t("runNow")}
+              </button>
+              <button
+                className="cron-panel__button"
+                type="button"
+                onClick={props.onToggle}
+                disabled={props.actionState !== "idle"}
+              >
+                {props.job.enabled ? t("disableJob") : t("enableJob")}
+              </button>
+              <button
+                className="cron-panel__button"
+                type="button"
+                onClick={props.onEdit}
+                disabled={props.actionState !== "idle"}
+              >
+                {t("editJob")}
+              </button>
+              <button
+                className="cron-panel__button is-danger"
+                type="button"
+                onClick={props.onDelete}
+                disabled={props.actionState !== "idle"}
+              >
+                {t("deleteJob")}
+              </button>
+            </div>
+          }
+        />
+      </PanelSurface>
 
       <div className="cron-panel__tabs" role="tablist" aria-label={t("detailTabs")}>
         {(["overview", "schedule", "history", "payload", "scheduler"] as const).map((tab) => (
@@ -632,8 +659,8 @@ function CronJobDetail(props: {
 function OverviewTab(props: { job: DeckGoCronJob; lastRun?: DeckGoCronRunEntry }) {
   const t = useTranslations("cron");
   return (
-    <div className="cron-panel__surface">
-      <div className="cron-panel__metrics is-four">
+    <PanelSurface>
+      <KpiStrip columns={4}>
         <CronMetric label={t("schedule")} value={props.job.schedule.kind} />
         <CronMetric label={t("nextRun")} value={formatCronDate(props.job.nextRunAtMs)} />
         <CronMetric
@@ -646,7 +673,7 @@ function OverviewTab(props: { job: DeckGoCronJob; lastRun?: DeckGoCronRunEntry }
             props.lastRun?.durationMs != null ? `${props.lastRun.durationMs}ms` : t("notAvailable")
           }
         />
-      </div>
+      </KpiStrip>
       <dl className="cron-panel__kv">
         <div>
           <dt>{t("agentId")}</dt>
@@ -673,7 +700,7 @@ function OverviewTab(props: { job: DeckGoCronJob; lastRun?: DeckGoCronRunEntry }
           <dd>{props.job.deleteAfterRun ? t("yes") : t("no")}</dd>
         </div>
       </dl>
-    </div>
+    </PanelSurface>
   );
 }
 
@@ -681,7 +708,7 @@ function ScheduleTab(props: { job: DeckGoCronJob }) {
   const t = useTranslations("cron");
   const schedule = props.job.schedule;
   return (
-    <div className="cron-panel__surface">
+    <PanelSurface>
       <dl className="cron-panel__kv">
         <div>
           <dt>{t("scheduleKind")}</dt>
@@ -721,7 +748,7 @@ function ScheduleTab(props: { job: DeckGoCronJob }) {
         ) : null}
       </dl>
       <p className="cron-panel__note">{t("previewUnsupported")}</p>
-    </div>
+    </PanelSurface>
   );
 }
 
@@ -752,7 +779,7 @@ function CronBuilderDialog(props: {
         <div className="cron-panel__modal-head">
           <div>
             <p className="cron-panel__eyebrow">{t("builderEyebrow")}</p>
-            <h3 className="cron-panel__card-title">
+            <h3 className="cron-panel__dialog-title">
               {props.builder.mode === "create" ? t("builderCreateTitle") : t("builderEditTitle")}
             </h3>
           </div>
@@ -937,7 +964,7 @@ function DeleteConfirmDialog(props: {
         <div className="cron-panel__modal-head">
           <div>
             <p className="cron-panel__eyebrow">{t("deleteJob")}</p>
-            <h3 className="cron-panel__card-title">{t("deleteTitle")}</h3>
+            <h3 className="cron-panel__dialog-title">{t("deleteTitle")}</h3>
           </div>
         </div>
         <p className="cron-panel__description">

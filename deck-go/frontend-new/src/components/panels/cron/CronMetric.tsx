@@ -1,12 +1,9 @@
+import { PanelMetric, type PanelMetricTone } from "../../../design-system/patterns";
+
 export function CronMetric(props: {
   label: string;
   value: string | number;
-  tone?: "positive" | "danger" | "warning";
+  tone?: PanelMetricTone;
 }) {
-  return (
-    <div className={`cron-panel__metric ${props.tone ? `is-${props.tone}` : ""}`}>
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
+  return <PanelMetric label={props.label} tone={props.tone} value={props.value} />;
 }

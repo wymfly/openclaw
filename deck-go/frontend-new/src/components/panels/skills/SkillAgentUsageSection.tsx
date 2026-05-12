@@ -1,6 +1,7 @@
 import type { DeckGoSkillEntry } from "../../../api";
 import { navigateToAgent } from "../../../deck-ui/panel-navigation";
 import type { DeckUIState } from "../../../deck-ui/types";
+import { PanelPill, PanelSectionHeader, PanelSurface } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
 
 export function SkillAgentUsageSection(props: {
@@ -11,14 +12,12 @@ export function SkillAgentUsageSection(props: {
   const agentIds = props.skill.agentUsage.agentIds ?? [];
 
   return (
-    <section className="skills-panel__section" id="agentUsage">
-      <div className="skills-panel__section-head">
-        <div>
-          <p className="skills-panel__eyebrow">{t("readOnly")}</p>
-          <h2>{t("sections.agentUsage")}</h2>
-        </div>
-        <span className="skills-panel__pill">{t("agentUsageCount", { count: agentIds.length })}</span>
-      </div>
+    <PanelSurface id="agentUsage">
+      <PanelSectionHeader
+        eyebrow={t("readOnly")}
+        title={t("sections.agentUsage")}
+        meta={<PanelPill>{t("agentUsageCount", { count: agentIds.length })}</PanelPill>}
+      />
       {agentIds.length ? (
         <ul className="skills-panel__stack-list">
           {agentIds.map((agentId) => (
@@ -40,6 +39,6 @@ export function SkillAgentUsageSection(props: {
       ) : (
         <p className="skills-panel__note">{t("noAgentUsage")}</p>
       )}
-    </section>
+    </PanelSurface>
   );
 }

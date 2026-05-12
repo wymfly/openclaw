@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import type { DeckGoSkillEntry, DeckGoSkillHubDetailResponse } from "../../../api";
+import { PanelSurface } from "../../../design-system/patterns";
+import { useTranslations } from "../../../i18n/provider";
 import {
   envRecordToRows,
   envRowsHaveInvalidKeys,
@@ -7,7 +9,6 @@ import {
   SkillEnvKeyValueEditor,
   type SkillEnvRow,
 } from "./SkillEnvKeyValueEditor";
-import { useTranslations } from "../../../i18n/provider";
 
 type WizardStep = 0 | 1 | 2 | 3 | 4;
 
@@ -19,7 +20,11 @@ export function InstallSkillWizard(props: {
   hubDetail: DeckGoSkillHubDetailResponse | null;
   onClose: () => void;
   onPreview: (slug: string) => Promise<void>;
-  onInstall: (input: { slug: string; apiKey?: string; env?: Record<string, string> }) => Promise<void>;
+  onInstall: (input: {
+    slug: string;
+    apiKey?: string;
+    env?: Record<string, string>;
+  }) => Promise<void>;
 }) {
   const t = useTranslations("skills");
   const [step, setStep] = useState<WizardStep>(0);
@@ -43,7 +48,12 @@ export function InstallSkillWizard(props: {
 
   return (
     <div className="skills-panel__modal-backdrop" role="presentation">
-      <section className="skills-panel__modal is-wide" role="dialog" aria-modal="true" aria-label={t("installFromClawHub")}>
+      <section
+        className="skills-panel__modal is-wide"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t("installFromClawHub")}
+      >
         <div className="skills-panel__modal-head">
           <div>
             <p className="skills-panel__eyebrow">L3</p>
@@ -62,19 +72,23 @@ export function InstallSkillWizard(props: {
         </ol>
 
         {step === 0 ? (
-          <div className="skills-panel__surface">
+          <PanelSurface>
             <h3>{t("wizardSourceTitle")}</h3>
             <p className="skills-panel__note">{t("wizardSourceBody")}</p>
             <div className="skills-panel__modal-actions">
-              <button className="skills-panel__button is-primary" type="button" onClick={() => setStep(1)}>
+              <button
+                className="skills-panel__button is-primary"
+                type="button"
+                onClick={() => setStep(1)}
+              >
                 {t("nextSlug")}
               </button>
             </div>
-          </div>
+          </PanelSurface>
         ) : null}
 
         {step === 1 ? (
-          <div className="skills-panel__surface">
+          <PanelSurface>
             <label className="skills-panel__field">
               <span>{t("skillSlug")}</span>
               <input
@@ -107,11 +121,11 @@ export function InstallSkillWizard(props: {
                 {t("latestVersionPreview")}: {selectedDetail.latestVersion.version}
               </p>
             ) : null}
-          </div>
+          </PanelSurface>
         ) : null}
 
         {step === 2 ? (
-          <div className="skills-panel__surface">
+          <PanelSurface>
             <label className="skills-panel__field">
               <span>{t("optionalInstallApiKey")}</span>
               <input
@@ -123,15 +137,19 @@ export function InstallSkillWizard(props: {
               />
             </label>
             <div className="skills-panel__modal-actions">
-              <button className="skills-panel__button is-primary" type="button" onClick={() => setStep(3)}>
+              <button
+                className="skills-panel__button is-primary"
+                type="button"
+                onClick={() => setStep(3)}
+              >
                 {t("nextEnv")}
               </button>
             </div>
-          </div>
+          </PanelSurface>
         ) : null}
 
         {step === 3 ? (
-          <div className="skills-panel__surface">
+          <PanelSurface>
             <SkillEnvKeyValueEditor
               rows={envRows}
               keyLabel={t("wizardEnvKey")}
@@ -149,11 +167,11 @@ export function InstallSkillWizard(props: {
                 {t("reviewInstall")}
               </button>
             </div>
-          </div>
+          </PanelSurface>
         ) : null}
 
         {step === 4 ? (
-          <div className="skills-panel__surface">
+          <PanelSurface>
             <h3>{t("reviewAndConfirm")}</h3>
             <p className="skills-panel__note">{t("installTwoStepPlan")}</p>
             <dl className="skills-panel__definition-list">
@@ -166,7 +184,9 @@ export function InstallSkillWizard(props: {
               <dt>{t("agentUsage")}</dt>
               <dd>{existingUsage}</dd>
             </dl>
-            {props.setupMessage ? <p className="skills-panel__note is-danger">{props.setupMessage}</p> : null}
+            {props.setupMessage ? (
+              <p className="skills-panel__note is-danger">{props.setupMessage}</p>
+            ) : null}
             <div className="skills-panel__modal-actions">
               <button className="skills-panel__button" type="button" onClick={() => setStep(3)}>
                 {t("back")}
@@ -186,7 +206,7 @@ export function InstallSkillWizard(props: {
                 {t("confirmInstall")}
               </button>
             </div>
-          </div>
+          </PanelSurface>
         ) : null}
       </section>
     </div>

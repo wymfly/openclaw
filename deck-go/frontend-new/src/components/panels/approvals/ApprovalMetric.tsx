@@ -1,10 +1,6 @@
 import type { ReactNode } from "react";
+import { PanelMetric } from "../../../design-system/patterns";
 
 export function ApprovalMetric(props: { label: string; value: ReactNode }) {
-  return (
-    <div className="approvals-panel__metric">
-      <span>{props.label}</span>
-      <strong>{props.value}</strong>
-    </div>
-  );
+  return <PanelMetric label={props.label} value={props.value} />;
 }

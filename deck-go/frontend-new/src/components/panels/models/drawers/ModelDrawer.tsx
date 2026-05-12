@@ -17,6 +17,7 @@ const MODEL_TABS = ["overview", "identity", "capacity", "cost", "networking", "a
 type ModelTab = (typeof MODEL_TABS)[number];
 
 const INPUT_MODALITIES: DeckGoModelInputModality[] = ["text", "image"];
+const DEFAULT_INPUT_MODALITIES: DeckGoModelInputModality[] = ["text"];
 
 export interface ModelDrawerProps {
   open: boolean;
@@ -52,7 +53,9 @@ export function ModelDrawer(props: ModelDrawerProps) {
   const [api, setApi] = useState(model?.api ?? "");
   const [inheritsApi, setInheritsApi] = useState(model?.inheritsApi ?? true);
   const [reasoning, setReasoning] = useState(Boolean(model?.reasoning));
-  const [inputs, setInputs] = useState(new Set(model?.inputs ?? ["text"]));
+  const [inputs, setInputs] = useState(
+    new Set<DeckGoModelInputModality>(model?.inputs ?? DEFAULT_INPUT_MODALITIES),
+  );
   const [contextWindow, setContextWindow] = useState(
     model?.contextWindow != null ? String(model.contextWindow) : "",
   );
@@ -82,7 +85,7 @@ export function ModelDrawer(props: ModelDrawerProps) {
     setApi(model?.api ?? "");
     setInheritsApi(model?.inheritsApi ?? true);
     setReasoning(Boolean(model?.reasoning));
-    setInputs(new Set(model?.inputs ?? ["text"]));
+    setInputs(new Set<DeckGoModelInputModality>(model?.inputs ?? DEFAULT_INPUT_MODALITIES));
     setContextWindow(model?.contextWindow != null ? String(model.contextWindow) : "");
     setContextTokens(model?.contextTokens != null ? String(model.contextTokens) : "");
     setMaxTokens(model?.maxTokens != null ? String(model.maxTokens) : "");

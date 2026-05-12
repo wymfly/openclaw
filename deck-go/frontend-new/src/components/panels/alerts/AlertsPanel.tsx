@@ -17,8 +17,16 @@ import {
   IconSearch,
   IconTrash,
 } from "../../../design-system/icons";
+import {
+  KpiStrip,
+  PanelMetric,
+  PanelPill,
+  PanelRoot,
+  PanelSectionHeader,
+  PanelStatusRow,
+  PanelSurface,
+} from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
-import { AlertsMetric } from "./AlertsMetric";
 import { FiredAlertsList } from "./FiredAlertsList";
 import { RuleForm, type AlertRuleInput } from "./RuleForm";
 import { RuleList } from "./RuleList";
@@ -301,48 +309,48 @@ export function AlertsPanel() {
   };
 
   return (
-    <section className="alerts-panel" data-testid="alerts-panel">
-      <header className="alerts-panel__header">
-        <div className="alerts-panel__title-stack">
-          <p className="alerts-panel__eyebrow">{t("eyebrow")}</p>
-          <h2 className="alerts-panel__title">{t("title")}</h2>
-          <p className="alerts-panel__description">{t("subtitle")}</p>
-        </div>
-        <div className="alerts-panel__header-actions">
-          <button
-            className="alerts-panel__button"
-            type="button"
-            disabled={loadState === "loading"}
-            onClick={() => void refresh(selectedRule?.id)}
-          >
-            <IconRefresh size={15} />
-            {t("refresh")}
-          </button>
-          <button
-            className="alerts-panel__button is-primary"
-            type="button"
-            onClick={() => setDialog({ type: "create" })}
-          >
-            <IconPlus size={15} />
-            {t("addRule")}
-          </button>
-        </div>
-      </header>
+    <PanelRoot data-testid="alerts-panel" density="compact">
+      <PanelSectionHeader
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("subtitle")}
+        actions={
+          <div className="alerts-panel__actions">
+            <button
+              className="alerts-panel__button"
+              type="button"
+              disabled={loadState === "loading"}
+              onClick={() => void refresh(selectedRule?.id)}
+            >
+              <IconRefresh size={15} />
+              {t("refresh")}
+            </button>
+            <button
+              className="alerts-panel__button is-primary"
+              type="button"
+              onClick={() => setDialog({ type: "create" })}
+            >
+              <IconPlus size={15} />
+              {t("addRule")}
+            </button>
+          </div>
+        }
+      />
 
-      <div className="alerts-panel__metrics">
-        <AlertsMetric label={t("ruleMetric")} value={String(rules.length)} tone="neutral" />
-        <AlertsMetric label={t("enabledMetric")} value={String(enabledCount)} tone="positive" />
-        <AlertsMetric
+      <KpiStrip columns={4} aria-label={t("ruleInventory")}>
+        <PanelMetric label={t("ruleMetric")} value={String(rules.length)} />
+        <PanelMetric label={t("enabledMetric")} value={String(enabledCount)} tone="positive" />
+        <PanelMetric
           label={t("webhookMetric")}
           value={String(webhookCount)}
-          tone={webhookCount > 0 ? "warning" : "neutral"}
+          tone={webhookCount > 0 ? "warning" : "default"}
         />
-        <AlertsMetric
+        <PanelMetric
           label={t("firedMetric")}
           value={String(firedCount)}
-          tone={firedCount > 0 ? "danger" : "neutral"}
+          tone={firedCount > 0 ? "danger" : "default"}
         />
-      </div>
+      </KpiStrip>
 
       {error ? (
         <p className="alerts-panel__error" role="alert">
@@ -409,19 +417,22 @@ export function AlertsPanel() {
 
       <div className={`alerts-panel__workspace alerts-panel__workspace--${view}`}>
         {view === "list" ? (
-          <aside className="alerts-panel__list-shell">
-            <div className="alerts-panel__section-head">
-              <div>
-                <h3>{t("ruleInventory")}</h3>
-                <p>
-                  {loadState === "loading" ? tc("loading") : t(loadState)} ·{" "}
-                  {t("ruleCount", { count: filteredRules.length })}
-                </p>
-              </div>
-              <span className={`alerts-panel__pill ${loadState === "ready" ? "is-positive" : ""}`}>
-                {loadState === "loading" ? tc("loading") : t(loadState)}
-              </span>
-            </div>
+          <PanelSurface>
+            <PanelSectionHeader
+              headingLevel={3}
+              title={t("ruleInventory")}
+              description={`${loadState === "loading" ? tc("loading") : t(loadState)} · ${t(
+                "ruleCount",
+                { count: filteredRules.length },
+              )}`}
+              actions={
+                <PanelStatusRow align="end">
+                  <PanelPill tone={loadState === "ready" ? "positive" : "default"}>
+                    {loadState === "loading" ? tc("loading") : t(loadState)}
+                  </PanelPill>
+                </PanelStatusRow>
+              }
+            />
 
             <RuleList
               rules={filteredRules}
@@ -448,68 +459,73 @@ export function AlertsPanel() {
               }}
               onToggleEnabled={(rule) => void handleToggle(rule)}
             />
-          </aside>
+          </PanelSurface>
         ) : null}
 
         {view === "detail" ? (
-          <main className="alerts-panel__detail-shell">
+          <PanelSurface as="main">
             {selectedRule ? (
               <>
-                <div className="alerts-panel__detail-hero">
-                  <button
-                    className="alerts-panel__button"
-                    type="button"
-                    onClick={() => setView("list")}
-                  >
-                    {t("backToRules")}
-                  </button>
-                  <div className="alerts-panel__entity-glyph" aria-hidden="true">
-                    {selectedRule.entityType.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="alerts-panel__detail-copy">
-                    <p className="alerts-panel__eyebrow">{t("selected")}</p>
-                    <h3>{selectedRule.name}</h3>
-                    <p>
-                      {selectedRule.id} · {selectedRule.entityType} · {selectedRule.condition}{" "}
-                      {selectedRule.threshold}
-                    </p>
-                  </div>
-                  <div className="alerts-panel__detail-actions">
+                <PanelSurface as="div" tone="muted">
+                  <div className="alerts-panel__detail-hero">
                     <button
                       className="alerts-panel__button"
                       type="button"
-                      onClick={() => setDialog({ type: "test", rule: selectedRule })}
+                      onClick={() => setView("list")}
                     >
-                      <IconBolt size={15} />
-                      {t("testFirePreview")}
+                      {t("backToRules")}
                     </button>
-                    <button
-                      className="alerts-panel__button"
-                      disabled={saving}
-                      type="button"
-                      onClick={() => void handleToggle(selectedRule)}
-                    >
-                      {selectedRule.enabled ? t("disableRule") : t("enableRule")}
-                    </button>
-                    <button
-                      className="alerts-panel__button"
-                      type="button"
-                      onClick={() => setDialog({ type: "edit", rule: selectedRule })}
-                    >
-                      <IconEdit size={15} />
-                      {t("editRule")}
-                    </button>
-                    <button
-                      className="alerts-panel__button is-danger"
-                      disabled={saving}
-                      type="button"
-                      onClick={() => setDialog({ type: "delete", rule: selectedRule })}
-                    >
-                      <IconTrash size={15} />
-                      {t("deleteRule")}
-                    </button>
+                    <div className="alerts-panel__entity-glyph" aria-hidden="true">
+                      {selectedRule.entityType.slice(0, 2).toUpperCase()}
+                    </div>
+                    <PanelSectionHeader
+                      as="div"
+                      headingLevel={3}
+                      eyebrow={t("selected")}
+                      title={selectedRule.name}
+                      description={`${selectedRule.id} · ${selectedRule.entityType} · ${
+                        selectedRule.condition
+                      } ${selectedRule.threshold}`}
+                      actions={
+                        <div className="alerts-panel__detail-actions">
+                          <button
+                            className="alerts-panel__button"
+                            type="button"
+                            onClick={() => setDialog({ type: "test", rule: selectedRule })}
+                          >
+                            <IconBolt size={15} />
+                            {t("testFirePreview")}
+                          </button>
+                          <button
+                            className="alerts-panel__button"
+                            disabled={saving}
+                            type="button"
+                            onClick={() => void handleToggle(selectedRule)}
+                          >
+                            {selectedRule.enabled ? t("disableRule") : t("enableRule")}
+                          </button>
+                          <button
+                            className="alerts-panel__button"
+                            type="button"
+                            onClick={() => setDialog({ type: "edit", rule: selectedRule })}
+                          >
+                            <IconEdit size={15} />
+                            {t("editRule")}
+                          </button>
+                          <button
+                            className="alerts-panel__button is-danger"
+                            disabled={saving}
+                            type="button"
+                            onClick={() => setDialog({ type: "delete", rule: selectedRule })}
+                          >
+                            <IconTrash size={15} />
+                            {t("deleteRule")}
+                          </button>
+                        </div>
+                      }
+                    />
                   </div>
-                </div>
+                </PanelSurface>
 
                 <div className="alerts-panel__tabbar" role="tablist" aria-label={t("detailTabs")}>
                   {(["overview", "conditions", "fires", "audit"] satisfies AlertTabId[]).map(
@@ -530,33 +546,33 @@ export function AlertsPanel() {
 
                 {activeTab === "overview" ? (
                   <div className="alerts-panel__field-grid">
-                    <div className="alerts-panel__surface">
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("triggerExpression")}</p>
                       <strong className="alerts-panel__code">
                         {selectedRule.entityType} {selectedRule.condition} {selectedRule.threshold}
                       </strong>
-                    </div>
-                    <div className="alerts-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("actionDelivery")}</p>
                       <strong>{t(selectedRule.action)}</strong>
                       <p>{t("deliveryFallback")}</p>
-                    </div>
-                    <div className="alerts-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("cooldown")}</p>
                       <strong>{formatCooldown(selectedRule.cooldownMs)}</strong>
-                    </div>
-                    <div className="alerts-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("lastFired")}</p>
                       <strong>{formatDate(selectedRule.lastFiredAt, t("never"))}</strong>
-                    </div>
-                    <div className="alerts-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("createdAt")}</p>
                       <strong>{formatDate(selectedRule.createdAt, t("notAvailable"))}</strong>
-                    </div>
-                    <div className="alerts-panel__surface">
+                    </PanelSurface>
+                    <PanelSurface as="div" tone="muted">
                       <p className="alerts-panel__label">{t("updatedAt")}</p>
                       <strong>{formatDate(selectedRule.updatedAt, t("notAvailable"))}</strong>
-                    </div>
+                    </PanelSurface>
                   </div>
                 ) : null}
 
@@ -611,7 +627,7 @@ export function AlertsPanel() {
                 {t("lastAction")}: {t(lastAction)}
               </p>
             ) : null}
-          </main>
+          </PanelSurface>
         ) : null}
       </div>
 
@@ -727,7 +743,7 @@ export function AlertsPanel() {
           </section>
         </div>
       ) : null}
-    </section>
+    </PanelRoot>
   );
 }
 

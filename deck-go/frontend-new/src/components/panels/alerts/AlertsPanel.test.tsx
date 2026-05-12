@@ -126,9 +126,10 @@ describe("AlertsPanel", () => {
     await waitFor(() => expect(apiMocks.fetchAlertRules).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(container.textContent).toContain("Alerts ready"));
 
-    expect(container.querySelector(".alerts-panel")).toBeTruthy();
+    expect(container.querySelector('.ds-panel-root[data-testid="alerts-panel"]')).toBeTruthy();
     expect(container.querySelector(".alerts-panel__workspace")).toBeTruthy();
-    expect(container.querySelector(".alerts-panel__metrics")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
+    expect(container.querySelectorAll(".ds-panel-metric")).toHaveLength(4);
     expect(container.textContent).toContain("Alert Management");
     expect(container.textContent).toContain("Local alert policies");
     expect(container.textContent).toContain("Rule inventory");

@@ -141,7 +141,8 @@ describe("CronPanel", () => {
     expect(container.textContent).toContain("Frequent");
     expect(container.textContent).toContain("Selected Job");
     expect(container.textContent).toContain("0 0 * * *");
-    expect(container.querySelector(".cron-panel__topbar")).toBeTruthy();
+    expect(container.querySelector(".ds-panel-section-header")).toBeTruthy();
+    expect(container.querySelector(".ds-kpi-strip")).toBeTruthy();
     expect(container.querySelectorAll(".cron-panel__job-row").length).toBe(2);
 
     await act(async () => {

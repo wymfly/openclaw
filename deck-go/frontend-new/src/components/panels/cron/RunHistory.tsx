@@ -1,5 +1,16 @@
 import type { DeckGoCronRunEntry } from "../../../api";
+import { PanelPill, PanelSurface, type PanelPillTone } from "../../../design-system/patterns";
 import { useTranslations } from "../../../i18n/provider";
+
+function toneForRunStatus(status: DeckGoCronRunEntry["status"]): PanelPillTone {
+  if (status === "ok") {
+    return "positive";
+  }
+  if (status === "error") {
+    return "danger";
+  }
+  return "default";
+}
 
 export function RunHistory(props: { runs: DeckGoCronRunEntry[] }) {
   const t = useTranslations("cron");
@@ -11,7 +22,7 @@ export function RunHistory(props: { runs: DeckGoCronRunEntry[] }) {
   }
 
   return (
-    <div className="cron-panel__surface cron-panel__run-history">
+    <PanelSurface>
       <p className="cron-panel__label">{t("runHistory")}</p>
       <ul className="cron-panel__list">
         {props.runs.map((run, index) => (
@@ -24,15 +35,11 @@ export function RunHistory(props: { runs: DeckGoCronRunEntry[] }) {
                   {run.durationMs != null ? `${run.durationMs}ms` : t("notAvailable")}
                 </p>
               </div>
-              <span
-                className={`cron-panel__pill ${run.status === "ok" ? "is-positive" : run.status === "error" ? "is-danger" : ""}`}
-              >
-                {t(run.status)}
-              </span>
+              <PanelPill tone={toneForRunStatus(run.status)}>{t(run.status)}</PanelPill>
             </div>
           </li>
         ))}
       </ul>
-    </div>
+    </PanelSurface>
   );
 }
