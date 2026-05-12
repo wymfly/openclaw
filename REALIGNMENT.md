@@ -599,15 +599,15 @@ claude  # or codex
 
 ## Current Progress Tracker
 
-| Phase | Goal                            | Status             | Owner                            | Next action                                                                                                      |
-| ----- | ------------------------------- | ------------------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 1     | (Phase 1) CONTEXT.md bootstrap  | ✅ Done 2026-05-12 | Claude (proxied grill-with-docs) | CONTEXT.md committed                                                                                             |
-| 2     | **Goal 1**: AGENTS.md rewrite   | ✅ Done 2026-05-12 | Codex                            | Rewritten as long-lived project context + skill-routing standard; 旧 OpenSpec/验收矩阵/反思长规则只保留在 backup |
-| 3     | **Goal 2**: chat surface audit  | 🟢 Ready           | next session                     | 写 chat-surface-inventory.md                                                                                     |
-| 4     | **Goal 2**: chat brainstorming  | ⏸ Pending          | next session                     | After Phase 3: design doc                                                                                        |
-| 5     | **Goal 2**: chat vertical slice | ⏸ Pending          | next session                     | After Phase 4: tracer bullet implement                                                                           |
-| 6     | **Goal 2**: 8 个剩余核心模块    | ⏸ Pending          | next session                     | After Phase 5: agents → sessions → subagents → channels → plugins → models → memory → skills                     |
-| 7     | **Goal 2**: architecture review | ⏸ Pending          | next session                     | After Phase 6 ≥ 5 modules                                                                                        |
+| Phase | Goal                            | Status                | Owner                            | Next action                                                                                                      |
+| ----- | ------------------------------- | --------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 1     | (Phase 1) CONTEXT.md bootstrap  | ✅ Done 2026-05-12    | Claude (proxied grill-with-docs) | CONTEXT.md committed                                                                                             |
+| 2     | **Goal 1**: AGENTS.md rewrite   | ✅ Done 2026-05-12    | Codex                            | Rewritten as long-lived project context + skill-routing standard; 旧 OpenSpec/验收矩阵/反思长规则只保留在 backup |
+| 3     | **Goal 2**: chat surface audit  | ✅ Done 2026-05-12    | Codex                            | `docs/realignment/chat-surface-inventory.md` written; awaiting user review before Phase 4                        |
+| 4     | **Goal 2**: chat brainstorming  | 🟢 Ready after review | next session                     | Review inventory, then use `superpowers:brainstorming` for target design                                         |
+| 5     | **Goal 2**: chat vertical slice | ⏸ Pending             | next session                     | After Phase 4: tracer bullet implement                                                                           |
+| 6     | **Goal 2**: 8 个剩余核心模块    | ⏸ Pending             | next session                     | After Phase 5: agents → sessions → subagents → channels → plugins → models → memory → skills                     |
+| 7     | **Goal 2**: architecture review | ⏸ Pending             | next session                     | After Phase 6 ≥ 5 modules                                                                                        |
 
 ### Cancelled phases (from v1)
 
