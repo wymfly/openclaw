@@ -46,8 +46,7 @@ test.describe("agents mock visual handoff alignment", () => {
       path: testInfo.outputPath("agents-protected-main-detail.png"),
     });
 
-    await clickDetailTab(page, "Runtime");
-    await expect(page.getByLabel("Guarded runtime fields")).toBeVisible();
+    await clickDetailTab(page, "Model");
     await expect(page.getByRole("heading", { name: "Model usage policy" })).toBeVisible();
     await expect(page.getByText("Global role defaults")).toBeVisible();
     await expect(page.getByText("Agent runtime model")).toBeVisible();
@@ -56,6 +55,10 @@ test.describe("agents mock visual handoff alignment", () => {
       fullPage: false,
       path: testInfo.outputPath("agents-runtime-guarded.png"),
     });
+
+    await clickDetailTab(page, "Workspace");
+    await expect(page.getByText("Workspace source")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Review and save workspace" })).toBeVisible();
 
     await clickDetailTab(page, "Skills");
     await expect(page.getByText("Legacy Browser")).toBeVisible();
@@ -66,6 +69,18 @@ test.describe("agents mock visual handoff alignment", () => {
     });
 
     await page.getByRole("button", { name: "Back to list" }).click();
+    await page.getByRole("button", { name: "Defaults" }).click();
+    await expect(page.getByRole("heading", { name: "Agent defaults" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Model/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Workspace/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Delivery/ })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Tools/ })).toHaveCount(0);
+    await page.screenshot({
+      fullPage: false,
+      path: testInfo.outputPath("agents-defaults-editor.png"),
+    });
+    await page.getByRole("button", { name: "Back to list" }).click();
+
     await page.getByText("Ops Runner").first().click();
     await expect(page.getByLabel("Agent detail for Ops Runner")).toBeVisible();
 
@@ -76,7 +91,13 @@ test.describe("agents mock visual handoff alignment", () => {
       path: testInfo.outputPath("agents-wildcard-subagents.png"),
     });
 
-    await clickDetailTab(page, "Event streams");
+    await clickDetailTab(page, "Tools");
+    await expect(page.getByRole("heading", { name: "Tools" })).toBeVisible();
+
+    await clickDetailTab(page, "Conversation");
+    await expect(page.getByRole("heading", { name: "Conversation" })).toBeVisible();
+
+    await clickDetailTab(page, "Delivery");
     await expect(page.getByText("enterprise.audit.custom")).toBeVisible();
     await page.screenshot({
       fullPage: false,
@@ -157,7 +178,7 @@ async function clickDetailTab(page: Page, name: string) {
   const tab = page.getByRole("tab", { name }).first();
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByRole("heading", { exact: true, name })).toBeVisible();
 }
 
 async function captureVariant(

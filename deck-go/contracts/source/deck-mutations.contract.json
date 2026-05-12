@@ -394,6 +394,226 @@
       }
     },
     {
+      "id": "agents.cognition.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Safe only against isolated real-stack agents; BFF path allowlist rejects non-agents paths."
+      }
+    },
+    {
+      "id": "agents.conversation.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Safe only against isolated real-stack agents; BFF path allowlist rejects non-agents paths."
+      }
+    },
+    {
+      "id": "agents.defaults.cognition.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.conversation.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.delivery.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.eventStreams.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.skills.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.subagents.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.defaults.workspace.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents/defaults",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "bucket" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Defaults writes are safe only in isolated real-stack openclaw.json."
+      }
+    },
+    {
+      "id": "agents.delivery.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Safe only against isolated real-stack agents; BFF path allowlist rejects non-agents paths."
+      }
+    },
+    {
+      "id": "agents.impactPreview.get",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentImpactPreviewResponse",
+      "successIndicator": { "path": "agentId", "expected": "present" },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "validation-only",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Read-only fresh impact preview; real evidence confirms isolated fixtures are used."
+      }
+    },
+    {
       "id": "agents.skills.save",
       "ownerModule": "agents",
       "route": "POST /deck/agents",
@@ -411,6 +631,46 @@
         "status": "deferred",
         "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
         "notes": "Uses baseHash config-write semantics; real save requires disposable or reversible agent config."
+      }
+    },
+    {
+      "id": "agents.toolsOverride.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Safe only against isolated real-stack agents; BFF path allowlist rejects root-level tools writes."
+      }
+    },
+    {
+      "id": "agents.workspace.set",
+      "ownerModule": "agents",
+      "route": "POST /deck/agents",
+      "sourceClassification": "gateway-backed",
+      "responseDto": "DeckGoAgentProductActionResponse",
+      "successIndicator": { "path": "ok", "expected": true },
+      "targetId": { "source": "response", "path": "agentId" },
+      "auditCoverage": {
+        "mode": "process-memory",
+        "source": "deck-go-agents-section-ia-convergence"
+      },
+      "idempotency": "unsupported",
+      "conflictBehavior": "config-write-safety",
+      "fixtureSafety": {
+        "status": "fixture-safe",
+        "evidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+        "notes": "Workspace path edits route through agents.update for side effects; advanced fields remain allowlist-guarded."
       }
     },
     {

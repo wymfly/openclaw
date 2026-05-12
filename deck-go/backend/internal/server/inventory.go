@@ -88,6 +88,14 @@ func registerInventoryRoutes(mux interface {
 			})
 			return
 		}
+		if confirmID := strings.TrimSpace(r.URL.Query().Get("confirmAgentId")); confirmID != "" && confirmID != agentID {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"code":  "agents_delete_confirm_mismatch",
+				"error": "confirmAgentId must exactly match agentId",
+			})
+			return
+		}
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 		payload, err := adapter.AgentsDelete(ctx, agentID)
@@ -1215,6 +1223,15 @@ func registerInventoryRoutes(mux interface {
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
+		if payload, status, handled, err := handleAgentsProductAction(ctx, adapter, action, body); handled {
+			if err != nil {
+				writeAgentsProductActionError(w, status, err)
+				return
+			}
+			writeJSON(w, status, payload)
+			return
+		}
+
 		switch action {
 		case "health":
 			payload, err := adapter.HealthWithParams(ctx, body)
@@ -1331,6 +1348,38 @@ func registerInventoryRoutes(mux interface {
 				"error": "Invalid action",
 			})
 		}
+	})
+
+	mux.MethodFunc("POST", "/deck/agents/defaults", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"error": "invalid json body",
+			})
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+
+		payload, status, handled, err := handleAgentsDefaultsAction(ctx, adapter, action, body)
+		if !handled {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"ok":    false,
+				"error": "Invalid action",
+			})
+			return
+		}
+		if err != nil {
+			writeAgentsProductActionError(w, status, err)
+			return
+		}
+		writeJSON(w, status, payload)
 	})
 
 	mux.MethodFunc("POST", "/deck/commands/discover", func(w http.ResponseWriter, r *http.Request) {

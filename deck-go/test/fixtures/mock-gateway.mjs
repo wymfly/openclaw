@@ -1962,6 +1962,43 @@ function defaultMethods() {
     },
     ...agentProtection(definition.id),
   });
+  const agentImpact = (definition, operation = "delete-agent") => {
+    const bindingCount = definition.bindingCount ?? 0;
+    const sessionCount = definition.sessionCount ?? 0;
+    return {
+      bindingCount,
+      sessionCount,
+      activeSubagentCount: definition.activeSubagentCount ?? 0,
+      workspaceFileCount: 3,
+      deleteRemovesFiles: false,
+      bindings: {
+        count: bindingCount,
+        samples: Array.from({ length: Math.min(bindingCount, 2) }, (_, index) => ({
+          bindingIndex: index,
+          type: index === 0 ? "channel" : "peer",
+          channel: index === 0 ? "discord" : "wecom",
+          accountId: index === 0 ? "enterprise" : "default",
+          peer: { kind: "mock", id: `${definition.id}-peer-${index + 1}` },
+          summary: `${definition.name} mock binding ${index + 1}`,
+        })),
+        truncated: bindingCount > 2,
+      },
+      sessions: {
+        total: sessionCount,
+        active: definition.activeSubagentCount ?? 0,
+        truncated: false,
+      },
+      files: {
+        total: 3,
+        bootstrapPresent: true,
+        truncated: false,
+      },
+      capturedAt: new Date(0).toISOString(),
+      available: true,
+      unavailableReason: undefined,
+      operation,
+    };
+  };
   const agentDetail = (agentId = "main") => {
     const definition = agentDefinitions[agentId] ?? agentDefinitions.main;
     return {
@@ -1995,13 +2032,26 @@ function defaultMethods() {
         subagents: definition.id === "ops" ? "agent" : "default",
         eventStreams: definition.id === "ops" ? "agent" : "default",
       },
-      impact: {
-        bindingCount: definition.bindingCount ?? 0,
-        sessionCount: definition.sessionCount ?? 0,
-        activeSubagentCount: definition.activeSubagentCount ?? 0,
-        workspaceFileCount: 3,
-        deleteRemovesFiles: false,
+      inherited: {
+        workspace: { source: "agent", hasOverride: true, canReset: true },
+        thinkingDefault: { source: "default", hasOverride: false, canReset: false },
+        subagentsAllowAgents: {
+          source: definition.id === "ops" ? "agent" : "default",
+          hasOverride: definition.id === "ops",
+          canReset: definition.id === "ops",
+        },
+        subagentsRequireAgentId: { source: "default", hasOverride: false, canReset: false },
       },
+      unresolvedReferences:
+        definition.id === "main"
+          ? {
+              skills: [{ key: "legacy-browser", reason: "disabled" }],
+              subagents: [{ agentId: "archived-agent", reason: "agent-not-found" }],
+              eventStreams: [{ eventStream: "enterprise.audit.custom", reason: "unknown" }],
+              models: [{ model: "openai/gpt-4-legacy", reason: "not-in-catalog" }],
+            }
+          : undefined,
+      impact: agentImpact(definition),
       guardedEdits: [
         {
           field: "workspace",
@@ -3283,6 +3333,7 @@ function defaultMethods() {
       effectiveMaxChildrenPerAgent: params?.agentId === "main" ? 8 : 5,
       effectiveMaxSpawnDepth: params?.agentId === "main" ? 2 : 1,
       model: params?.agentId === "reviewer" ? "openai/gpt-5.4-mini" : undefined,
+      requireAgentId: params?.agentId === "main",
     }),
     "deck.agents.subagents.set": (params) => ({
       ok: true,
@@ -3290,9 +3341,26 @@ function defaultMethods() {
       allowAgents: params?.allowAgents ?? [],
       configHash: `${params?.baseHash ?? "subagents-hash"}-saved`,
       model: params?.model,
+      requireAgentId: params?.requireAgentId,
     }),
     "deck.agents.modelPolicy.get": (params) => modelPolicyGet(params),
     "deck.agents.modelPolicy.set": (params) => modelPolicySet(params),
+    "deck.agents.impactPreview.get": (params) => {
+      const definition = agentDefinitions[params?.agentId ?? "main"] ?? agentDefinitions.main;
+      const operation = params?.operation ?? "delete-agent";
+      const impact = agentImpact(definition, operation);
+      return {
+        agentId: definition.id,
+        operation,
+        impact,
+        riskSpecifics: [
+          `${impact.bindingCount ?? 0} routing bindings reference ${definition.id}`,
+          `${impact.sessionCount ?? 0} sessions may keep historical references`,
+        ],
+        canProceedWithoutImpact: false,
+        baseHash: params?.baseHash,
+      };
+    },
     "deck.subagents.list": (params) => {
       let runs = subagentRuns;
       if (params?.status && params.status !== "all") {

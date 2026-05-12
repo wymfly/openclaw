@@ -148,6 +148,7 @@
     "recompute": "重新计算",
     "saveChanges": "保存变更",
     "saving": "保存中...",
+    "reset": "重置",
     "cancel": "取消",
     "inherit": "默认",
     "yes": "是",
@@ -219,12 +220,17 @@
     },
     "sections": {
       "overview": "概览",
+      "model": "模型",
+      "workspace": "工作区",
       "runtime": "运行时",
       "skills": "技能",
       "subagents": "子智能体",
+      "tools": "工具",
       "toolPolicy": "工具策略",
+      "conversation": "会话",
       "systemPrompt": "系统提示词",
       "files": "文件",
+      "delivery": "投递",
       "eventStreams": "事件流",
       "routing": "路由影响",
       "danger": "危险区"
@@ -260,11 +266,40 @@
       "guardsLabel": "受保护运行字段",
       "saveGuarded": "复核并保存"
     },
+    "model": {
+      "description": "控制运行时模型角色和认知默认值，提供商资产仍归 Models 管理。",
+      "protectedMain": "这里的模型改动会影响受保护的系统/兜底智能体。",
+      "thinking": "Thinking"
+    },
+    "workspace": {
+      "description": "受保护的工作区姿态、运行包络、沙箱、harness 和参数。",
+      "protectedMain": "这里的工作区改动会影响受保护的系统/兜底智能体。",
+      "agentDir": "智能体目录",
+      "runtime": "运行时",
+      "runtimeConfigured": "已配置",
+      "saveGuarded": "复核并保存工作区"
+    },
+    "defaults": {
+      "open": "默认值",
+      "title": "智能体默认值",
+      "description": "编辑被继承智能体使用的共享兜底配置。",
+      "navLabel": "智能体默认值分区",
+      "schemaTruth": "AgentDefaultsConfig 真相",
+      "sectionsCount": "{count} 个分区",
+      "overview": "默认值是顶层 fallback。AgentDefaultsConfig 不存在的字段不会渲染。",
+      "schemaTruthLong": "该编辑器只展示 AgentDefaultsConfig 和产品级 BFF action 支持的字段。",
+      "modelDescription": "全局模型角色和认知默认值在这里；提供商资产仍归 Models 管理。",
+      "bucketDescription": "通过 agents defaults 产品 action 读取和编辑该默认值 bucket。",
+      "emptyBucket": "该 bucket 尚未配置显式默认值。",
+      "workspaceAbsentFields": "agentDir 和 runtime 是 per-agent 字段，因此不在 defaults 中渲染。",
+      "conversationAbsentFields": "groupChat 仅属于 per-agent，因此不在 defaults 中渲染。"
+    },
     "modelPolicy": {
       "title": "模型使用策略",
       "description": "Agents 负责运行时模型使用策略；Models 负责提供商和模型资产。",
       "agentGroup": "当前智能体策略",
       "globalGroup": "全局角色默认值",
+      "unsupportedGroup": "schema 不存在的模型字段",
       "modeLabel": "模型策略模式",
       "inherit": "继承默认",
       "override": "显式覆盖",
@@ -287,6 +322,12 @@
       "noConfiguredModels": "当前没有可用的已配置模型资产。请先在 Models 中添加提供商和模型。",
       "unavailable": "不可用引用会被保留，直到你显式替换：{refs}",
       "unsupported": "以下未支持的模型类字段仅只读展示，不能在这里编辑：{fields}",
+      "readOnly": "只读",
+      "schemaAbsent": "只读 — 当前 schema 不存在",
+      "summaryReadonly": "agents.defaults.summaryModel 会作为未支持的配置真相保留；在 OpenClaw schema 暴露前，Deck 不提供编辑。",
+      "manageInDefaults": "当前生效默认值为 {value}。请在智能体默认值中管理这个全局角色。",
+      "manageDefaults": "去默认值管理 →",
+      "manageProviders": "管理提供商 → Models",
       "source": {
         "agent": "智能体",
         "default": "默认",
@@ -329,7 +370,10 @@
       "explicit": "显式列表",
       "allowAnyDescription": "Gateway 通配符已启用：该智能体可以委派给任意智能体。",
       "narrowingWarning": "显式列表模式会收窄原先的通配符权限。",
-      "modelPolicyMoved": "子智能体模型策略已移动到运行时 → 模型使用策略，避免权限列表编辑误覆盖模型策略。",
+      "protectedMain": "子智能体变更会影响受保护的系统/兜底智能体。",
+      "modelPolicyMoved": "子智能体模型策略已移动到模型 → 模型使用策略，避免权限列表编辑误覆盖模型策略。",
+      "requireAgentId": "要求显式智能体 ID",
+      "requireAgentIdDescription": "请求必须明确目标智能体，不再依赖路由兜底。",
       "empty": "运行时未返回可委派智能体。",
       "toggle": "允许子智能体 {name}"
     },
@@ -337,10 +381,16 @@
       "description": "只读展示解析后的工具策略及来源。",
       "layer": "{count} 条规则，效果 {effect}"
     },
+    "tools": {
+      "description": "只读展示解析后的工具策略及来源。"
+    },
     "systemPrompt": {
       "description": "只读展示解析后的系统提示词层级和 bootstrap 文件。",
       "totalChars": "共 {count} 字符",
       "layerMeta": "{chars} 字符，{files} 个文件"
+    },
+    "conversation": {
+      "description": "只读展示解析后的会话提示词层级和 bootstrap 文件。"
     },
     "files": {
       "description": "浏览、读取并保存后端支持的智能体工作区文件。",
@@ -353,11 +403,45 @@
       "optionDescription": "已声明的流契约",
       "toggle": "切换事件流 {name}"
     },
+    "delivery": {
+      "description": "配置投递事件流和 heartbeat 姿态。"
+    },
     "routing": {
       "description": "只读展示依赖该智能体的路由和会话影响。",
       "defaultState": "配置默认",
+      "binding": "绑定 #{index}",
+      "noSamples": "该智能体没有返回路由样本。",
+      "truncated": "这里只展示部分绑定样本。请到 Routing 查看全部。",
       "ownerCopy": "路由规则编辑属于 Routing 模块。Agents 只展示影响并跳转到归属模块。",
       "openRouting": "打开 Routing"
+    },
+    "source": {
+      "agent": "来源：智能体",
+      "default": "来源：默认值",
+      "derived": "来源：派生",
+      "gateway": "来源：Gateway",
+      "unknown": "来源未知"
+    },
+    "risk": {
+      "confirmLabel": "风险确认",
+      "confirmImpact": "我理解该变更可能影响实时智能体行为。",
+      "confirmMain": "我理解 main 是受保护的兜底智能体。"
+    },
+    "unresolved": {
+      "chip": "⚠ {count} 个未解析引用",
+      "title": "未解析引用",
+      "description": "这些引用存在于智能体配置中，但当前归属模块无法解析。",
+      "empty": "没有未解析引用。",
+      "install": "安装",
+      "openOwning": "打开归属模块",
+      "keep": "保留",
+      "kept": "已保留",
+      "category": {
+        "skills": "Skills",
+        "subagents": "Subagents",
+        "eventStreams": "Channels",
+        "models": "Models"
+      }
     },
     "danger": {
       "description": "破坏性操作与日常编辑分离，并由产品安全规则保护。",
@@ -384,13 +468,20 @@
       "title": "删除智能体",
       "body": "删除 {name}？这会从运行时配置中移除该智能体。",
       "confirm": "删除",
+      "confirmIdLabel": "输入智能体 ID 以确认",
+      "idMismatch": "输入的智能体 ID 不匹配。",
       "protectedMain": "main 是受保护的系统/兜底智能体，不能删除。"
+    },
+    "impact": {
+      "loading": "正在加载最新影响预览",
+      "noSpecifics": "未返回额外影响细节。"
     },
     "errors": {
       "listTitle": "无法加载智能体",
       "detailTitle": "无法加载该智能体",
       "saveTitle": "无法保存",
       "conflictTitle": "其他人已更新此配置",
+      "hashRequired": "缺少配置 hash；请先刷新该分区再保存。",
       "fileNameRequired": "必须填写文件名。"
     },
     "validation": {

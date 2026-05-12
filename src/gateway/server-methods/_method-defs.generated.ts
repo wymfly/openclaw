@@ -11,6 +11,7 @@ import { gatewayMethodMetadataModule as deckPostAgentsMetadataModule } from "./d
 import { gatewayMethodMetadataModule as deckMetadataModule } from "./deck.method-defs.js";
 import { gatewayMethodMetadataModule as deckAgentsDetailMetadataModule } from "./deck/agents-detail.method-defs.js";
 import { gatewayMethodMetadataModule as deckAgentsEventStreamsMetadataModule } from "./deck/agents-event-streams.method-defs.js";
+import { gatewayMethodMetadataModule as deckAgentsImpactPreviewMetadataModule } from "./deck/agents-impact-preview.method-defs.js";
 import { gatewayMethodMetadataModule as deckAgentsModelPolicyMetadataModule } from "./deck/agents-model-policy.method-defs.js";
 import { gatewayMethodMetadataModule as deckAgentsPreviewSystemPromptMetadataModule } from "./deck/agents-preview-system-prompt.method-defs.js";
 import { gatewayMethodMetadataModule as deckAgentsPreviewToolPolicyMetadataModule } from "./deck/agents-preview-tool-policy.method-defs.js";
@@ -50,6 +51,7 @@ export const gatewayMethodMetadataModules: readonly GatewayMethodMetadataModule[
   deckMetadataModule,
   deckAgentsDetailMetadataModule,
   deckAgentsEventStreamsMetadataModule,
+  deckAgentsImpactPreviewMetadataModule,
   deckAgentsModelPolicyMetadataModule,
   deckAgentsPreviewSystemPromptMetadataModule,
   deckAgentsPreviewToolPolicyMetadataModule,

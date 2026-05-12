@@ -5,9 +5,9 @@
     "documentedDynamicMethods": 0,
     "eventPayloadSchemas": 5,
     "events": 24,
-    "methods": 173,
-    "resultSchemas": 135,
-    "typedMethods": 136,
+    "methods": 174,
+    "resultSchemas": 136,
+    "typedMethods": 137,
     "untypedMethods": 37
   },
   "methods": {
@@ -43,6 +43,7 @@
       "deck.agents.detail",
       "deck.agents.eventStreams.get",
       "deck.agents.eventStreams.set",
+      "deck.agents.impactPreview.get",
       "deck.agents.skills.get",
       "deck.agents.skills.set",
       "deck.agents.subagents.get",
@@ -383,13 +384,7 @@
     ]
   },
   "events": {
-    "withPayloadSchema": [
-      "agent",
-      "chat",
-      "session.message",
-      "session.tool",
-      "sessions.changed"
-    ],
+    "withPayloadSchema": ["agent", "chat", "session.message", "session.tool", "sessions.changed"],
     "withoutPayloadSchema": [
       "connect.challenge",
       "cron",

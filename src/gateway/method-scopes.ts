@@ -126,6 +126,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "deck.agents.toolPolicy.preview",
     "deck.agents.systemPrompt.preview",
     "deck.agents.eventStreams.get",
+    "deck.agents.impactPreview.get",
     "deck.subagents.list",
     "deck.subagents.lineage",
     "deck.identity.list",

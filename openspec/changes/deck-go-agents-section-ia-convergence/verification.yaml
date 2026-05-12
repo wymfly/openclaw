@@ -1,0 +1,86 @@
+changeName: deck-go-agents-section-ia-convergence
+archiveReady: true
+gapCount: 0
+generatedAt: "2026-05-12T13:50:00+08:00"
+circuitBreaker:
+  maxFreshAttemptsPerScenario: 2
+  continueWhenBlocked: true
+  blockingRule: "Mock and code-level evidence must pass. Real Gateway evidence must use the isolated deck-go real-stack config/workspace and run-id-scoped fixtures; after two evidence-backed failed attempts, record a handoff gap instead of replacing real evidence with mock evidence."
+scenarios:
+  - scenarioId: agents-ia.phase0.code-truth
+    ownerTask: "1.1-1.5"
+    status: passed
+    verificationCommand: "rg/nl inspections over Gateway agents/config/modelPolicy sources plus git status overlap review"
+    evidence:
+      - "`agents.update` workspace path changes preserve side effects: `src/gateway/server-methods/agents.ts:566-603` resolves/apply config and calls `ensureAgentWorkspace`; `:614-631` builds and writes IDENTITY.md through workspace helpers."
+      - "`config.patch` uses `applyMergePatch(..., { mergeObjectArraysById: true })` at `src/gateway/server-methods/config.ts:516-518`; merge and delete semantics are in `src/config/merge-patch.ts:25-59` and `:77-83`; tests cover by-id agents list merges at `src/config/merge-patch.test.ts:33-53` and `:85-110`."
+      - "Nested inheritance is not one uniform object replacement. Runtime consumers apply per-feature sub-key fallback for memorySearch, heartbeat, humanDelay, sandbox, embeddedHarness, embeddedPi, and mixed subagents; `DeckGoAgentInheritanceMap` must support sub-key granularity."
+      - "`deck.agents.modelPolicy.set` global keys map to config paths at `src/gateway/server-methods/deck/agents-model-policy.ts:74-138`; per-agent constants are `:140-154`; write dispatch ignores incoming per-agent key at `:568-578`, so BFF/frontend convention remains `agent` / `agentSubagents` without tightening schema."
+      - "Scoped git status showed no overlapping dirty code in planned agents/gateway/contract/BFF/frontend agents paths; unrelated dirty panel churn exists outside this change and is preserved."
+  - scenarioId: agents-ia.deck-contracts
+    ownerTask: "2.1-2.15"
+    status: passed
+    verificationCommand: "cd deck-go && make contracts-sync && make contracts-check"
+    evidence:
+      - "`make contracts-sync` passed and regenerated `deck-go/contracts/generated/ts/deck-api.generated.ts` plus `deck-go/backend/internal/deckapi/types.generated.go`."
+      - "`make contracts-check` passed with deck-api and UI metadata generated artifacts up to date."
+      - "Additional touched source contracts were synced for UI metadata, endpoint classification, mutation evidence, and route governance. Config write-safety source now encodes allowlists and out-of-scope rejection scenarios; its generated docs will become clean after the Phase 5 defaults route is registered in Go."
+  - scenarioId: agents-ia.gateway-protocol
+    ownerTask: "3.1-4.7"
+    status: passed
+    verificationCommand: "cd deck-go && make protocol-update && make protocol-check; pnpm test src/gateway/server-methods/deck/agents-"
+    evidence:
+      - "`make protocol-update` passed and regenerated `deck-go/contracts/generated/ts/gateway/*` plus `deck-go/backend/internal/gateway/generated/*`."
+      - "`make protocol-check` passed after schema, method id, and allowlist generation."
+      - "`pnpm test src/gateway/server-methods/deck/agents.test.ts` passed (34 tests), including detail inheritance/impact/unresolved refs, subagents requireAgentId, and impactPreview validation/registration/risk coverage."
+      - "`pnpm test src/gateway/server-methods/deck/agents-` completed with exit code 0 through the host-aware shard runner."
+  - scenarioId: agents-ia.bff-product-actions
+    ownerTask: "5.1-5.8"
+    status: passed
+    verificationCommand: "cd deck-go && make backend-test"
+    evidence:
+      - "`deck-go/backend/internal/server/agents_config_write_guard.go` enforces generated action path allowlists and returns deterministic `agents_config_path_out_of_scope` errors."
+      - "`agents_config_write_guard_test.go` covers valid per-agent/defaults paths and rejection of `models.providers`, `bindings`, and root-level `tools`."
+      - "`agents_product_actions.go` implements per-agent cognition/workspace/conversation/delivery/toolsOverride actions plus impactPreview delegation; workspace path writes use `agents.update`, and mixed workspace/advanced edits refetch the post-update hash before `config.patch`."
+      - "`agents_defaults.go` implements seven defaults buckets with value-key validation, baseHash validation, and allowlist-guarded `config.patch` writes."
+      - "`inventory.go` registers `/api/deck/agents/defaults` and dispatches `/api/deck/agents` product actions; `config-write-safety-sync` and route governance sync passed after the route existed."
+      - "`agents_product_actions_test.go`, `agents_defaults_test.go`, and `agents_product_routes_test.go` cover route dispatch, reset null delete-key payloads, forged payload rejection before Gateway writes, `agents.update` routing, and post-update hash handling."
+      - "`cd deck-go/backend && go test ./internal/server ./internal/runtime/openclaw` passed; `cd deck-go && make backend-test` passed."
+  - scenarioId: agents-ia.frontend-sections-defaults
+    ownerTask: "6.1-6.12"
+    status: passed
+    verificationCommand: "cd deck-go/frontend-new && npm run test:deck-ui -- src/components/panels/agents/__tests__/agents-panel-state.test.ts src/components/panels/agents/__tests__/AgentsPanel.test.tsx src/data/modules/agents/keys.test.ts src/data/modules/agents/queries.test.tsx src/data/modules/agents/mutations.test.tsx; cd deck-go/frontend-new && npm run build"
+    evidence:
+      - "`agents-panel-state.ts` exposes the 11-section enum and legacy hash alias redirect; `agents-panel-state.test.ts` covers section order and alias mapping."
+      - "`AgentsPanel.tsx` renders the 11 detail sections, the 7-section defaults editor, source badges, unresolved refs modal, routing link-out, guarded workspace/subagents/delete impact paths, and protected-main banners."
+      - "Subagents `requireAgentId` now flows through UI toggle → `updateAgentSubagentConfig` → `subagents.set` payload."
+      - "Defaults editor uses `/deck/agents/defaults` product actions for supported AgentDefaultsConfig buckets and omits schema-absent fields."
+      - "Focused frontend test command passed 5 files / 27 tests; jsdom canvas warning is expected."
+      - "`npm run build` passed; Vite emitted only existing chunk-size warnings."
+  - scenarioId: agents-ia.mock-e2e
+    ownerTask: "7.1-7.3"
+    status: passed
+    verificationCommand: "cd deck-go && make e2e-mock-module MODULE=agents"
+    evidence:
+      - "`make e2e-mock-module MODULE=agents` passed 2/2."
+      - "Mock Gateway fixture includes contract-shaped detail inheritance, nested impact, unresolved refs, product defaults/actions, `impactPreview.get`, and `requireAgentId` get/set."
+      - "Playwright produced screenshots for ready list, protected main detail, model/runtime, many skills, defaults editor, wildcard subagents, unknown streams, delete confirmation, create review, light zh, empty, and error states."
+  - scenarioId: agents-ia.real-gateway-e2e
+    ownerTask: "8.1-8.10"
+    status: passed
+    verificationCommand: "cd deck-go && make e2e-real-module MODULE=agents"
+    evidence:
+      - "`make e2e-real-module MODULE=agents` passed 3/3."
+      - "Real E2E asserts mutation target is the isolated real-stack `managed-gateway-state/openclaw.json`, not `~/.openclaw/openclaw.json`."
+      - "API scenario covered Gateway discovery, typed `deck.agents.detail`, nested `impact`, product actions, defaults cognition set/reset/stale hash, forged out-of-scope rejection with unchanged config, `requireAgentId` round-trip, modelPolicy set/stale path, files and identity reads, and protected main delete rejection."
+      - "UI scenarios covered shell navigation into Agents, dark/en and light/zh modes, all 11 detail sections, and stable back navigation."
+      - "A Gateway rate-limit response on `modelPolicy.set` was handled by one bounded retry using retry-after; no circuit-breaker gap remains."
+  - scenarioId: agents-ia.openspec-closure
+    ownerTask: "9.1-9.8"
+    status: passed
+    verificationCommand: "openspec validate deck-go-agents-section-ia-convergence --type change --strict && openspec validate deck-go-agents-section-ia-convergence --type spec --strict && openspec validate deck-go-agents-control-contract-completion --type spec --strict && openspec validate deck-go-agents-model-policy-convergence --type spec --strict && openspec validate deck-go-config-write-safety-contracts --type spec --strict && openspec validate deck-go-real-e2e-seed-and-evidence --type spec --strict && openspec validate deck-go-real-e2e-reporting-and-circuit-breakers --type spec --strict"
+    evidence:
+      - "OpenSpec tasks 1.1-9.8 are checked with fresh evidence."
+      - "Accepted spec `deck-go-agents-section-ia-convergence` added; touched accepted specs updated to link target shape, config write safety, isolation, and bounded retry rules."
+      - "Implementation report written at `openspec/changes/deck-go-agents-section-ia-convergence/implementation-report.md`."
+      - "Prototype refresh follow-up surfaced at `openspec/follow-ups/2026-05-12-agents-section-ia-prototype-refresh.md`."

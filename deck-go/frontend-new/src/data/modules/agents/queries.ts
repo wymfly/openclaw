@@ -1,20 +1,28 @@
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   fetchAgentDetail,
+  fetchAgentCognition,
+  fetchAgentConversation,
+  fetchAgentDefaults,
+  fetchAgentDelivery,
   fetchAgentEventStreams,
   fetchAgentFile,
   fetchAgentFiles,
   fetchAgentHealthSnapshot,
   fetchAgentIdentity,
+  fetchAgentImpactPreview,
   fetchAgentModelPolicy,
   fetchAgentsList,
   fetchAgentSkills,
   fetchAgentSubagentConfig,
   fetchAgentSystemPromptPreview,
   fetchAgentToolPolicyPreview,
+  fetchAgentToolsOverride,
+  fetchAgentWorkspaceAdvanced,
   fetchRuntimeConfiguredModels,
 } from "@/api";
 import type {
+  DeckGoAgentDefaultsBucket,
   DeckGoAgentDetailResponse,
   DeckGoAgentEventStreamsResponse,
   DeckGoAgentFileResponse,
@@ -22,6 +30,9 @@ import type {
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
   DeckGoAgentModelPolicyResponse,
+  DeckGoAgentImpactPreviewRequest,
+  DeckGoAgentImpactPreviewResponse,
+  DeckGoAgentProductActionResponse,
   DeckGoAgentSkillsResponse,
   DeckGoAgentsListResponse,
   DeckGoAgentSubagentConfigResponse,
@@ -72,6 +83,48 @@ export function agentSubagentsSource(agentId: string) {
 export function agentModelPolicySource(agentId?: string) {
   return bffSource<DeckGoAgentModelPolicyResponse>("POST /deck/agents", () =>
     fetchAgentModelPolicy(agentId),
+  );
+}
+
+export function agentCognitionSource(agentId: string) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents", () =>
+    fetchAgentCognition(agentId),
+  );
+}
+
+export function agentWorkspaceAdvancedSource(agentId: string) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents", () =>
+    fetchAgentWorkspaceAdvanced(agentId),
+  );
+}
+
+export function agentConversationSource(agentId: string) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents", () =>
+    fetchAgentConversation(agentId),
+  );
+}
+
+export function agentDeliverySource(agentId: string) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents", () =>
+    fetchAgentDelivery(agentId),
+  );
+}
+
+export function agentToolsOverrideSource(agentId: string) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents", () =>
+    fetchAgentToolsOverride(agentId),
+  );
+}
+
+export function agentDefaultsSource(bucket: DeckGoAgentDefaultsBucket) {
+  return bffSource<DeckGoAgentProductActionResponse>("POST /deck/agents/defaults", () =>
+    fetchAgentDefaults(bucket),
+  );
+}
+
+export function agentImpactPreviewSource(params: DeckGoAgentImpactPreviewRequest) {
+  return bffSource<DeckGoAgentImpactPreviewResponse>("POST /deck/agents", () =>
+    fetchAgentImpactPreview(params),
   );
 }
 
@@ -189,6 +242,65 @@ export function agentModelPolicyQueryOptions(
     agentsKeys.modelPolicy(agentId, scope),
     "config-authority",
   );
+}
+
+export function agentProductBucketQueryOptions(
+  bff: DataFabricBffTransport,
+  agentId: string,
+  bucket: "cognition" | "workspaceAdvanced" | "conversation" | "delivery" | "toolsOverride",
+  scope?: DeckQueryScope,
+) {
+  const sourceByBucket = {
+    cognition: agentCognitionSource,
+    workspaceAdvanced: agentWorkspaceAdvancedSource,
+    conversation: agentConversationSource,
+    delivery: agentDeliverySource,
+    toolsOverride: agentToolsOverrideSource,
+  };
+  const keyByBucket = {
+    cognition: agentsKeys.cognition,
+    workspaceAdvanced: agentsKeys.workspaceAdvanced,
+    conversation: agentsKeys.conversation,
+    delivery: agentsKeys.delivery,
+    toolsOverride: agentsKeys.toolsOverride,
+  };
+  return bffQueryOptions(
+    bff,
+    sourceByBucket[bucket](agentId),
+    keyByBucket[bucket](agentId, scope),
+    "config-authority",
+  );
+}
+
+export function agentDefaultsQueryOptions(
+  bff: DataFabricBffTransport,
+  bucket: DeckGoAgentDefaultsBucket,
+  scope?: DeckQueryScope,
+) {
+  return bffQueryOptions(
+    bff,
+    agentDefaultsSource(bucket),
+    agentsKeys.defaults(bucket, scope),
+    "config-authority",
+  );
+}
+
+export function agentImpactPreviewQueryOptions(
+  bff: DataFabricBffTransport,
+  params: DeckGoAgentImpactPreviewRequest,
+  scope?: DeckQueryScope,
+) {
+  return {
+    ...bffQueryOptions(
+      bff,
+      agentImpactPreviewSource(params),
+      agentsKeys.impactPreview(params.agentId, params.operation, scope),
+      "live-workbench",
+    ),
+    gcTime: 0,
+    refetchOnMount: "always" as const,
+    staleTime: 0,
+  };
 }
 
 export function agentEventStreamsQueryOptions(
@@ -323,6 +435,68 @@ export function useAgentModelPolicyQuery(agentId?: string, options: ModuleQueryO
   return useQuery({
     ...agentModelPolicyQueryOptions(transports.bff, agentId, options.scope),
     enabled: options.enabled ?? true,
+  });
+}
+
+export function useAgentsCognition(agentId: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentProductBucketQueryOptions(transports.bff, agentId, "cognition", options.scope),
+    enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentsWorkspaceAdvanced(agentId: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentProductBucketQueryOptions(transports.bff, agentId, "workspaceAdvanced", options.scope),
+    enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentsConversation(agentId: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentProductBucketQueryOptions(transports.bff, agentId, "conversation", options.scope),
+    enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentsDelivery(agentId: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentProductBucketQueryOptions(transports.bff, agentId, "delivery", options.scope),
+    enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentsToolsOverride(agentId: string, options: ModuleQueryOptions = {}) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentProductBucketQueryOptions(transports.bff, agentId, "toolsOverride", options.scope),
+    enabled: enabledNonEmpty(agentId, options.enabled ?? true),
+  });
+}
+
+export function useAgentsDefaults(
+  bucket: DeckGoAgentDefaultsBucket,
+  options: ModuleQueryOptions = {},
+) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentDefaultsQueryOptions(transports.bff, bucket, options.scope),
+    enabled: options.enabled ?? true,
+  });
+}
+
+export function useAgentsImpactPreview(
+  params: DeckGoAgentImpactPreviewRequest,
+  options: ModuleQueryOptions = {},
+) {
+  const transports = useDataFabricTransports();
+  return useQuery({
+    ...agentImpactPreviewQueryOptions(transports.bff, params, options.scope),
+    enabled: enabledNonEmpty(params.agentId, options.enabled ?? true),
   });
 }
 

@@ -5,13 +5,14 @@ export type AgentsFilter = "all" | "busy" | "idle";
 export type AgentsSort = "name" | "recent" | "sessions";
 export type AgentSectionId =
   | "overview"
-  | "runtime"
+  | "model"
+  | "workspace"
   | "skills"
   | "subagents"
-  | "tool-policy"
-  | "system-prompt"
+  | "tools"
+  | "conversation"
+  | "delivery"
   | "files"
-  | "event-streams"
   | "routing"
   | "danger";
 
@@ -34,18 +35,25 @@ export interface CreateAgentDraft extends OverviewDraft {
 
 export const AGENT_SECTIONS: AgentSectionDefinition[] = [
   { id: "overview", labelKey: "sections.overview" },
-  { id: "runtime", labelKey: "sections.runtime" },
+  { id: "model", labelKey: "sections.model" },
+  { id: "workspace", labelKey: "sections.workspace" },
   { id: "skills", labelKey: "sections.skills" },
   { id: "subagents", labelKey: "sections.subagents" },
-  { id: "tool-policy", labelKey: "sections.toolPolicy" },
-  { id: "system-prompt", labelKey: "sections.systemPrompt" },
+  { id: "tools", labelKey: "sections.tools" },
+  { id: "conversation", labelKey: "sections.conversation" },
+  { id: "delivery", labelKey: "sections.delivery" },
   { id: "files", labelKey: "sections.files" },
-  { id: "event-streams", labelKey: "sections.eventStreams" },
   { id: "routing", labelKey: "sections.routing" },
   { id: "danger", labelKey: "sections.danger" },
 ];
 
 const SECTION_IDS = new Set<AgentSectionId>(AGENT_SECTIONS.map((section) => section.id));
+const LEGACY_SECTION_ALIASES: Partial<Record<string, AgentSectionId>> = {
+  "event-streams": "delivery",
+  runtime: "workspace",
+  "system-prompt": "conversation",
+  "tool-policy": "tools",
+};
 
 export function isAgentSectionId(value: string | null | undefined): value is AgentSectionId {
   return SECTION_IDS.has(value as AgentSectionId);
@@ -53,7 +61,19 @@ export function isAgentSectionId(value: string | null | undefined): value is Age
 
 export function readSectionFromHash(hash: string): AgentSectionId {
   const value = hash.replace(/^#/, "");
-  return isAgentSectionId(value) ? value : "overview";
+  if (isAgentSectionId(value)) {
+    return value;
+  }
+  const alias = LEGACY_SECTION_ALIASES[value];
+  if (alias) {
+    if (typeof window !== "undefined" && window.location.hash === `#${value}`) {
+      const url = new URL(window.location.href);
+      url.hash = alias;
+      window.history.replaceState(window.history.state, "", url);
+    }
+    return alias;
+  }
+  return "overview";
 }
 
 export function nextSectionId(current: AgentSectionId, direction: 1 | -1): AgentSectionId {

@@ -298,6 +298,15 @@ func (c *TypedClient) DeckAgentsEventStreamsSet(ctx context.Context, params Deck
 	return decodeResult[DeckAgentsEventStreamsSetResult](payload)
 }
 
+func (c *TypedClient) DeckAgentsImpactPreviewGet(ctx context.Context, params DeckAgentsImpactPreviewGetParams) (DeckAgentsImpactPreviewGetResult, error) {
+	var result DeckAgentsImpactPreviewGetResult
+	payload, err := c.requester.RequestTyped(ctx, "deck.agents.impactPreview.get", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[DeckAgentsImpactPreviewGetResult](payload)
+}
+
 func (c *TypedClient) DeckAgentsModelPolicyGet(ctx context.Context, params DeckAgentsModelPolicyGetParams) (DeckAgentsModelPolicyGetResult, error) {
 	var result DeckAgentsModelPolicyGetResult
 	payload, err := c.requester.RequestTyped(ctx, "deck.agents.modelPolicy.get", params)

@@ -11,11 +11,116 @@
       "exitCriteria": "Replace with event-specific DTOs when activity stream payload schemas are productized."
     },
     {
+      "surface": "DeckGoAgentCognitionSetRequest.<type>.memorySearch",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent cognition writes carry OpenClaw memory search config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable memorySearch config schema."
+    },
+    {
+      "surface": "DeckGoAgentConversationSetRequest.<type>.groupChat",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent conversation writes carry OpenClaw group chat config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable groupChat config schema."
+    },
+    {
+      "surface": "DeckGoAgentConversationSetRequest.<type>.humanDelay",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent conversation writes carry OpenClaw human delay config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable humanDelay config schema."
+    },
+    {
+      "surface": "DeckGoAgentDefaultsSetRequest.<type>.value",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Defaults writes carry bucket-specific OpenClaw config fragments validated by the agents BFF action guard.",
+      "exitCriteria": "Replace with bucket-specific set DTOs if defaults editing needs field-by-field product forms."
+    },
+    {
+      "surface": "DeckGoAgentDeliverySetRequest.<type>.heartbeat",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent delivery writes carry OpenClaw heartbeat config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable heartbeat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.embeddedHarness",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes embedded harness config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedHarness config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.embeddedPi",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes embedded Pi config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedPi config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.groupChat",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw group chat config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable groupChat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.heartbeat",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw heartbeat config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable heartbeat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.humanDelay",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw human delay config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable humanDelay config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.memorySearch",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw memory search config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable memorySearch config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.params",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw agent params whose keys are agent/runtime-specific.",
+      "exitCriteria": "Narrow only if OpenClaw fixes the params schema for agent configuration."
+    },
+    {
       "surface": "DeckGoAgentDetailResponse.<type>.sandbox",
       "classification": "config-fragment",
       "owner": "agents",
       "reason": "Agent sandbox settings mirror user config and may include mode-specific keys.",
       "exitCriteria": "Narrow when OpenClaw publishes a stable sandbox config schema for agents."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.tools",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes tool override config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable tools override config schema."
+    },
+    {
+      "surface": "DeckGoAgentEffectiveField.<type>.effective",
+      "classification": "derived-config-fragment",
+      "owner": "agents",
+      "reason": "Effective inheritance fields expose computed values whose shape depends on the referenced OpenClaw config bucket.",
+      "exitCriteria": "Replace with bucket-specific effective DTOs if inheritance rendering becomes field-specific."
+    },
+    {
+      "surface": "DeckGoAgentEffectiveField.<type>.fallback",
+      "classification": "derived-config-fragment",
+      "owner": "agents",
+      "reason": "Fallback inheritance fields expose computed fallback values whose shape depends on the referenced OpenClaw config bucket.",
+      "exitCriteria": "Replace with bucket-specific fallback DTOs if inheritance rendering becomes field-specific."
     },
     {
       "surface": "DeckGoAgentHealthSnapshot.<type>.<index-signature>",
@@ -30,6 +135,27 @@
       "owner": "agents",
       "reason": "Per-agent health details are passed through from Gateway health/status data.",
       "exitCriteria": "Replace with named agent health DTOs when the product view fixes the required metrics."
+    },
+    {
+      "surface": "DeckGoAgentImpactPreviewRequest.<type>.proposed",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Impact previews accept a proposed OpenClaw config fragment for the operation being analyzed.",
+      "exitCriteria": "Replace with operation-specific proposed DTOs if impact preview supports field-level mutation forms."
+    },
+    {
+      "surface": "DeckGoAgentImpactSummary.<type>.bindings.samples.peer",
+      "classification": "gateway-status-envelope",
+      "owner": "agents",
+      "reason": "Binding peer descriptors mirror channel-specific Gateway routing metadata.",
+      "exitCriteria": "Narrow when routing binding peer metadata has a stable Deck product DTO."
+    },
+    {
+      "surface": "DeckGoAgentProductActionResponse.<type>.value",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Product action responses may echo bucket-specific OpenClaw config fragments after guarded writes.",
+      "exitCriteria": "Replace with bucket-specific response DTOs if the frontend needs field-specific rendering."
     },
     {
       "surface": "DeckGoAgentRawConfig.<type>.defaults",
@@ -58,6 +184,41 @@
       "owner": "subagents",
       "reason": "Effective thinking config is derived from upstream agent config and may vary by model/provider.",
       "exitCriteria": "Narrow when OpenClaw exposes a stable thinking config schema."
+    },
+    {
+      "surface": "DeckGoAgentToolsOverrideSetRequest.<type>.tools",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent tools writes carry OpenClaw tool override config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable tools override config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.embeddedHarness",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw embedded harness config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedHarness config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.embeddedPi",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw embedded Pi config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedPi config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.params",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw agent params whose keys are agent/runtime-specific.",
+      "exitCriteria": "Narrow only if OpenClaw fixes the params schema for agent configuration."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.sandbox",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw sandbox config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable sandbox config schema for agents."
     },
     {
       "surface": "DeckGoCanvasBridgeEvalRequest.result",

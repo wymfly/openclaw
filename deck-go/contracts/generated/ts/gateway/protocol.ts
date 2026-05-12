@@ -1350,6 +1350,7 @@ export interface DeckAgentsDetailParams {
 
 export type DeckAgentsDetailResult = {
   activeSubagentCount: number;
+  agentDir?: string;
   availableActions?: {
     canChangeDefault: boolean;
     canDelete: boolean;
@@ -1368,31 +1369,294 @@ export type DeckAgentsDetailResult = {
     subagents?: "agent" | "default" | "derived" | "gateway" | "unknown";
     workspace?: "agent" | "default" | "derived" | "gateway" | "unknown";
   };
+  embeddedHarness?: Record<string, unknown>;
+  embeddedPi?: Record<string, unknown>;
+  eventStreams?: string[];
   fallbackModels?: string[];
   fastModeDefault?: boolean;
+  groupChat?: Record<string, unknown>;
   guardedEdits?: {
     field: string;
     reason: string;
     requiresConfirmation: boolean;
     risk: "high" | "medium";
   }[];
+  heartbeat?: Record<string, unknown>;
+  humanDelay?: Record<string, unknown>;
   id: string;
   identityExists: boolean;
   impact?: {
     activeSubagentCount?: number;
+    available?: boolean;
     bindingCount?: number;
+    bindings?: {
+      count: number;
+      samples: {
+        accountId?: string;
+        bindingIndex: number;
+        channel?: string;
+        guildId?: string;
+        peer?: Record<string, unknown>;
+        roles?: string[];
+        summary?: string;
+        teamId?: string;
+        type?: string;
+      }[];
+      truncated?: boolean;
+    };
+    capturedAt?: string;
     deleteRemovesFiles: boolean;
+    files?: {
+      bootstrapPresent?: boolean;
+      total: number;
+      truncated?: boolean;
+    };
     sessionCount?: number;
+    sessions?: {
+      active?: number;
+      total: number;
+      truncated?: boolean;
+    };
+    unavailableReason?: string;
     workspaceFileCount?: number;
+  };
+  inherited?: {
+    embeddedHarness?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    embeddedHarnessFallback?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    embeddedHarnessRuntime?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    embeddedPi?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    embeddedPiExecutionContract?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    fastModeDefault?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    groupChat?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    heartbeat?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    heartbeatPrompt?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    humanDelay?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    humanDelayMode?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    memorySearch?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    memorySearchSync?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    params?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    reasoningDefault?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    sandbox?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    sandboxDocker?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    sandboxScope?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    subagents?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    subagentsAllowAgents?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    subagentsLimits?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    subagentsModel?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    subagentsRequireAgentId?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    systemPromptOverride?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    thinkingDefault?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    verboseDefault?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
+    workspace?: {
+      canReset: boolean;
+      effective?: unknown;
+      fallback?: unknown;
+      fallbackReason?: string;
+      hasOverride: boolean;
+      source: "agent" | "default" | "derived" | "gateway" | "unknown";
+    };
   };
   isConfiguredDefault: boolean;
   isDefault: boolean;
   isMainProtected: boolean;
   mainKey?: string;
+  memorySearch?: Record<string, unknown>;
   model?: string;
   name?: string;
+  params?: Record<string, unknown>;
   protectedReasons?: string[];
   reasoningDefault?: "off" | "on" | "stream";
+  runtime?: {
+    acp?: {
+      agent?: string;
+      backend?: string;
+      cwd?: string;
+      mode?: "oneshot" | "persistent";
+    };
+    type: "acp" | "embedded";
+  };
   sandbox?: unknown;
   sessionCount: number;
   skillMode: string;
@@ -1402,7 +1666,29 @@ export type DeckAgentsDetailResult = {
     effectiveMaxSpawnDepth: number;
     model?: string;
   };
+  systemPromptOverride?: string;
+  thinkingDefault?: "adaptive" | "high" | "low" | "medium" | "minimal" | "off" | "xhigh";
+  tools?: Record<string, unknown>;
   totalAvailableSkills: number;
+  unresolvedReferences?: {
+    eventStreams?: {
+      eventStream: string;
+      reason: "not-in-declared-options" | "unknown";
+    }[];
+    models?: {
+      model: string;
+      reason: "not-in-catalog" | "provider-disabled" | "unknown";
+    }[];
+    skills?: {
+      key: string;
+      reason: "disabled" | "not-installed" | "unknown";
+    }[];
+    subagents?: {
+      agentId: string;
+      reason: "agent-deleted" | "agent-not-found" | "unknown";
+    }[];
+  };
+  verboseDefault?: "full" | "off" | "on";
   workspace: string;
 };
 
@@ -1429,6 +1715,74 @@ export interface DeckAgentsEventStreamsSetResult {
   eventStreams: string[];
   ok: boolean;
 }
+
+export type DeckAgentsImpactPreviewGetParams = {
+  agentId: string;
+  baseHash?: string;
+  operation:
+    | "delete-agent"
+    | "edit-conversation"
+    | "edit-delivery"
+    | "edit-model"
+    | "edit-skills"
+    | "edit-subagents"
+    | "edit-tools"
+    | "edit-workspace"
+    | "reset-field";
+  proposed?: Record<string, unknown>;
+};
+
+export type DeckAgentsImpactPreviewGetResult = {
+  agentId: string;
+  baseHash?: string;
+  canProceedWithoutImpact: boolean;
+  impact: {
+    activeSubagentCount?: number;
+    available?: boolean;
+    bindingCount?: number;
+    bindings?: {
+      count: number;
+      samples: {
+        accountId?: string;
+        bindingIndex: number;
+        channel?: string;
+        guildId?: string;
+        peer?: Record<string, unknown>;
+        roles?: string[];
+        summary?: string;
+        teamId?: string;
+        type?: string;
+      }[];
+      truncated?: boolean;
+    };
+    capturedAt?: string;
+    deleteRemovesFiles: boolean;
+    files?: {
+      bootstrapPresent?: boolean;
+      total: number;
+      truncated?: boolean;
+    };
+    sessionCount?: number;
+    sessions?: {
+      active?: number;
+      total: number;
+      truncated?: boolean;
+    };
+    unavailableReason?: string;
+    workspaceFileCount?: number;
+  };
+  operation:
+    | "delete-agent"
+    | "edit-conversation"
+    | "edit-delivery"
+    | "edit-model"
+    | "edit-skills"
+    | "edit-subagents"
+    | "edit-tools"
+    | "edit-workspace"
+    | "reset-field";
+  riskSpecifics: string[];
+};
 
 export interface DeckAgentsModelPolicyGetParams {
   agentId?: string;
@@ -1554,6 +1908,7 @@ export interface DeckAgentsSubagentsGetResult {
   effectiveMaxSpawnDepth: number;
   effectiveThinking?: unknown;
   model?: string;
+  requireAgentId?: boolean;
 }
 
 export type DeckAgentsSubagentsSetParams = {
@@ -1561,6 +1916,7 @@ export type DeckAgentsSubagentsSetParams = {
   allowAgents: string[];
   baseHash: string;
   model?: null | string;
+  requireAgentId?: boolean;
 };
 
 export interface DeckAgentsSubagentsSetResult {
@@ -1569,6 +1925,7 @@ export interface DeckAgentsSubagentsSetResult {
   configHash: string;
   model?: string;
   ok: boolean;
+  requireAgentId?: boolean;
 }
 
 export interface DeckAgentsSystemPromptPreviewParams {
@@ -4263,6 +4620,10 @@ export interface GatewayMethodMap {
   "deck.agents.eventStreams.set": {
     params: DeckAgentsEventStreamsSetParams;
     result: DeckAgentsEventStreamsSetResult;
+  };
+  "deck.agents.impactPreview.get": {
+    params: DeckAgentsImpactPreviewGetParams;
+    result: DeckAgentsImpactPreviewGetResult;
   };
   "deck.agents.modelPolicy.get": {
     params: DeckAgentsModelPolicyGetParams;

@@ -312,8 +312,8 @@
     {
       "category": "deck-go-bff",
       "migrationTarget": "Keep `fetchDeckJson`",
-      "notes": "Detail, model policy, skills, event streams, subagent config, and preview actions are Deck-shaped aggregate routes.",
-      "paths": ["GET /deck/agents?agentId=...", "POST /deck/agents"]
+      "notes": "Detail, model policy, skills, event streams, subagent config, defaults editor, and preview actions are Deck-shaped aggregate routes.",
+      "paths": ["GET /deck/agents?agentId=...", "POST /deck/agents", "POST /deck/agents/defaults"]
     },
     {
       "category": "deck-go-bff",

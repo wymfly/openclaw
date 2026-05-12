@@ -718,6 +718,8 @@ func (m *ManagedRuntime) RunDeckAgentAction(ctx context.Context, runtimeID strin
 		return m.GatewayQueries().DeckAgentsEventStreamsGet(ctx, body)
 	case "eventStreams.set":
 		return m.GatewayQueries().DeckAgentsEventStreamsSet(ctx, body)
+	case "impactPreview.get":
+		return m.GatewayQueries().DeckAgentsImpactPreviewGet(ctx, body)
 	case "config.patch":
 		path := strings.TrimSpace(runtimecoerce.String(body["path"], ""))
 		if path == "" || strings.Contains(path, "..") {

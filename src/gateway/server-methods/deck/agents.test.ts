@@ -26,6 +26,7 @@ const defaultMockConfig = {
         subagents: {
           allowAgents: ["coder", "researcher"],
           model: "anthropic/claude-haiku",
+          requireAgentId: false,
         },
       },
       {
@@ -33,8 +34,10 @@ const defaultMockConfig = {
         name: "Coder",
         workspace: "/tmp/coder",
         skills: ["python", "node"],
+        thinkingDefault: "medium",
         reasoningDefault: "stream",
         fastModeDefault: false,
+        params: { temperature: 0.2 },
         // no subagents → empty
       },
       {
@@ -136,7 +139,7 @@ vi.mock("../../../agents/skills-status.js", () => ({
 
 import type { GatewayRequestHandlerOptions, RespondFn } from "../types.js";
 // Import after mocks
-import { deckAgentsHandlers } from "./agents.js";
+import { deckAgentsHandlers, deckAgentsMethodDefs } from "./agents.js";
 
 // Helper to call a handler and capture the response
 function callHandler(
@@ -178,12 +181,23 @@ describe("deck.agents.detail", () => {
     expect(p.name).toBe("Coder");
     expect(p.isDefault).toBe(false);
     expect(p.reasoningDefault).toBe("stream");
+    expect(p.thinkingDefault).toBe("medium");
     expect(p.fastModeDefault).toBe(false);
+    expect(p.params).toEqual({ temperature: 0.2 });
     expect(p.skillMode).toBe("whitelist");
     expect(p.effectiveSkills).toEqual(["python", "node"]);
     expect(p.totalAvailableSkills).toBe(4);
     // Coder has 1 binding (slack)
     expect(p.bindingCount).toBe(1);
+    const impact = p.impact as Record<string, unknown>;
+    expect(impact.bindingCount).toBe(1);
+    expect(impact.workspaceFileCount).toBe(0);
+    expect(impact.bindings).toMatchObject({ count: 1, truncated: false });
+    const nestedBindings = (impact.bindings as { samples: Array<Record<string, unknown>> }).samples;
+    expect(nestedBindings[0]).toMatchObject({ channel: "slack", bindingIndex: 0 });
+    const inherited = p.inherited as Record<string, { source: string; hasOverride: boolean }>;
+    expect(inherited.thinkingDefault).toMatchObject({ source: "agent", hasOverride: true });
+    expect(inherited.fastModeDefault).toMatchObject({ source: "agent", hasOverride: true });
     // Subagents: no per-agent config → effective from global defaults
     const sub = p.subagents as Record<string, unknown>;
     expect(sub.effectiveMaxSpawnDepth).toBe(3);
@@ -209,8 +223,51 @@ describe("deck.agents.detail", () => {
     // Subagents from per-agent config
     const sub = p.subagents as Record<string, unknown>;
     expect(sub.allowAgents).toEqual(["coder", "researcher"]);
+    expect(sub.requireAgentId).toBe(false);
     expect(sub.effectiveMaxSpawnDepth).toBe(3);
     expect(sub.effectiveMaxChildrenPerAgent).toBe(5);
+  });
+
+  it("surfaces unresolved references instead of letting mock-only data hide truth gaps", async () => {
+    mockConfig = {
+      models: { providers: { openai: { models: [{ id: "gpt-5.4", name: "GPT 5.4" }] } } },
+      agents: {
+        defaults: {
+          workspace: "/tmp/default-agent",
+          skills: ["python", "missing-skill"],
+          model: "missing/provider-model",
+        },
+        list: [
+          {
+            id: "main",
+            name: "Main Agent",
+            workspace: "/tmp/main",
+            subagents: {
+              allowAgents: ["ghost-agent"],
+            },
+            channels: {
+              eventStreams: ["ghost-stream"],
+            },
+          },
+        ],
+      },
+    } satisfies OpenClawConfig;
+
+    const result = await callHandler("deck.agents.detail", { agentId: "main" });
+    expect(result.ok).toBe(true);
+    const p = result.payload as { unresolvedReferences: Record<string, unknown[]> };
+    expect(p.unresolvedReferences.skills).toEqual([
+      { key: "missing-skill", reason: "not-installed" },
+    ]);
+    expect(p.unresolvedReferences.subagents).toEqual([
+      { agentId: "ghost-agent", reason: "agent-not-found" },
+    ]);
+    expect(p.unresolvedReferences.eventStreams).toEqual([
+      { eventStream: "ghost-stream", reason: "not-in-declared-options" },
+    ]);
+    expect(p.unresolvedReferences.models).toEqual([
+      { model: "missing/provider-model", reason: "not-in-catalog" },
+    ]);
   });
 
   it("returns error for unknown agent", async () => {
@@ -366,6 +423,7 @@ describe("deck.agents.subagents.get", () => {
     expect(p.allowAgents).toEqual(["coder", "researcher"]);
     expect(p.allowAny).toBe(false);
     expect(p.model).toBe("anthropic/claude-haiku");
+    expect(p.requireAgentId).toBe(false);
     expect(p.effectiveMaxSpawnDepth).toBe(3);
     expect(p.effectiveMaxChildrenPerAgent).toBe(5);
     expect(p.effectiveThinking).toBe("low");
@@ -397,6 +455,7 @@ describe("deck.agents.subagents.set", () => {
       agentId: "main",
       allowAgents: ["coder"],
       model: "openai/gpt-4o-mini",
+      requireAgentId: true,
       baseHash: "hash-abc123",
     });
     expect(result.ok).toBe(true);
@@ -404,12 +463,14 @@ describe("deck.agents.subagents.set", () => {
     expect(p.agentId).toBe("main");
     expect(p.allowAgents).toEqual(["coder"]);
     expect(p.model).toBe("openai/gpt-4o-mini");
+    expect(p.requireAgentId).toBe(true);
     expect(p.configHash).toBeTruthy();
 
     const written = writtenConfig as typeof defaultMockConfig;
     const mainAgent = written.agents.list.find((a) => a.id === "main");
     expect(mainAgent?.subagents?.allowAgents).toEqual(["coder"]);
     expect(mainAgent?.subagents?.model).toBe("openai/gpt-4o-mini");
+    expect(mainAgent?.subagents?.requireAgentId).toBe(true);
     // Global defaults must NOT be written to per-agent config
     expect((mainAgent?.subagents as Record<string, unknown>)?.maxSpawnDepth).toBeUndefined();
     expect((mainAgent?.subagents as Record<string, unknown>)?.maxChildrenPerAgent).toBeUndefined();
@@ -440,6 +501,87 @@ describe("deck.agents.subagents.set", () => {
     });
     expect(result.ok).toBe(false);
     expect(writtenConfig).toBeNull();
+  });
+});
+
+describe("deck.agents.impactPreview.get", () => {
+  it("is registered with params/result metadata", () => {
+    expect(deckAgentsMethodDefs["deck.agents.impactPreview.get"]).toMatchObject({
+      scope: "operator.read",
+      forkClass: "C1",
+      bffEligible: false,
+    });
+  });
+
+  it("returns fresh impact summary and operation-specific risk copy", async () => {
+    const result = await callHandler("deck.agents.impactPreview.get", {
+      agentId: "main",
+      operation: "delete-agent",
+    });
+    expect(result.ok).toBe(true);
+    const p = result.payload as {
+      agentId: string;
+      operation: string;
+      impact: {
+        bindingCount: number;
+        deleteRemovesFiles: boolean;
+        bindings: { count: number; samples: Array<Record<string, unknown>>; truncated: boolean };
+      };
+      riskSpecifics: string[];
+      canProceedWithoutImpact: boolean;
+      baseHash: string;
+    };
+    expect(p.agentId).toBe("main");
+    expect(p.operation).toBe("delete-agent");
+    expect(p.impact.bindingCount).toBe(2);
+    expect(p.impact.bindings.count).toBe(2);
+    expect(p.impact.bindings.samples[0]).toMatchObject({ channel: "discord" });
+    expect(p.impact.deleteRemovesFiles).toBe(true);
+    expect(p.riskSpecifics[0]).toContain("Deleting an agent");
+    expect(p.canProceedWithoutImpact).toBe(false);
+    expect(p.baseHash).toBe("hash-abc123");
+  });
+
+  it("rejects invalid params through the protocol validator", async () => {
+    const result = await callHandler("deck.agents.impactPreview.get", { agentId: "main" });
+    expect(result.ok).toBe(false);
+    const err = result.error as { code: string };
+    expect(err.code).toBe("INVALID_REQUEST");
+  });
+
+  it("maps supported operations to risk specifics without allowing blind proceed", async () => {
+    for (const operation of [
+      "edit-model",
+      "edit-workspace",
+      "edit-skills",
+      "edit-subagents",
+      "edit-tools",
+      "edit-delivery",
+      "edit-conversation",
+      "reset-field",
+    ]) {
+      const result = await callHandler("deck.agents.impactPreview.get", {
+        agentId: "main",
+        operation,
+      });
+      expect(result.ok).toBe(true);
+      const p = result.payload as {
+        operation: string;
+        riskSpecifics: string[];
+        canProceedWithoutImpact: boolean;
+      };
+      expect(p.operation).toBe(operation);
+      expect(p.riskSpecifics.length).toBeGreaterThan(0);
+      expect(p.canProceedWithoutImpact).toBe(false);
+    }
+  });
+
+  it("rejects unknown agents", async () => {
+    const result = await callHandler("deck.agents.impactPreview.get", {
+      agentId: "ghost",
+      operation: "edit-model",
+    });
+    expect(result.ok).toBe(false);
   });
 });
 

@@ -47,6 +47,7 @@ export const deckAgentsSubagentsConfigHandlers: GatewayRequestHandlers = {
     const allowAgents = agentSubagents?.allowAgents ?? [];
     const allowAny = allowAgents.includes("*");
     const model = resolveModelString(agentSubagents?.model);
+    const requireAgentId = agentSubagents?.requireAgentId;
 
     const globalDefaults = cfg.agents?.defaults?.subagents;
     const effectiveMaxSpawnDepth = globalDefaults?.maxSpawnDepth ?? 1;
@@ -75,6 +76,7 @@ export const deckAgentsSubagentsConfigHandlers: GatewayRequestHandlers = {
       allowAgents,
       allowAny,
       model,
+      requireAgentId,
       effectiveMaxSpawnDepth,
       effectiveMaxChildrenPerAgent,
       effectiveThinking,
@@ -95,10 +97,11 @@ export const deckAgentsSubagentsConfigHandlers: GatewayRequestHandlers = {
     ) {
       return;
     }
-    const { agentId, allowAgents, model, baseHash } = params as {
+    const { agentId, allowAgents, model, requireAgentId, baseHash } = params as {
       agentId: string;
       allowAgents: string[];
       model?: string | null;
+      requireAgentId?: boolean;
       baseHash: string;
     };
 
@@ -130,9 +133,14 @@ export const deckAgentsSubagentsConfigHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const subagents: { allowAgents: string[]; model?: string } = { allowAgents };
+    const subagents: { allowAgents: string[]; model?: string; requireAgentId?: boolean } = {
+      allowAgents,
+    };
     if (model !== null && model !== undefined) {
       subagents.model = model;
+    }
+    if (requireAgentId !== undefined) {
+      subagents.requireAgentId = requireAgentId;
     }
     (agentEntry as Record<string, unknown>).subagents = subagents;
 
@@ -146,6 +154,7 @@ export const deckAgentsSubagentsConfigHandlers: GatewayRequestHandlers = {
       agentId,
       allowAgents,
       model: model === null ? undefined : model,
+      requireAgentId,
       configHash,
     });
   },

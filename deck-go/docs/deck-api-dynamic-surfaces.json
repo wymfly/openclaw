@@ -4,14 +4,14 @@
   "classificationSource": "deck-go/contracts/source/deck-api-dynamic-surfaces.contract.json",
   "generatedAt": "deterministic",
   "totals": {
-    "dynamicLeaves": 64,
-    "classifications": 64
+    "dynamicLeaves": 87,
+    "classifications": 87
   },
   "surfaces": [
     {
       "surface": "DeckGoActivityStreamEvent.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2802,
+      "line": 3040,
       "type": "[key: string]: unknown;",
       "classification": "sse-extension-envelope",
       "owner": "activity",
@@ -19,9 +19,129 @@
       "exitCriteria": "Replace with event-specific DTOs when activity stream payload schemas are productized."
     },
     {
+      "surface": "DeckGoAgentCognitionSetRequest.<type>.memorySearch",
+      "kind": "record-unknown",
+      "line": 1799,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent cognition writes carry OpenClaw memory search config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable memorySearch config schema."
+    },
+    {
+      "surface": "DeckGoAgentConversationSetRequest.<type>.groupChat",
+      "kind": "record-unknown",
+      "line": 1823,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent conversation writes carry OpenClaw group chat config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable groupChat config schema."
+    },
+    {
+      "surface": "DeckGoAgentConversationSetRequest.<type>.humanDelay",
+      "kind": "record-unknown",
+      "line": 1822,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent conversation writes carry OpenClaw human delay config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable humanDelay config schema."
+    },
+    {
+      "surface": "DeckGoAgentDefaultsSetRequest.<type>.value",
+      "kind": "record-unknown",
+      "line": 1860,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Defaults writes carry bucket-specific OpenClaw config fragments validated by the agents BFF action guard.",
+      "exitCriteria": "Replace with bucket-specific set DTOs if defaults editing needs field-by-field product forms."
+    },
+    {
+      "surface": "DeckGoAgentDeliverySetRequest.<type>.heartbeat",
+      "kind": "record-unknown",
+      "line": 1832,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent delivery writes carry OpenClaw heartbeat config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable heartbeat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.embeddedHarness",
+      "kind": "record-unknown",
+      "line": 1736,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes embedded harness config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedHarness config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.embeddedPi",
+      "kind": "record-unknown",
+      "line": 1737,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes embedded Pi config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedPi config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.groupChat",
+      "kind": "record-unknown",
+      "line": 1735,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw group chat config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable groupChat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.heartbeat",
+      "kind": "record-unknown",
+      "line": 1733,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw heartbeat config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable heartbeat config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.humanDelay",
+      "kind": "record-unknown",
+      "line": 1732,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw human delay config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable humanDelay config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.memorySearch",
+      "kind": "record-unknown",
+      "line": 1731,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw memory search config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable memorySearch config schema."
+    },
+    {
+      "surface": "DeckGoAgentDetailResponse.<type>.params",
+      "kind": "record-unknown",
+      "line": 1738,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail mirrors OpenClaw agent params whose keys are agent/runtime-specific.",
+      "exitCriteria": "Narrow only if OpenClaw fixes the params schema for agent configuration."
+    },
+    {
       "surface": "DeckGoAgentDetailResponse.<type>.sandbox",
       "kind": "unknown",
-      "line": 1647,
+      "line": 1766,
       "type": "unknown",
       "classification": "config-fragment",
       "owner": "agents",
@@ -29,9 +149,39 @@
       "exitCriteria": "Narrow when OpenClaw publishes a stable sandbox config schema for agents."
     },
     {
+      "surface": "DeckGoAgentDetailResponse.<type>.tools",
+      "kind": "record-unknown",
+      "line": 1740,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent detail exposes tool override config fragments for guarded product editing.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable tools override config schema."
+    },
+    {
+      "surface": "DeckGoAgentEffectiveField.<type>.effective",
+      "kind": "unknown",
+      "line": 1569,
+      "type": "unknown",
+      "classification": "derived-config-fragment",
+      "owner": "agents",
+      "reason": "Effective inheritance fields expose computed values whose shape depends on the referenced OpenClaw config bucket.",
+      "exitCriteria": "Replace with bucket-specific effective DTOs if inheritance rendering becomes field-specific."
+    },
+    {
+      "surface": "DeckGoAgentEffectiveField.<type>.fallback",
+      "kind": "unknown",
+      "line": 1570,
+      "type": "unknown",
+      "classification": "derived-config-fragment",
+      "owner": "agents",
+      "reason": "Fallback inheritance fields expose computed fallback values whose shape depends on the referenced OpenClaw config bucket.",
+      "exitCriteria": "Replace with bucket-specific fallback DTOs if inheritance rendering becomes field-specific."
+    },
+    {
       "surface": "DeckGoAgentHealthSnapshot.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 1659,
+      "line": 1898,
       "type": "[key: string]: unknown;",
       "classification": "gateway-status-envelope",
       "owner": "agents",
@@ -41,7 +191,7 @@
     {
       "surface": "DeckGoAgentHealthSnapshot.<type>.agents",
       "kind": "array-record-unknown",
-      "line": 1658,
+      "line": 1897,
       "type": "Array<Record<string, unknown>>",
       "classification": "gateway-status-envelope",
       "owner": "agents",
@@ -49,9 +199,39 @@
       "exitCriteria": "Replace with named agent health DTOs when the product view fixes the required metrics."
     },
     {
+      "surface": "DeckGoAgentImpactPreviewRequest.<type>.proposed",
+      "kind": "record-unknown",
+      "line": 1878,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Impact previews accept a proposed OpenClaw config fragment for the operation being analyzed.",
+      "exitCriteria": "Replace with operation-specific proposed DTOs if impact preview supports field-level mutation forms."
+    },
+    {
+      "surface": "DeckGoAgentImpactSummary.<type>.bindings.samples.peer",
+      "kind": "record-unknown",
+      "line": 1627,
+      "type": "Record<string, unknown>",
+      "classification": "gateway-status-envelope",
+      "owner": "agents",
+      "reason": "Binding peer descriptors mirror channel-specific Gateway routing metadata.",
+      "exitCriteria": "Narrow when routing binding peer metadata has a stable Deck product DTO."
+    },
+    {
+      "surface": "DeckGoAgentProductActionResponse.<type>.value",
+      "kind": "record-unknown",
+      "line": 1788,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Product action responses may echo bucket-specific OpenClaw config fragments after guarded writes.",
+      "exitCriteria": "Replace with bucket-specific response DTOs if the frontend needs field-specific rendering."
+    },
+    {
       "surface": "DeckGoAgentRawConfig.<type>.defaults",
       "kind": "record-unknown",
-      "line": 1664,
+      "line": 1903,
       "type": "Record<string, unknown>",
       "classification": "config-fragment",
       "owner": "agents",
@@ -61,7 +241,7 @@
     {
       "surface": "DeckGoAgentRawConfig.<type>.entry",
       "kind": "record-unknown",
-      "line": 1665,
+      "line": 1904,
       "type": "Record<string, unknown>",
       "classification": "config-fragment",
       "owner": "agents",
@@ -71,7 +251,7 @@
     {
       "surface": "DeckGoAgentRawConfig.<type>.list",
       "kind": "array-record-unknown",
-      "line": 1666,
+      "line": 1905,
       "type": "Record<string, unknown>[]",
       "classification": "config-fragment",
       "owner": "agents",
@@ -81,7 +261,7 @@
     {
       "surface": "DeckGoAgentSubagentConfigResponse.<type>.effectiveThinking",
       "kind": "unknown",
-      "line": 1721,
+      "line": 1961,
       "type": "unknown",
       "classification": "config-fragment",
       "owner": "subagents",
@@ -89,9 +269,59 @@
       "exitCriteria": "Narrow when OpenClaw exposes a stable thinking config schema."
     },
     {
+      "surface": "DeckGoAgentToolsOverrideSetRequest.<type>.tools",
+      "kind": "record-unknown",
+      "line": 1840,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent tools writes carry OpenClaw tool override config fragments whose nested keys are Gateway-owned.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable tools override config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.embeddedHarness",
+      "kind": "record-unknown",
+      "line": 1811,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw embedded harness config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedHarness config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.embeddedPi",
+      "kind": "record-unknown",
+      "line": 1812,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw embedded Pi config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable embeddedPi config schema."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.params",
+      "kind": "record-unknown",
+      "line": 1813,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw agent params whose keys are agent/runtime-specific.",
+      "exitCriteria": "Narrow only if OpenClaw fixes the params schema for agent configuration."
+    },
+    {
+      "surface": "DeckGoAgentWorkspaceSetRequest.<type>.sandbox",
+      "kind": "record-unknown",
+      "line": 1810,
+      "type": "Record<string, unknown>",
+      "classification": "config-fragment",
+      "owner": "agents",
+      "reason": "Agent workspace writes carry OpenClaw sandbox config fragments.",
+      "exitCriteria": "Narrow when OpenClaw publishes a stable sandbox config schema for agents."
+    },
+    {
       "surface": "DeckGoCanvasBridgeEvalRequest.result",
       "kind": "unknown",
-      "line": 2959,
+      "line": 3197,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "chat",
@@ -131,7 +361,7 @@
     {
       "surface": "DeckGoChatProjectionRequest.a2uiState",
       "kind": "record-unknown",
-      "line": 2937,
+      "line": 3175,
       "type": "Record<string, unknown>",
       "classification": "chat-runtime-envelope",
       "owner": "chat",
@@ -141,7 +371,7 @@
     {
       "surface": "DeckGoChatSessionPatchRequest.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2924,
+      "line": 3162,
       "type": "[key: string]: unknown;",
       "classification": "gateway-forward-compatible-envelope",
       "owner": "chat",
@@ -171,7 +401,7 @@
     {
       "surface": "DeckGoConfigLookupChild.<type>.hint",
       "kind": "record-unknown",
-      "line": 1544,
+      "line": 1542,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -181,7 +411,7 @@
     {
       "surface": "DeckGoConfigLookupResponse.<type>.hint",
       "kind": "record-unknown",
-      "line": 1551,
+      "line": 1549,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -191,7 +421,7 @@
     {
       "surface": "DeckGoConfigLookupResponse.<type>.schema",
       "kind": "record-unknown",
-      "line": 1550,
+      "line": 1548,
       "type": "Record<string, unknown>",
       "classification": "gateway-schema-envelope",
       "owner": "config",
@@ -211,7 +441,7 @@
     {
       "surface": "DeckGoContextWeightReport.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2648,
+      "line": 2886,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",
@@ -221,7 +451,7 @@
     {
       "surface": "DeckGoCronJob.<type>.delivery",
       "kind": "unknown",
-      "line": 2022,
+      "line": 2260,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "cron",
@@ -231,7 +461,7 @@
     {
       "surface": "DeckGoCronJob.<type>.payload.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2021,
+      "line": 2259,
       "type": "[key: string]: unknown",
       "classification": "action-payload-envelope",
       "owner": "cron",
@@ -241,7 +471,7 @@
     {
       "surface": "DeckGoCronJobInput.<type>.payload.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2038,
+      "line": 2276,
       "type": "[key: string]: unknown",
       "classification": "action-payload-envelope",
       "owner": "cron",
@@ -251,7 +481,7 @@
     {
       "surface": "DeckGoCronRunEntry.<type>.delivery",
       "kind": "unknown",
-      "line": 2051,
+      "line": 2289,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "cron",
@@ -261,7 +491,7 @@
     {
       "surface": "DeckGoDeviceTokenRotateResponse.<type>",
       "kind": "record-unknown",
-      "line": 1958,
+      "line": 2196,
       "type": "Record<string, unknown>",
       "classification": "action-result-envelope",
       "owner": "identity",
@@ -461,7 +691,7 @@
     {
       "surface": "DeckGoNodeInvokeResponse.<type>.payload",
       "kind": "unknown",
-      "line": 2306,
+      "line": 2544,
       "type": "unknown",
       "classification": "action-result-envelope",
       "owner": "nodes",
@@ -471,7 +701,7 @@
     {
       "surface": "DeckGoNodePendingWorkItem.<type>.payload",
       "kind": "record-unknown",
-      "line": 2322,
+      "line": 2560,
       "type": "Record<string, unknown>",
       "classification": "action-payload-envelope",
       "owner": "nodes",
@@ -631,7 +861,7 @@
     {
       "surface": "DeckGoUsageSessionsResponse.<type>.aggregates.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2733,
+      "line": 2971,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",
@@ -641,7 +871,7 @@
     {
       "surface": "DeckGoUsageTotals.<type>.<index-signature>",
       "kind": "index-signature-unknown",
-      "line": 2610,
+      "line": 2848,
       "type": "[key: string]: unknown;",
       "classification": "extension-envelope",
       "owner": "usage",

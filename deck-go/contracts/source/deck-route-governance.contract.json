@@ -30,7 +30,11 @@
     {
       "id": "agents",
       "module": "agents",
-      "matches": [{ "pathPrefix": "/api/agents" }, { "pathPrefix": "/api/deck/agents" }],
+      "matches": [
+        { "pathPrefix": "/api/agents" },
+        { "pathPrefix": "/api/deck/agents" },
+        { "pathPrefix": "/api/deck/agents/defaults" }
+      ],
       "contractAuthority": "deck-api-dto",
       "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
       "frontendFacade": ["deck-go/frontend-new/src/api.ts"],

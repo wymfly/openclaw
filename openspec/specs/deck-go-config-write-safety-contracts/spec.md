@@ -109,3 +109,19 @@ Every typed Models config mutation SHALL participate in deck-go config-write saf
 - **WHEN** the code path lacks durable audit, rollback, version restore, or idempotency support
 - **THEN** the contract and UI SHALL mark those capabilities unsupported or deferred
 - **AND** tests SHALL ensure no product copy claims them as available.
+
+### Requirement: Agents product config actions SHALL enforce owner-scoped path allowlists
+
+Every Agents BFF product action backed by `config.patch` or `config.apply` SHALL declare and enforce a writable config path allowlist matching the Agents-owned subtree for that action.
+
+#### Scenario: Agents action attempts out-of-scope config write
+
+- **WHEN** an Agents action payload or generated patch attempts to write `models.providers`, `bindings`, root-level `tools`, or another non-Agents-owned path
+- **THEN** the BFF SHALL reject the action before calling Gateway
+- **AND** the rejection SHALL use a deterministic error code documented in write-safety metadata
+
+#### Scenario: Agents workspace path change preserves Gateway side effects
+
+- **WHEN** an Agents workspace product action changes the workspace path
+- **THEN** the path change SHALL route through upstream `agents.update`
+- **AND** non-path workspace fields SHALL remain guarded by the Agents path allowlist before any `config.patch`

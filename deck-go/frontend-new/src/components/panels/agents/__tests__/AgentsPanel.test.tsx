@@ -13,25 +13,38 @@ import { AgentsPanel } from "../AgentsPanel";
 const api = vi.hoisted(() => ({
   createAgent: vi.fn(),
   deleteAgent: vi.fn(),
+  fetchAgentCognition: vi.fn(),
   fetchAgentDetail: vi.fn(),
+  fetchAgentConversation: vi.fn(),
+  fetchAgentDefaults: vi.fn(),
+  fetchAgentDelivery: vi.fn(),
   fetchAgentEventStreams: vi.fn(),
   fetchAgentFile: vi.fn(),
   fetchAgentFiles: vi.fn(),
+  fetchAgentImpactPreview: vi.fn(),
   fetchAgentModelPolicy: vi.fn(),
   fetchAgentSkills: vi.fn(),
   fetchAgentSubagentConfig: vi.fn(),
   fetchAgentSystemPromptPreview: vi.fn(),
   fetchAgentToolPolicyPreview: vi.fn(),
+  fetchAgentToolsOverride: vi.fn(),
+  fetchAgentWorkspaceAdvanced: vi.fn(),
   fetchAgentsList: vi.fn(),
   fetchRuntimeConfiguredModels: vi.fn(),
   normalizeAgentSubagentPermissionOptions: vi.fn(),
   saveAgentFile: vi.fn(),
   streamEvents: vi.fn(),
   updateAgent: vi.fn(),
+  updateAgentCognition: vi.fn(),
+  updateAgentConversation: vi.fn(),
+  updateAgentDefaults: vi.fn(),
+  updateAgentDelivery: vi.fn(),
   updateAgentEventStreams: vi.fn(),
   updateAgentModelPolicy: vi.fn(),
   updateAgentSkills: vi.fn(),
   updateAgentSubagentConfig: vi.fn(),
+  updateAgentToolsOverride: vi.fn(),
+  updateAgentWorkspaceAdvanced: vi.fn(),
 }));
 
 vi.mock("@/api", () => ({
@@ -252,17 +265,26 @@ describe("AgentsPanel", () => {
       configHash: "subagents-hash",
       effectiveMaxChildrenPerAgent: 5,
       effectiveMaxSpawnDepth: 1,
+      requireAgentId: false,
     });
     api.updateAgentSubagentConfig.mockResolvedValue({
       ok: true,
       agentId: "ops",
       allowAgents: ["main", "ops", "reviewer"],
       configHash: "subagents-hash-2",
+      requireAgentId: true,
     });
     api.fetchAgentEventStreams.mockResolvedValue({
       agentId: "main",
       eventStreams: ["lifecycle", "assistant"],
       configHash: "streams-hash",
+    });
+    api.fetchAgentImpactPreview.mockResolvedValue({
+      agentId: "ops",
+      operation: "delete-agent",
+      impact: { bindingCount: 0, sessionCount: 0 },
+      riskSpecifics: ["Delete removes the agent configuration entry."],
+      canProceedWithoutImpact: false,
     });
     api.streamEvents.mockImplementation(
       ({ onStatusChange }: { onStatusChange?: (status: string) => void }) => {
@@ -374,17 +396,26 @@ describe("AgentsPanel", () => {
     ).toBe("true");
   });
 
-  it("saves guarded runtime edits separately from identity edits", async () => {
+  it("saves guarded workspace edits separately from identity edits", async () => {
     api.updateAgent.mockResolvedValue({ ok: true, id: "ops" });
     renderPanel();
 
     const opsRow = (await screen.findByText("Ops")).closest("button");
     expect(opsRow).toBeTruthy();
     fireEvent.click(opsRow!);
-    fireEvent.click(await screen.findByRole("tab", { name: /Runtime/ }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Workspace/ }));
 
     fireEvent.change(await screen.findByLabelText("Workspace"), { target: { value: "/ops-v2" } });
-    fireEvent.click(screen.getByRole("button", { name: "Review and save" }));
+    await waitFor(() => {
+      expect(api.fetchAgentImpactPreview).toHaveBeenCalledWith({
+        agentId: "ops",
+        operation: "edit-workspace",
+      });
+    });
+    fireEvent.click(
+      await screen.findByLabelText("I understand this change can affect live agent behavior."),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Review and save workspace" }));
 
     await waitFor(() => {
       expect(api.updateAgent).toHaveBeenCalledWith("ops", {
@@ -399,7 +430,7 @@ describe("AgentsPanel", () => {
     const opsRow = (await screen.findByText("Ops")).closest("button");
     expect(opsRow).toBeTruthy();
     fireEvent.click(opsRow!);
-    fireEvent.click(await screen.findByRole("tab", { name: /Runtime/ }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Model/ }));
 
     expect(await screen.findByText("Model usage policy")).toBeTruthy();
     const primaryInputs = await screen.findAllByLabelText("Select primary model");
@@ -471,8 +502,18 @@ describe("AgentsPanel", () => {
     expect(mainToggle.hasAttribute("disabled")).toBe(true);
 
     fireEvent.click(screen.getByRole("tab", { name: "Explicit list" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "Require explicit agent id" }));
     expect(await screen.findByText(/narrows the previous wildcard/i)).toBeTruthy();
     const saveButton = screen.getByRole("button", { name: "Save changes" });
+    await waitFor(() => {
+      expect(api.fetchAgentImpactPreview).toHaveBeenCalledWith({
+        agentId: "ops",
+        operation: "edit-subagents",
+      });
+    });
+    fireEvent.click(
+      await screen.findByLabelText("I understand this change can affect live agent behavior."),
+    );
     await waitFor(() => {
       expect(saveButton.hasAttribute("disabled")).toBe(false);
     });
@@ -482,6 +523,7 @@ describe("AgentsPanel", () => {
       expect(api.updateAgentSubagentConfig).toHaveBeenCalledWith("ops", {
         allowAgents: ["main", "ops", "reviewer"],
         baseHash: "subagents-hash",
+        requireAgentId: true,
       });
     });
   });
@@ -497,7 +539,7 @@ describe("AgentsPanel", () => {
     const mainRow = (await screen.findByText("Main")).closest("button");
     expect(mainRow).toBeTruthy();
     fireEvent.click(mainRow!);
-    fireEvent.click(await screen.findByRole("tab", { name: /Event streams/i }));
+    fireEvent.click(await screen.findByRole("tab", { name: /Delivery/i }));
 
     expect(await screen.findByText("lifecycle")).toBeTruthy();
     expect(screen.getByText("assistant")).toBeTruthy();
@@ -511,7 +553,7 @@ describe("AgentsPanel", () => {
 
     fireEvent.click(screen.getByRole("switch", { name: "Toggle stream session.message" }));
     const streamSection = screen
-      .getByText("Configure declared event streams without inventing new payload types.")
+      .getByText("Configure delivery event streams and heartbeat posture.")
       .closest(".agent-section");
     expect(streamSection).toBeTruthy();
     const saveButton = within(streamSection as HTMLElement).getByRole("button", {
@@ -575,10 +617,19 @@ describe("AgentsPanel", () => {
     fireEvent.click(opsRow!);
     fireEvent.click(await screen.findByRole("button", { name: "Delete agent" }));
     const deleteDialog = await screen.findByRole("dialog", { name: "Delete agent" });
+    fireEvent.change(within(deleteDialog).getByLabelText("Type the agent id to confirm"), {
+      target: { value: "ops" },
+    });
+    await waitFor(() => {
+      expect(api.fetchAgentImpactPreview).toHaveBeenCalledWith({
+        agentId: "ops",
+        operation: "delete-agent",
+      });
+    });
     fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => {
-      expect(api.deleteAgent).toHaveBeenCalledWith("ops");
+      expect(api.deleteAgent).toHaveBeenCalledWith("ops", "ops");
     });
   });
 });

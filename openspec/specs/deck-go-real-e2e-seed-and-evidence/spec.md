@@ -57,6 +57,12 @@ deck-go SHALL run the seed against the isolated copied OpenClaw configuration an
 - **WHEN** the seed creates a real chat/session
 - **THEN** the write SHALL target the isolated OpenClaw root prepared for that run and SHALL NOT modify the original `openclaw.json` or original workspace paths
 
+#### Scenario: Module real E2E mutates isolated config only
+
+- **WHEN** a module-specific real E2E spec performs safe config mutations
+- **THEN** it SHALL assert the mutation target is the isolated real-stack `managed-gateway-state/openclaw.json`
+- **AND** it SHALL NOT use the operator's global `~/.openclaw/openclaw.json` as the mutation target
+
 ### Requirement: Head proposal matrix tracks seed completion
 
 deck-go SHALL keep the head contract-chain proposal matrix synchronized with the seed child proposal lifecycle.

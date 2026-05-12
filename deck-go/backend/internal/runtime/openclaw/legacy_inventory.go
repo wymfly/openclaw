@@ -317,6 +317,10 @@ func (s *LegacyInventorySurface) DeckAgentsEventStreamsSet(ctx context.Context, 
 	return s.managed.GatewayQueries().DeckAgentsEventStreamsSet(ctx, body)
 }
 
+func (s *LegacyInventorySurface) DeckAgentsImpactPreviewGet(ctx context.Context, body map[string]any) (any, error) {
+	return s.managed.GatewayQueries().DeckAgentsImpactPreviewGet(ctx, body)
+}
+
 func (s *LegacyInventorySurface) DeckCommandsDiscover(ctx context.Context, body map[string]any) (any, error) {
 	return s.managed.GatewayQueries().DeckCommandsDiscover(ctx, body)
 }

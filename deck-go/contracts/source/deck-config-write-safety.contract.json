@@ -1,7 +1,47 @@
 {
   "schemaVersion": 1,
   "purpose": "Govern Deck Go config-like write paths at action level so base-hash, conflict, idempotency, rollback, audit, and evidence semantics stay explicit.",
+  "guardErrorCode": "agents_config_path_out_of_scope",
   "writes": [
+    {
+      "id": "agents.cognition.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "cognition.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_product_actions.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.list[id].thinkingDefault",
+        "agents.list[id].verboseDefault",
+        "agents.list[id].reasoningDefault",
+        "agents.list[id].fastModeDefault",
+        "agents.list[id].memorySearch"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
     {
       "id": "agents.config.patch",
       "owner": "agents",
@@ -25,6 +65,349 @@
       "realEvidence": [
         "deferred: backend-only compatibility action is covered by config write safety and does not need direct L2 mutation in this proposal"
       ]
+    },
+    {
+      "id": "agents.conversation.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "conversation.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_product_actions.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.list[id].systemPromptOverride",
+        "agents.list[id].humanDelay",
+        "agents.list[id].groupChat"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.cognition.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.cognition.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.defaults.thinkingDefault",
+        "agents.defaults.verboseDefault",
+        "agents.defaults.reasoningDefault",
+        "agents.defaults.fastModeDefault",
+        "agents.defaults.elevatedDefault",
+        "agents.defaults.blockStreamingDefault",
+        "agents.defaults.blockStreamingBreak",
+        "agents.defaults.blockStreamingChunk",
+        "agents.defaults.blockStreamingCoalesce",
+        "agents.defaults.memorySearch"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.conversation.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.conversation.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.defaults.systemPromptOverride",
+        "agents.defaults.humanDelay",
+        "agents.defaults.timeFormat",
+        "agents.defaults.envelopeTimezone",
+        "agents.defaults.envelopeTimestamp",
+        "agents.defaults.envelopeElapsed",
+        "agents.defaults.timeoutSeconds",
+        "agents.defaults.mediaMaxMb",
+        "agents.defaults.imageMaxDimensionPx",
+        "agents.defaults.typingIntervalSeconds",
+        "agents.defaults.typingMode"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.delivery.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.delivery.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.defaults.channels.eventStreams", "agents.defaults.heartbeat"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.eventStreams.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.eventStreams.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.defaults.channels.eventStreams"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.skills.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.skills.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.defaults.skills"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.subagents.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.subagents.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.defaults.subagents"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.defaults.workspace.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents/defaults",
+      "action": "defaults.workspace.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_defaults.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.defaults.workspace",
+        "agents.defaults.sandbox",
+        "agents.defaults.params",
+        "agents.defaults.embeddedHarness",
+        "agents.defaults.embeddedPi",
+        "agents.defaults.repoRoot",
+        "agents.defaults.skipBootstrap",
+        "agents.defaults.contextInjection",
+        "agents.defaults.bootstrapMaxChars",
+        "agents.defaults.bootstrapTotalMaxChars",
+        "agents.defaults.localModelMode",
+        "agents.defaults.bootstrapPromptTruncationWarning",
+        "agents.defaults.startupContext",
+        "agents.defaults.contextTokens",
+        "agents.defaults.cliBackends",
+        "agents.defaults.contextPruning",
+        "agents.defaults.llm",
+        "agents.defaults.maxConcurrent"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.delivery.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "delivery.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_product_actions.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.list[id].channels.eventStreams", "agents.list[id].heartbeat"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
     },
     {
       "id": "agents.event-streams.set",
@@ -111,6 +494,81 @@
         "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
       ],
       "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"]
+    },
+    {
+      "id": "agents.toolsOverride.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "toolsOverride.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["config.get", "config.patch"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_product_actions.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": ["agents.list[id].tools"],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"]
+    },
+    {
+      "id": "agents.workspace.set",
+      "owner": "agents",
+      "route": "POST /api/deck/agents",
+      "action": "workspace.set",
+      "classification": "deck-derived",
+      "gatewayMethods": ["agents.update", "config.get", "config.patch", "config.apply"],
+      "baseHashMode": "client-required",
+      "responseHashMode": "next-hash",
+      "conflictBehavior": "upstream-error-preserved",
+      "idempotencyStatus": "unsupported",
+      "rollbackStatus": "unsupported",
+      "auditStatus": "deferred",
+      "contractRefs": [
+        "deck-go/contracts/source/deck-api.contract.ts",
+        "deck-go/contracts/source/deck-config-write-safety.contract.json"
+      ],
+      "backendRefs": [
+        "deck-go/backend/internal/server/inventory.go",
+        "deck-go/backend/internal/runtime/openclaw/gateway_queries.go",
+        "deferred: Phase 4 adds agents_product_actions.go and the shared path allowlist guard"
+      ],
+      "frontendRefs": [
+        "deck-go/frontend-new/src/api.ts",
+        "deck-go/frontend-new/src/components/panels/agents/AgentsPanel.tsx"
+      ],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx"
+      ],
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "pathAllowlist": [
+        "agents.list[id].workspace",
+        "agents.list[id].agentDir",
+        "agents.list[id].runtime",
+        "agents.list[id].sandbox",
+        "agents.list[id].embeddedHarness",
+        "agents.list[id].embeddedPi",
+        "agents.list[id].params"
+      ],
+      "rejectionScenarios": ["models.providers", "bindings", "tools"],
+      "sideEffectRule": "workspace path changes must route through agents.update before applying advanced config patch."
     },
     {
       "id": "approvals.policy.update",

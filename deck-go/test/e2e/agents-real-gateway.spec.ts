@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import {
   authHeaders,
@@ -34,6 +37,7 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
   }, testInfo) => {
     const headers = authHeaders(stack.accessToken);
     const fixture = await createAgentFixture(request, stack, "agents-api", { model: "gpt-5.4" });
+    assertIsolatedConfigPath(stack);
 
     try {
       const runtime = await request.get(`${stack.backendBase}/api/runtime/gateway`, { headers });
@@ -61,6 +65,7 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
         "deck.agents.modelPolicy.get",
         "deck.agents.modelPolicy.set",
         "deck.agents.eventStreams.get",
+        "deck.agents.impactPreview.get",
         "deck.agents.toolPolicy.preview",
         "deck.agents.systemPrompt.preview",
       ]) {
@@ -90,7 +95,10 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
         params: { agentId: fixture.id },
       });
       expect(detail.ok(), `deck agents detail returned ${detail.status()}`).toBe(true);
-      await expect(detail.json()).resolves.toMatchObject({ id: fixture.id });
+      const detailPayload = (await detail.json()) as Record<string, unknown>;
+      expect(detailPayload).toMatchObject({ id: fixture.id });
+      expect(detailPayload).toHaveProperty("inherited");
+      expect(detailPayload).toHaveProperty("impact");
 
       const safeUpdate = await request.patch(
         `${stack.backendBase}/api/agents/${encodeURIComponent(fixture.id)}`,
@@ -111,8 +119,13 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
       expect(protectedDelete.status()).toBeGreaterThanOrEqual(400);
 
       for (const action of [
+        "cognition.get",
+        "workspace.get",
         "skills.get",
         "subagents.get",
+        "conversation.get",
+        "delivery.get",
+        "toolsOverride.get",
         "modelPolicy.get",
         "eventStreams.get",
         "toolPolicy.preview",
@@ -128,6 +141,138 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
           0,
         );
       }
+
+      const impactPreview = await request.post(`${stack.backendBase}/api/deck/agents`, {
+        headers,
+        data: { action: "impactPreview.get", agentId: fixture.id, operation: "delete-agent" },
+      });
+      expect(impactPreview.ok(), `impactPreview.get returned ${impactPreview.status()}`).toBe(true);
+      await expect(impactPreview.json()).resolves.toMatchObject({
+        agentId: fixture.id,
+        operation: "delete-agent",
+      });
+
+      const defaultsCognition = await request.post(
+        `${stack.backendBase}/api/deck/agents/defaults`,
+        {
+          headers,
+          data: { action: "defaults.cognition.get" },
+        },
+      );
+      expect(
+        defaultsCognition.ok(),
+        `defaults.cognition.get returned ${defaultsCognition.status()}`,
+      ).toBe(true);
+      const defaultsPayload = (await defaultsCognition.json()) as { baseHash?: string };
+      expect(defaultsPayload.baseHash, "defaults get must return baseHash").toBeTruthy();
+
+      const defaultsSet = await request.post(`${stack.backendBase}/api/deck/agents/defaults`, {
+        headers,
+        data: {
+          action: "defaults.cognition.set",
+          baseHash: defaultsPayload.baseHash,
+          value: { thinkingDefault: "low" },
+        },
+      });
+      expect(defaultsSet.ok(), `defaults.cognition.set returned ${defaultsSet.status()}`).toBe(
+        true,
+      );
+      const afterDefaultsSet = await readIsolatedOpenClawConfig(stack);
+      expect(readRecord(readRecord(afterDefaultsSet.agents).defaults).thinkingDefault).toBe("low");
+
+      const defaultsAfterSet = await request.post(`${stack.backendBase}/api/deck/agents/defaults`, {
+        headers,
+        data: { action: "defaults.cognition.get" },
+      });
+      expect(
+        defaultsAfterSet.ok(),
+        `defaults.cognition.get after set returned ${defaultsAfterSet.status()}`,
+      ).toBe(true);
+      const defaultsAfterSetPayload = (await defaultsAfterSet.json()) as { baseHash?: string };
+      expect(
+        defaultsAfterSetPayload.baseHash,
+        "defaults reset must get fresh baseHash",
+      ).toBeTruthy();
+
+      const defaultsReset = await request.post(`${stack.backendBase}/api/deck/agents/defaults`, {
+        headers,
+        data: {
+          action: "defaults.cognition.set",
+          baseHash: defaultsAfterSetPayload.baseHash,
+          value: {},
+          reset: ["thinkingDefault"],
+        },
+      });
+      expect(
+        defaultsReset.ok(),
+        `defaults.cognition reset returned ${defaultsReset.status()}`,
+      ).toBe(true);
+      const afterDefaultsReset = await readIsolatedOpenClawConfig(stack);
+      expect(readRecord(readRecord(afterDefaultsReset.agents).defaults).thinkingDefault).toBe(
+        undefined,
+      );
+
+      const staleDefaults = await request.post(`${stack.backendBase}/api/deck/agents/defaults`, {
+        headers,
+        data: {
+          action: "defaults.cognition.set",
+          baseHash: "__deck_go_e2e_invalid_hash__",
+          value: { thinkingDefault: "high" },
+        },
+      });
+      expect(
+        [400, 404, 409, 422, 500, 502, 503],
+        `defaults.cognition stale hash returned ${staleDefaults.status()}`,
+      ).toContain(staleDefaults.status());
+
+      const beforeForgedConfig = await readFile(stack.realE2E!.configPath, "utf8");
+
+      const forgedOutOfScope = await request.post(`${stack.backendBase}/api/deck/agents`, {
+        headers,
+        data: {
+          action: "cognition.set",
+          agentId: fixture.id,
+          baseHash: "syntactically-valid-hash",
+          models: { providers: { invalid: {} } },
+        },
+      });
+      expect(forgedOutOfScope.status(), "forged cognition write should be rejected").toBe(400);
+      await expect(forgedOutOfScope.json()).resolves.toMatchObject({
+        code: "agents_config_path_out_of_scope",
+      });
+      const afterForgedConfig = await readFile(stack.realE2E!.configPath, "utf8");
+      expect(afterForgedConfig).toBe(beforeForgedConfig);
+
+      const subagentsGet = await postDeckAgentsJson(request, stack, {
+        action: "subagents.get",
+        agentId: fixture.id,
+      });
+      const subagentsHash = stringAt(subagentsGet, "configHash");
+      expect(subagentsHash, "subagents.get must return configHash").toBeTruthy();
+      const requireAgentIdSet = await request.post(`${stack.backendBase}/api/deck/agents`, {
+        headers,
+        data: {
+          action: "subagents.set",
+          agentId: fixture.id,
+          allowAgents: ["main"],
+          requireAgentId: true,
+          baseHash: subagentsHash,
+        },
+      });
+      const requireAgentIdText = await requireAgentIdSet.text();
+      expect(
+        requireAgentIdSet.ok(),
+        `subagents.set requireAgentId returned ${requireAgentIdSet.status()}: ${requireAgentIdText}`,
+      ).toBe(true);
+      const subagentsAfterSet = await postDeckAgentsJson(request, stack, {
+        action: "subagents.get",
+        agentId: fixture.id,
+      });
+      expect(subagentsAfterSet.requireAgentId).toBe(true);
+      const afterRequireAgentIdConfig = await readIsolatedOpenClawConfig(stack);
+      expect(
+        readRecord(agentConfigFrom(afterRequireAgentIdConfig, fixture.id).subagents).requireAgentId,
+      ).toBe(true);
 
       const policy = await postDeckAgentsJson(request, stack, {
         action: "modelPolicy.get",
@@ -148,19 +293,16 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
         throw new Error("real modelPolicy test needs at least one configured model");
       }
 
-      const savePolicy = await request.post(`${stack.backendBase}/api/deck/agents`, {
-        headers,
-        data: {
-          action: "modelPolicy.set",
-          target: { kind: "agent-model", key: "agent", agentId: fixture.id },
-          selection: { primary: configuredRef },
-          baseHash: policy.configHash,
-        },
+      const savePolicy = await postDeckAgentsWithRateLimitRetry(request, stack, {
+        action: "modelPolicy.set",
+        target: { kind: "agent-model", key: "agent", agentId: fixture.id },
+        selection: { primary: configuredRef },
+        baseHash: policy.configHash,
       });
-      const saveText = await savePolicy.text();
-      expect(savePolicy.ok(), `modelPolicy.set returned ${savePolicy.status()}: ${saveText}`).toBe(
-        true,
-      );
+      expect(
+        savePolicy.response.ok(),
+        `modelPolicy.set returned ${savePolicy.response.status()}: ${savePolicy.text}`,
+      ).toBe(true);
 
       const stalePolicy = await request.post(`${stack.backendBase}/api/deck/agents`, {
         headers,
@@ -204,10 +346,23 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
             "agents.create",
             "agents.update",
             "agents.delete",
+            "deck.agents.impactPreview.get",
+            "deck.agents.defaults.*",
             "deck.agents.modelPolicy.get",
             "deck.agents.modelPolicy.set",
             "deck.agents.*",
           ],
+          productActions: {
+            impactPreview: impactPreview.status(),
+            defaultsCognitionSet: defaultsSet.status(),
+            defaultsCognitionReset: defaultsReset.status(),
+            forgedOutOfScope: forgedOutOfScope.status(),
+            requireAgentIdSet: requireAgentIdSet.status(),
+          },
+          isolation: {
+            configPath: stack.realE2E?.configPath,
+            workspaceRoot: stack.realE2E?.workspaceRoot,
+          },
           modelPolicy: {
             selectedRef: configuredRef,
             staleHashStatus: stalePolicy.status(),
@@ -329,12 +484,16 @@ test.describe("agents real OpenClaw Gateway contract chain", () => {
           fixture: { id: fixture.id },
           sections: [
             "Overview",
+            "Model",
+            "Workspace",
             "Skills",
             "Subagents",
-            "Tool policy",
-            "System prompt",
+            "Tools",
+            "Conversation",
+            "Delivery",
             "Files",
-            "Event streams",
+            "Routing impact",
+            "Danger zone",
           ],
         },
         testInfo,
@@ -350,12 +509,14 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await page.getByLabel("Emoji").fill("DG");
   await expect(page.getByRole("button", { name: "Save changes" }).first()).toBeEnabled();
 
-  await clickDetailTab(page, "Runtime");
+  await clickDetailTab(page, "Model");
   await expect(page.getByText("Model source")).toBeVisible();
-  await expect(page.getByText("Workspace source")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Model usage policy" })).toBeVisible();
   await expect(page.getByText("Agent runtime model")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Review and save" })).toBeVisible();
+
+  await clickDetailTab(page, "Workspace");
+  await expect(page.getByText("Workspace source")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review and save workspace" })).toBeVisible();
 
   await clickDetailTab(page, "Skills");
   await expect(
@@ -369,13 +530,13 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await page.getByRole("button", { name: "Reload" }).click();
   await expect(page.getByRole("heading", { name: "Subagents" })).toBeVisible();
 
-  await clickDetailTab(page, "Tool policy");
+  await clickDetailTab(page, "Tools");
   await page.getByRole("button", { name: "Recompute" }).click();
-  await expect(page.getByRole("heading", { name: "Tool policy" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tools" })).toBeVisible();
 
-  await clickDetailTab(page, "System prompt");
+  await clickDetailTab(page, "Conversation");
   await page.getByRole("button", { name: "Recompute" }).click();
-  await expect(page.getByRole("heading", { name: "System prompt" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Conversation" })).toBeVisible();
 
   await clickDetailTab(page, "Files");
   await page.getByLabel("File name").fill("MEMORY.md");
@@ -385,12 +546,12 @@ async function exerciseAgentsDetailSections(page: Page, fixture: AgentFixture) {
   await saveFileButton.click();
   await expect(page.getByText("Could not save")).toBeHidden();
 
-  await clickDetailTab(page, "Event streams");
+  await clickDetailTab(page, "Delivery");
   await expect(
     page.getByRole("switch", { name: "Toggle stream agent.status.changed" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Reload" }).click();
-  await expect(page.getByRole("heading", { name: "Event streams" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Delivery" })).toBeVisible();
 
   await clickDetailTab(page, "Routing impact");
   await expect(page.getByRole("button", { name: "Open Routing" })).toBeVisible();
@@ -403,7 +564,7 @@ async function clickDetailTab(page: Page, name: string) {
   const tab = page.getByRole("tab", { name }).first();
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("heading", { name })).toBeVisible();
+  await expect(page.getByRole("heading", { exact: true, name })).toBeVisible();
 }
 
 function recordUnexpected(page: Page, backendBase: string) {
@@ -438,4 +599,82 @@ async function postDeckAgentsJson(
   const action = typeof data.action === "string" ? data.action : "unknown-action";
   expect(response.ok(), `/deck/agents ${action} returned ${response.status()}: ${text}`).toBe(true);
   return JSON.parse(text) as Record<string, unknown>;
+}
+
+async function postDeckAgentsWithRateLimitRetry(
+  request: APIRequestContext,
+  stack: E2EStack,
+  data: Record<string, unknown>,
+) {
+  let last = {
+    response: await request.post(`${stack.backendBase}/api/deck/agents`, {
+      headers: authHeaders(stack.accessToken),
+      data,
+    }),
+    text: "",
+  };
+  last.text = await last.response.text();
+  const retryAfterMs = parseRateLimitRetryAfter(last.text);
+  if (last.response.ok() || retryAfterMs === null) {
+    return last;
+  }
+  await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+  const response = await request.post(`${stack.backendBase}/api/deck/agents`, {
+    headers: authHeaders(stack.accessToken),
+    data,
+  });
+  return { response, text: await response.text() };
+}
+
+function parseRateLimitRetryAfter(text: string) {
+  if (!/rate limit exceeded/i.test(text)) {
+    return null;
+  }
+  const match = text.match(/retry after\s+(\d+)s/i);
+  const seconds = match ? Number(match[1]) : 60;
+  return Math.min(Math.max(seconds + 1, 1), 65) * 1_000;
+}
+
+function assertIsolatedConfigPath(stack: E2EStack) {
+  const isolation = stack.realE2E;
+  if (!isolation) {
+    throw new Error("real agents E2E requires isolated OpenClaw state");
+  }
+  const relative = path.relative(isolation.root, isolation.configPath);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(
+      `refusing to mutate non-isolated OpenClaw config path: ${isolation.configPath}`,
+    );
+  }
+  expect(isolation.configPath).not.toBe(path.join(os.homedir(), ".openclaw", "openclaw.json"));
+  expect(isolation.configPath).toContain("managed-gateway-state");
+}
+
+async function readIsolatedOpenClawConfig(stack: E2EStack) {
+  assertIsolatedConfigPath(stack);
+  return JSON.parse(await readFile(stack.realE2E!.configPath, "utf8")) as Record<string, unknown>;
+}
+
+function readRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+function agentConfigFrom(config: Record<string, unknown>, agentId: string) {
+  const list = readRecord(config.agents).list;
+  if (!Array.isArray(list)) {
+    throw new Error("isolated OpenClaw config does not contain agents.list");
+  }
+  const match = list.find((entry) => readRecord(entry).id === agentId);
+  if (!match) {
+    throw new Error(`agent ${agentId} not found in isolated OpenClaw config`);
+  }
+  return readRecord(match);
+}
+
+function stringAt(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "string" ? value : "";
 }

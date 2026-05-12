@@ -148,6 +148,7 @@
     "recompute": "Recompute",
     "saveChanges": "Save changes",
     "saving": "Saving...",
+    "reset": "Reset",
     "cancel": "Cancel",
     "inherit": "default",
     "yes": "yes",
@@ -219,12 +220,17 @@
     },
     "sections": {
       "overview": "Overview",
+      "model": "Model",
+      "workspace": "Workspace",
       "runtime": "Runtime",
       "skills": "Skills",
       "subagents": "Subagents",
+      "tools": "Tools",
       "toolPolicy": "Tool policy",
+      "conversation": "Conversation",
       "systemPrompt": "System prompt",
       "files": "Files",
+      "delivery": "Delivery",
       "eventStreams": "Event streams",
       "routing": "Routing impact",
       "danger": "Danger zone"
@@ -260,11 +266,40 @@
       "guardsLabel": "Guarded runtime fields",
       "saveGuarded": "Review and save"
     },
+    "model": {
+      "description": "Control runtime model roles and cognition defaults while keeping provider assets in Models.",
+      "protectedMain": "Model changes here affect the protected system/fallback agent.",
+      "thinking": "Thinking"
+    },
+    "workspace": {
+      "description": "Guarded workspace posture, runtime envelope, sandbox, harness, and params.",
+      "protectedMain": "Workspace changes here affect the protected system/fallback agent.",
+      "agentDir": "Agent dir",
+      "runtime": "Runtime",
+      "runtimeConfigured": "configured",
+      "saveGuarded": "Review and save workspace"
+    },
+    "defaults": {
+      "open": "Defaults",
+      "title": "Agent defaults",
+      "description": "Edit the shared fallback configuration used by agents that inherit values.",
+      "navLabel": "Agent defaults sections",
+      "schemaTruth": "AgentDefaultsConfig truth",
+      "sectionsCount": "{count} sections",
+      "overview": "Defaults are top-level fallback values. Fields absent from AgentDefaultsConfig are not rendered.",
+      "schemaTruthLong": "This editor intentionally shows only fields backed by AgentDefaultsConfig and product BFF actions.",
+      "modelDescription": "Global model roles and cognition defaults live here; provider assets remain in Models.",
+      "bucketDescription": "Read and edit this defaults bucket through the agents defaults product action.",
+      "emptyBucket": "No explicit defaults are configured in this bucket.",
+      "workspaceAbsentFields": "agentDir and runtime are per-agent fields, so they are not rendered in defaults.",
+      "conversationAbsentFields": "groupChat is per-agent only, so it is not rendered in defaults."
+    },
     "modelPolicy": {
       "title": "Model usage policy",
       "description": "Agents owns runtime model usage policy. Models owns provider and model assets.",
       "agentGroup": "Selected agent policy",
       "globalGroup": "Global role defaults",
+      "unsupportedGroup": "Schema-absent model fields",
       "modeLabel": "Model policy mode",
       "inherit": "Inherit default",
       "override": "Explicit override",
@@ -287,6 +322,12 @@
       "noConfiguredModels": "No configured model assets are available. Add providers and models in Models before editing policy.",
       "unavailable": "Unavailable references are preserved until replaced: {refs}",
       "unsupported": "Unsupported model-like fields are read-only and not editable here: {fields}",
+      "readOnly": "read-only",
+      "schemaAbsent": "Read-only — not in current schema",
+      "summaryReadonly": "agents.defaults.summaryModel is preserved as unsupported config truth and is not editable from Deck until OpenClaw exposes it in schema.",
+      "manageInDefaults": "Effective default is {value}. Manage this global role in Agent defaults.",
+      "manageDefaults": "Manage in defaults →",
+      "manageProviders": "Manage providers → Models",
       "source": {
         "agent": "agent",
         "default": "default",
@@ -329,7 +370,10 @@
       "explicit": "Explicit list",
       "allowAnyDescription": "Gateway wildcard is active: this agent may delegate to any agent.",
       "narrowingWarning": "Explicit list mode narrows the previous wildcard permission.",
-      "modelPolicyMoved": "Subagent model policy now lives in Runtime → Model usage policy so allow-list editing cannot overwrite model strategy.",
+      "protectedMain": "Subagent changes here affect the protected system/fallback agent.",
+      "modelPolicyMoved": "Subagent model policy now lives in Model → Model usage policy so allow-list editing cannot overwrite model strategy.",
+      "requireAgentId": "Require explicit agent id",
+      "requireAgentIdDescription": "Requests must name the target agent instead of relying on routing fallback.",
       "empty": "No delegatable agents are reported by the runtime.",
       "toggle": "Permit subagent {name}"
     },
@@ -337,10 +381,16 @@
       "description": "Read-only preview of resolved tool policy and provenance.",
       "layer": "{count} rules, effect {effect}"
     },
+    "tools": {
+      "description": "Read-only preview of resolved tool policy and provenance."
+    },
     "systemPrompt": {
       "description": "Read-only preview of resolved system prompt layers and bootstrap files.",
       "totalChars": "{count} chars total",
       "layerMeta": "{chars} chars, {files} files"
+    },
+    "conversation": {
+      "description": "Read-only preview of resolved conversation prompt layers and bootstrap files."
     },
     "files": {
       "description": "Browse, read, and save backend-supported agent workspace files.",
@@ -353,11 +403,45 @@
       "optionDescription": "Declared stream contract",
       "toggle": "Toggle stream {name}"
     },
+    "delivery": {
+      "description": "Configure delivery event streams and heartbeat posture."
+    },
     "routing": {
       "description": "Read-only impact summary for routing and sessions that depend on this agent.",
       "defaultState": "Configured default",
+      "binding": "Binding #{index}",
+      "noSamples": "No routing samples are reported for this agent.",
+      "truncated": "Only a sample of bindings is shown here. View all in Routing →.",
       "ownerCopy": "Routing owns rule editing. Agents only shows impact and links to the owning module.",
       "openRouting": "Open Routing"
+    },
+    "source": {
+      "agent": "Source agent",
+      "default": "Source default",
+      "derived": "Source derived",
+      "gateway": "Source gateway",
+      "unknown": "Source unknown"
+    },
+    "risk": {
+      "confirmLabel": "Risk acknowledgement",
+      "confirmImpact": "I understand this change can affect live agent behavior.",
+      "confirmMain": "I understand main is the protected fallback agent."
+    },
+    "unresolved": {
+      "chip": "⚠ {count} unresolved refs",
+      "title": "Unresolved references",
+      "description": "These references exist in agent config but are not currently resolved by the owning module.",
+      "empty": "No unresolved references are reported.",
+      "install": "Install",
+      "openOwning": "Open owner",
+      "keep": "Keep",
+      "kept": "Kept",
+      "category": {
+        "skills": "Skills",
+        "subagents": "Subagents",
+        "eventStreams": "Channels",
+        "models": "Models"
+      }
     },
     "danger": {
       "description": "Destructive actions are separated from everyday edits and guarded by product safety rules.",
@@ -384,13 +468,20 @@
       "title": "Delete agent",
       "body": "Delete {name}? This removes the agent entry from the runtime configuration.",
       "confirm": "Delete",
+      "confirmIdLabel": "Type the agent id to confirm",
+      "idMismatch": "The typed agent id does not match.",
       "protectedMain": "main is the protected system/fallback agent and cannot be deleted."
+    },
+    "impact": {
+      "loading": "Loading fresh impact preview",
+      "noSpecifics": "No additional impact specifics were reported."
     },
     "errors": {
       "listTitle": "Could not load agents",
       "detailTitle": "Could not load this agent",
       "saveTitle": "Could not save",
       "conflictTitle": "Someone else updated this",
+      "hashRequired": "Config hash is required; reload this section before saving.",
       "fileNameRequired": "File name is required."
     },
     "validation": {

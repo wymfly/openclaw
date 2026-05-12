@@ -43,6 +43,12 @@ deck-go real E2E SHALL record enough context to distinguish deterministic code f
 - **WHEN** a scenario cannot pass because credentials, configured model/channel access, network, runtime startup, or upstream service behavior blocks it after bounded attempts
 - **THEN** evidence SHALL use `handoff-blocked` or `degraded` and include a reason, attempt count, and response/status context when available
 
+#### Scenario: Upstream rate limit is retried once
+
+- **WHEN** real Gateway module E2E receives an upstream rate-limit response with a retry-after duration
+- **THEN** the spec MAY wait for that duration once and retry the same safe request
+- **AND** any remaining failure SHALL be recorded as bounded evidence rather than silently replaced by mock evidence
+
 ### Requirement: Seed uses scenario evidence
 
 deck-go SHALL use the shared scenario evidence helper for the isolated `cpa` + `main` seed.

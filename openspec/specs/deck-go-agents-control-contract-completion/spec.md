@@ -53,3 +53,13 @@ Deck Go SHALL keep the head contract-chain matrix and agents handoff notes synch
 - **WHEN** this child proposal passes validation and is archived
 - **THEN** the agents and subagents matrix rows SHALL remove the platform-control safe-mutation blocker
 - **AND** remaining real mutation blockers SHALL be documented as module-specific deferred or handoff-blocked scenarios
+
+### Requirement: Agents section IA convergence SHALL remain the product control-plane spec
+
+The accepted `deck-go-agents-section-ia-convergence` capability SHALL be the durable product-level contract for the Agents 11-section detail IA, defaults editor, inheritance badges, impact preview, unresolved references, and product write guardrails.
+
+#### Scenario: Agents control implementation changes
+
+- **WHEN** future work changes the Agents detail page, defaults editor, or Agents product write actions
+- **THEN** it SHALL check `openspec/specs/deck-go-agents-section-ia-convergence/spec.md`
+- **AND** it SHALL not reintroduce parallel field ownership or unguarded config writes

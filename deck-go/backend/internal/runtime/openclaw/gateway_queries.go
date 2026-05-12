@@ -448,6 +448,14 @@ func (q *GatewayQueries) DeckAgentsEventStreamsSet(ctx context.Context, body map
 	return q.typed.DeckAgentsEventStreamsSet(ctx, params)
 }
 
+func (q *GatewayQueries) DeckAgentsImpactPreviewGet(ctx context.Context, body map[string]any) (generated.DeckAgentsImpactPreviewGetResult, error) {
+	params, err := typedParamsFromMap[generated.DeckAgentsImpactPreviewGetParams](body)
+	if err != nil {
+		return generated.DeckAgentsImpactPreviewGetResult{}, err
+	}
+	return q.typed.DeckAgentsImpactPreviewGet(ctx, params)
+}
+
 func (q *GatewayQueries) DeckCommandsDiscover(ctx context.Context, body map[string]any) (generated.DeckCommandsDiscoverResult, error) {
 	params, err := typedParamsFromMap[generated.DeckCommandsDiscoverParams](body)
 	if err != nil {

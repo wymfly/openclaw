@@ -7,9 +7,9 @@
   ],
   "generatedAt": "deterministic",
   "totals": {
-    "registeredRoutes": 145,
-    "governedRoutes": 145,
-    "classifiedRoutes": 145,
+    "registeredRoutes": 146,
+    "governedRoutes": 146,
+    "classifiedRoutes": 146,
     "owners": 30,
     "errors": 0
   },
@@ -75,7 +75,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "DELETE /api/cron/{jobId}",
-      "line": 751,
+      "line": 759,
       "method": "DELETE",
       "path": "/api/cron/{jobId}",
       "category": "deck-go-bff",
@@ -170,7 +170,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}",
-      "line": 101,
+      "line": 109,
       "method": "GET",
       "path": "/api/agents/{agentId}",
       "category": "deck-go-bff",
@@ -189,7 +189,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/files",
-      "line": 158,
+      "line": 166,
       "method": "GET",
       "path": "/api/agents/{agentId}/files",
       "category": "deck-go-bff",
@@ -208,7 +208,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/files/*",
-      "line": 218,
+      "line": 226,
       "method": "GET",
       "path": "/api/agents/{agentId}/files/*",
       "category": "deck-go-bff",
@@ -227,7 +227,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/agents/{agentId}/identity",
-      "line": 238,
+      "line": 246,
       "method": "GET",
       "path": "/api/agents/{agentId}/identity",
       "category": "deck-go-bff",
@@ -265,7 +265,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals",
-      "line": 1380,
+      "line": 1429,
       "method": "GET",
       "path": "/api/approvals",
       "category": "deck-go-bff",
@@ -284,7 +284,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/pending",
-      "line": 1410,
+      "line": 1459,
       "method": "GET",
       "path": "/api/approvals/pending",
       "category": "deck-go-bff",
@@ -303,7 +303,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/plugins",
-      "line": 1470,
+      "line": 1519,
       "method": "GET",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
@@ -322,7 +322,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/approvals/policy",
-      "line": 1440,
+      "line": 1489,
       "method": "GET",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",
@@ -393,7 +393,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/channels",
-      "line": 983,
+      "line": 991,
       "method": "GET",
       "path": "/api/channels",
       "category": "deck-go-bff",
@@ -412,7 +412,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/channels/{channelId}/throughput",
-      "line": 1063,
+      "line": 1071,
       "method": "GET",
       "path": "/api/channels/{channelId}/throughput",
       "category": "deck-go-bff",
@@ -488,7 +488,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/commands",
-      "line": 543,
+      "line": 551,
       "method": "GET",
       "path": "/api/commands",
       "category": "documented-exception",
@@ -526,7 +526,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron",
-      "line": 670,
+      "line": 678,
       "method": "GET",
       "path": "/api/cron",
       "category": "deck-go-bff",
@@ -545,7 +545,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron/{jobId}/runs",
-      "line": 794,
+      "line": 802,
       "method": "GET",
       "path": "/api/cron/{jobId}/runs",
       "category": "deck-go-bff",
@@ -564,7 +564,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/cron/status",
-      "line": 831,
+      "line": 839,
       "method": "GET",
       "path": "/api/cron/status",
       "category": "deck-go-bff",
@@ -583,7 +583,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/agents",
-      "line": 1182,
+      "line": 1190,
       "method": "GET",
       "path": "/api/deck/agents",
       "category": "deck-go-bff",
@@ -602,7 +602,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/identity",
-      "line": 1500,
+      "line": 1549,
       "method": "GET",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
@@ -624,7 +624,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/plugins",
-      "line": 1167,
+      "line": 1175,
       "method": "GET",
       "path": "/api/deck/plugins",
       "category": "deck-go-bff",
@@ -643,7 +643,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/routing",
-      "line": 1550,
+      "line": 1599,
       "method": "GET",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
@@ -665,7 +665,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/subagents",
-      "line": 1625,
+      "line": 1674,
       "method": "GET",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
@@ -684,7 +684,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/deck/threads",
-      "line": 1703,
+      "line": 1752,
       "method": "GET",
       "path": "/api/deck/threads",
       "category": "deck-go-bff",
@@ -706,7 +706,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/devices",
-      "line": 428,
+      "line": 436,
       "method": "GET",
       "path": "/api/devices",
       "category": "deck-go-bff",
@@ -722,7 +722,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/devices/self",
-      "line": 534,
+      "line": 542,
       "method": "GET",
       "path": "/api/devices/self",
       "category": "deck-go-bff",
@@ -842,7 +842,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/logs",
-      "line": 1725,
+      "line": 1774,
       "method": "GET",
       "path": "/api/logs",
       "category": "deck-go-bff",
@@ -961,7 +961,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/models/config",
-      "line": 946,
+      "line": 954,
       "method": "GET",
       "path": "/api/models/config",
       "category": "deck-go-bff",
@@ -1056,7 +1056,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/nodes",
-      "line": 554,
+      "line": 562,
       "method": "GET",
       "path": "/api/nodes",
       "category": "deck-go-bff",
@@ -1075,7 +1075,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/nodes/pair",
-      "line": 612,
+      "line": 620,
       "method": "GET",
       "path": "/api/nodes/pair",
       "category": "deck-go-bff",
@@ -1174,7 +1174,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/sessions",
-      "line": 1107,
+      "line": 1115,
       "method": "GET",
       "path": "/api/sessions",
       "category": "deck-go-bff",
@@ -1193,7 +1193,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/sessions/{sessionKey}",
-      "line": 1142,
+      "line": 1150,
       "method": "GET",
       "path": "/api/sessions/{sessionKey}",
       "category": "deck-go-bff",
@@ -1244,7 +1244,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/skills",
-      "line": 279,
+      "line": 287,
       "method": "GET",
       "path": "/api/skills",
       "category": "deck-go-bff",
@@ -1319,7 +1319,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/sessions",
-      "line": 881,
+      "line": 889,
       "method": "GET",
       "path": "/api/usage/sessions",
       "category": "deck-go-bff",
@@ -1338,7 +1338,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/sessions/logs",
-      "line": 909,
+      "line": 917,
       "method": "GET",
       "path": "/api/usage/sessions/logs",
       "category": "deck-go-bff",
@@ -1357,7 +1357,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "GET /api/usage/timeseries",
-      "line": 929,
+      "line": 937,
       "method": "GET",
       "path": "/api/usage/timeseries",
       "category": "deck-go-bff",
@@ -1414,7 +1414,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/agents/{agentId}",
-      "line": 127,
+      "line": 135,
       "method": "PATCH",
       "path": "/api/agents/{agentId}",
       "category": "deck-go-bff",
@@ -1452,7 +1452,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/channels/{channelId}",
-      "line": 1071,
+      "line": 1079,
       "method": "PATCH",
       "path": "/api/channels/{channelId}",
       "category": "deck-go-bff",
@@ -1471,7 +1471,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/cron/{jobId}",
-      "line": 727,
+      "line": 735,
       "method": "PATCH",
       "path": "/api/cron/{jobId}",
       "category": "deck-go-bff",
@@ -1490,7 +1490,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/models/config",
-      "line": 957,
+      "line": 965,
       "method": "PATCH",
       "path": "/api/models/config",
       "category": "deck-go-bff",
@@ -1509,7 +1509,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PATCH /api/skills/{skillKey}",
-      "line": 302,
+      "line": 310,
       "method": "PATCH",
       "path": "/api/skills/{skillKey}",
       "category": "deck-go-bff",
@@ -1585,7 +1585,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/agents/{agentId}/files",
-      "line": 177,
+      "line": 185,
       "method": "POST",
       "path": "/api/agents/{agentId}/files",
       "category": "deck-go-bff",
@@ -1623,7 +1623,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals",
-      "line": 1391,
+      "line": 1440,
       "method": "POST",
       "path": "/api/approvals",
       "category": "deck-go-bff",
@@ -1642,7 +1642,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/approvals/plugins",
-      "line": 1481,
+      "line": 1530,
       "method": "POST",
       "path": "/api/approvals/plugins",
       "category": "deck-go-bff",
@@ -1661,7 +1661,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/channels/{channelId}/logout",
-      "line": 1003,
+      "line": 1011,
       "method": "POST",
       "path": "/api/channels/{channelId}/logout",
       "category": "deck-go-bff",
@@ -1680,7 +1680,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/channels/{channelId}/test",
-      "line": 1019,
+      "line": 1027,
       "method": "POST",
       "path": "/api/channels/{channelId}/test",
       "category": "deck-go-bff",
@@ -1984,7 +1984,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/cron",
-      "line": 708,
+      "line": 716,
       "method": "POST",
       "path": "/api/cron",
       "category": "deck-go-bff",
@@ -2003,7 +2003,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/cron/{jobId}/run",
-      "line": 767,
+      "line": 775,
       "method": "POST",
       "path": "/api/cron/{jobId}/run",
       "category": "deck-go-bff",
@@ -2022,9 +2022,28 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/agents",
-      "line": 1201,
+      "line": 1209,
       "method": "POST",
       "path": "/api/deck/agents",
+      "category": "deck-go-bff",
+      "contractAuthority": "deck-api-dto",
+      "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
+      "frontendFacade": ["deck-go/frontend-new/src/api.ts"],
+      "migrationTarget": "Keep `fetchDeckJson`",
+      "module": "agents",
+      "owner": "agents",
+      "realEvidence": ["deck-go/test/e2e/agents-real-gateway.spec.ts"],
+      "mockEvidence": [
+        "deck-go/frontend-new/src/components/panels/agents/__tests__/AgentsPanel.test.tsx",
+        "deck-go/test/e2e/agents-visual.spec.ts"
+      ]
+    },
+    {
+      "file": "deck-go/backend/internal/server/inventory.go",
+      "key": "POST /api/deck/agents/defaults",
+      "line": 1353,
+      "method": "POST",
+      "path": "/api/deck/agents/defaults",
       "category": "deck-go-bff",
       "contractAuthority": "deck-api-dto",
       "contractRefs": ["deck-go/contracts/source/deck-api.contract.ts"],
@@ -2059,7 +2078,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/commands/discover",
-      "line": 1336,
+      "line": 1385,
       "method": "POST",
       "path": "/api/deck/commands/discover",
       "category": "gateway-protocol-adapter",
@@ -2078,7 +2097,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/identity",
-      "line": 1511,
+      "line": 1560,
       "method": "POST",
       "path": "/api/deck/identity",
       "category": "deck-go-bff",
@@ -2100,7 +2119,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/routing",
-      "line": 1572,
+      "line": 1621,
       "method": "POST",
       "path": "/api/deck/routing",
       "category": "deck-go-bff",
@@ -2122,7 +2141,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/subagents",
-      "line": 1657,
+      "line": 1706,
       "method": "POST",
       "path": "/api/deck/subagents",
       "category": "deck-go-bff",
@@ -2141,7 +2160,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/deck/tools-effective",
-      "line": 1358,
+      "line": 1407,
       "method": "POST",
       "path": "/api/deck/tools-effective",
       "category": "documented-exception",
@@ -2160,7 +2179,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/approve",
-      "line": 439,
+      "line": 447,
       "method": "POST",
       "path": "/api/devices/approve",
       "category": "deck-go-bff",
@@ -2176,7 +2195,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/reject",
-      "line": 458,
+      "line": 466,
       "method": "POST",
       "path": "/api/devices/reject",
       "category": "deck-go-bff",
@@ -2192,7 +2211,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/remove",
-      "line": 477,
+      "line": 485,
       "method": "POST",
       "path": "/api/devices/remove",
       "category": "deck-go-bff",
@@ -2208,7 +2227,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/token/revoke",
-      "line": 515,
+      "line": 523,
       "method": "POST",
       "path": "/api/devices/token/revoke",
       "category": "deck-go-bff",
@@ -2224,7 +2243,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/devices/token/rotate",
-      "line": 496,
+      "line": 504,
       "method": "POST",
       "path": "/api/devices/token/rotate",
       "category": "deck-go-bff",
@@ -2259,7 +2278,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/exec/approval",
-      "line": 1421,
+      "line": 1470,
       "method": "POST",
       "path": "/api/exec/approval",
       "category": "deck-go-bff",
@@ -2449,7 +2468,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/nodes",
-      "line": 565,
+      "line": 573,
       "method": "POST",
       "path": "/api/nodes",
       "category": "deck-go-bff",
@@ -2468,7 +2487,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/nodes/pair",
-      "line": 623,
+      "line": 631,
       "method": "POST",
       "path": "/api/nodes/pair",
       "category": "deck-go-bff",
@@ -2551,7 +2570,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/hub",
-      "line": 366,
+      "line": 374,
       "method": "POST",
       "path": "/api/skills/hub",
       "category": "deck-go-bff",
@@ -2570,7 +2589,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/install",
-      "line": 327,
+      "line": 335,
       "method": "POST",
       "path": "/api/skills/install",
       "category": "deck-go-bff",
@@ -2589,7 +2608,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/skills/update-clawhub",
-      "line": 346,
+      "line": 354,
       "method": "POST",
       "path": "/api/skills/update-clawhub",
       "category": "deck-go-bff",
@@ -2608,7 +2627,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "POST /api/tools/catalog",
-      "line": 257,
+      "line": 265,
       "method": "POST",
       "path": "/api/tools/catalog",
       "category": "documented-exception",
@@ -2684,7 +2703,7 @@
     {
       "file": "deck-go/backend/internal/server/inventory.go",
       "key": "PUT /api/approvals/policy",
-      "line": 1451,
+      "line": 1500,
       "method": "PUT",
       "path": "/api/approvals/policy",
       "category": "deck-go-bff",

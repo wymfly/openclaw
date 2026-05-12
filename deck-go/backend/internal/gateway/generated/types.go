@@ -670,7 +670,8 @@ type DeckAgentsDetailParams struct {
 }
 
 type DeckAgentsDetailResult struct {
-	ActiveSubagentCount int `json:"activeSubagentCount"`
+	ActiveSubagentCount int    `json:"activeSubagentCount"`
+	AgentDir            string `json:"agentDir,omitempty"`
 	AvailableActions    struct {
 		CanChangeDefault     bool     `json:"canChangeDefault"`
 		CanDelete            bool     `json:"canDelete"`
@@ -689,42 +690,327 @@ type DeckAgentsDetailResult struct {
 		Subagents    string `json:"subagents,omitempty"`
 		Workspace    string `json:"workspace,omitempty"`
 	} `json:"effectiveSources,omitempty"`
-	FallbackModels  []string `json:"fallbackModels,omitempty"`
-	FastModeDefault bool     `json:"fastModeDefault,omitempty"`
+	EmbeddedHarness map[string]any `json:"embeddedHarness,omitempty"`
+	EmbeddedPi      map[string]any `json:"embeddedPi,omitempty"`
+	EventStreams    []string       `json:"eventStreams,omitempty"`
+	FallbackModels  []string       `json:"fallbackModels,omitempty"`
+	FastModeDefault bool           `json:"fastModeDefault,omitempty"`
+	GroupChat       map[string]any `json:"groupChat,omitempty"`
 	GuardedEdits    []struct {
 		Field                string `json:"field"`
 		Reason               string `json:"reason"`
 		RequiresConfirmation bool   `json:"requiresConfirmation"`
 		Risk                 string `json:"risk"`
 	} `json:"guardedEdits,omitempty"`
-	Id             string `json:"id"`
-	IdentityExists bool   `json:"identityExists"`
+	Heartbeat      map[string]any `json:"heartbeat,omitempty"`
+	HumanDelay     map[string]any `json:"humanDelay,omitempty"`
+	Id             string         `json:"id"`
+	IdentityExists bool           `json:"identityExists"`
 	Impact         struct {
 		ActiveSubagentCount int  `json:"activeSubagentCount,omitempty"`
+		Available           bool `json:"available,omitempty"`
 		BindingCount        int  `json:"bindingCount,omitempty"`
-		DeleteRemovesFiles  bool `json:"deleteRemovesFiles"`
-		SessionCount        int  `json:"sessionCount,omitempty"`
-		WorkspaceFileCount  int  `json:"workspaceFileCount,omitempty"`
+		Bindings            struct {
+			Count   int `json:"count"`
+			Samples []struct {
+				AccountId    string         `json:"accountId,omitempty"`
+				BindingIndex int            `json:"bindingIndex"`
+				Channel      string         `json:"channel,omitempty"`
+				GuildId      string         `json:"guildId,omitempty"`
+				Peer         map[string]any `json:"peer,omitempty"`
+				Roles        []string       `json:"roles,omitempty"`
+				Summary      string         `json:"summary,omitempty"`
+				TeamId       string         `json:"teamId,omitempty"`
+				Type         string         `json:"type,omitempty"`
+			} `json:"samples"`
+			Truncated bool `json:"truncated,omitempty"`
+		} `json:"bindings,omitempty"`
+		CapturedAt         string `json:"capturedAt,omitempty"`
+		DeleteRemovesFiles bool   `json:"deleteRemovesFiles"`
+		Files              struct {
+			BootstrapPresent bool `json:"bootstrapPresent,omitempty"`
+			Total            int  `json:"total"`
+			Truncated        bool `json:"truncated,omitempty"`
+		} `json:"files,omitempty"`
+		SessionCount int `json:"sessionCount,omitempty"`
+		Sessions     struct {
+			Active    int  `json:"active,omitempty"`
+			Total     int  `json:"total"`
+			Truncated bool `json:"truncated,omitempty"`
+		} `json:"sessions,omitempty"`
+		UnavailableReason  string `json:"unavailableReason,omitempty"`
+		WorkspaceFileCount int    `json:"workspaceFileCount,omitempty"`
 	} `json:"impact,omitempty"`
-	IsConfiguredDefault bool     `json:"isConfiguredDefault"`
-	IsDefault           bool     `json:"isDefault"`
-	IsMainProtected     bool     `json:"isMainProtected"`
-	MainKey             string   `json:"mainKey,omitempty"`
-	Model               string   `json:"model,omitempty"`
-	Name                string   `json:"name,omitempty"`
-	ProtectedReasons    []string `json:"protectedReasons,omitempty"`
-	ReasoningDefault    string   `json:"reasoningDefault,omitempty"`
-	Sandbox             any      `json:"sandbox,omitempty"`
-	SessionCount        int      `json:"sessionCount"`
-	SkillMode           string   `json:"skillMode"`
-	Subagents           struct {
+	Inherited struct {
+		EmbeddedHarness struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"embeddedHarness,omitempty"`
+		EmbeddedHarnessFallback struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"embeddedHarnessFallback,omitempty"`
+		EmbeddedHarnessRuntime struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"embeddedHarnessRuntime,omitempty"`
+		EmbeddedPi struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"embeddedPi,omitempty"`
+		EmbeddedPiExecutionContract struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"embeddedPiExecutionContract,omitempty"`
+		FastModeDefault struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"fastModeDefault,omitempty"`
+		GroupChat struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"groupChat,omitempty"`
+		Heartbeat struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"heartbeat,omitempty"`
+		HeartbeatPrompt struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"heartbeatPrompt,omitempty"`
+		HumanDelay struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"humanDelay,omitempty"`
+		HumanDelayMode struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"humanDelayMode,omitempty"`
+		MemorySearch struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"memorySearch,omitempty"`
+		MemorySearchSync struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"memorySearchSync,omitempty"`
+		Params struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"params,omitempty"`
+		ReasoningDefault struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"reasoningDefault,omitempty"`
+		Sandbox struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"sandbox,omitempty"`
+		SandboxDocker struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"sandboxDocker,omitempty"`
+		SandboxScope struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"sandboxScope,omitempty"`
+		Subagents struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"subagents,omitempty"`
+		SubagentsAllowAgents struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"subagentsAllowAgents,omitempty"`
+		SubagentsLimits struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"subagentsLimits,omitempty"`
+		SubagentsModel struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"subagentsModel,omitempty"`
+		SubagentsRequireAgentId struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"subagentsRequireAgentId,omitempty"`
+		SystemPromptOverride struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"systemPromptOverride,omitempty"`
+		ThinkingDefault struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"thinkingDefault,omitempty"`
+		VerboseDefault struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"verboseDefault,omitempty"`
+		Workspace struct {
+			CanReset       bool   `json:"canReset"`
+			Effective      any    `json:"effective,omitempty"`
+			Fallback       any    `json:"fallback,omitempty"`
+			FallbackReason string `json:"fallbackReason,omitempty"`
+			HasOverride    bool   `json:"hasOverride"`
+			Source         string `json:"source"`
+		} `json:"workspace,omitempty"`
+	} `json:"inherited,omitempty"`
+	IsConfiguredDefault bool           `json:"isConfiguredDefault"`
+	IsDefault           bool           `json:"isDefault"`
+	IsMainProtected     bool           `json:"isMainProtected"`
+	MainKey             string         `json:"mainKey,omitempty"`
+	MemorySearch        map[string]any `json:"memorySearch,omitempty"`
+	Model               string         `json:"model,omitempty"`
+	Name                string         `json:"name,omitempty"`
+	Params              map[string]any `json:"params,omitempty"`
+	ProtectedReasons    []string       `json:"protectedReasons,omitempty"`
+	ReasoningDefault    string         `json:"reasoningDefault,omitempty"`
+	Runtime             struct {
+		Acp struct {
+			Agent   string `json:"agent,omitempty"`
+			Backend string `json:"backend,omitempty"`
+			Cwd     string `json:"cwd,omitempty"`
+			Mode    string `json:"mode,omitempty"`
+		} `json:"acp,omitempty"`
+		Type string `json:"type"`
+	} `json:"runtime,omitempty"`
+	Sandbox      any    `json:"sandbox,omitempty"`
+	SessionCount int    `json:"sessionCount"`
+	SkillMode    string `json:"skillMode"`
+	Subagents    struct {
 		AllowAgents                  []string `json:"allowAgents"`
 		EffectiveMaxChildrenPerAgent int      `json:"effectiveMaxChildrenPerAgent"`
 		EffectiveMaxSpawnDepth       int      `json:"effectiveMaxSpawnDepth"`
 		Model                        string   `json:"model,omitempty"`
 	} `json:"subagents"`
-	TotalAvailableSkills int    `json:"totalAvailableSkills"`
-	Workspace            string `json:"workspace"`
+	SystemPromptOverride string         `json:"systemPromptOverride,omitempty"`
+	ThinkingDefault      string         `json:"thinkingDefault,omitempty"`
+	Tools                map[string]any `json:"tools,omitempty"`
+	TotalAvailableSkills int            `json:"totalAvailableSkills"`
+	UnresolvedReferences struct {
+		EventStreams []struct {
+			EventStream string `json:"eventStream"`
+			Reason      string `json:"reason"`
+		} `json:"eventStreams,omitempty"`
+		Models []struct {
+			Model  string `json:"model"`
+			Reason string `json:"reason"`
+		} `json:"models,omitempty"`
+		Skills []struct {
+			Key    string `json:"key"`
+			Reason string `json:"reason"`
+		} `json:"skills,omitempty"`
+		Subagents []struct {
+			AgentId string `json:"agentId"`
+			Reason  string `json:"reason"`
+		} `json:"subagents,omitempty"`
+	} `json:"unresolvedReferences,omitempty"`
+	VerboseDefault string `json:"verboseDefault,omitempty"`
+	Workspace      string `json:"workspace"`
 }
 
 type DeckAgentsEventStreamsGetParams struct {
@@ -749,6 +1035,56 @@ type DeckAgentsEventStreamsSetResult struct {
 	ConfigHash   string   `json:"configHash"`
 	EventStreams []string `json:"eventStreams"`
 	Ok           bool     `json:"ok"`
+}
+
+type DeckAgentsImpactPreviewGetParams struct {
+	AgentId   string         `json:"agentId"`
+	BaseHash  string         `json:"baseHash,omitempty"`
+	Operation string         `json:"operation"`
+	Proposed  map[string]any `json:"proposed,omitempty"`
+}
+
+type DeckAgentsImpactPreviewGetResult struct {
+	AgentId                 string `json:"agentId"`
+	BaseHash                string `json:"baseHash,omitempty"`
+	CanProceedWithoutImpact bool   `json:"canProceedWithoutImpact"`
+	Impact                  struct {
+		ActiveSubagentCount int  `json:"activeSubagentCount,omitempty"`
+		Available           bool `json:"available,omitempty"`
+		BindingCount        int  `json:"bindingCount,omitempty"`
+		Bindings            struct {
+			Count   int `json:"count"`
+			Samples []struct {
+				AccountId    string         `json:"accountId,omitempty"`
+				BindingIndex int            `json:"bindingIndex"`
+				Channel      string         `json:"channel,omitempty"`
+				GuildId      string         `json:"guildId,omitempty"`
+				Peer         map[string]any `json:"peer,omitempty"`
+				Roles        []string       `json:"roles,omitempty"`
+				Summary      string         `json:"summary,omitempty"`
+				TeamId       string         `json:"teamId,omitempty"`
+				Type         string         `json:"type,omitempty"`
+			} `json:"samples"`
+			Truncated bool `json:"truncated,omitempty"`
+		} `json:"bindings,omitempty"`
+		CapturedAt         string `json:"capturedAt,omitempty"`
+		DeleteRemovesFiles bool   `json:"deleteRemovesFiles"`
+		Files              struct {
+			BootstrapPresent bool `json:"bootstrapPresent,omitempty"`
+			Total            int  `json:"total"`
+			Truncated        bool `json:"truncated,omitempty"`
+		} `json:"files,omitempty"`
+		SessionCount int `json:"sessionCount,omitempty"`
+		Sessions     struct {
+			Active    int  `json:"active,omitempty"`
+			Total     int  `json:"total"`
+			Truncated bool `json:"truncated,omitempty"`
+		} `json:"sessions,omitempty"`
+		UnavailableReason  string `json:"unavailableReason,omitempty"`
+		WorkspaceFileCount int    `json:"workspaceFileCount,omitempty"`
+	} `json:"impact"`
+	Operation     string   `json:"operation"`
+	RiskSpecifics []string `json:"riskSpecifics"`
 }
 
 type DeckAgentsModelPolicyGetParams struct {
@@ -875,21 +1211,24 @@ type DeckAgentsSubagentsGetResult struct {
 	EffectiveMaxSpawnDepth       int    `json:"effectiveMaxSpawnDepth"`
 	EffectiveThinking            any    `json:"effectiveThinking,omitempty"`
 	Model                        string `json:"model,omitempty"`
+	RequireAgentId               bool   `json:"requireAgentId,omitempty"`
 }
 
 type DeckAgentsSubagentsSetParams struct {
-	AgentId     string   `json:"agentId"`
-	AllowAgents []string `json:"allowAgents"`
-	BaseHash    string   `json:"baseHash"`
-	Model       string   `json:"model,omitempty"`
+	AgentId        string   `json:"agentId"`
+	AllowAgents    []string `json:"allowAgents"`
+	BaseHash       string   `json:"baseHash"`
+	Model          string   `json:"model,omitempty"`
+	RequireAgentId bool     `json:"requireAgentId,omitempty"`
 }
 
 type DeckAgentsSubagentsSetResult struct {
-	AgentId     string   `json:"agentId"`
-	AllowAgents []string `json:"allowAgents"`
-	ConfigHash  string   `json:"configHash"`
-	Model       string   `json:"model,omitempty"`
-	Ok          bool     `json:"ok"`
+	AgentId        string   `json:"agentId"`
+	AllowAgents    []string `json:"allowAgents"`
+	ConfigHash     string   `json:"configHash"`
+	Model          string   `json:"model,omitempty"`
+	Ok             bool     `json:"ok"`
+	RequireAgentId bool     `json:"requireAgentId,omitempty"`
 }
 
 type DeckAgentsSystemPromptPreviewParams struct {
@@ -1457,329 +1796,4 @@ type DeviceTokenRotateResult struct {
 	RotatedAtMs int      `json:"rotatedAtMs"`
 	Scopes      []string `json:"scopes"`
 	Token       string   `json:"token"`
-}
-
-type DoctorMemoryBackfillDreamDiaryResult struct {
-	Action                   string   `json:"action"`
-	AgentId                  string   `json:"agentId"`
-	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
-	ArchiveDir               string   `json:"archiveDir,omitempty"`
-	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
-	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
-	Changed                  bool     `json:"changed,omitempty"`
-	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
-	Found                    bool     `json:"found,omitempty"`
-	KeptEntries              int      `json:"keptEntries,omitempty"`
-	Path                     string   `json:"path,omitempty"`
-	RemovedEntries           int      `json:"removedEntries,omitempty"`
-	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
-	Replaced                 int      `json:"replaced,omitempty"`
-	ScannedFiles             int      `json:"scannedFiles,omitempty"`
-	Warnings                 []string `json:"warnings,omitempty"`
-	Written                  int      `json:"written,omitempty"`
-}
-
-type DoctorMemoryDedupeDreamDiaryResult struct {
-	Action                   string   `json:"action"`
-	AgentId                  string   `json:"agentId"`
-	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
-	ArchiveDir               string   `json:"archiveDir,omitempty"`
-	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
-	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
-	Changed                  bool     `json:"changed,omitempty"`
-	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
-	Found                    bool     `json:"found,omitempty"`
-	KeptEntries              int      `json:"keptEntries,omitempty"`
-	Path                     string   `json:"path,omitempty"`
-	RemovedEntries           int      `json:"removedEntries,omitempty"`
-	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
-	Replaced                 int      `json:"replaced,omitempty"`
-	ScannedFiles             int      `json:"scannedFiles,omitempty"`
-	Warnings                 []string `json:"warnings,omitempty"`
-	Written                  int      `json:"written,omitempty"`
-}
-
-type DoctorMemoryDreamDiaryResult struct {
-	AgentId     string `json:"agentId"`
-	Content     string `json:"content,omitempty"`
-	Found       bool   `json:"found"`
-	Path        string `json:"path"`
-	UpdatedAtMs int    `json:"updatedAtMs,omitempty"`
-}
-
-type DoctorMemoryRepairDreamingArtifactsResult struct {
-	Action                   string   `json:"action"`
-	AgentId                  string   `json:"agentId"`
-	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
-	ArchiveDir               string   `json:"archiveDir,omitempty"`
-	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
-	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
-	Changed                  bool     `json:"changed,omitempty"`
-	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
-	Found                    bool     `json:"found,omitempty"`
-	KeptEntries              int      `json:"keptEntries,omitempty"`
-	Path                     string   `json:"path,omitempty"`
-	RemovedEntries           int      `json:"removedEntries,omitempty"`
-	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
-	Replaced                 int      `json:"replaced,omitempty"`
-	ScannedFiles             int      `json:"scannedFiles,omitempty"`
-	Warnings                 []string `json:"warnings,omitempty"`
-	Written                  int      `json:"written,omitempty"`
-}
-
-type DoctorMemoryResetDreamDiaryResult struct {
-	Action                   string   `json:"action"`
-	AgentId                  string   `json:"agentId"`
-	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
-	ArchiveDir               string   `json:"archiveDir,omitempty"`
-	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
-	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
-	Changed                  bool     `json:"changed,omitempty"`
-	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
-	Found                    bool     `json:"found,omitempty"`
-	KeptEntries              int      `json:"keptEntries,omitempty"`
-	Path                     string   `json:"path,omitempty"`
-	RemovedEntries           int      `json:"removedEntries,omitempty"`
-	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
-	Replaced                 int      `json:"replaced,omitempty"`
-	ScannedFiles             int      `json:"scannedFiles,omitempty"`
-	Warnings                 []string `json:"warnings,omitempty"`
-	Written                  int      `json:"written,omitempty"`
-}
-
-type DoctorMemoryResetGroundedShortTermResult struct {
-	Action                   string   `json:"action"`
-	AgentId                  string   `json:"agentId"`
-	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
-	ArchiveDir               string   `json:"archiveDir,omitempty"`
-	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
-	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
-	Changed                  bool     `json:"changed,omitempty"`
-	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
-	Found                    bool     `json:"found,omitempty"`
-	KeptEntries              int      `json:"keptEntries,omitempty"`
-	Path                     string   `json:"path,omitempty"`
-	RemovedEntries           int      `json:"removedEntries,omitempty"`
-	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
-	Replaced                 int      `json:"replaced,omitempty"`
-	ScannedFiles             int      `json:"scannedFiles,omitempty"`
-	Warnings                 []string `json:"warnings,omitempty"`
-	Written                  int      `json:"written,omitempty"`
-}
-
-type DoctorMemoryStatusResult struct {
-	AgentId   string `json:"agentId"`
-	Embedding struct {
-		Error string `json:"error,omitempty"`
-		Ok    bool   `json:"ok"`
-	} `json:"embedding"`
-	Provider string `json:"provider,omitempty"`
-}
-
-type ExecApprovalListParams = map[string]any
-
-type ExecApprovalListResult = []struct {
-	CreatedAtMs int    `json:"createdAtMs"`
-	ExpiresAtMs int    `json:"expiresAtMs"`
-	Id          string `json:"id"`
-	Request     any    `json:"request"`
-}
-
-type ExecApprovalRequestParams struct {
-	AgentId       string            `json:"agentId,omitempty"`
-	Ask           string            `json:"ask,omitempty"`
-	Command       string            `json:"command,omitempty"`
-	CommandArgv   []string          `json:"commandArgv,omitempty"`
-	Cwd           string            `json:"cwd,omitempty"`
-	Env           map[string]string `json:"env,omitempty"`
-	Host          string            `json:"host,omitempty"`
-	Id            string            `json:"id,omitempty"`
-	NodeId        string            `json:"nodeId,omitempty"`
-	ResolvedPath  string            `json:"resolvedPath,omitempty"`
-	Security      string            `json:"security,omitempty"`
-	SessionKey    string            `json:"sessionKey,omitempty"`
-	SystemRunPlan struct {
-		AgentId            string   `json:"agentId"`
-		Argv               []string `json:"argv"`
-		CommandPreview     string   `json:"commandPreview,omitempty"`
-		CommandText        string   `json:"commandText"`
-		Cwd                string   `json:"cwd"`
-		MutableFileOperand struct {
-			ArgvIndex int    `json:"argvIndex"`
-			Path      string `json:"path"`
-			Sha256    string `json:"sha256"`
-		} `json:"mutableFileOperand,omitempty"`
-		SessionKey string `json:"sessionKey"`
-	} `json:"systemRunPlan,omitempty"`
-	TimeoutMs           int    `json:"timeoutMs,omitempty"`
-	TurnSourceAccountId string `json:"turnSourceAccountId,omitempty"`
-	TurnSourceChannel   string `json:"turnSourceChannel,omitempty"`
-	TurnSourceThreadId  any    `json:"turnSourceThreadId,omitempty"`
-	TurnSourceTo        string `json:"turnSourceTo,omitempty"`
-	TwoPhase            bool   `json:"twoPhase,omitempty"`
-}
-
-type ExecApprovalRequestResult struct {
-	CreatedAtMs int    `json:"createdAtMs,omitempty"`
-	Decision    string `json:"decision,omitempty"`
-	ExpiresAtMs int    `json:"expiresAtMs,omitempty"`
-	Id          string `json:"id"`
-	Status      string `json:"status,omitempty"`
-}
-
-type ExecApprovalResolveParams struct {
-	Decision string `json:"decision"`
-	Id       string `json:"id"`
-}
-
-type ExecApprovalResolveResult struct {
-	Ok bool `json:"ok"`
-}
-
-type ExecApprovalWaitDecisionParams struct {
-	Id string `json:"id"`
-}
-
-type ExecApprovalWaitDecisionResult struct {
-	CreatedAtMs int    `json:"createdAtMs,omitempty"`
-	Decision    string `json:"decision,omitempty"`
-	ExpiresAtMs int    `json:"expiresAtMs,omitempty"`
-	Id          string `json:"id"`
-}
-
-type ExecApprovalsGetParams = map[string]any
-
-type ExecApprovalsGetResult struct {
-	Exists bool `json:"exists"`
-	File   struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-	Hash string `json:"hash"`
-	Path string `json:"path"`
-}
-
-type ExecApprovalsNodeGetParams struct {
-	NodeId string `json:"nodeId"`
-}
-
-type ExecApprovalsNodeGetResult struct {
-	Exists bool `json:"exists"`
-	File   struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-	Hash string `json:"hash"`
-	Path string `json:"path"`
-}
-
-type ExecApprovalsNodeSetParams struct {
-	BaseHash string `json:"baseHash,omitempty"`
-	File     struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-	NodeId string `json:"nodeId"`
-}
-
-type ExecApprovalsNodeSetResult struct {
-	Exists bool `json:"exists"`
-	File   struct {
-		Agents map[string]struct {
-			Allowlist []struct {
-				ArgPattern       string `json:"argPattern,omitempty"`
-				Id               string `json:"id,omitempty"`
-				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
-				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
-				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
-				Pattern          string `json:"pattern"`
-			} `json:"allowlist,omitempty"`
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"agents,omitempty"`
-		Defaults struct {
-			Ask             string `json:"ask,omitempty"`
-			AskFallback     string `json:"askFallback,omitempty"`
-			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
-			Security        string `json:"security,omitempty"`
-		} `json:"defaults,omitempty"`
-		Socket struct {
-			Path  string `json:"path,omitempty"`
-			Token string `json:"token,omitempty"`
-		} `json:"socket,omitempty"`
-		Version float64 `json:"version"`
-	} `json:"file"`
-	Hash string `json:"hash"`
-	Path string `json:"path"`
 }

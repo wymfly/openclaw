@@ -40,6 +40,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "deck.agents.detail",
   "deck.agents.eventStreams.get",
   "deck.agents.eventStreams.set",
+  "deck.agents.impactPreview.get",
   "deck.agents.modelPolicy.get",
   "deck.agents.modelPolicy.set",
   "deck.agents.skills.get",
@@ -333,6 +334,12 @@ export interface GatewayClient {
           params: GatewayMethodMap["deck.agents.eventStreams.set"]["params"],
           options?: { timeoutMs?: number },
         ): Promise<GatewayMethodMap["deck.agents.eventStreams.set"]["result"]>;
+      };
+      impactPreview: {
+        get(
+          params: GatewayMethodMap["deck.agents.impactPreview.get"]["params"],
+          options?: { timeoutMs?: number },
+        ): Promise<GatewayMethodMap["deck.agents.impactPreview.get"]["result"]>;
       };
       modelPolicy: {
         get(
@@ -905,6 +912,9 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
         eventStreams: {
           get: call("deck.agents.eventStreams.get"),
           set: call("deck.agents.eventStreams.set"),
+        },
+        impactPreview: {
+          get: call("deck.agents.impactPreview.get"),
         },
         modelPolicy: {
           get: call("deck.agents.modelPolicy.get"),

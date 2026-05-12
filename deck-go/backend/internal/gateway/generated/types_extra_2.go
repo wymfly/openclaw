@@ -2,6 +2,331 @@
 
 package generated
 
+type DoctorMemoryBackfillDreamDiaryResult struct {
+	Action                   string   `json:"action"`
+	AgentId                  string   `json:"agentId"`
+	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
+	ArchiveDir               string   `json:"archiveDir,omitempty"`
+	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
+	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
+	Changed                  bool     `json:"changed,omitempty"`
+	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
+	Found                    bool     `json:"found,omitempty"`
+	KeptEntries              int      `json:"keptEntries,omitempty"`
+	Path                     string   `json:"path,omitempty"`
+	RemovedEntries           int      `json:"removedEntries,omitempty"`
+	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
+	Replaced                 int      `json:"replaced,omitempty"`
+	ScannedFiles             int      `json:"scannedFiles,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+	Written                  int      `json:"written,omitempty"`
+}
+
+type DoctorMemoryDedupeDreamDiaryResult struct {
+	Action                   string   `json:"action"`
+	AgentId                  string   `json:"agentId"`
+	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
+	ArchiveDir               string   `json:"archiveDir,omitempty"`
+	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
+	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
+	Changed                  bool     `json:"changed,omitempty"`
+	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
+	Found                    bool     `json:"found,omitempty"`
+	KeptEntries              int      `json:"keptEntries,omitempty"`
+	Path                     string   `json:"path,omitempty"`
+	RemovedEntries           int      `json:"removedEntries,omitempty"`
+	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
+	Replaced                 int      `json:"replaced,omitempty"`
+	ScannedFiles             int      `json:"scannedFiles,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+	Written                  int      `json:"written,omitempty"`
+}
+
+type DoctorMemoryDreamDiaryResult struct {
+	AgentId     string `json:"agentId"`
+	Content     string `json:"content,omitempty"`
+	Found       bool   `json:"found"`
+	Path        string `json:"path"`
+	UpdatedAtMs int    `json:"updatedAtMs,omitempty"`
+}
+
+type DoctorMemoryRepairDreamingArtifactsResult struct {
+	Action                   string   `json:"action"`
+	AgentId                  string   `json:"agentId"`
+	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
+	ArchiveDir               string   `json:"archiveDir,omitempty"`
+	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
+	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
+	Changed                  bool     `json:"changed,omitempty"`
+	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
+	Found                    bool     `json:"found,omitempty"`
+	KeptEntries              int      `json:"keptEntries,omitempty"`
+	Path                     string   `json:"path,omitempty"`
+	RemovedEntries           int      `json:"removedEntries,omitempty"`
+	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
+	Replaced                 int      `json:"replaced,omitempty"`
+	ScannedFiles             int      `json:"scannedFiles,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+	Written                  int      `json:"written,omitempty"`
+}
+
+type DoctorMemoryResetDreamDiaryResult struct {
+	Action                   string   `json:"action"`
+	AgentId                  string   `json:"agentId"`
+	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
+	ArchiveDir               string   `json:"archiveDir,omitempty"`
+	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
+	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
+	Changed                  bool     `json:"changed,omitempty"`
+	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
+	Found                    bool     `json:"found,omitempty"`
+	KeptEntries              int      `json:"keptEntries,omitempty"`
+	Path                     string   `json:"path,omitempty"`
+	RemovedEntries           int      `json:"removedEntries,omitempty"`
+	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
+	Replaced                 int      `json:"replaced,omitempty"`
+	ScannedFiles             int      `json:"scannedFiles,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+	Written                  int      `json:"written,omitempty"`
+}
+
+type DoctorMemoryResetGroundedShortTermResult struct {
+	Action                   string   `json:"action"`
+	AgentId                  string   `json:"agentId"`
+	ArchivedDreamsDiary      bool     `json:"archivedDreamsDiary,omitempty"`
+	ArchiveDir               string   `json:"archiveDir,omitempty"`
+	ArchivedSessionCorpus    bool     `json:"archivedSessionCorpus,omitempty"`
+	ArchivedSessionIngestion bool     `json:"archivedSessionIngestion,omitempty"`
+	Changed                  bool     `json:"changed,omitempty"`
+	DedupedEntries           int      `json:"dedupedEntries,omitempty"`
+	Found                    bool     `json:"found,omitempty"`
+	KeptEntries              int      `json:"keptEntries,omitempty"`
+	Path                     string   `json:"path,omitempty"`
+	RemovedEntries           int      `json:"removedEntries,omitempty"`
+	RemovedShortTermEntries  int      `json:"removedShortTermEntries,omitempty"`
+	Replaced                 int      `json:"replaced,omitempty"`
+	ScannedFiles             int      `json:"scannedFiles,omitempty"`
+	Warnings                 []string `json:"warnings,omitempty"`
+	Written                  int      `json:"written,omitempty"`
+}
+
+type DoctorMemoryStatusResult struct {
+	AgentId   string `json:"agentId"`
+	Embedding struct {
+		Error string `json:"error,omitempty"`
+		Ok    bool   `json:"ok"`
+	} `json:"embedding"`
+	Provider string `json:"provider,omitempty"`
+}
+
+type ExecApprovalListParams = map[string]any
+
+type ExecApprovalListResult = []struct {
+	CreatedAtMs int    `json:"createdAtMs"`
+	ExpiresAtMs int    `json:"expiresAtMs"`
+	Id          string `json:"id"`
+	Request     any    `json:"request"`
+}
+
+type ExecApprovalRequestParams struct {
+	AgentId       string            `json:"agentId,omitempty"`
+	Ask           string            `json:"ask,omitempty"`
+	Command       string            `json:"command,omitempty"`
+	CommandArgv   []string          `json:"commandArgv,omitempty"`
+	Cwd           string            `json:"cwd,omitempty"`
+	Env           map[string]string `json:"env,omitempty"`
+	Host          string            `json:"host,omitempty"`
+	Id            string            `json:"id,omitempty"`
+	NodeId        string            `json:"nodeId,omitempty"`
+	ResolvedPath  string            `json:"resolvedPath,omitempty"`
+	Security      string            `json:"security,omitempty"`
+	SessionKey    string            `json:"sessionKey,omitempty"`
+	SystemRunPlan struct {
+		AgentId            string   `json:"agentId"`
+		Argv               []string `json:"argv"`
+		CommandPreview     string   `json:"commandPreview,omitempty"`
+		CommandText        string   `json:"commandText"`
+		Cwd                string   `json:"cwd"`
+		MutableFileOperand struct {
+			ArgvIndex int    `json:"argvIndex"`
+			Path      string `json:"path"`
+			Sha256    string `json:"sha256"`
+		} `json:"mutableFileOperand,omitempty"`
+		SessionKey string `json:"sessionKey"`
+	} `json:"systemRunPlan,omitempty"`
+	TimeoutMs           int    `json:"timeoutMs,omitempty"`
+	TurnSourceAccountId string `json:"turnSourceAccountId,omitempty"`
+	TurnSourceChannel   string `json:"turnSourceChannel,omitempty"`
+	TurnSourceThreadId  any    `json:"turnSourceThreadId,omitempty"`
+	TurnSourceTo        string `json:"turnSourceTo,omitempty"`
+	TwoPhase            bool   `json:"twoPhase,omitempty"`
+}
+
+type ExecApprovalRequestResult struct {
+	CreatedAtMs int    `json:"createdAtMs,omitempty"`
+	Decision    string `json:"decision,omitempty"`
+	ExpiresAtMs int    `json:"expiresAtMs,omitempty"`
+	Id          string `json:"id"`
+	Status      string `json:"status,omitempty"`
+}
+
+type ExecApprovalResolveParams struct {
+	Decision string `json:"decision"`
+	Id       string `json:"id"`
+}
+
+type ExecApprovalResolveResult struct {
+	Ok bool `json:"ok"`
+}
+
+type ExecApprovalWaitDecisionParams struct {
+	Id string `json:"id"`
+}
+
+type ExecApprovalWaitDecisionResult struct {
+	CreatedAtMs int    `json:"createdAtMs,omitempty"`
+	Decision    string `json:"decision,omitempty"`
+	ExpiresAtMs int    `json:"expiresAtMs,omitempty"`
+	Id          string `json:"id"`
+}
+
+type ExecApprovalsGetParams = map[string]any
+
+type ExecApprovalsGetResult struct {
+	Exists bool `json:"exists"`
+	File   struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+	Hash string `json:"hash"`
+	Path string `json:"path"`
+}
+
+type ExecApprovalsNodeGetParams struct {
+	NodeId string `json:"nodeId"`
+}
+
+type ExecApprovalsNodeGetResult struct {
+	Exists bool `json:"exists"`
+	File   struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+	Hash string `json:"hash"`
+	Path string `json:"path"`
+}
+
+type ExecApprovalsNodeSetParams struct {
+	BaseHash string `json:"baseHash,omitempty"`
+	File     struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+	NodeId string `json:"nodeId"`
+}
+
+type ExecApprovalsNodeSetResult struct {
+	Exists bool `json:"exists"`
+	File   struct {
+		Agents map[string]struct {
+			Allowlist []struct {
+				ArgPattern       string `json:"argPattern,omitempty"`
+				Id               string `json:"id,omitempty"`
+				LastResolvedPath string `json:"lastResolvedPath,omitempty"`
+				LastUsedAt       int    `json:"lastUsedAt,omitempty"`
+				LastUsedCommand  string `json:"lastUsedCommand,omitempty"`
+				Pattern          string `json:"pattern"`
+			} `json:"allowlist,omitempty"`
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"agents,omitempty"`
+		Defaults struct {
+			Ask             string `json:"ask,omitempty"`
+			AskFallback     string `json:"askFallback,omitempty"`
+			AutoAllowSkills bool   `json:"autoAllowSkills,omitempty"`
+			Security        string `json:"security,omitempty"`
+		} `json:"defaults,omitempty"`
+		Socket struct {
+			Path  string `json:"path,omitempty"`
+			Token string `json:"token,omitempty"`
+		} `json:"socket,omitempty"`
+		Version float64 `json:"version"`
+	} `json:"file"`
+	Hash string `json:"hash"`
+	Path string `json:"path"`
+}
+
 type ExecApprovalsSetParams struct {
 	BaseHash string `json:"baseHash,omitempty"`
 	File     struct {
@@ -1462,172 +1787,4 @@ type TalkSpeakResult struct {
 type ToolsCatalogParams struct {
 	AgentId        string `json:"agentId,omitempty"`
 	IncludePlugins bool   `json:"includePlugins,omitempty"`
-}
-
-type ToolsCatalogResult struct {
-	AgentId string `json:"agentId"`
-	Groups  []struct {
-		Id       string `json:"id"`
-		Label    string `json:"label"`
-		PluginId string `json:"pluginId,omitempty"`
-		Source   string `json:"source"`
-		Tools    []struct {
-			DefaultProfiles []string `json:"defaultProfiles"`
-			Description     string   `json:"description"`
-			Id              string   `json:"id"`
-			Label           string   `json:"label"`
-			Optional        bool     `json:"optional,omitempty"`
-			PluginId        string   `json:"pluginId,omitempty"`
-			Source          string   `json:"source"`
-		} `json:"tools"`
-	} `json:"groups"`
-	Profiles []struct {
-		Id    string `json:"id"`
-		Label string `json:"label"`
-	} `json:"profiles"`
-}
-
-type ToolsEffectiveParams struct {
-	AgentId    string `json:"agentId,omitempty"`
-	SessionKey string `json:"sessionKey"`
-}
-
-type ToolsEffectiveResult struct {
-	AgentId string `json:"agentId"`
-	Groups  []struct {
-		Id     string `json:"id"`
-		Label  string `json:"label"`
-		Source string `json:"source"`
-		Tools  []struct {
-			ChannelId      string `json:"channelId,omitempty"`
-			Description    string `json:"description"`
-			Id             string `json:"id"`
-			Label          string `json:"label"`
-			PluginId       string `json:"pluginId,omitempty"`
-			RawDescription string `json:"rawDescription"`
-			Source         string `json:"source"`
-		} `json:"tools"`
-	} `json:"groups"`
-	Profile string `json:"profile"`
-}
-
-type UsageCostResult struct {
-	Daily []struct {
-		CacheRead          float64 `json:"cacheRead"`
-		CacheReadCost      float64 `json:"cacheReadCost"`
-		CacheWrite         float64 `json:"cacheWrite"`
-		CacheWriteCost     float64 `json:"cacheWriteCost"`
-		Date               string  `json:"date"`
-		Input              float64 `json:"input"`
-		InputCost          float64 `json:"inputCost"`
-		MissingCostEntries float64 `json:"missingCostEntries"`
-		Output             float64 `json:"output"`
-		OutputCost         float64 `json:"outputCost"`
-		TotalCost          float64 `json:"totalCost"`
-		TotalTokens        float64 `json:"totalTokens"`
-	} `json:"daily"`
-	Days   float64 `json:"days"`
-	Totals struct {
-		CacheRead          float64 `json:"cacheRead"`
-		CacheReadCost      float64 `json:"cacheReadCost"`
-		CacheWrite         float64 `json:"cacheWrite"`
-		CacheWriteCost     float64 `json:"cacheWriteCost"`
-		Input              float64 `json:"input"`
-		InputCost          float64 `json:"inputCost"`
-		MissingCostEntries float64 `json:"missingCostEntries"`
-		Output             float64 `json:"output"`
-		OutputCost         float64 `json:"outputCost"`
-		TotalCost          float64 `json:"totalCost"`
-		TotalTokens        float64 `json:"totalTokens"`
-	} `json:"totals"`
-	UpdatedAt float64 `json:"updatedAt"`
-}
-
-type UsageStatusResult struct {
-	Providers []struct {
-		DisplayName string `json:"displayName"`
-		Error       string `json:"error,omitempty"`
-		Plan        string `json:"plan,omitempty"`
-		Provider    string `json:"provider"`
-		Windows     []struct {
-			Label       string  `json:"label"`
-			ResetAt     float64 `json:"resetAt,omitempty"`
-			UsedPercent float64 `json:"usedPercent"`
-		} `json:"windows"`
-	} `json:"providers"`
-	UpdatedAt float64 `json:"updatedAt"`
-}
-
-type WizardCancelParams struct {
-	SessionId string `json:"sessionId"`
-}
-
-type WizardCancelResult struct {
-	Error  string `json:"error,omitempty"`
-	Status string `json:"status"`
-}
-
-type WizardNextParams struct {
-	Answer struct {
-		StepId string `json:"stepId"`
-		Value  any    `json:"value,omitempty"`
-	} `json:"answer,omitempty"`
-	SessionId string `json:"sessionId"`
-}
-
-type WizardNextResult struct {
-	Done   bool   `json:"done"`
-	Error  string `json:"error,omitempty"`
-	Status string `json:"status,omitempty"`
-	Step   struct {
-		Executor     string `json:"executor,omitempty"`
-		Id           string `json:"id"`
-		InitialValue any    `json:"initialValue,omitempty"`
-		Message      string `json:"message,omitempty"`
-		Options      []struct {
-			Hint  string `json:"hint,omitempty"`
-			Label string `json:"label"`
-			Value any    `json:"value"`
-		} `json:"options,omitempty"`
-		Placeholder string `json:"placeholder,omitempty"`
-		Sensitive   bool   `json:"sensitive,omitempty"`
-		Title       string `json:"title,omitempty"`
-		Type        string `json:"type"`
-	} `json:"step,omitempty"`
-}
-
-type WizardStartParams struct {
-	Mode      string `json:"mode,omitempty"`
-	Workspace string `json:"workspace,omitempty"`
-}
-
-type WizardStartResult struct {
-	Done      bool   `json:"done"`
-	Error     string `json:"error,omitempty"`
-	SessionId string `json:"sessionId"`
-	Status    string `json:"status,omitempty"`
-	Step      struct {
-		Executor     string `json:"executor,omitempty"`
-		Id           string `json:"id"`
-		InitialValue any    `json:"initialValue,omitempty"`
-		Message      string `json:"message,omitempty"`
-		Options      []struct {
-			Hint  string `json:"hint,omitempty"`
-			Label string `json:"label"`
-			Value any    `json:"value"`
-		} `json:"options,omitempty"`
-		Placeholder string `json:"placeholder,omitempty"`
-		Sensitive   bool   `json:"sensitive,omitempty"`
-		Title       string `json:"title,omitempty"`
-		Type        string `json:"type"`
-	} `json:"step,omitempty"`
-}
-
-type WizardStatusParams struct {
-	SessionId string `json:"sessionId"`
-}
-
-type WizardStatusResult struct {
-	Error  string `json:"error,omitempty"`
-	Status string `json:"status"`
 }

@@ -17,6 +17,20 @@ export const agentsKeys = {
     [...agentDetailRoot(agentId, scope), "subagents"] as const,
   modelPolicy: (agentId?: string, scope?: DeckQueryScope) =>
     [...deckKeys.agents.all(scope), "model-policy", agentId ?? "global"] as const,
+  cognition: (agentId: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "cognition"] as const,
+  workspaceAdvanced: (agentId: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "workspace-advanced"] as const,
+  conversation: (agentId: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "conversation"] as const,
+  delivery: (agentId: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "delivery"] as const,
+  toolsOverride: (agentId: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "tools-override"] as const,
+  defaults: (bucket: string, scope?: DeckQueryScope) =>
+    [...deckKeys.agents.all(scope), "defaults", bucket] as const,
+  impactPreview: (agentId: string, operation: string, scope?: DeckQueryScope) =>
+    [...agentDetailRoot(agentId, scope), "impact-preview", operation] as const,
   eventStreams: (agentId: string, scope?: DeckQueryScope) =>
     [...agentDetailRoot(agentId, scope), "event-streams"] as const,
   toolPolicy: (agentId: string, scope?: DeckQueryScope) =>

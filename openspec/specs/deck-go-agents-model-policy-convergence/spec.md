@@ -62,6 +62,12 @@ Agents SHALL expose supported global role defaults from `agents.defaults.*` as m
 - **THEN** the write SHALL include the target role/path, normalized selection or clear action, and current base hash
 - **AND** stale base hash conflicts SHALL be reported without silently overwriting newer config.
 
+#### Scenario: Role default uses Gateway target object shape
+
+- **WHEN** Agents saves a global role model default
+- **THEN** it SHALL call `deck.agents.modelPolicy.set` with `target = { kind: "global-default", key: <role-key> }`
+- **AND** it SHALL not send config-path strings such as `memorySearch.model` or `compaction.model` as `target.key`
+
 ### Requirement: Per-agent model policies SHALL support inherit and override
 
 Agents SHALL let operators inspect and edit per-agent model policy without losing inheritance from global defaults.
@@ -77,6 +83,12 @@ Agents SHALL let operators inspect and edit per-agent model policy without losin
 - **WHEN** the operator saves an explicit per-agent model policy
 - **THEN** the write SHALL update only the selected `agents.list[].model` target
 - **AND** the saved policy SHALL support primary plus fallback chain when the selected target uses `AgentModelConfig`.
+
+#### Scenario: Per-agent model target uses product convention
+
+- **WHEN** Agents saves per-agent runtime or subagent model policy
+- **THEN** runtime model writes SHALL use `{ kind: "agent-model", key: "agent", agentId }`
+- **AND** subagent model writes SHALL use `{ kind: "agent-subagents", key: "agentSubagents", agentId }`
 
 #### Scenario: Agent override is cleared
 

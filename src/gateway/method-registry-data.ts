@@ -197,6 +197,7 @@ export const allMethodNames: readonly string[] = [
   "deck.agents.systemPrompt.preview",
   "deck.agents.eventStreams.get",
   "deck.agents.eventStreams.set",
+  "deck.agents.impactPreview.get",
   // deck.subagents
   "deck.subagents.list",
   "deck.subagents.kill",

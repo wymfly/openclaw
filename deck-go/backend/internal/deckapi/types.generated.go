@@ -1362,6 +1362,45 @@ type DeckGoAgentEffectiveSources struct {
 	EventStreams DeckGoAgentEffectiveSource `json:"eventStreams,omitempty"`
 }
 
+type DeckGoAgentEffectiveField struct {
+	Source DeckGoAgentEffectiveSource `json:"source"`
+	HasOverride bool `json:"hasOverride"`
+	CanReset bool `json:"canReset"`
+	Effective any `json:"effective,omitempty"`
+	Fallback any `json:"fallback,omitempty"`
+	FallbackReason string `json:"fallbackReason,omitempty"`
+}
+
+type DeckGoAgentInheritanceMap struct {
+	Workspace DeckGoAgentEffectiveField `json:"workspace,omitempty"`
+	Sandbox DeckGoAgentEffectiveField `json:"sandbox,omitempty"`
+	SandboxScope DeckGoAgentEffectiveField `json:"sandboxScope,omitempty"`
+	SandboxDocker DeckGoAgentEffectiveField `json:"sandboxDocker,omitempty"`
+	EmbeddedHarness DeckGoAgentEffectiveField `json:"embeddedHarness,omitempty"`
+	EmbeddedHarnessRuntime DeckGoAgentEffectiveField `json:"embeddedHarnessRuntime,omitempty"`
+	EmbeddedHarnessFallback DeckGoAgentEffectiveField `json:"embeddedHarnessFallback,omitempty"`
+	EmbeddedPi DeckGoAgentEffectiveField `json:"embeddedPi,omitempty"`
+	EmbeddedPiExecutionContract DeckGoAgentEffectiveField `json:"embeddedPiExecutionContract,omitempty"`
+	Params DeckGoAgentEffectiveField `json:"params,omitempty"`
+	ThinkingDefault DeckGoAgentEffectiveField `json:"thinkingDefault,omitempty"`
+	VerboseDefault DeckGoAgentEffectiveField `json:"verboseDefault,omitempty"`
+	ReasoningDefault DeckGoAgentEffectiveField `json:"reasoningDefault,omitempty"`
+	FastModeDefault DeckGoAgentEffectiveField `json:"fastModeDefault,omitempty"`
+	MemorySearch DeckGoAgentEffectiveField `json:"memorySearch,omitempty"`
+	MemorySearchSync DeckGoAgentEffectiveField `json:"memorySearchSync,omitempty"`
+	Heartbeat DeckGoAgentEffectiveField `json:"heartbeat,omitempty"`
+	HeartbeatPrompt DeckGoAgentEffectiveField `json:"heartbeatPrompt,omitempty"`
+	HumanDelay DeckGoAgentEffectiveField `json:"humanDelay,omitempty"`
+	HumanDelayMode DeckGoAgentEffectiveField `json:"humanDelayMode,omitempty"`
+	GroupChat DeckGoAgentEffectiveField `json:"groupChat,omitempty"`
+	SystemPromptOverride DeckGoAgentEffectiveField `json:"systemPromptOverride,omitempty"`
+	Subagents DeckGoAgentEffectiveField `json:"subagents,omitempty"`
+	SubagentsAllowAgents DeckGoAgentEffectiveField `json:"subagentsAllowAgents,omitempty"`
+	SubagentsModel DeckGoAgentEffectiveField `json:"subagentsModel,omitempty"`
+	SubagentsRequireAgentId DeckGoAgentEffectiveField `json:"subagentsRequireAgentId,omitempty"`
+	SubagentsLimits DeckGoAgentEffectiveField `json:"subagentsLimits,omitempty"`
+}
+
 type DeckGoAgentAvailableActions struct {
 	CanEditIdentity bool `json:"canEditIdentity"`
 	CanEditRuntime bool `json:"canEditRuntime"`
@@ -1378,6 +1417,44 @@ type DeckGoAgentImpactSummary struct {
 	ActiveSubagentCount float64 `json:"activeSubagentCount,omitempty"`
 	WorkspaceFileCount float64 `json:"workspaceFileCount,omitempty"`
 	DeleteRemovesFiles bool `json:"deleteRemovesFiles"`
+	Bindings map[string]any `json:"bindings,omitempty"`
+	Sessions map[string]any `json:"sessions,omitempty"`
+	Files map[string]any `json:"files,omitempty"`
+	CapturedAt string `json:"capturedAt,omitempty"`
+	Available bool `json:"available,omitempty"`
+	UnavailableReason string `json:"unavailableReason,omitempty"`
+}
+
+type DeckGoAgentUnresolvedSkillRef struct {
+	Key string `json:"key"`
+	Reason string `json:"reason"`
+}
+
+type DeckGoAgentUnresolvedSubagentRef struct {
+	AgentId string `json:"agentId"`
+	Reason string `json:"reason"`
+}
+
+type DeckGoAgentUnresolvedEventStreamRef struct {
+	EventStream string `json:"eventStream"`
+	Reason string `json:"reason"`
+}
+
+type DeckGoAgentUnresolvedModelRef struct {
+	Model string `json:"model"`
+	Reason string `json:"reason"`
+}
+
+type DeckGoAgentUnresolvedReferences struct {
+	Skills []DeckGoAgentUnresolvedSkillRef `json:"skills,omitempty"`
+	Subagents []DeckGoAgentUnresolvedSubagentRef `json:"subagents,omitempty"`
+	EventStreams []DeckGoAgentUnresolvedEventStreamRef `json:"eventStreams,omitempty"`
+	Models []DeckGoAgentUnresolvedModelRef `json:"models,omitempty"`
+}
+
+type AgentRuntimeConfigDTO struct {
+	Type string `json:"type"`
+	Acp map[string]any `json:"acp,omitempty"`
 }
 
 type DeckGoAgentGuardedEditMetadata struct {
@@ -1418,9 +1495,23 @@ type DeckGoAgentDetailResponse struct {
 	Id string `json:"id"`
 	Name string `json:"name,omitempty"`
 	Workspace string `json:"workspace"`
+	AgentDir string `json:"agentDir,omitempty"`
 	Model string `json:"model,omitempty"`
+	ThinkingDefault string `json:"thinkingDefault,omitempty"`
+	VerboseDefault string `json:"verboseDefault,omitempty"`
 	ReasoningDefault string `json:"reasoningDefault,omitempty"`
 	FastModeDefault bool `json:"fastModeDefault,omitempty"`
+	MemorySearch map[string]any `json:"memorySearch,omitempty"`
+	HumanDelay map[string]any `json:"humanDelay,omitempty"`
+	Heartbeat map[string]any `json:"heartbeat,omitempty"`
+	EventStreams []string `json:"eventStreams,omitempty"`
+	GroupChat map[string]any `json:"groupChat,omitempty"`
+	EmbeddedHarness map[string]any `json:"embeddedHarness,omitempty"`
+	EmbeddedPi map[string]any `json:"embeddedPi,omitempty"`
+	Params map[string]any `json:"params,omitempty"`
+	Runtime AgentRuntimeConfigDTO `json:"runtime,omitempty"`
+	Tools map[string]any `json:"tools,omitempty"`
+	SystemPromptOverride string `json:"systemPromptOverride,omitempty"`
 	IsDefault bool `json:"isDefault"`
 	IsConfiguredDefault bool `json:"isConfiguredDefault"`
 	IsMainProtected bool `json:"isMainProtected"`
@@ -1428,6 +1519,8 @@ type DeckGoAgentDetailResponse struct {
 	ProtectedReasons []string `json:"protectedReasons,omitempty"`
 	AvailableActions DeckGoAgentAvailableActions `json:"availableActions,omitempty"`
 	EffectiveSources DeckGoAgentEffectiveSources `json:"effectiveSources,omitempty"`
+	Inherited DeckGoAgentInheritanceMap `json:"inherited,omitempty"`
+	UnresolvedReferences DeckGoAgentUnresolvedReferences `json:"unresolvedReferences,omitempty"`
 	Impact DeckGoAgentImpactSummary `json:"impact,omitempty"`
 	GuardedEdits []DeckGoAgentGuardedEditMetadata `json:"guardedEdits,omitempty"`
 	BindingCount float64 `json:"bindingCount"`
@@ -1440,6 +1533,115 @@ type DeckGoAgentDetailResponse struct {
 	Sandbox any `json:"sandbox,omitempty"`
 	IdentityExists bool `json:"identityExists"`
 	FallbackModels []string `json:"fallbackModels,omitempty"`
+}
+
+type DeckGoAgentBaseHashRequest struct {
+	BaseHash string `json:"baseHash"`
+}
+
+type DeckGoAgentTargetRequest struct {
+	AgentId string `json:"agentId"`
+}
+
+type DeckGoAgentProductActionResponse struct {
+	Ok bool `json:"ok"`
+	AgentId string `json:"agentId,omitempty"`
+	Bucket string `json:"bucket,omitempty"`
+	ConfigHash string `json:"configHash,omitempty"`
+	BaseHash string `json:"baseHash,omitempty"`
+	NextHash string `json:"nextHash,omitempty"`
+	Conflict bool `json:"conflict,omitempty"`
+	Unsupported bool `json:"unsupported,omitempty"`
+	Value map[string]any `json:"value,omitempty"`
+}
+
+type DeckGoAgentCognitionGetRequest = DeckGoAgentTargetRequest
+
+type DeckGoAgentCognitionSetRequest struct {
+	AgentId string `json:"agentId"`
+	BaseHash string `json:"baseHash"`
+	ThinkingDefault string `json:"thinkingDefault,omitempty"`
+	VerboseDefault string `json:"verboseDefault,omitempty"`
+	ReasoningDefault string `json:"reasoningDefault,omitempty"`
+	FastModeDefault bool `json:"fastModeDefault,omitempty"`
+	MemorySearch map[string]any `json:"memorySearch,omitempty"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentWorkspaceGetRequest = DeckGoAgentTargetRequest
+
+type DeckGoAgentWorkspaceSetRequest struct {
+	AgentId string `json:"agentId"`
+	BaseHash string `json:"baseHash"`
+	Workspace string `json:"workspace,omitempty"`
+	AgentDir string `json:"agentDir,omitempty"`
+	Runtime AgentRuntimeConfigDTO `json:"runtime,omitempty"`
+	Sandbox map[string]any `json:"sandbox,omitempty"`
+	EmbeddedHarness map[string]any `json:"embeddedHarness,omitempty"`
+	EmbeddedPi map[string]any `json:"embeddedPi,omitempty"`
+	Params map[string]any `json:"params,omitempty"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentConversationGetRequest = DeckGoAgentTargetRequest
+
+type DeckGoAgentConversationSetRequest struct {
+	AgentId string `json:"agentId"`
+	BaseHash string `json:"baseHash"`
+	SystemPromptOverride string `json:"systemPromptOverride,omitempty"`
+	HumanDelay map[string]any `json:"humanDelay,omitempty"`
+	GroupChat map[string]any `json:"groupChat,omitempty"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentDeliveryGetRequest = DeckGoAgentTargetRequest
+
+type DeckGoAgentDeliverySetRequest struct {
+	AgentId string `json:"agentId"`
+	BaseHash string `json:"baseHash"`
+	EventStreams []string `json:"eventStreams,omitempty"`
+	Heartbeat map[string]any `json:"heartbeat,omitempty"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentToolsOverrideGetRequest = DeckGoAgentTargetRequest
+
+type DeckGoAgentToolsOverrideSetRequest struct {
+	AgentId string `json:"agentId"`
+	BaseHash string `json:"baseHash"`
+	Tools map[string]any `json:"tools,omitempty"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentDefaultsBucket string
+
+type DeckGoAgentDefaultsGetRequest struct {
+	Bucket DeckGoAgentDefaultsBucket `json:"bucket"`
+}
+
+type DeckGoAgentDefaultsSetRequest struct {
+	BaseHash string `json:"baseHash"`
+	Bucket DeckGoAgentDefaultsBucket `json:"bucket"`
+	Value map[string]any `json:"value"`
+	Reset []string `json:"reset,omitempty"`
+}
+
+type DeckGoAgentImpactPreviewOperation string
+
+type DeckGoAgentImpactPreviewRequest struct {
+	AgentId string `json:"agentId"`
+	Operation DeckGoAgentImpactPreviewOperation `json:"operation"`
+	Proposed map[string]any `json:"proposed,omitempty"`
+	BaseHash string `json:"baseHash,omitempty"`
+}
+
+type DeckGoAgentImpactPreviewResponse struct {
+	AgentId string `json:"agentId"`
+	Operation DeckGoAgentImpactPreviewOperation `json:"operation"`
+	Impact DeckGoAgentImpactSummary `json:"impact"`
+	RiskSpecifics []string `json:"riskSpecifics"`
+	CanProceedWithoutImpact bool `json:"canProceedWithoutImpact"`
+	BaseHash string `json:"baseHash,omitempty"`
 }
 
 type DeckGoAgentMutationResponse struct {
@@ -1508,6 +1710,7 @@ type DeckGoAgentSubagentConfigResponse struct {
 	AllowAgents []string `json:"allowAgents"`
 	AllowAny bool `json:"allowAny,omitempty"`
 	Model string `json:"model,omitempty"`
+	RequireAgentId bool `json:"requireAgentId,omitempty"`
 	EffectiveMaxSpawnDepth float64 `json:"effectiveMaxSpawnDepth,omitempty"`
 	EffectiveMaxChildrenPerAgent float64 `json:"effectiveMaxChildrenPerAgent,omitempty"`
 	EffectiveThinking any `json:"effectiveThinking,omitempty"`
@@ -1527,6 +1730,7 @@ type DeckGoAgentSubagentConfigSetResponse struct {
 	AgentId string `json:"agentId,omitempty"`
 	AllowAgents []string `json:"allowAgents,omitempty"`
 	Model string `json:"model,omitempty"`
+	RequireAgentId bool `json:"requireAgentId,omitempty"`
 	ConfigHash string `json:"configHash,omitempty"`
 }
 

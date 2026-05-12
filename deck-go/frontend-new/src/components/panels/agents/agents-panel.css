@@ -955,6 +955,55 @@
   padding: 0;
 }
 
+.agent-risk-list {
+  display: grid;
+  gap: var(--ds-sp-1);
+  margin: 0;
+  padding-left: var(--ds-sp-5);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-body-sm);
+}
+
+.agent-risk-checklist {
+  display: grid;
+  gap: var(--ds-sp-2);
+  padding: var(--ds-sp-3);
+  border: 1px solid var(--ds-warn);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-warn-bg);
+}
+
+.agent-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-sp-2);
+  color: var(--ds-text-2);
+  font-size: var(--ds-fs-body-sm);
+  line-height: 1.4;
+}
+
+.agent-checkbox-row input {
+  margin-top: 0.2em;
+}
+
+.agent-unresolved-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 var(--ds-sp-2);
+  border: 1px solid var(--ds-warn);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-warn-bg);
+  color: var(--ds-text-1);
+  font: inherit;
+  font-size: var(--ds-fs-meta);
+  cursor: pointer;
+}
+
+.agent-option-row--stacked {
+  align-items: flex-start;
+}
+
 @media (max-width: 960px) {
   .agents-panel__toolbar,
   .agents-panel__toolbar-actions,

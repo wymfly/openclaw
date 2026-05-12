@@ -6,6 +6,10 @@ import {
   deckAgentsEventStreamsMethodDefs,
 } from "./agents-event-streams.js";
 import {
+  deckAgentsImpactPreviewHandlers,
+  deckAgentsImpactPreviewMethodDefs,
+} from "./agents-impact-preview.js";
+import {
   deckAgentsModelPolicyHandlers,
   deckAgentsModelPolicyMethodDefs,
 } from "./agents-model-policy.js";
@@ -19,6 +23,7 @@ export const deckAgentsHandlers: GatewayRequestHandlers = {
   ...deckAgentsDetailHandlers,
   ...deckAgentsSkillsHandlers,
   ...deckAgentsModelPolicyHandlers,
+  ...deckAgentsImpactPreviewHandlers,
   ...deckAgentsSubagentsConfigHandlers,
   ...deckAgentsEventStreamsHandlers,
 };
@@ -27,6 +32,7 @@ export const deckAgentsMethodDefs: Record<string, MethodMetadata> = {
   ...deckAgentsDetailMethodDefs,
   ...deckAgentsSkillsMethodDefs,
   ...deckAgentsModelPolicyMethodDefs,
+  ...deckAgentsImpactPreviewMethodDefs,
   ...deckAgentsSubagentsConfigMethodDefs,
   ...deckAgentsEventStreamsMethodDefs,
 };

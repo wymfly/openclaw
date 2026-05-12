@@ -849,6 +849,35 @@ func TestGatewayFacade_RejectsProtectedMainAgentDelete(t *testing.T) {
 	}
 }
 
+func TestGatewayFacade_RejectsAgentDeleteConfirmMismatch(t *testing.T) {
+	srv := newGatewayBackedServer(t, func(_ *websocket.Conn, method string, _ map[string]any) {
+		t.Fatalf("mismatched delete confirmation should not reach Gateway, got %s", method)
+	})
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodDelete, srv.URL+"/api/agents?agentId=ops&confirmAgentId=other", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("unexpected status: %d", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["ok"] != false || payload["code"] != "agents_delete_confirm_mismatch" {
+		t.Fatalf("unexpected payload: %#v", payload)
+	}
+}
+
 func TestGatewayFacade_SkillsRoutes(t *testing.T) {
 	expectedCalls := []string{
 		"skills.status",

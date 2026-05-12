@@ -1565,6 +1565,45 @@ export type DeckGoAgentEffectiveSources = {
   eventStreams?: DeckGoAgentEffectiveSource;
 };
 
+export type DeckGoAgentEffectiveField = {
+  source: DeckGoAgentEffectiveSource;
+  hasOverride: boolean;
+  canReset: boolean;
+  effective?: unknown;
+  fallback?: unknown;
+  fallbackReason?: string;
+};
+
+export type DeckGoAgentInheritanceMap = {
+  workspace?: DeckGoAgentEffectiveField;
+  sandbox?: DeckGoAgentEffectiveField;
+  sandboxScope?: DeckGoAgentEffectiveField;
+  sandboxDocker?: DeckGoAgentEffectiveField;
+  embeddedHarness?: DeckGoAgentEffectiveField;
+  embeddedHarnessRuntime?: DeckGoAgentEffectiveField;
+  embeddedHarnessFallback?: DeckGoAgentEffectiveField;
+  embeddedPi?: DeckGoAgentEffectiveField;
+  embeddedPiExecutionContract?: DeckGoAgentEffectiveField;
+  params?: DeckGoAgentEffectiveField;
+  thinkingDefault?: DeckGoAgentEffectiveField;
+  verboseDefault?: DeckGoAgentEffectiveField;
+  reasoningDefault?: DeckGoAgentEffectiveField;
+  fastModeDefault?: DeckGoAgentEffectiveField;
+  memorySearch?: DeckGoAgentEffectiveField;
+  memorySearchSync?: DeckGoAgentEffectiveField;
+  heartbeat?: DeckGoAgentEffectiveField;
+  heartbeatPrompt?: DeckGoAgentEffectiveField;
+  humanDelay?: DeckGoAgentEffectiveField;
+  humanDelayMode?: DeckGoAgentEffectiveField;
+  groupChat?: DeckGoAgentEffectiveField;
+  systemPromptOverride?: DeckGoAgentEffectiveField;
+  subagents?: DeckGoAgentEffectiveField;
+  subagentsAllowAgents?: DeckGoAgentEffectiveField;
+  subagentsModel?: DeckGoAgentEffectiveField;
+  subagentsRequireAgentId?: DeckGoAgentEffectiveField;
+  subagentsLimits?: DeckGoAgentEffectiveField;
+};
+
 export type DeckGoAgentAvailableActions = {
   canEditIdentity: boolean;
   canEditRuntime: boolean;
@@ -1581,6 +1620,71 @@ export type DeckGoAgentImpactSummary = {
   activeSubagentCount?: number;
   workspaceFileCount?: number;
   deleteRemovesFiles: boolean;
+  bindings?: {
+    count: number;
+    samples: Array<{
+      bindingIndex: number;
+      type?: string;
+      channel?: string;
+      accountId?: string;
+      peer?: Record<string, unknown>;
+      guildId?: string;
+      teamId?: string;
+      roles?: string[];
+      summary?: string;
+    }>;
+    truncated?: boolean;
+  };
+  sessions?: {
+    total: number;
+    active?: number;
+    truncated?: boolean;
+  };
+  files?: {
+    total: number;
+    bootstrapPresent?: boolean;
+    truncated?: boolean;
+  };
+  capturedAt?: string;
+  available?: boolean;
+  unavailableReason?: string;
+};
+
+export type DeckGoAgentUnresolvedSkillRef = {
+  key: string;
+  reason: "not-installed" | "disabled" | "unknown";
+};
+
+export type DeckGoAgentUnresolvedSubagentRef = {
+  agentId: string;
+  reason: "agent-not-found" | "agent-deleted" | "unknown";
+};
+
+export type DeckGoAgentUnresolvedEventStreamRef = {
+  eventStream: string;
+  reason: "not-in-declared-options" | "unknown";
+};
+
+export type DeckGoAgentUnresolvedModelRef = {
+  model: string;
+  reason: "not-in-catalog" | "provider-disabled" | "unknown";
+};
+
+export type DeckGoAgentUnresolvedReferences = {
+  skills?: DeckGoAgentUnresolvedSkillRef[];
+  subagents?: DeckGoAgentUnresolvedSubagentRef[];
+  eventStreams?: DeckGoAgentUnresolvedEventStreamRef[];
+  models?: DeckGoAgentUnresolvedModelRef[];
+};
+
+export type AgentRuntimeConfigDTO = {
+  type: "embedded" | "acp";
+  acp?: {
+    agent?: string;
+    backend?: string;
+    mode?: "persistent" | "oneshot";
+    cwd?: string;
+  };
 };
 
 export type DeckGoAgentGuardedEditMetadata = {
@@ -1621,9 +1725,23 @@ export type DeckGoAgentDetailResponse = {
   id: string;
   name?: string;
   workspace: string;
+  agentDir?: string;
   model?: string;
+  thinkingDefault?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
+  verboseDefault?: "off" | "on" | "full";
   reasoningDefault?: "on" | "off" | "stream";
   fastModeDefault?: boolean;
+  memorySearch?: Record<string, unknown>;
+  humanDelay?: Record<string, unknown>;
+  heartbeat?: Record<string, unknown>;
+  eventStreams?: string[];
+  groupChat?: Record<string, unknown>;
+  embeddedHarness?: Record<string, unknown>;
+  embeddedPi?: Record<string, unknown>;
+  params?: Record<string, unknown>;
+  runtime?: AgentRuntimeConfigDTO;
+  tools?: Record<string, unknown>;
+  systemPromptOverride?: string;
   isDefault: boolean;
   isConfiguredDefault: boolean;
   isMainProtected: boolean;
@@ -1631,6 +1749,8 @@ export type DeckGoAgentDetailResponse = {
   protectedReasons?: string[];
   availableActions?: DeckGoAgentAvailableActions;
   effectiveSources?: DeckGoAgentEffectiveSources;
+  inherited?: DeckGoAgentInheritanceMap;
+  unresolvedReferences?: DeckGoAgentUnresolvedReferences;
   impact?: DeckGoAgentImpactSummary;
   guardedEdits?: DeckGoAgentGuardedEditMetadata[];
   bindingCount: number;
@@ -1642,12 +1762,133 @@ export type DeckGoAgentDetailResponse = {
   subagents: {
     allowAgents: string[];
     model?: string;
+    requireAgentId?: boolean;
     effectiveMaxSpawnDepth: number;
     effectiveMaxChildrenPerAgent: number;
   };
   sandbox?: unknown;
   identityExists: boolean;
   fallbackModels?: string[];
+};
+
+export type DeckGoAgentBaseHashRequest = {
+  baseHash: string;
+};
+
+export type DeckGoAgentTargetRequest = {
+  agentId: string;
+};
+
+export type DeckGoAgentProductActionResponse = {
+  ok: boolean;
+  agentId?: string;
+  bucket?: string;
+  configHash?: string;
+  baseHash?: string;
+  nextHash?: string;
+  conflict?: boolean;
+  unsupported?: boolean;
+  value?: Record<string, unknown>;
+};
+
+export type DeckGoAgentCognitionGetRequest = DeckGoAgentTargetRequest;
+export type DeckGoAgentCognitionSetRequest = {
+  agentId: string;
+  baseHash: string;
+  thinkingDefault?: DeckGoAgentDetailResponse["thinkingDefault"];
+  verboseDefault?: DeckGoAgentDetailResponse["verboseDefault"];
+  reasoningDefault?: DeckGoAgentDetailResponse["reasoningDefault"];
+  fastModeDefault?: boolean;
+  memorySearch?: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentWorkspaceGetRequest = DeckGoAgentTargetRequest;
+export type DeckGoAgentWorkspaceSetRequest = {
+  agentId: string;
+  baseHash: string;
+  workspace?: string;
+  agentDir?: string;
+  runtime?: AgentRuntimeConfigDTO;
+  sandbox?: Record<string, unknown>;
+  embeddedHarness?: Record<string, unknown>;
+  embeddedPi?: Record<string, unknown>;
+  params?: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentConversationGetRequest = DeckGoAgentTargetRequest;
+export type DeckGoAgentConversationSetRequest = {
+  agentId: string;
+  baseHash: string;
+  systemPromptOverride?: string;
+  humanDelay?: Record<string, unknown>;
+  groupChat?: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentDeliveryGetRequest = DeckGoAgentTargetRequest;
+export type DeckGoAgentDeliverySetRequest = {
+  agentId: string;
+  baseHash: string;
+  eventStreams?: string[];
+  heartbeat?: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentToolsOverrideGetRequest = DeckGoAgentTargetRequest;
+export type DeckGoAgentToolsOverrideSetRequest = {
+  agentId: string;
+  baseHash: string;
+  tools?: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentDefaultsBucket =
+  | "workspace"
+  | "cognition"
+  | "skills"
+  | "subagents"
+  | "conversation"
+  | "eventStreams"
+  | "delivery";
+
+export type DeckGoAgentDefaultsGetRequest = {
+  bucket: DeckGoAgentDefaultsBucket;
+};
+
+export type DeckGoAgentDefaultsSetRequest = {
+  baseHash: string;
+  bucket: DeckGoAgentDefaultsBucket;
+  value: Record<string, unknown>;
+  reset?: string[];
+};
+
+export type DeckGoAgentImpactPreviewOperation =
+  | "edit-model"
+  | "edit-workspace"
+  | "edit-skills"
+  | "edit-subagents"
+  | "edit-tools"
+  | "edit-delivery"
+  | "edit-conversation"
+  | "reset-field"
+  | "delete-agent";
+
+export type DeckGoAgentImpactPreviewRequest = {
+  agentId: string;
+  operation: DeckGoAgentImpactPreviewOperation;
+  proposed?: Record<string, unknown>;
+  baseHash?: string;
+};
+
+export type DeckGoAgentImpactPreviewResponse = {
+  agentId: string;
+  operation: DeckGoAgentImpactPreviewOperation;
+  impact: DeckGoAgentImpactSummary;
+  riskSpecifics: string[];
+  canProceedWithoutImpact: boolean;
+  baseHash?: string;
 };
 
 export type DeckGoAgentMutationResponse = {
@@ -1717,6 +1958,7 @@ export type DeckGoAgentSubagentConfigResponse = {
   allowAgents: string[];
   allowAny?: boolean;
   model?: string;
+  requireAgentId?: boolean;
   effectiveMaxSpawnDepth?: number;
   effectiveMaxChildrenPerAgent?: number;
   effectiveThinking?: unknown;
@@ -1736,6 +1978,7 @@ export type DeckGoAgentSubagentConfigSetResponse = {
   agentId?: string;
   allowAgents?: string[];
   model?: string;
+  requireAgentId?: boolean;
   configHash?: string;
 };
 

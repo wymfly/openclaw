@@ -118,6 +118,7 @@ export const DeckAgentsSubagentsSetParamsSchema = Type.Object(
     agentId: NonEmptyString,
     allowAgents: Type.Array(Type.String()),
     model: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    requireAgentId: Type.Optional(Type.Boolean()),
     baseHash: NonEmptyString,
   },
   { additionalProperties: false },
@@ -174,6 +175,28 @@ export const DeckAgentsModelPolicySetParamsSchema = Type.Object(
     selection: Type.Optional(DeckAgentModelSelectionSchema),
     clear: Type.Optional(Type.Boolean()),
     baseHash: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
+export const DeckAgentsImpactPreviewOperationSchema = Type.Union([
+  Type.Literal("edit-model"),
+  Type.Literal("edit-workspace"),
+  Type.Literal("edit-skills"),
+  Type.Literal("edit-subagents"),
+  Type.Literal("edit-tools"),
+  Type.Literal("edit-delivery"),
+  Type.Literal("edit-conversation"),
+  Type.Literal("reset-field"),
+  Type.Literal("delete-agent"),
+]);
+
+export const DeckAgentsImpactPreviewParamsSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    operation: DeckAgentsImpactPreviewOperationSchema,
+    proposed: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    baseHash: Type.Optional(NonEmptyString),
   },
   { additionalProperties: false },
 );
@@ -395,6 +418,45 @@ const DeckAgentEffectiveSourcesSchema = Type.Object({
   eventStreams: Type.Optional(DeckAgentEffectiveSourceSchema),
 });
 
+const DeckAgentEffectiveFieldSchema = Type.Object({
+  source: DeckAgentEffectiveSourceSchema,
+  hasOverride: Type.Boolean(),
+  canReset: Type.Boolean(),
+  effective: Type.Optional(Type.Unknown()),
+  fallback: Type.Optional(Type.Unknown()),
+  fallbackReason: Type.Optional(Type.String()),
+});
+
+const DeckAgentInheritanceMapSchema = Type.Object({
+  workspace: Type.Optional(DeckAgentEffectiveFieldSchema),
+  sandbox: Type.Optional(DeckAgentEffectiveFieldSchema),
+  sandboxScope: Type.Optional(DeckAgentEffectiveFieldSchema),
+  sandboxDocker: Type.Optional(DeckAgentEffectiveFieldSchema),
+  embeddedHarness: Type.Optional(DeckAgentEffectiveFieldSchema),
+  embeddedHarnessRuntime: Type.Optional(DeckAgentEffectiveFieldSchema),
+  embeddedHarnessFallback: Type.Optional(DeckAgentEffectiveFieldSchema),
+  embeddedPi: Type.Optional(DeckAgentEffectiveFieldSchema),
+  embeddedPiExecutionContract: Type.Optional(DeckAgentEffectiveFieldSchema),
+  params: Type.Optional(DeckAgentEffectiveFieldSchema),
+  thinkingDefault: Type.Optional(DeckAgentEffectiveFieldSchema),
+  verboseDefault: Type.Optional(DeckAgentEffectiveFieldSchema),
+  reasoningDefault: Type.Optional(DeckAgentEffectiveFieldSchema),
+  fastModeDefault: Type.Optional(DeckAgentEffectiveFieldSchema),
+  memorySearch: Type.Optional(DeckAgentEffectiveFieldSchema),
+  memorySearchSync: Type.Optional(DeckAgentEffectiveFieldSchema),
+  heartbeat: Type.Optional(DeckAgentEffectiveFieldSchema),
+  heartbeatPrompt: Type.Optional(DeckAgentEffectiveFieldSchema),
+  humanDelay: Type.Optional(DeckAgentEffectiveFieldSchema),
+  humanDelayMode: Type.Optional(DeckAgentEffectiveFieldSchema),
+  groupChat: Type.Optional(DeckAgentEffectiveFieldSchema),
+  systemPromptOverride: Type.Optional(DeckAgentEffectiveFieldSchema),
+  subagents: Type.Optional(DeckAgentEffectiveFieldSchema),
+  subagentsAllowAgents: Type.Optional(DeckAgentEffectiveFieldSchema),
+  subagentsModel: Type.Optional(DeckAgentEffectiveFieldSchema),
+  subagentsRequireAgentId: Type.Optional(DeckAgentEffectiveFieldSchema),
+  subagentsLimits: Type.Optional(DeckAgentEffectiveFieldSchema),
+});
+
 const DeckAgentAvailableActionsSchema = Type.Object({
   canEditIdentity: Type.Boolean(),
   canEditRuntime: Type.Boolean(),
@@ -411,6 +473,42 @@ const DeckAgentImpactSummarySchema = Type.Object({
   activeSubagentCount: Type.Optional(Type.Integer()),
   workspaceFileCount: Type.Optional(Type.Integer()),
   deleteRemovesFiles: Type.Boolean(),
+  bindings: Type.Optional(
+    Type.Object({
+      count: Type.Integer(),
+      samples: Type.Array(
+        Type.Object({
+          bindingIndex: Type.Integer(),
+          type: Type.Optional(Type.String()),
+          channel: Type.Optional(Type.String()),
+          accountId: Type.Optional(Type.String()),
+          peer: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+          guildId: Type.Optional(Type.String()),
+          teamId: Type.Optional(Type.String()),
+          roles: Type.Optional(Type.Array(Type.String())),
+          summary: Type.Optional(Type.String()),
+        }),
+      ),
+      truncated: Type.Optional(Type.Boolean()),
+    }),
+  ),
+  sessions: Type.Optional(
+    Type.Object({
+      total: Type.Integer(),
+      active: Type.Optional(Type.Integer()),
+      truncated: Type.Optional(Type.Boolean()),
+    }),
+  ),
+  files: Type.Optional(
+    Type.Object({
+      total: Type.Integer(),
+      bootstrapPresent: Type.Optional(Type.Boolean()),
+      truncated: Type.Optional(Type.Boolean()),
+    }),
+  ),
+  capturedAt: Type.Optional(Type.String()),
+  available: Type.Optional(Type.Boolean()),
+  unavailableReason: Type.Optional(Type.String()),
 });
 
 const DeckAgentGuardedEditMetadataSchema = Type.Object({
@@ -420,15 +518,100 @@ const DeckAgentGuardedEditMetadataSchema = Type.Object({
   requiresConfirmation: Type.Boolean(),
 });
 
+const DeckAgentUnresolvedReferencesSchema = Type.Object({
+  skills: Type.Optional(
+    Type.Array(
+      Type.Object({
+        key: Type.String(),
+        reason: Type.Union([
+          Type.Literal("not-installed"),
+          Type.Literal("disabled"),
+          Type.Literal("unknown"),
+        ]),
+      }),
+    ),
+  ),
+  subagents: Type.Optional(
+    Type.Array(
+      Type.Object({
+        agentId: Type.String(),
+        reason: Type.Union([
+          Type.Literal("agent-not-found"),
+          Type.Literal("agent-deleted"),
+          Type.Literal("unknown"),
+        ]),
+      }),
+    ),
+  ),
+  eventStreams: Type.Optional(
+    Type.Array(
+      Type.Object({
+        eventStream: Type.String(),
+        reason: Type.Union([Type.Literal("not-in-declared-options"), Type.Literal("unknown")]),
+      }),
+    ),
+  ),
+  models: Type.Optional(
+    Type.Array(
+      Type.Object({
+        model: Type.String(),
+        reason: Type.Union([
+          Type.Literal("not-in-catalog"),
+          Type.Literal("provider-disabled"),
+          Type.Literal("unknown"),
+        ]),
+      }),
+    ),
+  ),
+});
+
+const DeckAgentRuntimeConfigSchema = Type.Object({
+  type: Type.Union([Type.Literal("embedded"), Type.Literal("acp")]),
+  acp: Type.Optional(
+    Type.Object({
+      agent: Type.Optional(Type.String()),
+      backend: Type.Optional(Type.String()),
+      mode: Type.Optional(Type.Union([Type.Literal("persistent"), Type.Literal("oneshot")])),
+      cwd: Type.Optional(Type.String()),
+    }),
+  ),
+});
+
 export const DeckAgentsDetailResultSchema = Type.Object({
   id: Type.String(),
   name: Type.Optional(Type.String()),
   workspace: Type.String(),
+  agentDir: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
+  thinkingDefault: Type.Optional(
+    Type.Union([
+      Type.Literal("off"),
+      Type.Literal("minimal"),
+      Type.Literal("low"),
+      Type.Literal("medium"),
+      Type.Literal("high"),
+      Type.Literal("xhigh"),
+      Type.Literal("adaptive"),
+    ]),
+  ),
+  verboseDefault: Type.Optional(
+    Type.Union([Type.Literal("off"), Type.Literal("on"), Type.Literal("full")]),
+  ),
   reasoningDefault: Type.Optional(
     Type.Union([Type.Literal("on"), Type.Literal("off"), Type.Literal("stream")]),
   ),
   fastModeDefault: Type.Optional(Type.Boolean()),
+  memorySearch: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  humanDelay: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  heartbeat: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  eventStreams: Type.Optional(Type.Array(Type.String())),
+  groupChat: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  embeddedHarness: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  embeddedPi: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  params: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  runtime: Type.Optional(DeckAgentRuntimeConfigSchema),
+  tools: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+  systemPromptOverride: Type.Optional(Type.String()),
   isDefault: Type.Boolean(),
   isConfiguredDefault: Type.Boolean(),
   isMainProtected: Type.Boolean(),
@@ -436,6 +619,8 @@ export const DeckAgentsDetailResultSchema = Type.Object({
   protectedReasons: Type.Optional(Type.Array(Type.String())),
   availableActions: Type.Optional(DeckAgentAvailableActionsSchema),
   effectiveSources: Type.Optional(DeckAgentEffectiveSourcesSchema),
+  inherited: Type.Optional(DeckAgentInheritanceMapSchema),
+  unresolvedReferences: Type.Optional(DeckAgentUnresolvedReferencesSchema),
   impact: Type.Optional(DeckAgentImpactSummarySchema),
   guardedEdits: Type.Optional(Type.Array(DeckAgentGuardedEditMetadataSchema)),
   bindingCount: Type.Integer(),
@@ -453,6 +638,15 @@ export const DeckAgentsDetailResultSchema = Type.Object({
   sandbox: Type.Optional(Type.Unknown()),
   identityExists: Type.Boolean(),
   fallbackModels: Type.Optional(Type.Array(Type.String())),
+});
+
+export const DeckAgentsImpactPreviewResultSchema = Type.Object({
+  agentId: Type.String(),
+  operation: DeckAgentsImpactPreviewOperationSchema,
+  impact: DeckAgentImpactSummarySchema,
+  riskSpecifics: Type.Array(Type.String()),
+  canProceedWithoutImpact: Type.Boolean(),
+  baseHash: Type.Optional(Type.String()),
 });
 
 const AvailableSkillSchema = Type.Object({
@@ -488,6 +682,7 @@ export const DeckAgentsSubagentsGetResultSchema = Type.Object({
   allowAgents: Type.Array(Type.String()),
   allowAny: Type.Boolean(),
   model: Type.Optional(Type.String()),
+  requireAgentId: Type.Optional(Type.Boolean()),
   effectiveMaxSpawnDepth: Type.Integer(),
   effectiveMaxChildrenPerAgent: Type.Integer(),
   effectiveThinking: Type.Optional(Type.Unknown()),
@@ -501,6 +696,7 @@ export const DeckAgentsSubagentsSetResultSchema = Type.Object({
   agentId: Type.String(),
   allowAgents: Type.Array(Type.String()),
   model: Type.Optional(Type.String()),
+  requireAgentId: Type.Optional(Type.Boolean()),
   configHash: Type.String(),
 });
 

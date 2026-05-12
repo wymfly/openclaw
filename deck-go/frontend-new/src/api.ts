@@ -5,6 +5,16 @@ import type {
   DeckGoActivityResponse,
   DeckGoAgentCreateRequest,
   DeckGoAgentDetailResponse,
+  DeckGoAgentCognitionSetRequest,
+  DeckGoAgentConversationSetRequest,
+  DeckGoAgentDefaultsBucket,
+  DeckGoAgentDefaultsGetRequest,
+  DeckGoAgentDefaultsSetRequest,
+  DeckGoAgentDeliverySetRequest,
+  DeckGoAgentEffectiveField,
+  DeckGoAgentEffectiveSource,
+  DeckGoAgentImpactSummary,
+  DeckGoAgentProductActionResponse,
   DeckGoAgentEventStreamsResponse,
   DeckGoAgentEventStreamsSetResponse,
   DeckGoAgentFile,
@@ -12,6 +22,9 @@ import type {
   DeckGoAgentFilesResponse,
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
+  DeckGoAgentInheritanceMap,
+  DeckGoAgentImpactPreviewRequest,
+  DeckGoAgentImpactPreviewResponse,
   DeckGoAgentMutationResponse,
   DeckGoAgentModelChoice,
   DeckGoAgentModelPolicyEntry,
@@ -32,6 +45,9 @@ import type {
   DeckGoAgentSummary,
   DeckGoAgentSystemPromptPreviewResponse,
   DeckGoAgentToolPolicyPreviewResponse,
+  DeckGoAgentToolsOverrideSetRequest,
+  DeckGoAgentUnresolvedReferences,
+  DeckGoAgentWorkspaceSetRequest,
   DeckGoAlertAction,
   DeckGoAlertRule,
   DeckGoAlertRuleResponse,
@@ -264,6 +280,16 @@ export type {
   DeckGoActivityResponse,
   DeckGoAgentCreateRequest,
   DeckGoAgentDetailResponse,
+  DeckGoAgentCognitionSetRequest,
+  DeckGoAgentConversationSetRequest,
+  DeckGoAgentDefaultsBucket,
+  DeckGoAgentDefaultsGetRequest,
+  DeckGoAgentDefaultsSetRequest,
+  DeckGoAgentDeliverySetRequest,
+  DeckGoAgentEffectiveField,
+  DeckGoAgentEffectiveSource,
+  DeckGoAgentImpactSummary,
+  DeckGoAgentProductActionResponse,
   DeckGoAgentEventStreamsResponse,
   DeckGoAgentEventStreamsSetResponse,
   DeckGoAgentFile,
@@ -271,6 +297,9 @@ export type {
   DeckGoAgentFilesResponse,
   DeckGoAgentHealthSnapshot,
   DeckGoAgentIdentityResponse,
+  DeckGoAgentInheritanceMap,
+  DeckGoAgentImpactPreviewRequest,
+  DeckGoAgentImpactPreviewResponse,
   DeckGoAgentMutationResponse,
   DeckGoAgentModelChoice,
   DeckGoAgentModelPolicyEntry,
@@ -291,6 +320,9 @@ export type {
   DeckGoAgentSummary,
   DeckGoAgentSystemPromptPreviewResponse,
   DeckGoAgentToolPolicyPreviewResponse,
+  DeckGoAgentToolsOverrideSetRequest,
+  DeckGoAgentUnresolvedReferences,
+  DeckGoAgentWorkspaceSetRequest,
   DeckGoAlertAction,
   DeckGoAlertRule,
   DeckGoAlertRuleResponse,
@@ -2615,7 +2647,7 @@ export function normalizeAgentSubagentPermissionOptions(
 
 export async function updateAgentSubagentConfig(
   agentId: string,
-  params: { allowAgents: string[]; model?: string; baseHash: string },
+  params: { allowAgents: string[]; model?: string; requireAgentId?: boolean; baseHash: string },
 ) {
   const response = await fetchDeckJson<DeckGoAgentSubagentConfigSetResponse>(
     "/deck/agents",
@@ -2627,6 +2659,7 @@ export async function updateAgentSubagentConfig(
         agentId,
         allowAgents: params.allowAgents,
         ...(params.model !== undefined ? { model: params.model } : {}),
+        ...(params.requireAgentId !== undefined ? { requireAgentId: params.requireAgentId } : {}),
         baseHash: params.baseHash,
       }),
     },
@@ -2699,6 +2732,155 @@ export async function fetchAgentSystemPromptPreview(agentId: string) {
       body: JSON.stringify({ action: "systemPrompt.preview", agentId }),
     },
     "agent system prompt preview fetch failed",
+  );
+}
+
+async function postAgentProductAction<TResponse>(
+  route: "/deck/agents" | "/deck/agents/defaults",
+  action: string,
+  body: Record<string, unknown>,
+  fallback: string,
+) {
+  return fetchDeckJson<TResponse>(
+    route,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, ...body }),
+    },
+    fallback,
+  );
+}
+
+export async function fetchAgentCognition(agentId: string) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "cognition.get",
+    { agentId },
+    "agent cognition fetch failed",
+  );
+}
+
+export async function updateAgentCognition(
+  agentId: string,
+  params: Omit<DeckApi.DeckGoAgentCognitionSetRequest, "agentId">,
+) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "cognition.set",
+    { agentId, ...params },
+    "agent cognition update failed",
+  );
+}
+
+export async function fetchAgentWorkspaceAdvanced(agentId: string) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "workspace.get",
+    { agentId },
+    "agent workspace fetch failed",
+  );
+}
+
+export async function updateAgentWorkspaceAdvanced(
+  agentId: string,
+  params: Omit<DeckApi.DeckGoAgentWorkspaceSetRequest, "agentId">,
+) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "workspace.set",
+    { agentId, ...params },
+    "agent workspace update failed",
+  );
+}
+
+export async function fetchAgentConversation(agentId: string) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "conversation.get",
+    { agentId },
+    "agent conversation fetch failed",
+  );
+}
+
+export async function updateAgentConversation(
+  agentId: string,
+  params: Omit<DeckApi.DeckGoAgentConversationSetRequest, "agentId">,
+) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "conversation.set",
+    { agentId, ...params },
+    "agent conversation update failed",
+  );
+}
+
+export async function fetchAgentDelivery(agentId: string) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "delivery.get",
+    { agentId },
+    "agent delivery fetch failed",
+  );
+}
+
+export async function updateAgentDelivery(
+  agentId: string,
+  params: Omit<DeckApi.DeckGoAgentDeliverySetRequest, "agentId">,
+) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "delivery.set",
+    { agentId, ...params },
+    "agent delivery update failed",
+  );
+}
+
+export async function fetchAgentToolsOverride(agentId: string) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "toolsOverride.get",
+    { agentId },
+    "agent tools override fetch failed",
+  );
+}
+
+export async function updateAgentToolsOverride(
+  agentId: string,
+  params: Omit<DeckApi.DeckGoAgentToolsOverrideSetRequest, "agentId">,
+) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents",
+    "toolsOverride.set",
+    { agentId, ...params },
+    "agent tools override update failed",
+  );
+}
+
+export async function fetchAgentDefaults(bucket: DeckGoAgentDefaultsBucket) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents/defaults",
+    "defaults.get",
+    { bucket } satisfies DeckGoAgentDefaultsGetRequest,
+    "agent defaults fetch failed",
+  );
+}
+
+export async function updateAgentDefaults(params: DeckGoAgentDefaultsSetRequest) {
+  return postAgentProductAction<DeckGoAgentProductActionResponse>(
+    "/deck/agents/defaults",
+    "defaults.set",
+    params as unknown as Record<string, unknown>,
+    "agent defaults update failed",
+  );
+}
+
+export async function fetchAgentImpactPreview(params: DeckGoAgentImpactPreviewRequest) {
+  return postAgentProductAction<DeckGoAgentImpactPreviewResponse>(
+    "/deck/agents",
+    "impactPreview.get",
+    params as unknown as Record<string, unknown>,
+    "agent impact preview fetch failed",
   );
 }
 
@@ -2801,9 +2983,10 @@ export async function updateAgent(agentId: string, params: DeckApi.DeckGoAgentPa
   return acknowledgeMutationResponse("agents.update", response, { routeParams: { agentId } });
 }
 
-export async function deleteAgent(agentId: string) {
+export async function deleteAgent(agentId: string, confirmAgentId?: string) {
+  const confirm = confirmAgentId ? `&confirmAgentId=${encodeURIComponent(confirmAgentId)}` : "";
   const response = await fetchDeckJson<DeckGoAgentMutationResponse>(
-    `/agents?agentId=${encodeURIComponent(agentId)}&deleteFiles=false`,
+    `/agents?agentId=${encodeURIComponent(agentId)}&deleteFiles=false${confirm}`,
     { method: "DELETE" },
     "agent delete failed",
   );
