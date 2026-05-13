@@ -2,6 +2,18 @@
 
 package generated
 
+type DeviceTokenRevokeResult struct {
+	DeviceId    string `json:"deviceId"`
+	RevokedAtMs int    `json:"revokedAtMs"`
+	Role        string `json:"role"`
+}
+
+type DeviceTokenRotateParams struct {
+	DeviceId string   `json:"deviceId"`
+	Role     string   `json:"role"`
+	Scopes   []string `json:"scopes,omitempty"`
+}
+
 type DeviceTokenRotateResult struct {
 	DeviceId    string   `json:"deviceId"`
 	Role        string   `json:"role"`
@@ -1782,18 +1794,4 @@ type TalkSpeakParams struct {
 	Style        float64 `json:"style,omitempty"`
 	Text         string  `json:"text"`
 	VoiceId      string  `json:"voiceId,omitempty"`
-}
-
-type TalkSpeakResult struct {
-	AudioBase64     string `json:"audioBase64"`
-	FileExtension   string `json:"fileExtension,omitempty"`
-	MimeType        string `json:"mimeType,omitempty"`
-	OutputFormat    string `json:"outputFormat,omitempty"`
-	Provider        string `json:"provider"`
-	VoiceCompatible bool   `json:"voiceCompatible,omitempty"`
-}
-
-type ToolsCatalogParams struct {
-	AgentId        string `json:"agentId,omitempty"`
-	IncludePlugins bool   `json:"includePlugins,omitempty"`
 }

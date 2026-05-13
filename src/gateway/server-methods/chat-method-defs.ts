@@ -5,6 +5,8 @@ import {
   ChatAbortResultSchema,
   ChatHistoryParamsSchema,
   ChatHistoryResultSchema,
+  ChatInjectParamsSchema,
+  ChatInjectResultSchema,
   ChatSendParamsSchema,
   ChatSendResultSchema,
 } from "../protocol/schema/logs-chat.js";
@@ -23,6 +25,11 @@ export const chatMethodDefs: Record<string, MethodMetadata> = {
   "chat.send": {
     params: ChatSendParamsSchema,
     result: ChatSendResultSchema,
+    scope: WRITE_SCOPE,
+  },
+  "chat.inject": {
+    params: ChatInjectParamsSchema,
+    result: ChatInjectResultSchema,
     scope: WRITE_SCOPE,
   },
 };

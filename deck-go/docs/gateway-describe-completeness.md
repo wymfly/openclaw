@@ -6,12 +6,12 @@ Authority: Generated from src/gateway/method-registry-data.ts and deck-go/contra
 
 ## Summary
 
-- Methods: 174
-- Typed methods: 137
-- Untyped methods: 37
-- Result schemas: 136
-- Events: 24
-- Event payload schemas: 5
+- Methods: 176
+- Typed methods: 140
+- Untyped methods: 36
+- Result schemas: 139
+- Events: 25
+- Event payload schemas: 6
 - Documented dynamic methods: 0
 
 ## Untyped Methods
@@ -20,7 +20,6 @@ Authority: Generated from src/gateway/method-registry-data.ts and deck-go/contra
 | --- | --- |
 | `agent` | no |
 | `browser.request` | no |
-| `chat.inject` | no |
 | `config.openFile` | no |
 | `connect` | no |
 | `exec.approval.get` | no |

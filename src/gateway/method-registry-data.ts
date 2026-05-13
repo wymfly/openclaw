@@ -189,6 +189,8 @@ export const allMethodNames: readonly string[] = [
   "deck.routing.simulate",
   // deck.agents
   "deck.agents.detail",
+  "deck.agents.modelPolicy.get",
+  "deck.agents.modelPolicy.set",
   "deck.agents.skills.get",
   "deck.agents.skills.set",
   "deck.agents.subagents.get",
@@ -221,6 +223,7 @@ export const allEventNames: readonly string[] = [
   "connect.challenge",
   "agent",
   "chat",
+  "chat.side_result",
   "session.message",
   "session.tool",
   "sessions.changed",

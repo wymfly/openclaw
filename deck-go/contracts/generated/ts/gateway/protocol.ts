@@ -409,6 +409,17 @@ export type ChatHistoryResult = {
   verboseLevel?: string;
 };
 
+export interface ChatInjectParams {
+  label?: string;
+  message: string;
+  sessionKey: string;
+}
+
+export interface ChatInjectResult {
+  messageId: string;
+  ok: boolean;
+}
+
 export interface ChatSendParams {
   attachments?: unknown[];
   deliver?: boolean;
@@ -4602,6 +4613,7 @@ export interface GatewayMethodMap {
   "channels.status": { params: ChannelsStatusParams; result: ChannelsStatusResult };
   "chat.abort": { params: ChatAbortParams; result: ChatAbortResult };
   "chat.history": { params: ChatHistoryParams; result: ChatHistoryResult };
+  "chat.inject": { params: ChatInjectParams; result: ChatInjectResult };
   "chat.send": { params: ChatSendParams; result: ChatSendResult };
   "commands.list": { params: CommandsListParams; result: CommandsListResult };
   "config.apply": { params: ConfigApplyParams; result: ConfigApplyResult };
@@ -4901,6 +4913,17 @@ export type ChatEventPayload = {
   stopReason?: string;
   usage?: unknown;
 };
+
+export interface ChatSideResultEventPayload {
+  isError?: boolean;
+  kind: "btw";
+  question: string;
+  runId: string;
+  seq: number;
+  sessionKey: string;
+  text: string;
+  ts: number;
+}
 
 export type SessionMessageEventPayload = {
   abortedLastRun?: boolean;
@@ -5270,6 +5293,7 @@ export type SessionsChangedEventPayload = {
 export interface GatewayEventPayloadMap {
   agent: AgentEventPayload;
   chat: ChatEventPayload;
+  "chat.side_result": ChatSideResultEventPayload;
   "session.message": SessionMessageEventPayload;
   "session.tool": SessionToolEventPayload;
   "sessions.changed": SessionsChangedEventPayload;

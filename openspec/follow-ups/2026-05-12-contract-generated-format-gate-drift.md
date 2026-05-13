@@ -32,6 +32,19 @@ Separately, successful `make contract-gate` runs rewrite
 `deck-go/docs/contract-inventory.json.generatedAt`, leaving a timestamp-only
 dirty worktree even when semantic checks pass.
 
+On 2026-05-13, the same drift class reproduced while typing chat Gateway
+surfaces. `scripts/committer --fast` committed the generated
+`deck-go/docs/gateway-describe-completeness.md` after pre-commit Markdown table
+formatting. A post-commit `cd deck-go && make contract-gate` then failed at
+`gateway-describe-completeness-check` with:
+
+```text
+DRIFT: deck-go/docs/gateway-describe-completeness.md is not synchronized
+```
+
+Regenerating via `cd deck-go && make gateway-describe-completeness-sync`
+restored the generator-authoritative table format.
+
 ## Suggested Next Step
 
 Pick one deterministic policy for generated contract artifacts:
@@ -48,6 +61,8 @@ Also make `contract-inventory` check-mode deterministic, or stop rewriting
 
 - `make ui-metadata-sync`
 - `scripts/committer` on a staged UI metadata generated diff
+- `make gateway-describe-completeness-sync`
+- `scripts/committer` on a staged gateway describe completeness generated diff
 - `make contract-gate`
 
 should be repeatable without a follow-up dirty worktree or stale generated-file

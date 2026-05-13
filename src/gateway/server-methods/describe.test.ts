@@ -36,11 +36,22 @@ describe("gateway.describe handler", () => {
     expect(detail.result).toBeDefined();
   });
 
+  it("exposes chat.inject as a typed Gateway method", async () => {
+    const { gatewayMethodRegistry } = await import("../server-methods.js");
+    const desc = gatewayMethodRegistry.describe({ filter: "typed", includeSchemas: true });
+
+    expect(desc.methods["chat.inject"]).toBeDefined();
+    expect(desc.methods["chat.inject"]?.params).toBeDefined();
+    expect(desc.methods["chat.inject"]?.result).toBeDefined();
+    expect(desc.untyped).not.toContain("chat.inject");
+  });
+
   it("exposes typed gateway event payload schemas for deck transcript consumers", async () => {
     const { gatewayMethodRegistry } = await import("../server-methods.js");
     const desc = gatewayMethodRegistry.describe({ filter: "all", includeSchemas: true });
 
     expect(desc.events.chat?.payload).toBeDefined();
+    expect(desc.events["chat.side_result"]?.payload).toBeDefined();
     expect(desc.events.agent?.payload).toBeDefined();
     expect(desc.events["session.message"]?.payload).toBeDefined();
     expect(desc.events["session.tool"]?.payload).toBeDefined();

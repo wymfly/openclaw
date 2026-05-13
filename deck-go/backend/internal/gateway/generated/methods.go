@@ -136,6 +136,15 @@ func (c *TypedClient) ChatHistory(ctx context.Context, params ChatHistoryParams)
 	return decodeResult[ChatHistoryResult](payload)
 }
 
+func (c *TypedClient) ChatInject(ctx context.Context, params ChatInjectParams) (ChatInjectResult, error) {
+	var result ChatInjectResult
+	payload, err := c.requester.RequestTyped(ctx, "chat.inject", params)
+	if err != nil {
+		return result, err
+	}
+	return decodeResult[ChatInjectResult](payload)
+}
+
 func (c *TypedClient) ChatSend(ctx context.Context, params ChatSendParams) (ChatSendResult, error) {
 	var result ChatSendResult
 	payload, err := c.requester.RequestTyped(ctx, "chat.send", params)

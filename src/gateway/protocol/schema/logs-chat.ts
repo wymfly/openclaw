@@ -69,6 +69,14 @@ export const ChatInjectParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const ChatInjectResultSchema = Type.Object(
+  {
+    ok: Type.Boolean(),
+    messageId: NonEmptyString,
+  },
+  { additionalProperties: false },
+);
+
 export const ChatEventSchema = Type.Object(
   {
     runId: NonEmptyString,
@@ -94,6 +102,20 @@ export const ChatEventSchema = Type.Object(
     usage: Type.Optional(Type.Unknown()),
     stopReason: Type.Optional(Type.String()),
     ...ChatEventMediaFields,
+  },
+  { additionalProperties: false },
+);
+
+export const ChatSideResultEventPayloadSchema = Type.Object(
+  {
+    kind: Type.Literal("btw"),
+    runId: NonEmptyString,
+    sessionKey: NonEmptyString,
+    question: NonEmptyString,
+    text: NonEmptyString,
+    isError: Type.Optional(Type.Boolean()),
+    ts: Type.Number(),
+    seq: Type.Integer({ minimum: 0 }),
   },
   { additionalProperties: false },
 );

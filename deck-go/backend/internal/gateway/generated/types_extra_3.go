@@ -2,6 +2,20 @@
 
 package generated
 
+type TalkSpeakResult struct {
+	AudioBase64     string `json:"audioBase64"`
+	FileExtension   string `json:"fileExtension,omitempty"`
+	MimeType        string `json:"mimeType,omitempty"`
+	OutputFormat    string `json:"outputFormat,omitempty"`
+	Provider        string `json:"provider"`
+	VoiceCompatible bool   `json:"voiceCompatible,omitempty"`
+}
+
+type ToolsCatalogParams struct {
+	AgentId        string `json:"agentId,omitempty"`
+	IncludePlugins bool   `json:"includePlugins,omitempty"`
+}
+
 type ToolsCatalogResult struct {
 	AgentId string `json:"agentId"`
 	Groups  []struct {

@@ -260,6 +260,17 @@ type ChatHistoryResult struct {
 	VerboseLevel  string `json:"verboseLevel,omitempty"`
 }
 
+type ChatInjectParams struct {
+	Label      string `json:"label,omitempty"`
+	Message    string `json:"message"`
+	SessionKey string `json:"sessionKey"`
+}
+
+type ChatInjectResult struct {
+	MessageId string `json:"messageId"`
+	Ok        bool   `json:"ok"`
+}
+
 type ChatSendParams struct {
 	Attachments           []any  `json:"attachments,omitempty"`
 	Deliver               bool   `json:"deliver,omitempty"`
@@ -1780,16 +1791,4 @@ type DevicePairRemoveResult struct {
 type DeviceTokenRevokeParams struct {
 	DeviceId string `json:"deviceId"`
 	Role     string `json:"role"`
-}
-
-type DeviceTokenRevokeResult struct {
-	DeviceId    string `json:"deviceId"`
-	RevokedAtMs int    `json:"revokedAtMs"`
-	Role        string `json:"role"`
-}
-
-type DeviceTokenRotateParams struct {
-	DeviceId string   `json:"deviceId"`
-	Role     string   `json:"role"`
-	Scopes   []string `json:"scopes,omitempty"`
 }

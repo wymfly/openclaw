@@ -22,6 +22,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
   "channels.status",
   "chat.abort",
   "chat.history",
+  "chat.inject",
   "chat.send",
   "commands.list",
   "config.apply",
@@ -154,6 +155,7 @@ export const GENERATED_METHOD_ALLOWLIST: ReadonlySet<string> = new Set([
 export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
   "agent",
   "chat",
+  "chat.side_result",
   "connect.challenge",
   "cron",
   "device.pair.requested",
@@ -181,6 +183,7 @@ export const GENERATED_EVENT_NAMES: ReadonlySet<string> = new Set([
 export const GENERATED_TYPED_EVENT_NAMES: ReadonlySet<string> = new Set([
   "agent",
   "chat",
+  "chat.side_result",
   "session.message",
   "session.tool",
   "sessions.changed",
@@ -250,6 +253,10 @@ export interface GatewayClient {
       params: GatewayMethodMap["chat.history"]["params"],
       options?: { timeoutMs?: number },
     ): Promise<GatewayMethodMap["chat.history"]["result"]>;
+    inject(
+      params: GatewayMethodMap["chat.inject"]["params"],
+      options?: { timeoutMs?: number },
+    ): Promise<GatewayMethodMap["chat.inject"]["result"]>;
     send(
       params: GatewayMethodMap["chat.send"]["params"],
       options?: { timeoutMs?: number },
@@ -882,6 +889,7 @@ export function createGatewayClient(request: GatewayRequestFn): GatewayClient {
     chat: {
       abort: call("chat.abort"),
       history: call("chat.history"),
+      inject: call("chat.inject"),
       send: call("chat.send"),
     },
     commands: {

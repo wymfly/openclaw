@@ -32,6 +32,17 @@ type ChatEventPayload struct {
 	Usage      any    `json:"usage,omitempty"`
 }
 
+type ChatSideResultEventPayload struct {
+	IsError    bool    `json:"isError,omitempty"`
+	Kind       string  `json:"kind"`
+	Question   string  `json:"question"`
+	RunId      string  `json:"runId"`
+	Seq        int     `json:"seq"`
+	SessionKey string  `json:"sessionKey"`
+	Text       string  `json:"text"`
+	Ts         float64 `json:"ts"`
+}
+
 type SessionMessageEventPayload struct {
 	AbortedLastRun  bool     `json:"abortedLastRun,omitempty"`
 	Channel         string   `json:"channel,omitempty"`
@@ -139,6 +150,7 @@ type SessionsChangedEventPayload struct {
 var GatewayEventPayloadMap = map[string]reflect.Type{
 	"agent":            reflect.TypeOf(AgentEventPayload{}),
 	"chat":             reflect.TypeOf(ChatEventPayload{}),
+	"chat.side_result": reflect.TypeOf(ChatSideResultEventPayload{}),
 	"session.message":  reflect.TypeOf(SessionMessageEventPayload{}),
 	"session.tool":     reflect.TypeOf(SessionToolEventPayload{}),
 	"sessions.changed": reflect.TypeOf(SessionsChangedEventPayload{}),

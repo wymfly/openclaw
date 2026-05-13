@@ -3,12 +3,12 @@
   "authority": "Generated from src/gateway/method-registry-data.ts and deck-go/contracts/source/deck-exceptions.contract.json. Runtime gateway.describe alignment is verified by focused Gateway tests.",
   "summary": {
     "documentedDynamicMethods": 0,
-    "eventPayloadSchemas": 5,
-    "events": 24,
-    "methods": 174,
-    "resultSchemas": 136,
-    "typedMethods": 137,
-    "untypedMethods": 37
+    "eventPayloadSchemas": 6,
+    "events": 25,
+    "methods": 176,
+    "resultSchemas": 139,
+    "typedMethods": 140,
+    "untypedMethods": 36
   },
   "methods": {
     "typed": [
@@ -25,6 +25,7 @@
       "channels.status",
       "chat.abort",
       "chat.history",
+      "chat.inject",
       "chat.send",
       "commands.list",
       "config.apply",
@@ -44,6 +45,8 @@
       "deck.agents.eventStreams.get",
       "deck.agents.eventStreams.set",
       "deck.agents.impactPreview.get",
+      "deck.agents.modelPolicy.get",
+      "deck.agents.modelPolicy.set",
       "deck.agents.skills.get",
       "deck.agents.skills.set",
       "deck.agents.subagents.get",
@@ -162,12 +165,6 @@
         "hasParamsSchema": false,
         "hasResultSchema": false,
         "method": "browser.request"
-      },
-      {
-        "documented": false,
-        "hasParamsSchema": false,
-        "hasResultSchema": false,
-        "method": "chat.inject"
       },
       {
         "documented": false,
@@ -387,6 +384,7 @@
     "withPayloadSchema": [
       "agent",
       "chat",
+      "chat.side_result",
       "session.message",
       "session.tool",
       "sessions.changed"
