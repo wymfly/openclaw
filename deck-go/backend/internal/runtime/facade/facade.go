@@ -115,11 +115,13 @@ type RuntimeStatus struct {
 	LifecycleState  string  `json:"lifecycleState,omitempty"`
 	ServiceName     string  `json:"serviceName,omitempty"`
 	EntrypointPath  string  `json:"entrypointPath,omitempty"`
+	AutoStart       bool    `json:"autoStart"`
 }
 
 type RuntimeFacade interface {
 	Capabilities(context.Context) (Capabilities, error)
 	Endpoint(context.Context) (EndpointView, error)
+	GatewayConnection(context.Context) (GatewayConnection, error)
 	UpdateRemoteEndpoint(context.Context, RemoteEndpointInput) (EndpointView, error)
 	TestRemoteEndpoint(context.Context, *RemoteEndpointInput) (TestResult, error)
 	RuntimeGatewayStatus(context.Context) (RuntimeStatus, error)

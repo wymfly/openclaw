@@ -74,6 +74,9 @@ func TestRuntimeGatewayStatusUsesRemoteFieldShape(t *testing.T) {
 	if *status.TLSVerified {
 		t.Fatalf("TLSVerified = true, want false from endpoint config")
 	}
+	if status.AutoStart {
+		t.Fatalf("AutoStart = true, want false for remote mode")
+	}
 }
 
 func TestUpdateRemoteEndpointPersistsCompleteEndpoint(t *testing.T) {

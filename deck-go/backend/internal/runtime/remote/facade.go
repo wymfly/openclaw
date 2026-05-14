@@ -176,6 +176,7 @@ func (f *Facade) RuntimeGatewayStatus(context.Context) (facade.RuntimeStatus, er
 		LastError:       &lastError,
 		LatencyP50:      &latencyP50,
 		TLSVerified:     &tlsVerified,
+		AutoStart:       false,
 	}, nil
 }
 

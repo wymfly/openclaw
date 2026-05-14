@@ -40,6 +40,7 @@ func TestCapabilitiesShape(t *testing.T) {
 
 func TestRuntimeFacadeRequiresInstallAndReinstall(t *testing.T) {
 	var _ RuntimeFacade = minimalFacade{}
+	_ = (RuntimeFacade)(minimalFacade{}).GatewayConnection
 	_ = (RuntimeFacade)(minimalFacade{}).Install
 	_ = (RuntimeFacade)(minimalFacade{}).Reinstall
 }
@@ -59,6 +60,9 @@ type minimalFacade struct{}
 
 func (minimalFacade) Capabilities(context.Context) (Capabilities, error) { return Capabilities{}, nil }
 func (minimalFacade) Endpoint(context.Context) (EndpointView, error)     { return EndpointView{}, nil }
+func (minimalFacade) GatewayConnection(context.Context) (GatewayConnection, error) {
+	return GatewayConnection{}, nil
+}
 func (minimalFacade) UpdateRemoteEndpoint(context.Context, RemoteEndpointInput) (EndpointView, error) {
 	return EndpointView{}, ErrUnsupported
 }

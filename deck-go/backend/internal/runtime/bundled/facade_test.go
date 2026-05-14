@@ -122,6 +122,47 @@ func TestBundledFacadeRuntimeGatewayStatusPopulatesLifecycleFields(t *testing.T)
 	}
 }
 
+func TestBundledFacadeRuntimeGatewayStatusPropagatesAutoStart(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		autoStart bool
+	}{
+		{name: "enabled", autoStart: true},
+		{name: "disabled", autoStart: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repo := t.TempDir()
+			writeTestFile(t, filepath.Join(repo, "package.json"), `{"name":"openclaw"}`)
+			writeTestFile(t, filepath.Join(repo, "dist", "entry.js"), "// stub")
+			rt, err := NewWithDependencies(&envconf.RuntimeBundledConfig{
+				BindHost:  "127.0.0.1",
+				BindPort:  18789,
+				Token:     "token-1",
+				AutoStart: tc.autoStart,
+			}, Dependencies{
+				ResolveOpts: ResolveOptions{RepoRootEnv: repo},
+				ServiceName: "openclaw-gateway.autostart",
+				Probe: &LifecycleProbe{
+					Service: &stubServiceQuerier{state: ServiceState{Registered: true, Active: false}},
+					Health:  &stubHealthProbe{},
+				},
+				ProxyExec:  &stubExecRunner{},
+				InheritEnv: []string{"PATH=/usr/bin"},
+			})
+			if err != nil {
+				t.Fatalf("NewWithDependencies() error = %v", err)
+			}
+			status, err := rt.RuntimeGatewayStatus(context.Background())
+			if err != nil {
+				t.Fatalf("RuntimeGatewayStatus() error = %v", err)
+			}
+			if status.AutoStart != tc.autoStart {
+				t.Fatalf("AutoStart = %v, want %v", status.AutoStart, tc.autoStart)
+			}
+		})
+	}
+}
+
 func TestBundledFacadeRuntimeGatewayStatusLastErrorOnUnhealthy(t *testing.T) {
 	rt := newBundledTestFacade(t,
 		&stubServiceQuerier{state: ServiceState{Registered: true, Active: true}},

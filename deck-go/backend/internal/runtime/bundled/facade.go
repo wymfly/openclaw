@@ -165,6 +165,7 @@ func (f *Facade) RuntimeGatewayStatus(ctx context.Context) (facade.RuntimeStatus
 		LifecycleState: string(res.LifecycleState),
 		ServiceName:    f.serviceName,
 		EntrypointPath: f.entrypointPath,
+		AutoStart:      f.cfg.AutoStart,
 	}
 	if res.LastError != "" {
 		lastError := res.LastError
