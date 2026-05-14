@@ -7,3 +7,4 @@ frontend-new/dist/
 frontend-new/node_modules/
 frontend-new/.vite/
 frontend-new/tsconfig.tsbuildinfo
+.local/

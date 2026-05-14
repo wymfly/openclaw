@@ -4,7 +4,16 @@ import path from "node:path";
 const deckGoRoot = new URL("../", import.meta.url);
 const rootPath = deckGoRoot.pathname;
 
-const ignoredDirNames = new Set(["frontend-next", "docs", "node_modules", "dist", ".next", ".omx"]);
+const ignoredDirNames = new Set([
+  "frontend-next",
+  "frontend-handoff",
+  "docs",
+  "node_modules",
+  "dist",
+  ".next",
+  ".omx",
+  ".local",
+]);
 
 const ignoredFileNames = new Set(["package-lock.json", "tsconfig.tsbuildinfo"]);
 const textFileExtensions = new Set([

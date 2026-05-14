@@ -56,7 +56,7 @@ Per design.md D5 (updated post-R1c H2): the browser SHALL fetch only from deck-g
 
 - [x] 2.6.1 `cd deck-go && make backend-test` passes including new lifecycle / probe / route tests.
 - [x] 2.6.2 `cd deck-go && make frontend-build` passes including new OperationsPanel.
-- [ ] 2.6.3 `cd deck-go && make verify` passes.
+- [x] 2.6.3 `cd deck-go && make verify` passes. _(Unblocked by Stage 1 tail commit: `check-active-host-paths.mjs` now ignores `.local/` and `frontend-handoff/` dirs (developer-local real-stack state and design-handoff workspace contain references that triggered false positives); `.local/` added to `.gitignore`.)_
 - [ ] 2.6.4 Manual smoke: `scripts/dev/run-stack-real.sh` reaches a working chat session via the new lifecycle path (still under `RUNTIME_MODE=bundled` env name).
 - [x] 2.6.5 Rule R2 grep guard passes (no business-surface mode branches remain).
 
