@@ -28,9 +28,14 @@ export function DeckHeaderBar() {
   const { capabilities } = useCapabilities();
   const entry = findPanel(activePanel);
   const runtimeStatus = runtime?.runtime.status ?? bootstrap?.runtime.status;
-  const remoteRuntime = runtime?.runtime.mode === "remote" ? runtime.runtime : null;
+  const latestRuntime = runtime?.runtime ?? bootstrap?.runtime;
+  const connectionEvidence = latestRuntime as
+    | { lastConnectedAt?: string; lastError?: string }
+    | null
+    | undefined;
   const gatewayConnected = Boolean(
-    bootstrap?.gateway.connected || (remoteRuntime?.lastConnectedAt && !remoteRuntime.lastError),
+    bootstrap?.gateway.connected ||
+    (connectionEvidence?.lastConnectedAt && !connectionEvidence.lastError),
   );
   const statusKind = gatewayConnected
     ? "connected"

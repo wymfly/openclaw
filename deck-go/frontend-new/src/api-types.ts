@@ -97,7 +97,12 @@ export type {
 
 export type DeckGoSession = DeckGoSessionMeta;
 export type { DeckGoServerEvent };
-export type DeckGoBundledRuntimeGatewayStatus = GeneratedDeckGoBundledRuntimeGatewayStatus;
+export type DeckGoLifecycleState = "running" | "stopped" | "not-installed" | "unhealthy";
+export type DeckGoBundledRuntimeGatewayStatus = GeneratedDeckGoBundledRuntimeGatewayStatus & {
+  lifecycleState?: DeckGoLifecycleState;
+  serviceName?: string;
+  entrypointPath?: string;
+};
 export type DeckGoRemoteRuntimeGatewayStatus = GeneratedDeckGoRemoteRuntimeGatewayStatus;
 export type DeckGoRuntimeGatewayStatus =
   | DeckGoBundledRuntimeGatewayStatus

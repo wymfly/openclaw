@@ -7,7 +7,7 @@ export function FirstRunBanner() {
   const { capabilities } = useCapabilities();
   const { setActivePanel } = useDeckUI();
 
-  if (!capabilities || capabilities.mode !== "remote" || capabilities.configured) {
+  if (!capabilities || capabilities.supervisorState || capabilities.configured) {
     return null;
   }
 

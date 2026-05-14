@@ -560,21 +560,38 @@ import { acknowledgeMutationResponse } from "./lib/mutation-evidence";
 import { DEFAULT_RUNTIME_ID } from "./lib/runtime-id";
 import type { A2UIState } from "./stores/chat-types";
 
+/**
+ * @operationsSurface Runtime status shape narrowing is allowed only for
+ * Gateway operations/client normalization. Business UI should prefer
+ * capabilities over direct mode branches.
+ */
 export function isBundledRuntimeStatus(
   runtime: DeckGoRuntimeGatewayStatus | null | undefined,
 ): runtime is DeckGoBundledRuntimeGatewayStatus {
   return runtime?.mode === "bundled";
 }
 
+/**
+ * @operationsSurface Runtime status shape narrowing is allowed only for
+ * Gateway operations/client normalization. Business UI should prefer
+ * capabilities over direct mode branches.
+ */
 export function isRemoteRuntimeStatus(
   runtime: DeckGoRuntimeGatewayStatus | null | undefined,
 ): runtime is DeckGoRemoteRuntimeGatewayStatus {
   return runtime?.mode === "remote";
 }
 
+type RuntimeGatewayStatusWithLifecycle = DeckApi.DeckGoRuntimeGatewayStatus & {
+  entrypointPath?: string;
+  lifecycleState?: DeckGoBundledRuntimeGatewayStatus["lifecycleState"];
+  serviceName?: string;
+};
+
 function normalizeRuntimeGatewayStatus(
   raw: DeckApi.DeckGoRuntimeGatewayStatus,
 ): DeckGoRuntimeGatewayStatus {
+  const withLifecycle = raw as RuntimeGatewayStatusWithLifecycle;
   if (raw.mode === "remote") {
     return {
       configured: raw.configured,
@@ -594,6 +611,8 @@ function normalizeRuntimeGatewayStatus(
     failurePhase: raw.failurePhase,
     gatewayUrl: raw.gatewayUrl,
     health: raw.health,
+    entrypointPath: withLifecycle.entrypointPath,
+    lifecycleState: withLifecycle.lifecycleState,
     lastError: raw.lastError,
     lastExitAt: raw.lastExitAt,
     lastExitCode: raw.lastExitCode,
@@ -605,6 +624,7 @@ function normalizeRuntimeGatewayStatus(
     pid: raw.pid,
     restartAttempts: raw.restartAttempts,
     restartDelayMs: raw.restartDelayMs,
+    serviceName: withLifecycle.serviceName,
     startedAt: raw.startedAt,
     status: raw.status,
   };
@@ -809,6 +829,23 @@ export async function fetchRuntimeGatewayStatus() {
     ok: true,
     runtime: normalizeRuntimeGatewayStatus(runtime),
   } satisfies DeckGoRuntimeGatewayResponse;
+}
+
+export type RuntimeGatewayLifecycleAction =
+  | "install"
+  | "start"
+  | "stop"
+  | "restart"
+  | "reinstall"
+  | "refresh";
+
+export async function runRuntimeGatewayLifecycleAction(action: RuntimeGatewayLifecycleAction) {
+  const runtime = await fetchDeckJsonNoPrompt<DeckApi.DeckGoRuntimeGatewayStatus>(
+    `/runtime/gateway/${action}`,
+    { method: "POST" },
+    `runtime gateway ${action} failed`,
+  );
+  return normalizeRuntimeGatewayStatus(runtime);
 }
 
 export async function fetchCapabilities() {

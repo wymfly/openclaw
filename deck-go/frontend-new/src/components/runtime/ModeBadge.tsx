@@ -15,13 +15,13 @@ export function ModeBadge({ capabilities }: ModeBadgeProps) {
     return null;
   }
 
-  const healthy = capabilities.mode === "bundled" || capabilities.configured;
-  const label =
-    capabilities.mode === "bundled"
-      ? t("bundled")
-      : capabilities.configured
-        ? t("remote")
-        : t("remoteFirstRun");
+  const localLifecycle = capabilities.supervisorState;
+  const healthy = localLifecycle || capabilities.configured;
+  const label = localLifecycle
+    ? t("bundled")
+    : capabilities.configured
+      ? t("remote")
+      : t("remoteFirstRun");
 
   return (
     <span
