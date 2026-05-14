@@ -65,6 +65,21 @@ func (f *Facade) Endpoint(context.Context) (facade.EndpointView, error) {
 	return endpointView(endpoint.URL, endpoint.Token, endpoint.TLSVerify, source), nil
 }
 
+func (f *Facade) GatewayConnection(context.Context) (facade.GatewayConnection, error) {
+	endpoint, _, err := f.activeEndpoint()
+	if err != nil {
+		return facade.GatewayConnection{}, err
+	}
+	if !validEndpointURL(endpoint.URL) || strings.TrimSpace(endpoint.Token) == "" {
+		return facade.GatewayConnection{}, facade.ErrNotConfigured
+	}
+	return facade.GatewayConnection{
+		URL:       endpoint.URL,
+		Token:     endpoint.Token,
+		TLSVerify: endpoint.TLSVerify,
+	}, nil
+}
+
 func (f *Facade) UpdateRemoteEndpoint(ctx context.Context, input facade.RemoteEndpointInput) (facade.EndpointView, error) {
 	remote, err := f.remoteEndpointFromInput(input)
 	if err != nil {
@@ -189,6 +204,14 @@ func (f *Facade) Stop(context.Context) (facade.RuntimeStatus, error) {
 }
 
 func (f *Facade) Restart(context.Context) (facade.RuntimeStatus, error) {
+	return facade.RuntimeStatus{}, facade.ErrUnsupported
+}
+
+func (f *Facade) Install(context.Context) (facade.RuntimeStatus, error) {
+	return facade.RuntimeStatus{}, facade.ErrUnsupported
+}
+
+func (f *Facade) Reinstall(context.Context) (facade.RuntimeStatus, error) {
 	return facade.RuntimeStatus{}, facade.ErrUnsupported
 }
 

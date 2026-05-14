@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -290,7 +291,19 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 		AutoStart: false,
 		Env:       map[string]string{"NO_PROXY": "localhost,127.0.0.1"},
 	}
-	runtimeFacade, err := bundled.New(&bundledCfg)
+	exec := &recordingBundledExec{}
+	entrypoint := filepath.Join(t.TempDir(), "dist", "entry.js")
+	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(entrypoint, []byte("// stub"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runtimeFacade, err := bundled.NewWithDependencies(&bundledCfg, bundled.Dependencies{
+		EntrypointOverride: entrypoint,
+		ServiceName:        "openclaw-gateway.testhash1234",
+		ProxyExec:          exec,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,15 +316,33 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 	}
 
 	_, err = deps.RuntimeFacade.Start(context.Background())
-	if err == nil {
-		t.Fatal("expected missing runtime command error")
+	if err != nil {
+		t.Fatalf("Start() error = %v", err)
 	}
-	if !strings.Contains(err.Error(), bundledCfg.Command) {
-		t.Fatalf("expected bundled runtime command in start error, got %v", err)
+	if len(exec.calls) < 2 {
+		t.Fatalf("expected lifecycle start + status calls, got %#v", exec.calls)
 	}
-	if strings.Contains(err.Error(), "legacy-command-that-should-not-run") {
-		t.Fatalf("bundled runtime start used legacy settings: %v", err)
+	if got := strings.Join(exec.calls[0].Args, " "); got != entrypoint+" gateway start" {
+		t.Fatalf("unexpected lifecycle command: %q", got)
 	}
+	for _, call := range exec.calls {
+		joined := call.Command + " " + strings.Join(call.Args, " ")
+		if strings.Contains(joined, bundledCfg.Command) || strings.Contains(joined, "legacy-command-that-should-not-run") {
+			t.Fatalf("bundled lifecycle used legacy spawn command: %q", joined)
+		}
+	}
+}
+
+type recordingBundledExec struct {
+	calls []bundled.ExecCall
+}
+
+func (r *recordingBundledExec) Run(_ context.Context, call bundled.ExecCall) ([]byte, error) {
+	r.calls = append(r.calls, call)
+	if len(call.Args) >= 3 && call.Args[2] == "status" {
+		return []byte(`{"service":{"loaded":true,"runtime":{"status":"running"}}}`), nil
+	}
+	return nil, nil
 }
 
 func TestRemoteModeEndpointUpdateRoutesChatThroughRemoteGateway(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
@@ -138,20 +138,9 @@ func NewDependenciesWithRuntimeFacade(loaded envconf.Loaded, runtimeFacade facad
 		}
 	}
 	if loaded.Mode == envconf.ModeBundled {
-		supervisor := openclawrt.NewManagedSupervisorWithOptions(
-			store,
-			bus,
-			openclawrt.WithManagedGatewayConfig(managedGatewaySettingsFromRuntimeBundled(loaded.Bundled)),
-		)
-		managed = openclawrt.NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
-		if binder, ok := runtimeFacade.(interface {
-			AttachSupervisor(*bundled.Supervisor)
-		}); ok {
-			if runtimeSupervisor, ok := supervisor.(*bundled.Supervisor); ok {
-				binder.AttachSupervisor(runtimeSupervisor)
-			}
+		if requester, ok := runtimeFacade.(openclawrt.Requester); ok {
+			managed = openclawrt.NewManagedRuntimeWithRequester(store, requester, bus)
 		}
-		managed.EnsureAutoStart()
 	}
 	return &Dependencies{
 		Store:         store,

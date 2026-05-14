@@ -33,11 +33,6 @@ func RunServer(ctx context.Context, server *http.Server, runtime RuntimeShutdown
 		if err := server.Shutdown(shutdownCtx); err != nil {
 			log.Printf("%s shutdown failed: %v", serviceName, err)
 		}
-		if runtime != nil {
-			if _, err := runtime.Stop(shutdownCtx); err != nil {
-				log.Printf("%s: runtime stop on shutdown failed: %v (orphan possible)", serviceName, err)
-			}
-		}
 		return nil
 	case err := <-errCh:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

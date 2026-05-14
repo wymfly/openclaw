@@ -24,7 +24,7 @@ func (s *stubRuntimeShutdown) Stop(ctx context.Context) (facade.RuntimeStatus, e
 	return facade.RuntimeStatus{Mode: "bundled"}, nil
 }
 
-func TestRunServer_StopsRuntimeGatewayOnContextCancel(t *testing.T) {
+func TestRunServer_DoesNotStopRuntimeGatewayOnContextCancel(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -56,8 +56,8 @@ func TestRunServer_StopsRuntimeGatewayOnContextCancel(t *testing.T) {
 		t.Fatal("RunServer did not return within 3s of ctx cancellation")
 	}
 
-	if stub.calls.Load() != 1 {
-		t.Fatalf("expected RuntimeShutdown.Stop to be called exactly once, got %d", stub.calls.Load())
+	if stub.calls.Load() != 0 {
+		t.Fatalf("expected RuntimeShutdown.Stop not to be called, got %d", stub.calls.Load())
 	}
 }
 

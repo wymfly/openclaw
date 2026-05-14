@@ -80,6 +80,12 @@ type EndpointView struct {
 	Source          string `json:"source"`
 }
 
+type GatewayConnection struct {
+	URL       string
+	Token     string
+	TLSVerify bool
+}
+
 type TestResult struct {
 	OK             bool    `json:"ok"`
 	LatencyMs      float64 `json:"latencyMs,omitempty"`
@@ -106,6 +112,9 @@ type RuntimeStatus struct {
 	LastError       *string `json:"lastError,omitempty"`
 	LatencyP50      *int    `json:"latencyP50,omitempty"`
 	TLSVerified     *bool   `json:"tlsVerified,omitempty"`
+	LifecycleState  string  `json:"lifecycleState,omitempty"`
+	ServiceName     string  `json:"serviceName,omitempty"`
+	EntrypointPath  string  `json:"entrypointPath,omitempty"`
 }
 
 type RuntimeFacade interface {
@@ -117,5 +126,7 @@ type RuntimeFacade interface {
 	Start(context.Context) (RuntimeStatus, error)
 	Stop(context.Context) (RuntimeStatus, error)
 	Restart(context.Context) (RuntimeStatus, error)
+	Install(context.Context) (RuntimeStatus, error)
+	Reinstall(context.Context) (RuntimeStatus, error)
 	ReloadRuntime(context.Context) (RuntimeStatus, error)
 }
