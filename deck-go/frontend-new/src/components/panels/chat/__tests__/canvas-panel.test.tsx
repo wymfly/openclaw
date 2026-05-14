@@ -123,7 +123,7 @@ describe("CanvasPanel", () => {
 
     renderCanvasPanel();
 
-    expect(iframe().src).toContain("/api/canvas/preview.html");
+    expect(iframe().src).toContain("/api/runtime/gateway-assets/a2ui/preview.html");
     expect(useChatStore.getState().canvasCommands).toHaveLength(0);
 
     dispatchCanvasMessage({

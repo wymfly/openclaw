@@ -1,21 +1,10 @@
 import type { ContentBlock } from "@/stores/chat-types";
+import { resolveCanvasAssetUrl } from "../canvas-asset-config";
 
 type CanvasBlock = Extract<ContentBlock, { type: "canvas" }>;
 
 function resolveCanvasEmbedSrc(url: string) {
-  if (/^(https?:|data:|blob:)/.test(url)) {
-    return url;
-  }
-  if (url.startsWith("/api/canvas/")) {
-    return url;
-  }
-  if (url.startsWith("/__openclaw__/canvas/")) {
-    return `/api/canvas/${url.slice("/__openclaw__/canvas/".length)}`;
-  }
-  if (url.startsWith("/__openclaw__/a2ui/")) {
-    return `/api/canvas/${url.slice("/__openclaw__/a2ui/".length)}`;
-  }
-  return `/api/canvas/${url.replace(/^\/+/, "")}`;
+  return resolveCanvasAssetUrl(url);
 }
 
 export function CanvasEmbed({ block }: { block: CanvasBlock }) {

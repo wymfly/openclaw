@@ -6,6 +6,7 @@ import { IconButton } from "@/design-system/atoms/IconButton";
 import { useChatStore } from "@/stores/chat";
 import { useActiveSessionKey, useSessionA2UI } from "@/stores/chat-hooks";
 import { A2UIBridge, sendUserActionToAgent, type UserAction } from "./a2ui-bridge";
+import { resolveCanvasAssetUrl } from "./canvas-asset-config";
 import { CanvasDebugPanel } from "./CanvasDebugPanel";
 import "./chat-canvas.css";
 import { persistChatProjection, resolveCanvasEval, setCanvasBridgeReady } from "./chat-api";
@@ -129,25 +130,10 @@ function canResolveVisualSeedCanvas() {
 }
 
 function resolveCanvasSrc(url: string | null): string {
-  if (!url) {
-    return "/api/canvas/index.html";
-  }
-  if (canResolveVisualSeedCanvas() && url.startsWith("visual-seed:")) {
+  if (url && canResolveVisualSeedCanvas() && url.startsWith("visual-seed:")) {
     return `data:text/html;charset=utf-8,${encodeURIComponent(visualSeedCanvasHtml())}`;
   }
-  if (/^(https?:|data:|blob:)/.test(url)) {
-    return url;
-  }
-  if (url.startsWith("/api/canvas/")) {
-    return url;
-  }
-  if (url.startsWith("/__openclaw__/canvas/")) {
-    return `/api/canvas/${url.slice("/__openclaw__/canvas/".length)}`;
-  }
-  if (url.startsWith("/__openclaw__/a2ui/")) {
-    return `/api/canvas/${url.slice("/__openclaw__/a2ui/".length)}`;
-  }
-  return `/api/canvas/${url.replace(/^\/+/, "")}`;
+  return resolveCanvasAssetUrl(url);
 }
 
 export function CanvasPanel({ onClose }: CanvasPanelProps) {

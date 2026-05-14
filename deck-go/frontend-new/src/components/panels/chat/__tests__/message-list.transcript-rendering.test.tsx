@@ -97,7 +97,9 @@ describe("TranscriptBlocks", () => {
     expect(container.textContent).toContain("toolResult");
     expect(container.querySelector('img[alt="diagram.png"]')).toBeTruthy();
     const canvas = container.querySelector<HTMLIFrameElement>('iframe[title="Demo canvas"]');
-    expect(canvas?.getAttribute("src")).toBe("/api/canvas/documents/demo/index.html");
+    expect(canvas?.getAttribute("src")).toBe(
+      "/api/runtime/gateway-assets/canvas/documents/demo/index.html",
+    );
     expect(canvas?.getAttribute("height")).toBe("360");
     expect(container.textContent).toContain("Unsupported block: refusal");
     expect(container.textContent).toContain("final answer");

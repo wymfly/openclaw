@@ -97,6 +97,7 @@ func NewRootHandlerWithRuntimeFacade(
 		registerControlAuditRoutes(api, auditLog)
 		registerMemoryRoutes(api, managed)
 		registerAssetRoutes(api, store)
+		registerGatewayAssetsProxyRoutes(api, runtimeFacade)
 		registerChatRoutes(api, managed)
 		registerSessionEventRoute(api, managed)
 		registerChatSnapshotRoute(api, managed)
