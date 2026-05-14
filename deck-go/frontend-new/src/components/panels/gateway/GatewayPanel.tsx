@@ -9,6 +9,7 @@ import {
 import {
   isBundledRuntimeStatus,
   isRemoteRuntimeStatus,
+  runRuntimeGatewayLifecycleAction,
   type DeckGoActivityEvent,
   type DeckGoBundledRuntimeGatewayStatus,
   type DeckGoGatewayBatchCall,
@@ -23,6 +24,7 @@ import {
   type DeckGoMonitorRun,
   type DeckGoMonitorStatsResponse,
   type DeckGoRemoteRuntimeGatewayStatus,
+  type RuntimeGatewayLifecycleAction,
 } from "../../../api";
 import {
   useActivityEventsQuery,
@@ -508,7 +510,7 @@ export function GatewayPanel() {
     capabilities?.mode ?? runtimePayload?.mode ?? bootstrapRuntime?.mode ?? "unknown";
   const runtimeConfigured =
     capabilities?.configured ?? runtimePayload?.configured ?? bootstrapRuntime?.configured;
-  const supervisorState = capabilities?.supervisorState ?? runtimeMode === "bundled";
+  const supervisorState = capabilities?.supervisorState === true;
   const runtimeStatus = runtimePayload?.status || bootstrapRuntime?.status || "unknown";
   const runtimeHealth = runtimePayload?.health || bootstrapRuntime?.health || "unknown";
   const gatewayUrl =
@@ -565,8 +567,7 @@ export function GatewayPanel() {
       ? statusResponse.sessions.defaults?.model || t("runtime.unknown")
       : t("runtime.unknown");
   const bootstrapOk = bootstrap?.ok !== false;
-  const canSubmitBatch =
-    runtimeMode === "bundled" && runtimeConfigured !== false && safeMethods.length > 0;
+  const canSubmitBatch = supervisorState && runtimeConfigured !== false && safeMethods.length > 0;
 
   return (
     <section className="gateway-panel gateway-app" data-testid="gateway-panel">
@@ -692,7 +693,7 @@ export function GatewayPanel() {
             canSubmit={canSubmitBatch}
             methodMap={methodMap}
             recentBatches={recentBatches}
-            runtimeMode={runtimeMode}
+            supervisorState={supervisorState}
             safeMethods={safeMethods}
             setRecentBatches={setRecentBatches}
             t={t}
@@ -721,6 +722,7 @@ export function GatewayPanel() {
         runtimeMode={runtimeMode}
         runtimeStatus={runtimeStatus}
         supervisorState={supervisorState}
+        onRefreshRuntime={refreshRuntimeSummary}
         t={t}
       />
 
@@ -1151,7 +1153,7 @@ function BatchConsole({
   canSubmit,
   methodMap,
   recentBatches,
-  runtimeMode,
+  supervisorState,
   safeMethods,
   setRecentBatches,
   t,
@@ -1159,7 +1161,7 @@ function BatchConsole({
   canSubmit: boolean;
   methodMap: Map<string, DescribeMethodEntry>;
   recentBatches: RecentBatch[];
-  runtimeMode: string;
+  supervisorState: boolean;
   safeMethods: DescribeMethodEntry[];
   setRecentBatches: Dispatch<SetStateAction<RecentBatch[]>>;
   t: ReturnType<typeof useTranslations>;
@@ -1242,12 +1244,11 @@ function BatchConsole({
     }
   };
 
-  const disabledReason =
-    runtimeMode !== "bundled"
-      ? t("batch.remoteLocked")
-      : safeMethods.length === 0
-        ? t("batch.noSafeMethods")
-        : t("batch.configuredLocked");
+  const disabledReason = !supervisorState
+    ? t("batch.remoteLocked")
+    : safeMethods.length === 0
+      ? t("batch.noSafeMethods")
+      : t("batch.configuredLocked");
 
   return (
     <article className="batch-console gateway-card">
@@ -1504,6 +1505,7 @@ function RuntimeFacts({
   runtimeMode,
   runtimeStatus,
   supervisorState,
+  onRefreshRuntime,
   t,
 }: {
   boolLabels: { no: string; unknown: string; yes: string };
@@ -1516,6 +1518,7 @@ function RuntimeFacts({
   runtimeMode: string;
   runtimeStatus: string;
   supervisorState: boolean;
+  onRefreshRuntime: () => Promise<void>;
   t: ReturnType<typeof useTranslations>;
 }) {
   return (
@@ -1575,6 +1578,125 @@ function RuntimeFacts({
         )}
         <FieldRow label={t("runtime.resolvedUrl")} value={gatewayUrl} />
       </div>
+      {supervisorState && bundledRuntime ? (
+        <OperationsPanel onRefreshRuntime={onRefreshRuntime} status={bundledRuntime} t={t} />
+      ) : null}
     </article>
   );
+}
+
+type OperationAction = RuntimeGatewayLifecycleAction | "install-start";
+
+function OperationsPanel({
+  onRefreshRuntime,
+  status,
+  t,
+}: {
+  onRefreshRuntime: () => Promise<void>;
+  status: DeckGoBundledRuntimeGatewayStatus;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  const [pendingAction, setPendingAction] = useState<OperationAction | null>(null);
+  const [actionError, setActionError] = useState("");
+  const lifecycleState = runtimeLifecycleState(status);
+  const actions = runtimeOperations(lifecycleState);
+
+  const runAction = async (action: OperationAction) => {
+    setActionError("");
+    setPendingAction(action);
+    try {
+      if (action === "install-start") {
+        await runRuntimeGatewayLifecycleAction("install");
+        await runRuntimeGatewayLifecycleAction("start");
+      } else {
+        await runRuntimeGatewayLifecycleAction(action);
+      }
+      await onRefreshRuntime();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : t("runtime.actionFailed"));
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  return (
+    <section className="gateway-operations" aria-label={t("runtime.operations")}>
+      <header className="gateway-operations__header">
+        <div>
+          <h4>{t("runtime.operations")}</h4>
+          <p>{t("runtime.operationsDescription")}</p>
+        </div>
+        <StatusPill tone={runtimeTone(lifecycleState)}>{lifecycleState}</StatusPill>
+      </header>
+      <div className="gateway-field-grid gateway-field-grid--operations">
+        <FieldRow label={t("runtime.lifecycleState")} value={lifecycleState} />
+        <FieldRow label={t("runtime.serviceName")} value={status.serviceName || "n/a"} />
+        <FieldRow label={t("runtime.entrypointPath")} value={status.entrypointPath || "n/a"} />
+        <FieldRow label={t("runtime.lastError")} value={status.lastError || t("runtime.none")} />
+      </div>
+      <div className="gateway-operations__actions">
+        {actions.map((action) => (
+          <button
+            className={`gateway-button${action.primary ? " is-primary" : ""}`}
+            disabled={pendingAction !== null}
+            key={action.action}
+            onClick={() => void runAction(action.action)}
+            type="button"
+          >
+            {pendingAction === action.action ? t("runtime.inFlight") : t(action.labelKey)}
+          </button>
+        ))}
+      </div>
+      {actionError ? (
+        <p className="gateway-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function runtimeLifecycleState(status: DeckGoBundledRuntimeGatewayStatus): string {
+  if (status.lifecycleState) {
+    return status.lifecycleState;
+  }
+  if (status.status === "running") {
+    return "running";
+  }
+  if (status.status === "stopped") {
+    return "stopped";
+  }
+  if (status.status === "failed" || status.status === "degraded" || status.health === "unhealthy") {
+    return "unhealthy";
+  }
+  return "stopped";
+}
+
+function runtimeOperations(state: string): Array<{
+  action: OperationAction;
+  labelKey: string;
+  primary?: boolean;
+}> {
+  switch (state) {
+    case "running":
+      return [
+        { action: "stop", labelKey: "runtime.actions.stop" },
+        { action: "restart", labelKey: "runtime.actions.restart", primary: true },
+      ];
+    case "not-installed":
+      return [
+        { action: "install-start", labelKey: "runtime.actions.installAndStart", primary: true },
+      ];
+    case "unhealthy":
+      return [
+        { action: "restart", labelKey: "runtime.actions.restart", primary: true },
+        { action: "reinstall", labelKey: "runtime.actions.reinstall" },
+      ];
+    case "stopped":
+    default:
+      return [
+        { action: "start", labelKey: "runtime.actions.start", primary: true },
+        { action: "reinstall", labelKey: "runtime.actions.reinstall" },
+      ];
+  }
 }

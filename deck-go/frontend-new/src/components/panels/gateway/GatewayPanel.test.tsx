@@ -19,6 +19,7 @@ const apiMocks = vi.hoisted(() => ({
     runtime?.mode === "bundled",
   isRemoteRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
     runtime?.mode === "remote",
+  runRuntimeGatewayLifecycleAction: vi.fn(),
   submitGatewayBatch: vi.fn(),
 }));
 
@@ -43,10 +44,13 @@ const runtimeSummary = vi.hoisted(() => ({
   lastConnectedAt: "",
   lastError: "",
   latencyP50: 0,
+  lifecycleState: "running",
   mode: "bundled",
   ownershipState: "owned",
   pid: 1234,
   restartAttempts: 0,
+  serviceName: "openclaw-gateway.test",
+  entrypointPath: "/repo/dist/entry.js",
   status: "running",
   tlsVerified: true,
 }));
@@ -124,6 +128,9 @@ describe("GatewayPanel", () => {
     runtimeSummary.lastConnectedAt = "";
     runtimeSummary.lastError = "";
     runtimeSummary.latencyP50 = 0;
+    runtimeSummary.lifecycleState = "running";
+    runtimeSummary.serviceName = "openclaw-gateway.test";
+    runtimeSummary.entrypointPath = "/repo/dist/entry.js";
     runtimeSummary.tlsVerified = true;
     bootstrapSummary.gateway.connected = true;
     bootstrapSummary.ok = true;
@@ -219,6 +226,7 @@ describe("GatewayPanel", () => {
       results: [{ id: "c1", ok: true, result: { protocol: 3 } }],
       runtimeId: "rt_local",
     });
+    apiMocks.runRuntimeGatewayLifecycleAction.mockResolvedValue(runtimeSummary);
     refreshRuntimeSummary.mockResolvedValue(undefined);
   });
 
@@ -246,8 +254,12 @@ describe("GatewayPanel", () => {
     expect(container.textContent).toContain("internal.diag.dump");
     expect(container.textContent).toContain("Throughput projection");
     expect(container.textContent).toContain("Runtime Gateway");
+    expect(container.textContent).toContain("Gateway operations");
+    expect(container.textContent).toContain("openclaw-gateway.test");
     expect(container.textContent).toContain("ws://127.0.0.1:18789");
-    expect(container.textContent).not.toMatch(/\b(Start|Stop|Restart)\b/);
+    expect(
+      Array.from(container.querySelectorAll("button")).map((button) => button.textContent),
+    ).toEqual(expect.arrayContaining(["Stop", "Restart"]));
     const gatewayOkPill = Array.from(container.querySelectorAll(".gateway-pill")).find(
       (pill) => pill.textContent === "Gateway OK",
     );
@@ -324,6 +336,33 @@ describe("GatewayPanel", () => {
     expect(container.textContent).toContain('"protocol": 3');
   });
 
+  it("installs then starts a not-installed local gateway from the operations panel", async () => {
+    runtimeSummary.lifecycleState = "not-installed";
+    runtimeSummary.status = "stopped";
+    runtimeSummary.configured = false;
+    apiMocks.fetchCapabilities.mockResolvedValue({
+      configured: false,
+      endpointMutable: false,
+      mode: "bundled",
+      supervisorState: true,
+    });
+
+    await renderPanel();
+
+    await waitFor(() => expect(container.textContent).toContain("Install and start"));
+    clickButton(/Install and start/);
+
+    await waitFor(() => {
+      expect(apiMocks.runRuntimeGatewayLifecycleAction).toHaveBeenCalledWith("install");
+      expect(apiMocks.runRuntimeGatewayLifecycleAction).toHaveBeenCalledWith("start");
+    });
+    expect(apiMocks.runRuntimeGatewayLifecycleAction.mock.calls.map(([action]) => action)).toEqual([
+      "install",
+      "start",
+    ]);
+    expect(refreshRuntimeSummary).toHaveBeenCalled();
+  });
+
   it("locks batch execution in remote mode while keeping diagnostics visible", async () => {
     apiMocks.fetchCapabilities.mockResolvedValue({
       configured: true,
@@ -352,6 +391,7 @@ describe("GatewayPanel", () => {
     expect(apiMocks.submitGatewayBatch).not.toHaveBeenCalled();
     expect(container.textContent).toContain("Remote connection");
     expect(container.textContent).toContain("2026-04-28T10:00:00Z");
+    expect(container.textContent).not.toContain("Gateway operations");
   });
 
   it("renders first-run empty state without surfacing raw gateway_not_configured errors", async () => {
