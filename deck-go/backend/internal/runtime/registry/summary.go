@@ -4,15 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	runtimecapability "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/capability"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/runtimeid"
 )
 
 const DefaultRuntimeID = runtimeid.Default
 
-type SnapshotReader interface {
-	Snapshot() bundled.Snapshot
+type LastStatusReader interface {
+	LastStatus() facade.RuntimeStatus
 }
 
 type CapabilitySummary = runtimecapability.Summary
@@ -37,15 +37,15 @@ type RuntimeSummary struct {
 }
 
 type Summaries struct {
-	reader       SnapshotReader
+	reader       LastStatusReader
 	capabilities CapabilityLoader
 }
 
-func NewSummaries(reader SnapshotReader) *Summaries {
+func NewSummaries(reader LastStatusReader) *Summaries {
 	return &Summaries{reader: reader}
 }
 
-func NewSummariesWithCapabilities(reader SnapshotReader, capabilities CapabilityLoader) *Summaries {
+func NewSummariesWithCapabilities(reader LastStatusReader, capabilities CapabilityLoader) *Summaries {
 	return &Summaries{
 		reader:       reader,
 		capabilities: capabilities,
@@ -53,27 +53,27 @@ func NewSummariesWithCapabilities(reader SnapshotReader, capabilities Capability
 }
 
 func (s *Summaries) ListRuntimes(ctx context.Context) ([]RuntimeSummary, error) {
-	return []RuntimeSummary{summarize(ctx, s.reader.Snapshot(), s.capabilities)}, nil
+	return []RuntimeSummary{summarize(ctx, s.reader.LastStatus(), s.capabilities)}, nil
 }
 
 func (s *Summaries) GetRuntime(ctx context.Context, runtimeID string) (RuntimeSummary, bool, error) {
 	if runtimeID != DefaultRuntimeID {
 		return RuntimeSummary{}, false, nil
 	}
-	return summarize(ctx, s.reader.Snapshot(), s.capabilities), true, nil
+	return summarize(ctx, s.reader.LastStatus(), s.capabilities), true, nil
 }
 
-func summarize(ctx context.Context, snapshot bundled.Snapshot, capabilities CapabilityLoader) RuntimeSummary {
+func summarize(ctx context.Context, status facade.RuntimeStatus, capabilities CapabilityLoader) RuntimeSummary {
 	summary := RuntimeSummary{
 		RuntimeID:         DefaultRuntimeID,
-		Managed:           snapshot.Managed,
-		Configured:        snapshot.Configured,
-		Status:            string(snapshot.Status),
-		Health:            string(snapshot.Health),
+		Managed:           status.Mode == "bundled",
+		Configured:        status.Configured,
+		Status:            status.Status,
+		Health:            status.Health,
 		CapabilityVersion: nil,
-		GatewayURL:        stringPtr(snapshot.GatewayURL),
-		LastError:         stringPtr(snapshot.LastError),
-		AutoStart:         snapshot.AutoStart,
+		GatewayURL:        stringPtr(status.GatewayURL),
+		LastError:         status.LastError,
+		AutoStart:         status.AutoStart,
 		OccurredAt:        time.Now().UTC().Format(time.RFC3339),
 	}
 	if capabilities == nil {

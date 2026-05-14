@@ -4,26 +4,26 @@ import (
 	"context"
 	"testing"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
-type stubSnapshotReader struct {
-	snapshot bundled.Snapshot
+type stubStatusReader struct {
+	status facade.RuntimeStatus
 }
 
-func (s stubSnapshotReader) Snapshot() bundled.Snapshot {
-	return s.snapshot
+func (s stubStatusReader) LastStatus() facade.RuntimeStatus {
+	return s.status
 }
 
 func TestSummaries_ListAndGet(t *testing.T) {
-	summaries := NewSummaries(stubSnapshotReader{
-		snapshot: bundled.Snapshot{
-			Managed:    true,
+	summaries := NewSummaries(stubStatusReader{
+		status: facade.RuntimeStatus{
+			Mode:       "bundled",
 			Configured: true,
-			Status:     bundled.StatusRunning,
-			Health:     bundled.HealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: "ws://127.0.0.1:18789",
-			LastError:  "none",
+			LastError:  testStringPtr("none"),
 			AutoStart:  true,
 		},
 	})
@@ -35,7 +35,7 @@ func TestSummaries_ListAndGet(t *testing.T) {
 	if len(items) != 1 {
 		t.Fatalf("unexpected runtime list: %#v", items)
 	}
-	if items[0].RuntimeID != DefaultRuntimeID || items[0].Status != string(bundled.StatusRunning) {
+	if items[0].RuntimeID != DefaultRuntimeID || items[0].Status != "running" {
 		t.Fatalf("unexpected runtime summary: %#v", items[0])
 	}
 	if items[0].Managed != true || items[0].Configured != true {
@@ -58,7 +58,7 @@ func TestSummaries_ListAndGet(t *testing.T) {
 	if !ok {
 		t.Fatal("expected runtime to exist")
 	}
-	if item.Health != string(bundled.HealthHealthy) {
+	if item.Health != "healthy" {
 		t.Fatalf("unexpected runtime health: %#v", item)
 	}
 
@@ -69,4 +69,30 @@ func TestSummaries_ListAndGet(t *testing.T) {
 	if ok {
 		t.Fatal("expected unknown runtime lookup to be false")
 	}
+}
+
+func TestSummaries_DeriveManagedFromRuntimeMode(t *testing.T) {
+	summaries := NewSummaries(stubStatusReader{
+		status: facade.RuntimeStatus{
+			Mode:       "remote",
+			Configured: true,
+			Status:     "running",
+			Health:     "healthy",
+		},
+	})
+
+	items, err := summaries.ListRuntimes(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("unexpected runtime list: %#v", items)
+	}
+	if items[0].Managed {
+		t.Fatalf("expected remote runtime to be unmanaged, got %#v", items[0])
+	}
+}
+
+func testStringPtr(value string) *string {
+	return &value
 }

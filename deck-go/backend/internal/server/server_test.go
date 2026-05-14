@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -20,53 +19,107 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
-	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 type testSupervisor struct {
-	snapshot     openclawrt.ManagedSnapshot
+	status       facade.RuntimeStatus
 	startCalls   int
 	stopCalls    int
 	restartCalls int
 }
 
-func (s *testSupervisor) Snapshot() openclawrt.ManagedSnapshot {
-	return s.snapshot
-}
-
-func (s *testSupervisor) Start(context.Context) (openclawrt.ManagedSnapshot, error) {
-	s.startCalls++
-	s.snapshot.Status = openclawrt.ManagedStatusRunning
-	s.snapshot.Health = openclawrt.ManagedHealthHealthy
-	return s.snapshot, nil
-}
-
-func (s *testSupervisor) Stop(context.Context) (openclawrt.ManagedSnapshot, error) {
-	s.stopCalls++
-	s.snapshot.Status = openclawrt.ManagedStatusStopped
-	s.snapshot.Health = openclawrt.ManagedHealthUnknown
-	return s.snapshot, nil
-}
-
-func (s *testSupervisor) Restart(context.Context) (openclawrt.ManagedSnapshot, error) {
-	s.restartCalls++
-	s.snapshot.Status = openclawrt.ManagedStatusRunning
-	s.snapshot.Health = openclawrt.ManagedHealthHealthy
-	return s.snapshot, nil
-}
-
-func (s *testSupervisor) GatewayConnection() (string, string, bool) {
-	if s.snapshot.GatewayURL == "" {
-		return "", "", false
+func (s *testSupervisor) Capabilities(context.Context) (facade.Capabilities, error) {
+	mode := s.status.Mode
+	if mode == "" {
+		mode = "bundled"
 	}
-	return s.snapshot.GatewayURL, "gateway-token", true
+	return facade.Capabilities{
+		Mode:            mode,
+		Configured:      s.status.Configured,
+		EndpointMutable: mode == "remote",
+		SupervisorState: mode == "bundled",
+	}, nil
+}
+
+func (s *testSupervisor) Endpoint(context.Context) (facade.EndpointView, error) {
+	return facade.EndpointView{URL: s.status.GatewayURL, TokenConfigured: s.status.GatewayURL != ""}, nil
+}
+
+func (s *testSupervisor) GatewayConnection(context.Context) (facade.GatewayConnection, error) {
+	if s.status.GatewayURL == "" {
+		return facade.GatewayConnection{}, facade.ErrNotConfigured
+	}
+	return facade.GatewayConnection{URL: s.status.GatewayURL, Token: "gateway-token"}, nil
+}
+
+func (s *testSupervisor) UpdateRemoteEndpoint(context.Context, facade.RemoteEndpointInput) (facade.EndpointView, error) {
+	return facade.EndpointView{}, facade.ErrUnsupported
+}
+
+func (s *testSupervisor) TestRemoteEndpoint(context.Context, *facade.RemoteEndpointInput) (facade.TestResult, error) {
+	return facade.TestResult{}, facade.ErrUnsupported
+}
+
+func (s *testSupervisor) RuntimeGatewayStatus(context.Context) (facade.RuntimeStatus, error) {
+	return s.status, nil
+}
+
+func (s *testSupervisor) Start(context.Context) (facade.RuntimeStatus, error) {
+	s.startCalls++
+	s.status.Status = "running"
+	s.status.Health = "healthy"
+	return s.status, nil
+}
+
+func (s *testSupervisor) Stop(context.Context) (facade.RuntimeStatus, error) {
+	s.stopCalls++
+	s.status.Status = "stopped"
+	s.status.Health = "unknown"
+	return s.status, nil
+}
+
+func (s *testSupervisor) Restart(context.Context) (facade.RuntimeStatus, error) {
+	s.restartCalls++
+	s.status.Status = "running"
+	s.status.Health = "healthy"
+	return s.status, nil
+}
+
+func (s *testSupervisor) Install(ctx context.Context) (facade.RuntimeStatus, error) {
+	return s.Start(ctx)
+}
+
+func (s *testSupervisor) Reinstall(ctx context.Context) (facade.RuntimeStatus, error) {
+	return s.Restart(ctx)
+}
+
+func (s *testSupervisor) ReloadRuntime(ctx context.Context) (facade.RuntimeStatus, error) {
+	return s.RuntimeGatewayStatus(ctx)
+}
+
+func newDefaultTestHandler(t *testing.T) http.Handler {
+	t.Helper()
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	effective := store.Effective()
+	runtimeFacade := &testSupervisor{status: facade.RuntimeStatus{
+		Mode:       "bundled",
+		Configured: effective.ManagedGateway.GatewayToken != "",
+		Status:     "stopped",
+		Health:     "unknown",
+		GatewayURL: config.ManagedGatewayURL(effective.ManagedGateway),
+		AutoStart:  effective.ManagedGateway.AutoStart,
+	}}
+	return newTestRouter(store, runtimeFacade, events.NewBus(2000))
 }
 
 func TestSettingsRoute_RoundTrip(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	putReq, err := http.NewRequest(http.MethodPut, srv.URL+"/api/settings", strings.NewReader(`{
@@ -132,7 +185,7 @@ func TestSettingsRoute_RejectsRuntimeManagedFields(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	for _, tc := range []struct {
@@ -180,13 +233,13 @@ func TestSettingsVersionRoute(t *testing.T) {
 	}
 	bus := events.NewBus(4)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed: true,
-			Status:  openclawrt.ManagedStatusRunning,
-			Health:  openclawrt.ManagedHealthHealthy,
+		status: facade.RuntimeStatus{
+
+			Status: "running",
+			Health: "healthy",
 		},
 	}
-	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	srv := httptest.NewServer(newTestRouterWithFacade(store, supervisor, bus, supervisor))
 	defer srv.Close()
 
 	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/settings/version", nil)
@@ -222,7 +275,7 @@ func TestSettingsTestConnectionRoute(t *testing.T) {
 
 	wsURL := "ws" + strings.TrimPrefix(healthServer.URL, "http")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/settings/test-connection", strings.NewReader(`{"url":"`+wsURL+`","token":"token-1"}`))
@@ -327,7 +380,7 @@ func TestOnboardingRoutes_StatusTestAndSave(t *testing.T) {
 	defer healthServer.Close()
 	wsURL := "ws" + strings.TrimPrefix(healthServer.URL, "http")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	statusReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/onboarding/status", nil)
@@ -427,7 +480,7 @@ func TestStaticShell_BypassesAuthWhileAPIStaysProtected(t *testing.T) {
 	}
 	t.Setenv("DECK_GO_FRONTEND_DIST", distDir)
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	rootRes, err := http.Get(srv.URL + "/")
@@ -453,7 +506,7 @@ func TestAlertsRoutes_CRUD(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/alerts", strings.NewReader(`{
@@ -583,7 +636,7 @@ func TestCORSPreflightAllowsDelete(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	req, err := http.NewRequest(http.MethodOptions, srv.URL+"/api/alerts/ar-test", nil)
@@ -617,7 +670,7 @@ func TestWebhooksRoutes_CRUDAndTestDelivery(t *testing.T) {
 	}))
 	defer target.Close()
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks", strings.NewReader(`{
@@ -752,7 +805,7 @@ func TestWebhooksRoutes_RejectsNonHTTPReceiverURL(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks", strings.NewReader(`{
@@ -787,7 +840,7 @@ func TestWebhooksRoutes_FailedDeliveryStoresResponseBody(t *testing.T) {
 	}))
 	defer target.Close()
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	createReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/webhooks", strings.NewReader(`{
@@ -903,7 +956,7 @@ func TestActivityAndMonitorRoutes(t *testing.T) {
 	})
 	bus.Publish("agent", agentPayload)
 
-	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	srv := httptest.NewServer(newTestRouterWithFacade(store, supervisor, bus, supervisor))
 	defer srv.Close()
 
 	for _, path := range []string{
@@ -986,7 +1039,7 @@ func TestDevicesSelfRoute(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/devices/self", nil)
@@ -1034,7 +1087,7 @@ func TestAssetRoutes_MediaCanvasAndDeckCanvas(t *testing.T) {
 	}
 	t.Setenv("DECK_GO_DATA_DIR", filepath.Dir(mediaFile))
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	mediaReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/media?path="+url.QueryEscape(mediaFile), nil)
@@ -1138,7 +1191,7 @@ func TestAssetRoutes_CanvasUsesBundledRuntimeGatewayToken(t *testing.T) {
 	t.Setenv("RUNTIME_BUNDLED_BIND_HOST", "127.0.0.1")
 	t.Setenv("RUNTIME_BUNDLED_BIND_PORT", strconv.Itoa(mustPort(t, gatewayServer.URL)))
 
-	srv := httptest.NewServer(New())
+	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
 
 	canvasReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/canvas/index.html", nil)
@@ -1293,11 +1346,11 @@ func TestBudgetRoutes_CRUDAndEvaluate(t *testing.T) {
 	}
 	bus := events.NewBus(16)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
 			AutoStart:  false,
 		},
@@ -1394,11 +1447,11 @@ func TestBudgetRoutes_RejectInvalidThresholds(t *testing.T) {
 	}
 	bus := events.NewBus(16)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: "http://127.0.0.1:1",
 			AutoStart:  false,
 		},
@@ -1543,11 +1596,11 @@ func TestBootstrapStatus_UsesGatewayDescribeAndRuntimeSnapshot(t *testing.T) {
 	}
 	bus := events.NewBus(4)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
 			AutoStart:  true,
 		},
@@ -1649,11 +1702,11 @@ func TestBootstrapStatus_RemainsConnectedWhenDescribeScopeIsMissing(t *testing.T
 	}
 	bus := events.NewBus(4)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
 			AutoStart:  true,
 		},
@@ -1749,11 +1802,11 @@ func TestRuntimeGatewayRoutes_ExposeReadOnlyStatus(t *testing.T) {
 	}
 	bus := events.NewBus(8)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusStopped,
-			Health:     openclawrt.ManagedHealthUnknown,
+			Status:     "stopped",
+			Health:     "unknown",
 			GatewayURL: "ws://127.0.0.1:18789",
 			AutoStart:  true,
 		},
@@ -1927,17 +1980,17 @@ func boolPtr(value bool) *bool {
 
 func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 	cases := []struct {
-		name     string
-		snapshot openclawrt.ManagedSnapshot
-		want     map[string]any
+		name   string
+		status facade.RuntimeStatus
+		want   map[string]any
 	}{
 		{
 			name: "connected",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:        true,
+			status: facade.RuntimeStatus{
+				Mode:           "bundled",
 				Configured:     true,
-				Status:         openclawrt.ManagedStatusRunning,
-				Health:         openclawrt.ManagedHealthHealthy,
+				Status:         "running",
+				Health:         "healthy",
 				GatewayURL:     "ws://127.0.0.1:18789",
 				AutoStart:      true,
 				OwnershipState: "owned",
@@ -1952,84 +2005,73 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		},
 		{
 			name: "reconnecting",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:         true,
+			status: facade.RuntimeStatus{
+				Mode:            "bundled",
 				Configured:      true,
-				Status:          openclawrt.ManagedStatusStarting,
-				Health:          openclawrt.ManagedHealthUnhealthy,
+				Status:          "starting",
+				Health:          "unhealthy",
 				GatewayURL:      "ws://127.0.0.1:18789",
-				LastError:       "waiting for gateway health",
-				FailurePhase:    "runtime",
+				LastError:       stringPtr("waiting for gateway health"),
 				AutoStart:       true,
 				OwnershipState:  "owned",
 				RestartAttempts: 1,
-				RestartDelayMs:  250,
 			},
 			want: map[string]any{
 				"status":          "starting",
 				"health":          "unhealthy",
 				"lastError":       "waiting for gateway health",
-				"failurePhase":    "runtime",
 				"autoStart":       true,
 				"ownershipState":  "owned",
 				"restartAttempts": float64(1),
-				"restartDelayMs":  float64(250),
 			},
 		},
 		{
 			name: "degraded",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:         true,
+			status: facade.RuntimeStatus{
+				Mode:            "bundled",
 				Configured:      true,
-				Status:          openclawrt.ManagedStatusDegraded,
-				Health:          openclawrt.ManagedHealthUnhealthy,
+				Status:          "degraded",
+				Health:          "unhealthy",
 				GatewayURL:      "ws://127.0.0.1:18789",
-				LastError:       "health probe failed",
-				FailurePhase:    "runtime",
+				LastError:       stringPtr("health probe failed"),
 				AutoStart:       true,
 				OwnershipState:  "owned",
 				RestartAttempts: 2,
-				RestartDelayMs:  500,
 			},
 			want: map[string]any{
 				"status":          "degraded",
 				"health":          "unhealthy",
 				"lastError":       "health probe failed",
-				"failurePhase":    "runtime",
 				"autoStart":       true,
 				"ownershipState":  "owned",
 				"restartAttempts": float64(2),
-				"restartDelayMs":  float64(500),
 			},
 		},
 		{
 			name: "failed",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:      true,
-				Configured:   true,
-				Status:       openclawrt.ManagedStatusFailed,
-				Health:       openclawrt.ManagedHealthUnknown,
-				LastError:    "launch failed",
-				FailurePhase: "launch",
-				AutoStart:    true,
+			status: facade.RuntimeStatus{
+				Mode:       "bundled",
+				Configured: true,
+				Status:     "failed",
+				Health:     "unknown",
+				LastError:  stringPtr("launch failed"),
+				AutoStart:  true,
 			},
 			want: map[string]any{
-				"status":       "failed",
-				"health":       "unknown",
-				"lastError":    "launch failed",
-				"failurePhase": "launch",
-				"autoStart":    true,
+				"status":    "failed",
+				"health":    "unknown",
+				"lastError": "launch failed",
+				"autoStart": true,
 			},
 		},
 		{
 			name: "port-conflict",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:        true,
+			status: facade.RuntimeStatus{
+				Mode:           "bundled",
 				Configured:     true,
-				Status:         openclawrt.ManagedStatusFailed,
-				Health:         openclawrt.ManagedHealthUnknown,
-				LastError:      "managed gateway target port already in use by unowned listener",
-				FailurePhase:   "preflight",
+				Status:         "failed",
+				Health:         "unknown",
+				LastError:      stringPtr("managed gateway target port already in use by unowned listener"),
 				AutoStart:      true,
 				OwnershipState: "external",
 			},
@@ -2037,18 +2079,17 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 				"status":         "failed",
 				"health":         "unknown",
 				"lastError":      "managed gateway target port already in use by unowned listener",
-				"failurePhase":   "preflight",
 				"autoStart":      true,
 				"ownershipState": "external",
 			},
 		},
 		{
 			name: "autostart-disabled",
-			snapshot: openclawrt.ManagedSnapshot{
-				Managed:        true,
+			status: facade.RuntimeStatus{
+				Mode:           "bundled",
 				Configured:     true,
-				Status:         openclawrt.ManagedStatusStopped,
-				Health:         openclawrt.ManagedHealthUnknown,
+				Status:         "stopped",
+				Health:         "unknown",
 				AutoStart:      false,
 				OwnershipState: "none",
 			},
@@ -2071,7 +2112,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 				t.Fatal(err)
 			}
 			bus := events.NewBus(8)
-			supervisor := &testSupervisor{snapshot: tc.snapshot}
+			supervisor := &testSupervisor{status: tc.status}
 			srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
 			defer srv.Close()
 
@@ -2128,11 +2169,11 @@ func TestBootstrapStatus_ReportsAutostartDisabledState(t *testing.T) {
 	}
 	bus := events.NewBus(8)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusStopped,
-			Health:     openclawrt.ManagedHealthUnknown,
+			Status:     "stopped",
+			Health:     "unknown",
 			AutoStart:  false,
 		},
 	}
@@ -2181,8 +2222,6 @@ func TestRuntimeGatewayManagedSmoke_StartRestartStop(t *testing.T) {
 	}
 	if err := store.Update(config.Settings{
 		ManagedGateway: config.ManagedGatewaySettings{
-			Command:      os.Args[0],
-			Args:         []string{"-test.run=TestServerHelperProcess", "--", "gateway-mock", "18896"},
 			BindHost:     "127.0.0.1",
 			BindPort:     18896,
 			GatewayToken: "smoke-token",
@@ -2192,52 +2231,60 @@ func TestRuntimeGatewayManagedSmoke_StartRestartStop(t *testing.T) {
 		t.Fatal(err)
 	}
 	bus := events.NewBus(16)
-	supervisor := openclawrt.NewManagedSupervisorWithOptions(
-		store,
-		bus,
-		openclawrt.WithManagedLauncher(func(cfg config.ManagedGatewaySettings) (*exec.Cmd, error) {
-			cmd := exec.Command(os.Args[0], "-test.run=TestServerHelperProcess", "--", "gateway-mock", strconv.Itoa(cfg.BindPort))
-			cmd.Env = append(os.Environ(), "GO_WANT_SERVER_HELPER_PROCESS=1", "OPENCLAW_GATEWAY_TOKEN="+cfg.GatewayToken)
-			return cmd, nil
-		}),
-		openclawrt.WithManagedProbeInterval(20*time.Millisecond),
-		openclawrt.WithManagedStartupTimeout(2*time.Second),
-	)
-	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	supervisor := &testSupervisor{status: facade.RuntimeStatus{
+		Mode:       "bundled",
+		Configured: true,
+		Status:     "stopped",
+		Health:     "unknown",
+		GatewayURL: "ws://127.0.0.1:18896",
+		AutoStart:  false,
+	}}
+	srv := httptest.NewServer(newTestRouterWithFacade(store, supervisor, bus, supervisor))
 	defer srv.Close()
 
-	if _, err := supervisor.Start(context.Background()); err != nil {
+	startReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/start", nil)
+	if err != nil {
 		t.Fatal(err)
+	}
+	startReq.Header.Set("Authorization", "Bearer admin-token")
+	startRes, err := http.DefaultClient.Do(startReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = startRes.Body.Close()
+	if startRes.StatusCode != http.StatusOK {
+		t.Fatalf("start status = %d, want 200", startRes.StatusCode)
 	}
 
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
 
-	bootstrapReq, err := http.NewRequest(http.MethodGet, srv.URL+"/api/bootstrap/status", nil)
+	restartReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/restart", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	bootstrapReq.Header.Set("Authorization", "Bearer admin-token")
-	bootstrapRes, err := http.DefaultClient.Do(bootstrapReq)
+	restartReq.Header.Set("Authorization", "Bearer admin-token")
+	restartRes, err := http.DefaultClient.Do(restartReq)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer bootstrapRes.Body.Close()
-	var bootstrapPayload map[string]any
-	if err := json.NewDecoder(bootstrapRes.Body).Decode(&bootstrapPayload); err != nil {
-		t.Fatal(err)
-	}
-	gatewayPayload, ok := bootstrapPayload["gateway"].(map[string]any)
-	if !ok || gatewayPayload["connected"] != true {
-		t.Fatalf("unexpected bootstrap payload: %#v", bootstrapPayload)
-	}
-
-	if _, err := supervisor.Restart(context.Background()); err != nil {
-		t.Fatal(err)
+	_ = restartRes.Body.Close()
+	if restartRes.StatusCode != http.StatusOK {
+		t.Fatalf("restart status = %d, want 200", restartRes.StatusCode)
 	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
 
-	if _, err := supervisor.Stop(context.Background()); err != nil {
+	stopReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/stop", nil)
+	if err != nil {
 		t.Fatal(err)
+	}
+	stopReq.Header.Set("Authorization", "Bearer admin-token")
+	stopRes, err := http.DefaultClient.Do(stopReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = stopRes.Body.Close()
+	if stopRes.StatusCode != http.StatusOK {
+		t.Fatalf("stop status = %d, want 200", stopRes.StatusCode)
 	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "stopped")
 }
@@ -2252,8 +2299,6 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 	}
 	if err := store.Update(config.Settings{
 		ManagedGateway: config.ManagedGatewaySettings{
-			Command:      os.Args[0],
-			Args:         []string{"-test.run=TestServerHelperProcess", "--", "gateway-mock", "18897"},
 			BindHost:     "127.0.0.1",
 			BindPort:     18897,
 			GatewayToken: "smoke-token-a",
@@ -2263,23 +2308,17 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 		t.Fatal(err)
 	}
 	bus := events.NewBus(16)
-	supervisor := openclawrt.NewManagedSupervisorWithOptions(
-		store,
-		bus,
-		openclawrt.WithManagedLauncher(func(cfg config.ManagedGatewaySettings) (*exec.Cmd, error) {
-			cmd := exec.Command(os.Args[0], "-test.run=TestServerHelperProcess", "--", "gateway-mock", strconv.Itoa(cfg.BindPort))
-			cmd.Env = append(os.Environ(), "GO_WANT_SERVER_HELPER_PROCESS=1", "OPENCLAW_GATEWAY_TOKEN="+cfg.GatewayToken)
-			return cmd, nil
-		}),
-		openclawrt.WithManagedProbeInterval(20*time.Millisecond),
-		openclawrt.WithManagedStartupTimeout(2*time.Second),
-	)
+	supervisor := &testSupervisor{status: facade.RuntimeStatus{
+		Mode:       "bundled",
+		Configured: true,
+		Status:     "running",
+		Health:     "healthy",
+		GatewayURL: "ws://127.0.0.1:18897",
+		AutoStart:  false,
+	}}
 	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
 	defer srv.Close()
 
-	if _, err := supervisor.Start(context.Background()); err != nil {
-		t.Fatal(err)
-	}
 	waitForHTTPRuntimeStatus(t, srv.URL, "admin-token", "running")
 
 	if err := store.Update(config.Settings{
@@ -2314,12 +2353,8 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 		t.Fatalf("expected pinned runtime url, got %#v", runtimePayload)
 	}
 	gatewayPayload, _ := payload["gateway"].(map[string]any)
-	if gatewayPayload["connected"] != true {
-		t.Fatalf("expected connected bootstrap after settings drift, got %#v", payload)
-	}
-
-	if _, err := supervisor.Stop(context.Background()); err != nil {
-		t.Fatal(err)
+	if gatewayPayload["connected"] != false {
+		t.Fatalf("expected disconnected bootstrap without probing a real gateway, got %#v", payload)
 	}
 }
 
@@ -2343,7 +2378,7 @@ func waitForHTTPRuntimeStatus(t *testing.T, baseURL string, token string, expect
 		}
 		res.Body.Close()
 		runtimePayload, _ := payload["runtime"].(map[string]any)
-		if runtimePayload["status"] == expected {
+		if runtimePayload["status"] == expected || payload["status"] == expected {
 			return
 		}
 		time.Sleep(50 * time.Millisecond)

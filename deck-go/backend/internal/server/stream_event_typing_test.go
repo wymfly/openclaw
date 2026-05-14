@@ -33,7 +33,7 @@ func captureStreamFrame(t *testing.T, eventName string, payload []byte) string {
 	}
 	bus := events.NewBus(4)
 	bus.Publish(eventName, payload)
-	managed := openclawrt.NewManagedRuntimeWithStoreAndSupervisor(store, &testSupervisor{}, bus)
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, &testSupervisor{}, bus)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	req := httptest.NewRequest(http.MethodGet, "/api/stream", nil).WithContext(ctx)

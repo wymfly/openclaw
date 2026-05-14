@@ -11,11 +11,11 @@ type Registry struct {
 	feed      *EventFeed
 }
 
-func New(reader SnapshotReader, bus BusLike) *Registry {
+func New(reader LastStatusReader, bus BusLike) *Registry {
 	return NewWithCapabilities(reader, nil, bus)
 }
 
-func NewWithCapabilities(reader SnapshotReader, capabilities CapabilityLoader, bus BusLike) *Registry {
+func NewWithCapabilities(reader LastStatusReader, capabilities CapabilityLoader, bus BusLike) *Registry {
 	return &Registry{
 		summaries: NewSummariesWithCapabilities(reader, capabilities),
 		feed:      NewEventFeed(bus),

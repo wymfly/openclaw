@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
 type stubCapabilityProvider struct {
@@ -22,10 +22,10 @@ func (s stubCapabilityProvider) Load(context.Context) (CapabilitySummary, error)
 
 func TestSummaries_IncludeCapabilityVersionWhenAvailable(t *testing.T) {
 	summaries := NewSummariesWithCapabilities(
-		stubSnapshotReader{
-			snapshot: bundled.Snapshot{
-				Status: bundled.StatusRunning,
-				Health: bundled.HealthHealthy,
+		stubStatusReader{
+			status: facade.RuntimeStatus{
+				Status: "running",
+				Health: "healthy",
 			},
 		},
 		stubCapabilityProvider{
@@ -58,10 +58,10 @@ func TestSummaries_IncludeCapabilityVersionWhenAvailable(t *testing.T) {
 
 func TestSummaries_IgnoreCapabilityErrors(t *testing.T) {
 	summaries := NewSummariesWithCapabilities(
-		stubSnapshotReader{
-			snapshot: bundled.Snapshot{
-				Status: bundled.StatusRunning,
-				Health: bundled.HealthHealthy,
+		stubStatusReader{
+			status: facade.RuntimeStatus{
+				Status: "running",
+				Health: "healthy",
 			},
 		},
 		stubCapabilityProvider{err: errors.New("describe failed")},

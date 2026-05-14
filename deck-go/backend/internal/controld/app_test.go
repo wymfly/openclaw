@@ -18,6 +18,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/remote"
 	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
@@ -94,7 +95,7 @@ func TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	bus := events.NewBus(8)
-	managed := openclawrt.NewManagedRuntime(store, bus)
+	managed := newControldTestRuntime(store, bus)
 
 	handler := NewHandlerWithDependencies(&Dependencies{
 		Store:   store,
@@ -158,6 +159,22 @@ func TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes(t *testing.T) {
 	}
 }
 
+func newControldTestRuntime(store *config.Store, bus *events.Bus) *openclawrt.ManagedRuntime {
+	return openclawrt.NewManagedRuntimeWithFacade(store, &dependencyRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "bundled",
+			Configured:      true,
+			SupervisorState: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:       "bundled",
+			Configured: true,
+			Status:     "stopped",
+			Health:     "unknown",
+		},
+	}, bus)
+}
+
 func TestNewHandlerWithDependencies_CorsAllowsStreamResumeHeader(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	store, err := config.NewStore()
@@ -166,7 +183,7 @@ func TestNewHandlerWithDependencies_CorsAllowsStreamResumeHeader(t *testing.T) {
 	}
 	handler := NewHandlerWithDependencies(&Dependencies{
 		Store:   store,
-		Runtime: openclawrt.NewManagedRuntime(store, events.NewBus(4)),
+		Runtime: newControldTestRuntime(store, events.NewBus(4)),
 	})
 
 	req := httptest.NewRequest(http.MethodOptions, "/api/v1/logs/stream", nil)
@@ -196,7 +213,7 @@ func TestNewHandlerWithDependencies_CorsAllowsDelete(t *testing.T) {
 	}
 	handler := NewHandlerWithDependencies(&Dependencies{
 		Store:   store,
-		Runtime: openclawrt.NewManagedRuntime(store, events.NewBus(4)),
+		Runtime: newControldTestRuntime(store, events.NewBus(4)),
 	})
 
 	req := httptest.NewRequest(http.MethodOptions, "/api/alerts/ar-test", nil)
@@ -331,6 +348,124 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 			t.Fatalf("bundled lifecycle used legacy spawn command: %q", joined)
 		}
 	}
+}
+
+func TestNewDependenciesWithRuntimeFacadeWiresManagedRuntimeToFacade(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	runtimeFacade := &dependencyRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "bundled",
+			Configured:      true,
+			SupervisorState: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:       "bundled",
+			Configured: true,
+			Status:     "running",
+			Health:     "healthy",
+		},
+	}
+
+	deps, err := NewDependenciesWithRuntimeFacade(envconf.Loaded{
+		Mode: envconf.ModeBundled,
+	}, runtimeFacade)
+	if err != nil {
+		t.Fatal(err)
+	}
+	managed, ok := deps.Runtime.(*openclawrt.ManagedRuntime)
+	if !ok {
+		t.Fatalf("unexpected runtime type %T", deps.Runtime)
+	}
+	if managed.Facade() != runtimeFacade {
+		t.Fatalf("managed runtime was not wired to the provided facade")
+	}
+}
+
+func TestRuntimeSummaryOverrideRecordsRemoteStatusCache(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeFacade := &dependencyRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:       "remote",
+			Configured: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:       "remote",
+			Configured: true,
+			Status:     "running",
+			Health:     "healthy",
+			GatewayURL: "wss://gateway.example.test",
+		},
+	}
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, runtimeFacade, events.NewBus(4))
+	override := runtimeSummaryOverride{base: managed, runtime: runtimeFacade, recorder: managed}
+
+	items, err := override.ListRuntimes(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(items) != 1 || items[0].Status != "running" || items[0].GatewayURL == nil || *items[0].GatewayURL != "wss://gateway.example.test" {
+		t.Fatalf("override did not use remote facade status: %+v", items)
+	}
+	if got := managed.LastStatus(); got.Status != "running" || got.GatewayURL != "wss://gateway.example.test" {
+		t.Fatalf("override did not record remote status cache: %+v", got)
+	}
+}
+
+type dependencyRuntimeFacade struct {
+	caps   facade.Capabilities
+	status facade.RuntimeStatus
+}
+
+func (f *dependencyRuntimeFacade) Capabilities(context.Context) (facade.Capabilities, error) {
+	return f.caps, nil
+}
+
+func (f *dependencyRuntimeFacade) Endpoint(context.Context) (facade.EndpointView, error) {
+	return facade.EndpointView{}, nil
+}
+
+func (f *dependencyRuntimeFacade) GatewayConnection(context.Context) (facade.GatewayConnection, error) {
+	return facade.GatewayConnection{}, facade.ErrNotConfigured
+}
+
+func (f *dependencyRuntimeFacade) UpdateRemoteEndpoint(context.Context, facade.RemoteEndpointInput) (facade.EndpointView, error) {
+	return facade.EndpointView{}, facade.ErrUnsupported
+}
+
+func (f *dependencyRuntimeFacade) TestRemoteEndpoint(context.Context, *facade.RemoteEndpointInput) (facade.TestResult, error) {
+	return facade.TestResult{}, facade.ErrUnsupported
+}
+
+func (f *dependencyRuntimeFacade) RuntimeGatewayStatus(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) Start(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) Stop(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) Restart(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) Install(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) Reinstall(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
+}
+
+func (f *dependencyRuntimeFacade) ReloadRuntime(context.Context) (facade.RuntimeStatus, error) {
+	return f.status, nil
 }
 
 type recordingBundledExec struct {

@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade/testfacade"
 )
 
 type stubManagedConnectionProvider struct{}
@@ -68,6 +69,19 @@ type stubTransportBinding struct {
 	currentIDError   error
 	invalidatedURL   string
 	invalidatedToken string
+}
+
+type transportFacadeRequester struct {
+	*testfacade.Stub
+	requester *stubTransportRequester
+}
+
+func (f transportFacadeRequester) Request(ctx context.Context, method string, params map[string]any) (any, error) {
+	return f.requester.Request(ctx, method, params)
+}
+
+func (f transportFacadeRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	return f.requester.RequestTyped(ctx, method, params)
 }
 
 func (s *stubTransportBinding) NewRequester(provider ManagedConnectionProvider) Requester {
@@ -163,13 +177,19 @@ func TestDeviceTokenRotateInvalidatesOldProbeClient(t *testing.T) {
 	transportBinding = stub
 	t.Cleanup(func() { transportBinding = previous })
 
-	supervisor := &recordingManagedSupervisor{
-		snapshot: bundled.Snapshot{
-			GatewayURL: "ws://gateway.example",
+	runtimeFacade := transportFacadeRequester{
+		Stub: testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true}),
+		requester: &stubTransportRequester{
+			payload: map[string]any{
+				"device.token.rotate": map[string]any{"ok": true},
+			},
 		},
-		gatewayToken: "old-token",
 	}
-	managed := NewManagedRuntimeWithSupervisor(supervisor, events.NewNoopBus())
+	runtimeFacade.ConnectionValue = facade.GatewayConnection{
+		URL:   "ws://gateway.example",
+		Token: "old-token",
+	}
+	managed := NewManagedRuntimeWithFacade(nil, runtimeFacade, events.NewNoopBus())
 
 	if _, err := managed.DeviceTokenRotate(context.Background(), map[string]any{"deviceId": "device-1"}); err != nil {
 		t.Fatal(err)

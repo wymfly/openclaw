@@ -58,6 +58,7 @@ Claude ↔ Codex 交叉审查与修复协作记录.
 按任务字母序:
 
 - [gateway-launcher-rewrite-stage1.md](./gateway-launcher-rewrite-stage1.md) — Gateway launcher rewrite Stage 1 (in-place rewrite of `bundled/`, BFF reverse-proxy, OperationsPanel UI)
+- [managed-runtime-supervisor-decoupling.md](./managed-runtime-supervisor-decoupling.md) — F1 follow-up: decouple `runtime/openclaw.ManagedRuntime` from `bundled.Supervisor` types and delete spawn-era files; unblocks `gateway-launcher-rewrite` Stage 2 rename
 
 新增任务时把链接加到本索引, 一句话描述.
 

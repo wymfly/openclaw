@@ -7,26 +7,20 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway/generated"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	runtimecoerce "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/coerce"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw/views"
 	runtimeprojection "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/projection"
 	runtimeregistry "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/registry"
 )
-
-type ManagedRuntimeSupervisor interface {
-	ManagedConnectionProvider
-	Snapshot() bundled.Snapshot
-	Start(context.Context) (bundled.Snapshot, error)
-	Stop(context.Context) (bundled.Snapshot, error)
-	Restart(context.Context) (bundled.Snapshot, error)
-}
 
 type ManagedRuntimeRegistrySurface interface {
 	ListRuntimes(context.Context) ([]runtimeregistry.RuntimeSummary, error)
@@ -211,61 +205,46 @@ type ManagedRuntimeSurface interface {
 	RuntimeAdapter() RuntimeSurface
 	RuntimeRegistry() *runtimeregistry.Registry
 	EventBus() *events.Bus
-	EnsureAutoStart()
 }
 
 type ManagedRuntime struct {
-	store      *config.Store
-	supervisor ManagedRuntimeSupervisor
-	adapter    RuntimeSurface
-	registry   *runtimeregistry.Registry
-	monitor    *runtimeprojection.MonitorQueries
-	bus        *events.Bus
-	bffViews   *views.Registry
+	store        *config.Store
+	facade       facade.RuntimeFacade
+	lastStatusMu sync.RWMutex
+	lastStatus   facade.RuntimeStatus
+	adapter      RuntimeSurface
+	registry     *runtimeregistry.Registry
+	monitor      *runtimeprojection.MonitorQueries
+	bus          *events.Bus
+	bffViews     *views.Registry
 }
 
 var _ ManagedRuntimeSurface = (*ManagedRuntime)(nil)
-var _ ManagedRuntimeSupervisor = (*bundled.Supervisor)(nil)
 
-func NewManagedRuntime(store *config.Store, bus *events.Bus) *ManagedRuntime {
-	supervisor := NewManagedSupervisorWithOptions(store, bus)
-	return NewManagedRuntimeWithStoreAndSupervisor(store, supervisor, bus)
-}
-
-func NewManagedRuntimeWithSupervisor(supervisor ManagedRuntimeSupervisor, bus *events.Bus) *ManagedRuntime {
-	return NewManagedRuntimeWithStoreAndSupervisor(nil, supervisor, bus)
-}
-
-func NewManagedRuntimeWithRequester(store *config.Store, requester Requester, bus *events.Bus) *ManagedRuntime {
-	supervisor := NewManagedSupervisorWithOptions(store, bus)
-	adapter := NewAdapterWithRealtime(requester, nil)
-	return newManagedRuntimeWithStoreSupervisorAdapter(store, supervisor, adapter, bus)
-}
-
-func NewManagedRuntimeWithStoreAndSupervisor(store *config.Store, supervisor ManagedRuntimeSupervisor, bus *events.Bus) *ManagedRuntime {
-	adapter := NewManagedAdapter(supervisor, bus)
-	return newManagedRuntimeWithStoreSupervisorAdapter(store, supervisor, adapter, bus)
-}
-
-func newManagedRuntimeWithStoreSupervisorAdapter(
-	store *config.Store,
-	supervisor ManagedRuntimeSupervisor,
-	adapter RuntimeSurface,
-	bus *events.Bus,
-) *ManagedRuntime {
-	registry := runtimeregistry.NewWithCapabilities(
-		supervisor,
-		adapter.CapabilitySummary(),
+func NewManagedRuntimeWithFacade(store *config.Store, runtimeFacade facade.RuntimeFacade, bus *events.Bus) *ManagedRuntime {
+	requester, _ := runtimeFacade.(Requester)
+	var adapter RuntimeSurface
+	var capabilities runtimeregistry.CapabilityLoader
+	if requester != nil {
+		adapter = NewAdapterWithRealtime(requester, newRequestSessionController(requester))
+		capabilities = adapter.CapabilitySummary()
+	} else {
+		provider := facadeConnectionProvider{runtimeFacade: runtimeFacade}
+		direct := facadeDirectRequester{provider: provider}
+		adapter = NewAdapterWithRealtime(direct, newRequestSessionController(direct))
+	}
+	managed := &ManagedRuntime{
+		store:   store,
+		facade:  runtimeFacade,
+		adapter: adapter,
+		monitor: runtimeprojection.NewMonitorQueries(bus),
+		bus:     bus,
+	}
+	managed.registry = runtimeregistry.NewWithCapabilities(
+		managedRuntimeStatusReader{owner: managed},
+		capabilities,
 		bus,
 	)
-	managed := &ManagedRuntime{
-		store:      store,
-		supervisor: supervisor,
-		adapter:    adapter,
-		registry:   registry,
-		monitor:    runtimeprojection.NewMonitorQueries(bus),
-		bus:        bus,
-	}
 	managed.bffViews = views.NewRegistry(
 		func(ctx context.Context, params generated.GatewayBatchParams) (generated.GatewayBatchResult, error) {
 			return managed.GatewayQueries().Batch(ctx, params)
@@ -283,6 +262,154 @@ func resolveManagedRuntimeStateDir(store *config.Store) string {
 		return ""
 	}
 	return filepath.Join(filepath.Dir(store.Path()), "managed-gateway-state")
+}
+
+type managedRuntimeStatusReader struct {
+	owner *ManagedRuntime
+}
+
+func (r managedRuntimeStatusReader) LastStatus() facade.RuntimeStatus {
+	if r.owner == nil {
+		return facade.RuntimeStatus{}
+	}
+	return r.owner.LastStatus()
+}
+
+type facadeConnectionProvider struct {
+	runtimeFacade facade.RuntimeFacade
+}
+
+func (p facadeConnectionProvider) GatewayConnection() (string, string, bool) {
+	if p.runtimeFacade == nil {
+		return "", "", false
+	}
+	conn, err := p.runtimeFacade.GatewayConnection(context.Background())
+	if err != nil || strings.TrimSpace(conn.URL) == "" {
+		return "", "", false
+	}
+	return conn.URL, conn.Token, true
+}
+
+type facadeDirectRequester struct {
+	provider facadeConnectionProvider
+}
+
+func (r facadeDirectRequester) Request(ctx context.Context, method string, params map[string]any) (any, error) {
+	upstreamURL, token, ok := r.provider.GatewayConnection()
+	if !ok {
+		return nil, facade.ErrNotConfigured
+	}
+	return gateway.RequestDirect(ctx, upstreamURL, token, method, params)
+}
+
+func (r facadeDirectRequester) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	paramsMap, err := typedParamsToMap(params)
+	if err != nil {
+		return nil, err
+	}
+	return r.Request(ctx, method, paramsMap)
+}
+
+type requestSessionController struct {
+	requester UntypedRequester
+	mu        sync.Mutex
+	counts    map[string]int
+	lifecycle bool
+}
+
+func newRequestSessionController(requester UntypedRequester) *requestSessionController {
+	return &requestSessionController{
+		requester: requester,
+		counts:    map[string]int{},
+	}
+}
+
+func (c *requestSessionController) SubscribeSession(ctx context.Context, key string) error {
+	if strings.TrimSpace(key) == "" {
+		return nil
+	}
+	c.mu.Lock()
+	alreadySubscribed := c.counts[key] > 0
+	needsLifecycleSubscribe := !c.lifecycle
+	c.mu.Unlock()
+	if needsLifecycleSubscribe {
+		if _, err := c.requester.Request(ctx, "sessions.subscribe", map[string]any{}); err != nil {
+			return err
+		}
+	}
+	if !alreadySubscribed {
+		if _, err := c.requester.Request(ctx, "sessions.messages.subscribe", map[string]any{"key": key}); err != nil {
+			return err
+		}
+	}
+	c.mu.Lock()
+	c.lifecycle = true
+	c.counts[key]++
+	c.mu.Unlock()
+	return nil
+}
+
+func (c *requestSessionController) UnsubscribeSession(ctx context.Context, key string) error {
+	if strings.TrimSpace(key) == "" {
+		return nil
+	}
+	c.mu.Lock()
+	count := c.counts[key]
+	if count == 0 {
+		c.mu.Unlock()
+		return nil
+	}
+	if count > 1 {
+		c.counts[key]--
+		c.mu.Unlock()
+		return nil
+	}
+	c.mu.Unlock()
+	if _, err := c.requester.Request(ctx, "sessions.messages.unsubscribe", map[string]any{"key": key}); err != nil {
+		return err
+	}
+	c.mu.Lock()
+	delete(c.counts, key)
+	needsLifecycleUnsubscribe := c.lifecycle && len(c.counts) == 0
+	if needsLifecycleUnsubscribe {
+		c.lifecycle = false
+	}
+	c.mu.Unlock()
+	if needsLifecycleUnsubscribe {
+		if _, err := c.requester.Request(ctx, "sessions.unsubscribe", map[string]any{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *ManagedRuntime) Facade() facade.RuntimeFacade {
+	if m == nil {
+		return nil
+	}
+	return m.facade
+}
+
+func (m *ManagedRuntime) LastStatus() facade.RuntimeStatus {
+	if m == nil {
+		return facade.RuntimeStatus{}
+	}
+	m.lastStatusMu.RLock()
+	defer m.lastStatusMu.RUnlock()
+	return m.lastStatus
+}
+
+func (m *ManagedRuntime) RecordRuntimeStatus(status facade.RuntimeStatus) {
+	m.setLastStatus(status)
+}
+
+func (m *ManagedRuntime) setLastStatus(status facade.RuntimeStatus) {
+	if m == nil {
+		return
+	}
+	m.lastStatusMu.Lock()
+	m.lastStatus = status
+	m.lastStatusMu.Unlock()
 }
 
 func (m *ManagedRuntime) RuntimeAdapter() RuntimeSurface {
@@ -450,7 +577,7 @@ func (m *ManagedRuntime) RotateDeviceToken(ctx context.Context, runtimeID string
 }
 
 func (m *ManagedRuntime) DeviceTokenRotate(ctx context.Context, body map[string]any) (any, error) {
-	upstreamURL, oldToken, ok := m.GatewayConnection()
+	upstreamURL, oldToken, ok := m.gatewayConnection(ctx)
 	payload, err := m.GatewayQueries().DeviceTokenRotate(ctx, body)
 	if err != nil {
 		return nil, err
@@ -1295,39 +1422,14 @@ func (m *ManagedRuntime) GetModelUsageCost(ctx context.Context, days int) (any, 
 	return m.UsageCost(ctx, map[string]any{"days": days})
 }
 
-func (m *ManagedRuntime) Snapshot() bundled.Snapshot {
-	if m == nil || m.supervisor == nil {
-		return bundled.Snapshot{}
+func (m *ManagedRuntime) gatewayConnection(ctx context.Context) (string, string, bool) {
+	if m != nil && m.facade != nil {
+		conn, err := m.facade.GatewayConnection(ctx)
+		if err == nil && strings.TrimSpace(conn.URL) != "" {
+			return conn.URL, conn.Token, true
+		}
 	}
-	return m.supervisor.Snapshot()
-}
-
-func (m *ManagedRuntime) Start(ctx context.Context) (bundled.Snapshot, error) {
-	if m == nil || m.supervisor == nil {
-		return bundled.Snapshot{}, nil
-	}
-	return m.supervisor.Start(ctx)
-}
-
-func (m *ManagedRuntime) Stop(ctx context.Context) (bundled.Snapshot, error) {
-	if m == nil || m.supervisor == nil {
-		return bundled.Snapshot{}, nil
-	}
-	return m.supervisor.Stop(ctx)
-}
-
-func (m *ManagedRuntime) Restart(ctx context.Context) (bundled.Snapshot, error) {
-	if m == nil || m.supervisor == nil {
-		return bundled.Snapshot{}, nil
-	}
-	return m.supervisor.Restart(ctx)
-}
-
-func (m *ManagedRuntime) GatewayConnection() (string, string, bool) {
-	if m == nil || m.supervisor == nil {
-		return "", "", false
-	}
-	return m.supervisor.GatewayConnection()
+	return "", "", false
 }
 
 func (m *ManagedRuntime) RuntimeRegistry() *runtimeregistry.Registry {
@@ -1452,13 +1554,4 @@ func buildMergePatch(path []string, value any) map[string]any {
 	}
 	current[path[len(path)-1]] = value
 	return root
-}
-
-func (m *ManagedRuntime) EnsureAutoStart() {
-	if m == nil || m.supervisor == nil {
-		return
-	}
-	if starter, ok := m.supervisor.(interface{ EnsureAutoStart() }); ok {
-		starter.EnsureAutoStart()
-	}
 }

@@ -90,9 +90,10 @@ func registerRuntimeRoutes(
 				writeRuntimeFacadeError(w, err)
 				return
 			}
+			recordManagedRuntimeStatus(managed, payload)
 			writeJSON(w, http.StatusOK, payload)
 		})
-		registerRuntimeLifecycleRoutes(mux, runtimeFacade)
+		registerRuntimeLifecycleRoutes(mux, managed, runtimeFacade)
 		return
 	}
 
@@ -105,6 +106,7 @@ func registerRuntimeLifecycleRoutes(
 	mux interface {
 		MethodFunc(string, string, http.HandlerFunc)
 	},
+	managed openclawrt.ManagedRuntimeSurface,
 	runtimeFacade facade.RuntimeFacade,
 ) {
 	type lifecycleAction struct {
@@ -122,6 +124,7 @@ func registerRuntimeLifecycleRoutes(
 		run := action.run
 		mux.MethodFunc("POST", action.path, func(w http.ResponseWriter, r *http.Request) {
 			payload, err := run(r.Context())
+			recordManagedRuntimeStatus(managed, payload)
 			if err != nil {
 				writeRuntimeLifecycleError(w, err)
 				return
@@ -129,6 +132,25 @@ func registerRuntimeLifecycleRoutes(
 			writeJSON(w, http.StatusOK, payload)
 		})
 	}
+}
+
+type runtimeStatusRecorder interface {
+	RecordRuntimeStatus(facade.RuntimeStatus)
+}
+
+func recordManagedRuntimeStatus(managed openclawrt.ManagedRuntimeSurface, status facade.RuntimeStatus) {
+	if isRuntimeStatusEmpty(status) {
+		return
+	}
+	recorder, ok := managed.(runtimeStatusRecorder)
+	if !ok {
+		return
+	}
+	recorder.RecordRuntimeStatus(status)
+}
+
+func isRuntimeStatusEmpty(status facade.RuntimeStatus) bool {
+	return status.Mode == "" && status.Status == ""
 }
 
 func decodeRemoteEndpointInput(w http.ResponseWriter, r *http.Request) (facade.RemoteEndpointInput, bool) {

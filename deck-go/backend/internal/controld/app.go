@@ -91,28 +91,6 @@ func hasTLSConfig(getenv EnvLookup) bool {
 	return cert != "" && key != ""
 }
 
-func NewHandler() http.Handler {
-	deps, err := NewDependencies()
-	if err != nil {
-		panic(err)
-	}
-	return NewHandlerWithDependencies(deps)
-}
-
-func NewDependencies() (*Dependencies, error) {
-	store, err := config.NewStore()
-	if err != nil {
-		return nil, err
-	}
-	bus := events.NewBus(2000)
-	managed := openclawrt.NewManagedRuntime(store, bus)
-	managed.EnsureAutoStart()
-	return &Dependencies{
-		Store:   store,
-		Runtime: managed,
-	}, nil
-}
-
 func NewDependenciesFromEnv() (*Dependencies, error) {
 	loaded, err := envconf.Load(envconf.Options{})
 	if err != nil {
@@ -125,47 +103,18 @@ func NewDependenciesFromEnv() (*Dependencies, error) {
 	return NewDependenciesWithRuntimeFacade(loaded, runtimeFacade)
 }
 
-func NewDependenciesWithRuntimeFacade(loaded envconf.Loaded, runtimeFacade facade.RuntimeFacade) (*Dependencies, error) {
+func NewDependenciesWithRuntimeFacade(_ envconf.Loaded, runtimeFacade facade.RuntimeFacade) (*Dependencies, error) {
 	store, err := config.NewStore()
 	if err != nil {
 		return nil, err
 	}
 	bus := events.NewBus(2000)
-	managed := openclawrt.NewManagedRuntime(store, bus)
-	if loaded.Mode == envconf.ModeRemote {
-		if requester, ok := runtimeFacade.(openclawrt.Requester); ok {
-			managed = openclawrt.NewManagedRuntimeWithRequester(store, requester, bus)
-		}
-	}
-	if loaded.Mode == envconf.ModeBundled {
-		if requester, ok := runtimeFacade.(openclawrt.Requester); ok {
-			managed = openclawrt.NewManagedRuntimeWithRequester(store, requester, bus)
-		}
-	}
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, runtimeFacade, bus)
 	return &Dependencies{
 		Store:         store,
 		Runtime:       managed,
 		RuntimeFacade: runtimeFacade,
 	}, nil
-}
-
-func managedGatewaySettingsFromRuntimeBundled(cfg envconf.RuntimeBundledConfig) config.ManagedGatewaySettings {
-	env := make(map[string]string, len(cfg.Env))
-	for key, value := range cfg.Env {
-		env[key] = value
-	}
-	return config.ManagedGatewaySettings{
-		Mode:                "managed",
-		Command:             cfg.Command,
-		Args:                append([]string(nil), cfg.Args...),
-		WorkingDir:          cfg.WorkingDir,
-		BindHost:            cfg.BindHost,
-		BindPort:            cfg.BindPort,
-		GatewayToken:        cfg.Token,
-		AutoStart:           cfg.AutoStart,
-		AutoStartConfigured: true,
-		Env:                 env,
-	}
 }
 
 func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
@@ -228,7 +177,11 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 		)
 		runtimeQueries := httpapi.RuntimeQueryProvider(registry)
 		if deps.RuntimeFacade != nil {
-			runtimeQueries = runtimeSummaryOverride{base: registry, runtime: deps.RuntimeFacade}
+			override := runtimeSummaryOverride{base: registry, runtime: deps.RuntimeFacade}
+			if recorder, ok := managed.(runtimeStatusRecorder); ok {
+				override.recorder = recorder
+			}
+			runtimeQueries = override
 		}
 		httpapi.MountRoutes(
 			api,
@@ -257,8 +210,13 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 }
 
 type runtimeSummaryOverride struct {
-	base    httpapi.RuntimeQueryProvider
-	runtime facade.RuntimeFacade
+	base     httpapi.RuntimeQueryProvider
+	runtime  facade.RuntimeFacade
+	recorder runtimeStatusRecorder
+}
+
+type runtimeStatusRecorder interface {
+	RecordRuntimeStatus(facade.RuntimeStatus)
 }
 
 func (p runtimeSummaryOverride) ListRuntimes(ctx context.Context) ([]runtimeregistry.RuntimeSummary, error) {
@@ -313,7 +271,19 @@ func (p runtimeSummaryOverride) apply(ctx context.Context, item runtimeregistry.
 	} else {
 		item.LastError = nil
 	}
+	p.record(status)
 	return item
+}
+
+func (p runtimeSummaryOverride) record(status facade.RuntimeStatus) {
+	if p.recorder == nil || isRuntimeStatusEmpty(status) {
+		return
+	}
+	p.recorder.RecordRuntimeStatus(status)
+}
+
+func isRuntimeStatusEmpty(status facade.RuntimeStatus) bool {
+	return status.Mode == "" && status.Status == ""
 }
 
 func ResolveDeckStatePath() string {

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	busevents "github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
 func TestRegistry_CombinesSummaryAndEventFeed(t *testing.T) {
@@ -22,10 +22,10 @@ func TestRegistry_CombinesSummaryAndEventFeed(t *testing.T) {
 	}
 
 	registry := NewWithCapabilities(
-		stubSnapshotReader{
-			snapshot: bundled.Snapshot{
-				Status: bundled.StatusRunning,
-				Health: bundled.HealthHealthy,
+		stubStatusReader{
+			status: facade.RuntimeStatus{
+				Status: "running",
+				Health: "healthy",
 			},
 		},
 		stubCapabilityProvider{

@@ -612,6 +612,122 @@ func TestRuntimeGatewayLifecycleRefreshRoute_UsesFacadeStatus(t *testing.T) {
 	}
 }
 
+func TestRuntimeGatewayStatusRoute_RefreshesManagedRuntimeCache(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &fakeRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "bundled",
+			Configured:      true,
+			EndpointMutable: false,
+			SupervisorState: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:       "bundled",
+			Configured: true,
+			Status:     "running",
+			Health:     "healthy",
+			AutoStart:  true,
+		},
+	}
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, rt, events.NewBus(4))
+	srv := httptest.NewServer(NewRootHandlerWithRuntimeFacade(store, managed, rt))
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", res.StatusCode)
+	}
+	if got := managed.LastStatus(); got.Status != "running" || !got.AutoStart {
+		t.Fatalf("runtime gateway status route did not refresh managed cache: %+v", got)
+	}
+}
+
+func TestRuntimeGatewayLifecycleRoutes_RefreshManagedRuntimeCache(t *testing.T) {
+	for _, path := range []string{
+		"/api/runtime/gateway/install",
+		"/api/runtime/gateway/start",
+		"/api/runtime/gateway/stop",
+		"/api/runtime/gateway/restart",
+		"/api/runtime/gateway/reinstall",
+		"/api/runtime/gateway/refresh",
+	} {
+		t.Run(path, func(t *testing.T) {
+			t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+			t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+			store, err := config.NewStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt := &fakeRuntimeFacade{
+				caps: facade.Capabilities{
+					Mode:            "bundled",
+					Configured:      true,
+					EndpointMutable: false,
+					SupervisorState: true,
+				},
+				status: facade.RuntimeStatus{
+					Mode:           "bundled",
+					Configured:     true,
+					Status:         "running",
+					Health:         "healthy",
+					LifecycleState: "running",
+					ServiceName:    "openclaw-gateway.cache",
+				},
+			}
+			managed := openclawrt.NewManagedRuntimeWithFacade(store, rt, events.NewBus(4))
+			srv := httptest.NewServer(NewRootHandlerWithRuntimeFacade(store, managed, rt))
+			defer srv.Close()
+
+			req, err := http.NewRequest(http.MethodPost, srv.URL+path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer admin-token")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("%s status = %d, want 200", path, res.StatusCode)
+			}
+			if got := managed.LastStatus(); got.Status != "running" || got.ServiceName != "openclaw-gateway.cache" {
+				t.Fatalf("%s did not refresh managed cache: %+v", path, got)
+			}
+		})
+	}
+}
+
+func TestRecordManagedRuntimeStatusSkipsSemanticallyEmptyStatus(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, &fakeRuntimeFacade{}, events.NewBus(4))
+	managed.RecordRuntimeStatus(facade.RuntimeStatus{Mode: "bundled", Status: "running"})
+
+	recordManagedRuntimeStatus(managed, facade.RuntimeStatus{Configured: true})
+
+	if got := managed.LastStatus(); got.Mode != "bundled" || got.Status != "running" {
+		t.Fatalf("semantically empty status overwrote cache: %+v", got)
+	}
+}
+
 func TestRuntimeGatewayLifecycleRoutes_RemoteModeReturns405(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
@@ -1009,10 +1125,10 @@ func TestRuntimeGatewayActionRoutesUseFacadeNotLegacySupervisor(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			supervisor := &testSupervisor{snapshot: openclawrt.ManagedSnapshot{
-				Managed:    true,
+			supervisor := &testSupervisor{status: facade.RuntimeStatus{
+
 				Configured: true,
-				Status:     openclawrt.ManagedStatusStopped,
+				Status:     "stopped",
 			}}
 			rt := &fakeRuntimeFacade{caps: tc.caps}
 			srv := httptest.NewServer(newTestRouterWithFacade(store, supervisor, events.NewBus(4), rt))

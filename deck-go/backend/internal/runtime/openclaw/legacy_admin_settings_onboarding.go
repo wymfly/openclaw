@@ -14,7 +14,7 @@ import (
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
 var (
@@ -135,7 +135,13 @@ func (m *ManagedRuntime) TestLegacySettingsConnection(ctx context.Context, rawUR
 }
 
 func (m *ManagedRuntime) GetVersion(ctx context.Context) (map[string]any, error) {
-	status := runtimeVersionStatus(m.Snapshot())
+	lastStatus := m.LastStatus()
+	if m != nil && m.facade != nil {
+		if refreshed, err := m.refreshFacadeStatus(ctx); err == nil {
+			lastStatus = refreshed
+		}
+	}
+	status := runtimeVersionStatus(lastStatus)
 	return map[string]any{
 		"deck":    readDeckVersion(),
 		"gateway": status,
@@ -228,8 +234,8 @@ func readDeckVersion() string {
 	return deckVersion
 }
 
-func runtimeVersionStatus(snapshot bundled.Snapshot) string {
-	if snapshot.Status == bundled.StatusRunning || snapshot.Status == bundled.StatusDegraded {
+func runtimeVersionStatus(status facade.RuntimeStatus) string {
+	if status.Status == "running" || status.Status == "degraded" {
 		return "connected"
 	}
 	return "unknown"

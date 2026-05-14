@@ -4,40 +4,64 @@ import (
 	"context"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/deckapi"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 )
 
 type RuntimeGatewayActionResponse = deckapi.DeckGoRuntimeGatewayActionResponse
 
 func (m *ManagedRuntime) RuntimeGatewayStatusResponse() RuntimeGatewayActionResponse {
+	status, _ := m.refreshFacadeStatus(context.Background())
 	return RuntimeGatewayActionResponse{
 		Ok:      true,
-		Runtime: runtimeStatus(m.Snapshot()),
+		Runtime: runtimeStatusFromFacadeStatus(status),
 	}
 }
 
 func (m *ManagedRuntime) StartRuntimeGateway(ctx context.Context) (RuntimeGatewayActionResponse, error) {
-	snapshot, err := m.Start(ctx)
+	if m == nil || m.facade == nil {
+		return RuntimeGatewayActionResponse{}, facade.ErrUnsupported
+	}
+	status, err := m.facade.Start(ctx)
+	m.setLastStatus(status)
 	return RuntimeGatewayActionResponse{
 		Ok:      err == nil,
-		Runtime: runtimeStatus(snapshot),
+		Runtime: runtimeStatusFromFacadeStatus(status),
 	}, err
 }
 
 func (m *ManagedRuntime) StopRuntimeGateway(ctx context.Context) (RuntimeGatewayActionResponse, error) {
-	snapshot, err := m.Stop(ctx)
+	if m == nil || m.facade == nil {
+		return RuntimeGatewayActionResponse{}, facade.ErrUnsupported
+	}
+	status, err := m.facade.Stop(ctx)
+	m.setLastStatus(status)
 	return RuntimeGatewayActionResponse{
 		Ok:      err == nil,
-		Runtime: runtimeStatus(snapshot),
+		Runtime: runtimeStatusFromFacadeStatus(status),
 	}, err
 }
 
 func (m *ManagedRuntime) RestartRuntimeGateway(ctx context.Context) (RuntimeGatewayActionResponse, error) {
-	snapshot, err := m.Restart(ctx)
+	if m == nil || m.facade == nil {
+		return RuntimeGatewayActionResponse{}, facade.ErrUnsupported
+	}
+	status, err := m.facade.Restart(ctx)
+	m.setLastStatus(status)
 	return RuntimeGatewayActionResponse{
 		Ok:      err == nil,
-		Runtime: runtimeStatus(snapshot),
+		Runtime: runtimeStatusFromFacadeStatus(status),
 	}, err
+}
+
+func (m *ManagedRuntime) refreshFacadeStatus(ctx context.Context) (facade.RuntimeStatus, error) {
+	if m == nil || m.facade == nil {
+		return facade.RuntimeStatus{}, nil
+	}
+	status, err := m.facade.RuntimeGatewayStatus(ctx)
+	if err == nil {
+		m.setLastStatus(status)
+	}
+	return status, err
 }
 
 func (m *ManagedRuntime) BootstrapStatus(ctx context.Context) (deckapi.DeckGoBootstrapStatusResponse, error) {
@@ -51,17 +75,17 @@ func (m *ManagedRuntime) BootstrapStatus(ctx context.Context) (deckapi.DeckGoBoo
 		return payload, nil
 	}
 	effective := m.store.Effective()
-	runtimeSnapshot := m.Snapshot()
+	status, _ := m.refreshFacadeStatus(ctx)
 	payload.Settings = deckapi.DeckGoBootstrapSettingsStatus{
 		Path:                     m.store.Path(),
 		AccessTokenConfigured:    effective.AccessToken != "",
-		ManagedGatewayConfigured: runtimeSnapshot.Configured,
+		ManagedGatewayConfigured: status.Configured,
 		CommandConfigured:        effective.ManagedGateway.Command != "",
 		GatewayTokenConfigured:   effective.ManagedGateway.GatewayToken != "",
 		AutoStart:                effective.ManagedGateway.AutoStart,
 	}
-	payload.Runtime = runtimeStatus(runtimeSnapshot)
-	if runtimeSnapshot.Status == bundled.StatusRunning || runtimeSnapshot.Status == bundled.StatusDegraded {
+	payload.Runtime = runtimeStatusFromFacadeStatus(status)
+	if status.Status == "running" || status.Status == "degraded" {
 		summary, _ := m.LoadGatewayStatus(ctx)
 		payload.Gateway = deckapi.DeckGoBootstrapGatewayStatus{
 			Connected:                   summary.Connected,
@@ -75,24 +99,32 @@ func (m *ManagedRuntime) BootstrapStatus(ctx context.Context) (deckapi.DeckGoBoo
 	return payload, nil
 }
 
-func runtimeStatus(snapshot bundled.Snapshot) deckapi.DeckGoRuntimeGatewayStatus {
-	return deckapi.DeckGoRuntimeGatewayStatus{
-		Managed:         snapshot.Managed,
-		Configured:      snapshot.Configured,
-		Status:          string(snapshot.Status),
-		FailurePhase:    string(snapshot.FailurePhase),
-		Pid:             float64(snapshot.PID),
-		StartedAt:       snapshot.StartedAt,
-		LastExitAt:      snapshot.LastExitAt,
-		LastExitCode:    float64(snapshot.LastExitCode),
-		Health:          string(snapshot.Health),
-		GatewayUrl:      snapshot.GatewayURL,
-		LastError:       snapshot.LastError,
-		AutoStart:       snapshot.AutoStart,
-		Owner:           snapshot.Owner,
-		OwnershipState:  snapshot.OwnershipState,
-		OwnershipFile:   snapshot.OwnershipFile,
-		RestartAttempts: float64(snapshot.RestartAttempts),
-		RestartDelayMs:  float64(snapshot.RestartDelayMs),
+func runtimeStatusFromFacadeStatus(status facade.RuntimeStatus) deckapi.DeckGoRuntimeGatewayStatus {
+	resp := deckapi.DeckGoRuntimeGatewayStatus{
+		Mode:            status.Mode,
+		Managed:         status.Mode == "bundled",
+		Configured:      status.Configured,
+		Status:          status.Status,
+		Health:          status.Health,
+		GatewayUrl:      status.GatewayURL,
+		AutoStart:       status.AutoStart,
+		OwnershipState:  status.OwnershipState,
+		RestartAttempts: float64(status.RestartAttempts),
 	}
+	if status.PID != nil {
+		resp.Pid = float64(*status.PID)
+	}
+	if status.LastConnectedAt != nil {
+		resp.LastConnectedAt = *status.LastConnectedAt
+	}
+	if status.LastError != nil {
+		resp.LastError = *status.LastError
+	}
+	if status.LatencyP50 != nil {
+		resp.LatencyP50 = float64(*status.LatencyP50)
+	}
+	if status.TLSVerified != nil {
+		resp.TlsVerified = *status.TLSVerified
+	}
+	return resp
 }

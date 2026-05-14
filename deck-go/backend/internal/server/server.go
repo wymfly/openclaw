@@ -7,22 +7,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/access"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/platform/audit"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
-
-func New() http.Handler {
-	store, err := config.NewStore()
-	if err != nil {
-		panic(err)
-	}
-	bus := events.NewBus(2000)
-	managed := openclawrt.NewManagedRuntime(store, bus)
-	managed.EnsureAutoStart()
-	return NewRootHandler(store, managed)
-}
 
 func NewRootHandler(store *config.Store, managed openclawrt.ManagedRuntimeSurface) http.Handler {
 	return NewRootHandlerWithRuntimeFacade(store, managed, nil)

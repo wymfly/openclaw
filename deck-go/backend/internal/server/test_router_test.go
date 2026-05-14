@@ -1,26 +1,20 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
 
 type managedRuntimeHarnessProvider interface {
-	openclawrt.ManagedConnectionProvider
-	Snapshot() bundled.Snapshot
-	Start(context.Context) (bundled.Snapshot, error)
-	Stop(context.Context) (bundled.Snapshot, error)
-	Restart(context.Context) (bundled.Snapshot, error)
+	facade.RuntimeFacade
 }
 
 func newManagedTestRouter(store *config.Store, provider managedRuntimeHarnessProvider, bus *events.Bus) http.Handler {
-	return NewRootHandler(store, openclawrt.NewManagedRuntimeWithStoreAndSupervisor(store, provider, bus))
+	return NewRootHandler(store, openclawrt.NewManagedRuntimeWithFacade(store, provider, bus))
 }
 
 func newTestRouter(store *config.Store, provider managedRuntimeHarnessProvider, bus *events.Bus) http.Handler {
@@ -33,6 +27,7 @@ func newTestRouterWithFacade(
 	bus *events.Bus,
 	runtimeFacade facade.RuntimeFacade,
 ) http.Handler {
-	managed := openclawrt.NewManagedRuntimeWithStoreAndSupervisor(store, provider, bus)
+	_ = provider
+	managed := openclawrt.NewManagedRuntimeWithFacade(store, runtimeFacade, bus)
 	return NewRootHandlerWithRuntimeFacade(store, managed, runtimeFacade)
 }

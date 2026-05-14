@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -16,8 +17,32 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/gateway"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 )
+
+type staticGatewayProvider struct {
+	url   string
+	token string
+}
+
+func (p staticGatewayProvider) GatewayConnection() (string, string, bool) {
+	return p.url, p.token, strings.TrimSpace(p.url) != "" && strings.TrimSpace(p.token) != ""
+}
+
+type requesterTestSupervisor struct {
+	*testSupervisor
+	requester openclawrt.Requester
+}
+
+func (f requesterTestSupervisor) Request(ctx context.Context, method string, params map[string]any) (any, error) {
+	return f.requester.Request(ctx, method, params)
+}
+
+func (f requesterTestSupervisor) RequestTyped(ctx context.Context, method string, params any) (any, error) {
+	return f.requester.RequestTyped(ctx, method, params)
+}
 
 func TestGatewayFacade_ConfigSchemaLookup(t *testing.T) {
 	srv := newGatewayBackedServer(t, func(conn *websocket.Conn, method string, params map[string]any) {
@@ -3027,16 +3052,25 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 	}
 	bus := events.NewBus(8)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+			Mode:       "bundled",
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
 			AutoStart:  false,
 		},
 	}
-	srv := httptest.NewServer(newTestRouter(store, supervisor, bus))
+	realtime := gateway.NewRealtime(
+		staticGatewayProvider{url: supervisor.status.GatewayURL, token: "gateway-token"},
+		events.NewNoopBus(),
+	)
+	defer realtime.Close()
+	runtimeFacade := requesterTestSupervisor{
+		testSupervisor: supervisor,
+		requester:      gateway.NewClientWithRealtime(realtime),
+	}
+	srv := httptest.NewServer(newTestRouterWithFacade(store, supervisor, bus, runtimeFacade))
 	defer srv.Close()
 
 	subscribeReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/chat/session-events", strings.NewReader(`{"action":"subscribe","sessionKey":"session-1"}`))
@@ -3211,11 +3245,11 @@ func newGatewayBackedServerWithOptions(t *testing.T, handleMethod func(conn *web
 	}
 	bus := events.NewBus(8)
 	supervisor := &testSupervisor{
-		snapshot: openclawrt.ManagedSnapshot{
-			Managed:    true,
+		status: facade.RuntimeStatus{
+
 			Configured: true,
-			Status:     openclawrt.ManagedStatusRunning,
-			Health:     openclawrt.ManagedHealthHealthy,
+			Status:     "running",
+			Health:     "healthy",
 			GatewayURL: config.ManagedGatewayURL(store.Effective().ManagedGateway),
 			AutoStart:  false,
 		},

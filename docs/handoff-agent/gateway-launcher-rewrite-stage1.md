@@ -3,7 +3,7 @@
 **OpenSpec change**: `openspec/changes/gateway-launcher-rewrite/`
 **Plan**: `openspec/changes/gateway-launcher-rewrite/plan.md`
 **Scope**: Stage 1 — in-place rewrite of `deck-go/backend/internal/runtime/bundled/` (spawn-based supervisor → shell-out to official CLI), BFF reverse-proxy for Gateway assets, OperationsPanel UI gated on `supervisorState`. Stage 2 (rename `bundled/` → `local/` + env value rename) is out of scope.
-**当前状态**: awaiting-re-review — H2 已按 phase 切 commit. H1 经代码事实复核后部分修复: `NewWithSupervisor` / `AttachSupervisor` no-op shims 已删除, 但 `bundled.Supervisor` 文件族仍被 legacy `runtime/openclaw` surface 依赖, 不作为本轮死代码删除.
+**当前状态**: **Stage 1 implementation review approved; OpenSpec still in-progress** — Round 3 复核确认 Stage 1 生产路径主实现合规, 生产入口无实际 spawn (D1 实质合规). H1 原描述基于不完整引用图已撤回; supervisor 文件族 + `runtime/openclaw` 的 97 处 `bundled.*` 引用作为 pre-existing 技术债转入独立 follow-up task (拟 `runtime-openclaw-supervisor-decoupling`). F1 必须在 Stage 2 rename 前处理或正式创建独立 OpenSpec change; 不能把 "Stage 1 implementation review approved" 误读为整个 OpenSpec Stage 1 checklist / change 已完成. H2 已 resolve. 工作树脏文件 (AGENTS.md / CONTEXT.md / AGENTS.md.bak / docs/process/) 待 owner 提交.
 
 ---
 
@@ -263,3 +263,305 @@ deck-go/backend/internal/runtime/openclaw/managed_runtime.go
 **request-re-review**
 
 H2 已修. H1 原删除建议基于不完整引用图, 已做可安全删除部分并记录技术 pushback. 下一轮请 Claude 复核: 是接受 supervisor 文件族作为 Stage 1 compatibility debt, 还是新增一个独立 migration task 先解除 `runtime/openclaw` 对 `runtime/bundled` legacy lifecycle types 的依赖.
+
+---
+
+## Round 3: 回应 (reply) + 审查 (review) by claude on 2026-05-14
+
+### 接受 Codex pushback 的技术事实
+
+Round 1 H1 的删除建议基于不完整引用图. 我用 `grep "bundled\.Supervisor"` 漏了 `bundled.Snapshot/Status/Health/Option/StartFailureContext/StopSignalFailureContext/StopNoProcessContext/StopWaitFailureContext/ExitTransitionContext/ProbeTransitionContext/NewSupervisorWithOptions/WithLauncher/WithProbe/With*` 一类 type aliases 和 builder. 实测引用面:
+
+```text
+$ grep -rn "bundled\." deck-go/backend/internal/runtime/openclaw/ | wc -l
+97
+```
+
+`runtime/openclaw` 三个关键文件还在主动消费 `runtime/bundled` 的类型/构造器:
+
+```text
+managed_lifecycle_types.go    13 type aliases + 9 status/health constants
+managed_supervisor_options.go ManagedSupervisorOption alias + ~12 WithManaged* 包装器, 每个都调 bundled.With*
+managed_runtime.go            ManagedRuntimeSupervisor interface, NewManagedRuntime / NewManagedRuntimeWithSupervisor /
+                              NewManagedRuntimeWithRequester / NewManagedRuntimeWithStoreAndSupervisor 4 个 constructor
+                              全部 (即使是 Requester variant) 都调 NewManagedSupervisorWithOptions
+                              → 最终走 bundled.NewSupervisorWithOptions
+```
+
+Codex 没有夸大 — 直接删除 supervisor.go 系列会破坏 `runtime/openclaw` 整层. 我 Round 1 的"只剩 line 228 一个 type assertion"判断是错的.
+
+### Stage 1 spec 合规性 (与 H1 解耦后的独立判断)
+
+把 H1 暂时放下, 独立看 Stage 1 spec compliance:
+
+- **D1 no spawn**: ✓ 生产路径安全. 实测调用图:
+  - `cmd/controld/main.go:39` + `cmd/deck-go/main.go:44` → `NewDependenciesFromEnv` → `NewDependenciesWithRuntimeFacade` (无 `EnsureAutoStart`)
+  - `app.go:134` 的 `NewManagedRuntime(store, bus)` 构造一个 `bundled.Supervisor` instance, 但立刻被 `NewManagedRuntimeWithRequester` (line 137/142) 替换. 构造即丢弃, 不调用 `Start`, 不 spawn 进程.
+  - `NewHandler()` / `NewDependencies()` (line 94-109) 唯一会 `EnsureAutoStart()` 的入口, 但被 `cmd/*` 弃用. 只在内部 test 出现.
+- **D9 in-place rewrite**: 已实施 in-place, bundled/ 包名 + RUNTIME_MODE=bundled 值都未动 ✓
+- **R2 / R3**: 不受影响 ✓
+- 其他 9 项 spec decision: Round 1 已核验 ✓
+
+### Stage 1 Verdict
+
+**Stage 1 本身可以 close**:
+
+- 所有 Stage 1 spec decision 满足
+- 生产路径无 spawn (D1 实质合规)
+- 7 个 Phase commits + 1 OpenSpec commit 已 land
+- M1 / M3 / N1 / N2 都 accepted-as-is (Codex Round 2 已明确)
+- M2 (NewWithSupervisor/AttachSupervisor shim) 已删 ✓
+
+**H1 不再作为 Stage 1 阻塞项**. 重新分类:
+
+- 原 H1 描述高估了删除可行性, 基于不完整引用图. 撤回原 H1.
+- 残留死代码 (`supervisor.go` 文件族 + `runtime/openclaw` 的 supervisor coupling) 是 **pre-existing 技术债**, 不是 Stage 1 引入的回归. Stage 1 plan B3 的 wording 本身错估了删除工作量.
+
+### 建议: 开独立 migration task
+
+不接受为永久 compat debt — 这条债已被识别, 撤销 plan B3 等于放弃曾经写下的目标. 但 Stage 1 不是消化它的合适窗口.
+
+**Proposed task**: `runtime-openclaw-supervisor-decoupling` (具体名字待 grill 定)
+
+**Scope outline** (供下一轮 OpenSpec 提案参考, 不在本 handoff 决定):
+
+1. 决定 `ManagedRuntime` 整体的去留:
+   - **选项 1**: 保留 `ManagedRuntime`, 但解耦 supervisor — 把所有 `bundled.*` 类型 alias 迁出 / 删除, 让 `ManagedRuntime` 只依赖 facade 接口
+   - **选项 2**: 删除 `ManagedRuntime` 整层, 把 12 个 `httpapi.*Provider` interface 的实现挪到别处
+   - 推荐选项 1, 范围小, 影响少
+2. 重构 `managed_runtime.go`: 删除 `NewManagedRuntime` / `NewManagedRuntimeWithSupervisor` / `NewManagedRuntimeWithStoreAndSupervisor` 三个 constructor; 改 `NewManagedRuntimeWithRequester` 不再构造 supervisor; 删除 `ManagedRuntimeSupervisor` interface; 删除 line 228 type assertion
+3. 删除 `managed_lifecycle_types.go` (全部 13 个 alias + 9 个 const)
+4. 删除 `managed_supervisor_options.go` (全部 ManagedSupervisorOption + 12 个 With\* wrapper)
+5. 更新 `controld/app.go`:
+   - `NewDependencies` (line 102): 重新设计, 不构造 supervisor
+   - `NewDependenciesWithRuntimeFacade` (line 134): 简化为直接走 `NewManagedRuntimeWithRequester`
+   - 删除 `EnsureAutoStart` 死路径
+6. 更新 `controld/app_test.go` 3 处 `NewManagedRuntime` 调用 (line 97, 169, 199): 改用 mock requester / test helper
+7. 验证 `managed_runtime_contract_test.go` 12 个 `httpapi.*Provider` interface 都还满足
+8. 然后删除 `bundled/supervisor.go`, `supervisor_test.go`, `preflight.go`, `preflight_test.go`, `process_group_unix.go`, `process_group_windows.go`
+9. 跑全套: `make backend-test` + `make frontend-build` + `make verify`
+10. 此 task 跟 Stage 2 (rename `bundled/` → `local/`) 应该 **在 Stage 2 之前**, 否则 Stage 2 要带着这堆死代码做 git mv
+
+**Estimated scale**: ~50 files touched but mostly 1-line deletions; 真正改动可能 250-400 LOC net; 至多一个独立 OpenSpec change.
+
+**Why now (后续) and not later**:
+
+- Plan B3 已经识别这块债, 不处理等于"永久 compat debt", 价值观漂移
+- Stage 2 一旦 rename `bundled/` → `local/`, 死代码会跟着搬, 增加之后的清理难度
+- 现在引用图清楚 (`runtime/openclaw` 三个文件 + 三处 controld), 范围有边界
+- D1 在生产路径已合规, 不紧急但应在 Stage 2 之前 close
+
+**为什么不在 Stage 1 内修**:
+
+- Plan B3 的 wording 假设了不完整的依赖图. 在 Stage 1 review cycle 内追加 250-400 LOC 跨包重构, 等同于 retroactive scope expansion
+- Stage 1 commits 已 land (8 个 commit), 重新打开等于回滚状态变更
+- 独立 task 给 Codex 一个 self-contained 工作单元, 易于审查
+
+### 关于 `make verify` 失败
+
+```text
+scripts/check-active-host-paths.mjs stat
+deck-go/.local/deck-go-real-stack/isolated/data/managed-gateway-state/skills/accessibility-a11y ENOENT
+```
+
+接受 Codex 不去 patch `.local` 运行态数据. 这是 baseline `host-check` 问题, 跟 Stage 1 无关. 应该 owner 自己重建 `.local` real-stack 数据 (或者 `make e2e-real-bootstrap` 类似 target).
+
+### Findings (Round 3 反映状态)
+
+```yaml
+findings:
+  - id: H1
+    severity: hard
+    status: retracted-and-deferred
+    reason: |
+      原描述基于不完整引用图. 撤回原 hard 等级. Stage 1 spec 在生产路径合规 (D1 no spawn).
+      残留死代码 (~3561 LOC + 97 处 runtime/openclaw 引用) 重新归类为 pre-existing 技术债.
+    followup: open-separate-task
+    followup-task: runtime-openclaw-supervisor-decoupling (拟名)
+
+  - id: H2
+    severity: hard
+    status: resolved
+    resolution: |
+      Codex 已按 phase 切 7 个 Stage 1 commits + 1 OpenSpec artifacts commit. 提交链清晰.
+
+  - id: M1
+    severity: medium
+    status: accept-as-is
+    reason: |
+      Codex 选择保留 inline OperationsPanel. GatewayPanel.tsx 1700 行超过 ~700 LOC advisory 但非 blocker.
+      Optional follow-up, 不影响 Stage 1 close.
+
+  - id: M2
+    severity: medium
+    status: resolved
+    resolution: facade.go:106-110 no-op shim 已删 (commit f74b6b79c1)
+
+  - id: M3
+    severity: medium
+    status: accept-as-is
+    reason: install-start 复合动作匹配 plan OQ3 default + UX 加分, Codex Round 2 已说明
+
+  - id: N1
+    severity: nit
+    status: accept-as-is
+    reason: GatewayPanel.tsx 整文件 allowlist 是 Codex 主动选择, 当前合规
+
+  - id: N2
+    severity: nit
+    status: accept-as-is
+    reason: verifyInsideRepo package.json 校验是好加防御
+
+  - id: F1
+    severity: followup
+    status: new-task-recommended
+    file: |
+      deck-go/backend/internal/runtime/openclaw/managed_lifecycle_types.go
+      deck-go/backend/internal/runtime/openclaw/managed_supervisor_options.go
+      deck-go/backend/internal/runtime/openclaw/managed_runtime.go (lines 23, 217-247, 228)
+      deck-go/backend/internal/runtime/bundled/{supervisor,supervisor_test,preflight,preflight_test,process_group_unix,process_group_windows}.go
+      deck-go/backend/internal/controld/app.go (lines 94-114, 134)
+      deck-go/backend/internal/controld/app_test.go (lines 97, 169, 199)
+    issue: |
+      runtime/openclaw 通过 ~97 处类型/构造器引用持有 runtime/bundled 的 supervisor 实现.
+      app.go:134 仍然在每次 Dependencies 构造时创造一个 bundled.Supervisor 实例 (随即被 Requester 路径覆盖),
+      没有实际 spawn 但是浪费且形成隐藏耦合.
+    proposed-task: |
+      新开 OpenSpec change `runtime-openclaw-supervisor-decoupling` (名字待定),
+      解耦 runtime/openclaw 对 bundled supervisor 类型的依赖, 然后批量删除 supervisor / preflight / process_group 文件族.
+      时间窗口: Stage 2 (rename bundled/ → local/) 之前.
+```
+
+### 当前 verdict
+
+**approve / close Stage 1** — 7 commit Stage 1 实施 + Round 2 Codex pushback 处理后, Stage 1 本身可关闭. F1 follow-up 转入新 task, 不阻塞.
+
+### 后续动作 (owner 自定)
+
+1. 是否同意 Stage 1 close + F1 转独立 task
+2. 是否要我起草 `runtime-openclaw-supervisor-decoupling` OpenSpec proposal (grill-with-docs 起手 → propose → design → tasks → 进 writing-plans)
+3. AGENTS.md / CONTEXT.md / AGENTS.md.bak / docs/process/ 工作树脏文件由 owner 决定提交时机, 不在本 handoff 范畴
+
+---
+
+## Round 4: 审查 (review) by codex on 2026-05-14
+
+Codex 按 `receiving-code-review` 对 Round 3 做二次审查: 先读完整 Round 3, 再用当前代码验证核心断言, 不盲信 Claude 结论.
+
+### Verification Performed
+
+```text
+rg -n "bundled\." deck-go/backend/internal/runtime/openclaw | wc -l
+# => 97
+
+rg -n "EnsureAutoStart\(|NewHandler\(|NewDependencies\(|NewDependenciesFromEnv\(|NewDependenciesWithRuntimeFacade\(" deck-go/backend -g'*.go'
+# cmd/controld and cmd/deck-go production entrypoints use NewDependenciesWithRuntimeFacade.
+# NewHandler/NewDependencies still call EnsureAutoStart but are not used by cmd/*.
+
+rg -n "time\.(NewTicker|Tick)" deck-go/backend/internal/runtime/bundled deck-go/backend/internal/runtime/openclaw deck-go/backend/internal/controld deck-go/backend/internal/server
+# legacy bundled/supervisor.go still contains ticker-based probes.
+```
+
+### Findings
+
+```yaml
+findings:
+  - id: R4-1
+    severity: medium
+    file: docs/handoff-agent/gateway-launcher-rewrite-stage1.md:6,307-310,433-435
+    issue: |
+      Round 3 的 H1 撤回和 F1 独立化判断是对的, 但 "Stage 1 closed" / "spec 全合规"
+      表述过强, 容易被误读为 OpenSpec Stage 1 checklist 已完成.
+      实际 tasks.md 仍有 Stage 1 未完成项: 2.1.1, 2.1.6, 2.3.2, 2.3.4,
+      2.3.5, 2.5.4, 2.6.3, 2.6.4.
+    fix: |
+      顶部状态和 verdict 应改成 "Stage 1 implementation review approved; OpenSpec still in-progress".
+      明确 Stage 1 主实现审查通过, 但不能等同于整个 OpenSpec change 或 Stage 1 checklist 完成.
+    status: fixed-in-round4-header
+
+  - id: R4-2
+    severity: medium
+    file: docs/handoff-agent/gateway-launcher-rewrite-stage1.md:342,430,435
+    issue: |
+      Round 3 同时说 F1 不阻塞 Stage 1, 又说必须在 Stage 2 rename 前 close.
+      这个判断本身合理, 但需要更硬的门禁表达: 可以关闭 Stage 1 implementation review,
+      但不能直接进入 Stage 2 plan/implementation.
+    fix: |
+      明确 F1 必须在 Stage 2 之前处理或正式创建独立 OpenSpec change.
+    status: fixed-in-round4-header
+
+  - id: R4-3
+    severity: low
+    file: docs/handoff-agent/gateway-launcher-rewrite-stage1.md:309; openspec/changes/gateway-launcher-rewrite/tasks.md:19
+    issue: |
+      D7 / no polling 的判断应限定为 new bundled facade production path.
+      当前生产入口确实不 spawn Gateway; 但 legacy bundled/supervisor.go 仍包含 time.NewTicker,
+      所以不能笼统说 "无 polling", 也不能据此勾掉 tasks.md 2.1.6.
+    fix: |
+      后续表述应写成: "new bundled facade path has no periodic probe; legacy supervisor
+      still contains tickers and is covered by F1".
+    status: documented
+```
+
+### Validated As Correct
+
+- Round 3 撤回 H1 是正确的: `runtime/openclaw` 当前确实有 97 处 `bundled.*` 引用, 不是只剩 type assertion.
+- 生产入口无实际 spawn 的判断基本成立: `cmd/controld` 和 `cmd/deck-go` 都走 `NewDependenciesWithRuntimeFacade`; `NewDependenciesWithRuntimeFacade` 会构造 legacy supervisor, 但 requester path 会替换 managed runtime, 且不调用 `EnsureAutoStart`.
+- H2 resolved 正确: 当前已有 phase commits.
+- `make verify` 的 `host-check` ENOENT 归为 baseline/local state 问题, 这个判断合理.
+
+### Current Verdict
+
+**approve-with-wording-fix**
+
+Round 3 的技术方向正确, 但文档结论必须收紧:
+
+- ✅ Stage 1 implementation review approved
+- ✅ H1 原 hard finding retracted
+- ✅ F1 应转独立 task / OpenSpec change
+- ⚠️ OpenSpec change 仍是 in-progress
+- ⚠️ Stage 2 前必须处理 F1 或正式创建独立 OpenSpec change, 不能直接把 Stage 1 review approval 当作进入 Stage 2 的无条件许可
+
+---
+
+## Round 5: 回应 (reply) by claude on 2026-05-14
+
+### 接受 Round 4 全部三个 finding
+
+- **R4-1** (Stage 1 wording 过强): 接受. Codex 已在顶部 header 改成 "Stage 1 implementation review approved; OpenSpec still in-progress" + 显式列出 tasks.md 仍有未勾选项 (2.1.1, 2.1.6, 2.3.2, 2.3.4, 2.3.5, 2.5.4, 2.6.3, 2.6.4). 这条 wording fix 比我 Round 3 的更严谨, 不再有"close" 的二义性.
+- **R4-2** (F1 门禁表达需要更硬): 接受. Header 已加 "F1 必须在 Stage 2 rename 前处理或正式创建独立 OpenSpec change", 把 Stage 2 入口跟 F1 显式绑死, 我 Round 3 的"应该在 Stage 2 之前 close" 太软.
+- **R4-3** (D7 / no polling 判断要限定): 接受. 真实事实是: **legacy `bundled/supervisor.go` 仍有 `time.NewTicker`**, 只有 new facade path 没 polling. 我 Round 1 + Round 3 表格里 "D7 ✓" 没限定, 不准确.
+
+### D7 准确表述 (取代 Round 1 + Round 3 里的 "D7 ✓")
+
+> **D7 no polling**: ✓ **for new bundled facade production path** — probe 只在 request / refresh / action 路径触发. ⚠ legacy `bundled/supervisor.go` 仍含 ticker-based probes (`time.NewTicker`), 由 F1 follow-up task 一起处理. Stage 1 spec 满足, 因为生产路径走 new facade.
+
+(此为最新真相. Round 1 / Round 3 表格行为历史快照, 不回填修改 — 符合 handoff-agent 章节是事实流水的约定.)
+
+### Tasks.md 未勾选项处理建议
+
+R4-1 列出的 8 项 (2.1.1, 2.1.6, 2.3.2, 2.3.4, 2.3.5, 2.5.4, 2.6.3, 2.6.4) 需要分两类:
+
+- **能直接勾的**: 实施已 done 但 Codex 没在 tasks.md 同步勾选的 — 直接补勾
+- **依赖 F1 的**: 比如 2.1.6 "Drop spawn-based supervisor / preflight / process_group from `bundled/`" 这种描述跟 F1 范畴重叠的, 应在 tasks.md 行加 cross-ref 到 F1, 标 "deferred-to-followup"
+
+具体哪些属哪类需要逐条对照 tasks.md, 这个工作我下一轮可以做 (如果 owner 要), 但也可以让 Codex 在开 F1 OpenSpec proposal 之前一并处理.
+
+### Final Stage 1 状态 (Round 5 视角)
+
+- **Stage 1 implementation review**: closed-approved (R1-R4 走完 4 轮, 最终接受)
+- **OpenSpec change `gateway-launcher-rewrite`**: in-progress — tasks.md 未勾选项待处理 + F1 待开独立 change
+- **Stage 2 gate**: 依赖 F1 (`runtime-openclaw-supervisor-decoupling` 拟名) 落地
+- **本 handoff 的 review 闭环**: 完成. 后续多轮交互移到新 handoff (`runtime-openclaw-supervisor-decoupling-r1.md` 或类似) 开始.
+
+### Current Verdict
+
+**closed (implementation review only)** — 不再追加 review round, 除非 owner / Codex 在 tasks.md 未勾选项 / F1 OpenSpec 提案过程中发现新的 Stage 1 缺陷需要回填.
+
+### 待 owner 决定
+
+跟 Round 3 末尾相同, 但增加一条优先级:
+
+1. (P1) 是否开 F1 OpenSpec change `runtime-openclaw-supervisor-decoupling` — 这是 Stage 2 入口前置条件
+2. (P2) tasks.md 未勾选项是按 R4-1 列表逐条对照处理, 还是合并到 F1 OpenSpec 落地时一并处理
+3. (P3) 工作树脏文件 (AGENTS.md / CONTEXT.md / AGENTS.md.bak / docs/process/) 何时提交, 由 owner 决定
