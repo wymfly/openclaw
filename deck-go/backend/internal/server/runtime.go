@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -80,7 +81,7 @@ func registerRuntimeRoutes(
 				writeRuntimeError(w, http.StatusInternalServerError, "runtime_capabilities_failed", err.Error())
 				return
 			}
-			if !caps.Configured {
+			if caps.Mode == "remote" && !caps.Configured {
 				writeGatewayNotConfigured(w, r.Context(), runtimeFacade)
 				return
 			}
@@ -91,12 +92,43 @@ func registerRuntimeRoutes(
 			}
 			writeJSON(w, http.StatusOK, payload)
 		})
+		registerRuntimeLifecycleRoutes(mux, runtimeFacade)
 		return
 	}
 
 	mux.MethodFunc("GET", "/runtime/gateway", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, http.StatusOK, managed.RuntimeGatewayStatusResponse())
 	})
+}
+
+func registerRuntimeLifecycleRoutes(
+	mux interface {
+		MethodFunc(string, string, http.HandlerFunc)
+	},
+	runtimeFacade facade.RuntimeFacade,
+) {
+	type lifecycleAction struct {
+		path string
+		run  func(context.Context) (facade.RuntimeStatus, error)
+	}
+	for _, action := range []lifecycleAction{
+		{path: "/runtime/gateway/install", run: runtimeFacade.Install},
+		{path: "/runtime/gateway/start", run: runtimeFacade.Start},
+		{path: "/runtime/gateway/stop", run: runtimeFacade.Stop},
+		{path: "/runtime/gateway/restart", run: runtimeFacade.Restart},
+		{path: "/runtime/gateway/reinstall", run: runtimeFacade.Reinstall},
+		{path: "/runtime/gateway/refresh", run: runtimeFacade.RuntimeGatewayStatus},
+	} {
+		run := action.run
+		mux.MethodFunc("POST", action.path, func(w http.ResponseWriter, r *http.Request) {
+			payload, err := run(r.Context())
+			if err != nil {
+				writeRuntimeLifecycleError(w, err)
+				return
+			}
+			writeJSON(w, http.StatusOK, payload)
+		})
+	}
 }
 
 func decodeRemoteEndpointInput(w http.ResponseWriter, r *http.Request) (facade.RemoteEndpointInput, bool) {
@@ -192,6 +224,14 @@ func writeRuntimeFacadeError(w http.ResponseWriter, err error) {
 	default:
 		writeRuntimeError(w, http.StatusInternalServerError, "runtime_error", err.Error())
 	}
+}
+
+func writeRuntimeLifecycleError(w http.ResponseWriter, err error) {
+	if errors.Is(err, facade.ErrUnsupported) {
+		writeRuntimeError(w, http.StatusMethodNotAllowed, "lifecycle_unsupported_in_remote_mode", "runtime lifecycle is unsupported in remote mode")
+		return
+	}
+	writeRuntimeFacadeError(w, err)
 }
 
 func writeRuntimeError(w http.ResponseWriter, status int, code string, message string) {

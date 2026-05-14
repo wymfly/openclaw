@@ -19,15 +19,22 @@ import (
 )
 
 type fakeRuntimeFacade struct {
-	caps        facade.Capabilities
-	endpoint    facade.EndpointView
-	status      facade.RuntimeStatus
-	testResult  facade.TestResult
-	statusErr   error
-	updateErr   error
-	testErr     error
-	updateInput *facade.RemoteEndpointInput
-	testInput   *facade.RemoteEndpointInput
+	caps           facade.Capabilities
+	endpoint       facade.EndpointView
+	connection     facade.GatewayConnection
+	status         facade.RuntimeStatus
+	testResult     facade.TestResult
+	connectionErr  error
+	statusErr      error
+	updateErr      error
+	testErr        error
+	updateInput    *facade.RemoteEndpointInput
+	testInput      *facade.RemoteEndpointInput
+	startCalls     int
+	stopCalls      int
+	restartCalls   int
+	installCalls   int
+	reinstallCalls int
 }
 
 func (f *fakeRuntimeFacade) Capabilities(context.Context) (facade.Capabilities, error) {
@@ -36,6 +43,13 @@ func (f *fakeRuntimeFacade) Capabilities(context.Context) (facade.Capabilities, 
 
 func (f *fakeRuntimeFacade) Endpoint(context.Context) (facade.EndpointView, error) {
 	return f.endpoint, nil
+}
+
+func (f *fakeRuntimeFacade) GatewayConnection(context.Context) (facade.GatewayConnection, error) {
+	if f.connectionErr != nil {
+		return facade.GatewayConnection{}, f.connectionErr
+	}
+	return f.connection, nil
 }
 
 func (f *fakeRuntimeFacade) UpdateRemoteEndpoint(_ context.Context, input facade.RemoteEndpointInput) (facade.EndpointView, error) {
@@ -68,15 +82,43 @@ func (f *fakeRuntimeFacade) RuntimeGatewayStatus(context.Context) (facade.Runtim
 }
 
 func (f *fakeRuntimeFacade) Start(context.Context) (facade.RuntimeStatus, error) {
-	return facade.RuntimeStatus{}, facade.ErrUnsupported
+	f.startCalls++
+	if !f.caps.SupervisorState {
+		return facade.RuntimeStatus{}, facade.ErrUnsupported
+	}
+	return f.status, nil
 }
 
 func (f *fakeRuntimeFacade) Stop(context.Context) (facade.RuntimeStatus, error) {
-	return facade.RuntimeStatus{}, facade.ErrUnsupported
+	f.stopCalls++
+	if !f.caps.SupervisorState {
+		return facade.RuntimeStatus{}, facade.ErrUnsupported
+	}
+	return f.status, nil
 }
 
 func (f *fakeRuntimeFacade) Restart(context.Context) (facade.RuntimeStatus, error) {
-	return facade.RuntimeStatus{}, facade.ErrUnsupported
+	f.restartCalls++
+	if !f.caps.SupervisorState {
+		return facade.RuntimeStatus{}, facade.ErrUnsupported
+	}
+	return f.status, nil
+}
+
+func (f *fakeRuntimeFacade) Install(context.Context) (facade.RuntimeStatus, error) {
+	f.installCalls++
+	if !f.caps.SupervisorState {
+		return facade.RuntimeStatus{}, facade.ErrUnsupported
+	}
+	return f.status, nil
+}
+
+func (f *fakeRuntimeFacade) Reinstall(context.Context) (facade.RuntimeStatus, error) {
+	f.reinstallCalls++
+	if !f.caps.SupervisorState {
+		return facade.RuntimeStatus{}, facade.ErrUnsupported
+	}
+	return f.status, nil
 }
 
 func (f *fakeRuntimeFacade) ReloadRuntime(context.Context) (facade.RuntimeStatus, error) {
@@ -460,6 +502,214 @@ func TestRuntimeGatewayStatusRoute_RemoteConfiguredUsesFacadeShape(t *testing.T)
 	}
 }
 
+func TestRuntimeGatewayLifecycleRoutes_DispatchLocalFacadeActions(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		path      string
+		wantCalls func(*fakeRuntimeFacade) int
+	}{
+		{name: "install", path: "/api/runtime/gateway/install", wantCalls: func(rt *fakeRuntimeFacade) int { return rt.installCalls }},
+		{name: "start", path: "/api/runtime/gateway/start", wantCalls: func(rt *fakeRuntimeFacade) int { return rt.startCalls }},
+		{name: "stop", path: "/api/runtime/gateway/stop", wantCalls: func(rt *fakeRuntimeFacade) int { return rt.stopCalls }},
+		{name: "restart", path: "/api/runtime/gateway/restart", wantCalls: func(rt *fakeRuntimeFacade) int { return rt.restartCalls }},
+		{name: "reinstall", path: "/api/runtime/gateway/reinstall", wantCalls: func(rt *fakeRuntimeFacade) int { return rt.reinstallCalls }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+			t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+			store, err := config.NewStore()
+			if err != nil {
+				t.Fatal(err)
+			}
+			rt := &fakeRuntimeFacade{
+				caps: facade.Capabilities{
+					Mode:            "bundled",
+					Configured:      true,
+					EndpointMutable: false,
+					SupervisorState: true,
+				},
+				status: facade.RuntimeStatus{
+					Mode:           "bundled",
+					Configured:     true,
+					LifecycleState: "running",
+					ServiceName:    "openclaw-gateway.test",
+					EntrypointPath: "/repo/dist/entry.js",
+				},
+			}
+			srv := httptest.NewServer(newTestRouterWithFacade(store, &testSupervisor{}, events.NewBus(4), rt))
+			defer srv.Close()
+
+			req, err := http.NewRequest(http.MethodPost, srv.URL+tc.path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer admin-token")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusOK {
+				t.Fatalf("%s status = %d, want 200", tc.path, res.StatusCode)
+			}
+			if calls := tc.wantCalls(rt); calls != 1 {
+				t.Fatalf("%s calls = %d, want 1", tc.name, calls)
+			}
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload["mode"] != "bundled" || payload["lifecycleState"] != "running" || payload["serviceName"] != "openclaw-gateway.test" || payload["entrypointPath"] != "/repo/dist/entry.js" {
+				t.Fatalf("unexpected lifecycle payload: %#v", payload)
+			}
+		})
+	}
+}
+
+func TestRuntimeGatewayLifecycleRefreshRoute_UsesFacadeStatus(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &fakeRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "bundled",
+			Configured:      true,
+			EndpointMutable: false,
+			SupervisorState: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:           "bundled",
+			Configured:     true,
+			LifecycleState: "stopped",
+			ServiceName:    "openclaw-gateway.refresh",
+		},
+	}
+	srv := httptest.NewServer(newTestRouterWithFacade(store, &testSupervisor{}, events.NewBus(4), rt))
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/api/runtime/gateway/refresh", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("refresh status = %d, want 200", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["lifecycleState"] != "stopped" || payload["serviceName"] != "openclaw-gateway.refresh" {
+		t.Fatalf("unexpected refresh payload: %#v", payload)
+	}
+}
+
+func TestRuntimeGatewayLifecycleRoutes_RemoteModeReturns405(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &fakeRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "remote",
+			Configured:      true,
+			EndpointMutable: true,
+			SupervisorState: false,
+		},
+		status: facade.RuntimeStatus{Mode: "remote", Configured: true},
+	}
+	srv := httptest.NewServer(newTestRouterWithFacade(store, &testSupervisor{}, events.NewBus(4), rt))
+	defer srv.Close()
+
+	for _, path := range []string{
+		"/api/runtime/gateway/install",
+		"/api/runtime/gateway/start",
+		"/api/runtime/gateway/stop",
+		"/api/runtime/gateway/restart",
+		"/api/runtime/gateway/reinstall",
+	} {
+		t.Run(path, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodPost, srv.URL+path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Authorization", "Bearer admin-token")
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != http.StatusMethodNotAllowed {
+				t.Fatalf("%s status = %d, want 405", path, res.StatusCode)
+			}
+			var payload map[string]any
+			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if payload["code"] != "lifecycle_unsupported_in_remote_mode" {
+				t.Fatalf("unexpected remote lifecycle payload: %#v", payload)
+			}
+		})
+	}
+}
+
+func TestRuntimeGatewayStatusRoute_BundledFirstRunReturnsLifecycleStatus(t *testing.T) {
+	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
+	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
+	store, err := config.NewStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &fakeRuntimeFacade{
+		caps: facade.Capabilities{
+			Mode:            "bundled",
+			Configured:      false,
+			EndpointMutable: false,
+			SupervisorState: true,
+		},
+		status: facade.RuntimeStatus{
+			Mode:           "bundled",
+			Configured:     false,
+			LifecycleState: "not-installed",
+			ServiceName:    "openclaw-gateway.first-run",
+			LastError:      stringPtr("entrypoint not found"),
+		},
+	}
+	srv := httptest.NewServer(newTestRouterWithFacade(store, &testSupervisor{}, events.NewBus(4), rt))
+	defer srv.Close()
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/runtime/gateway", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer admin-token")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", res.StatusCode)
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["mode"] != "bundled" || payload["lifecycleState"] != "not-installed" || payload["serviceName"] != "openclaw-gateway.first-run" {
+		t.Fatalf("unexpected bundled first-run payload: %#v", payload)
+	}
+}
+
 func TestRuntimeGatewayStatusRoute_RemoteFirstRunReturns503(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
@@ -725,10 +975,11 @@ func TestGatewayConfiguredMiddleware_BlocksV1RuntimeAdminFamily(t *testing.T) {
 	}
 }
 
-func TestRuntimeGatewayActionRoutesAreRemoved(t *testing.T) {
+func TestRuntimeGatewayActionRoutesUseFacadeNotLegacySupervisor(t *testing.T) {
 	for _, tc := range []struct {
-		name string
-		caps facade.Capabilities
+		name       string
+		caps       facade.Capabilities
+		wantStatus int
 	}{
 		{
 			name: "bundled",
@@ -738,6 +989,7 @@ func TestRuntimeGatewayActionRoutesAreRemoved(t *testing.T) {
 				EndpointMutable: false,
 				SupervisorState: true,
 			},
+			wantStatus: http.StatusOK,
 		},
 		{
 			name: "remote",
@@ -747,6 +999,7 @@ func TestRuntimeGatewayActionRoutesAreRemoved(t *testing.T) {
 				EndpointMutable: true,
 				SupervisorState: false,
 			},
+			wantStatus: http.StatusMethodNotAllowed,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -776,12 +1029,12 @@ func TestRuntimeGatewayActionRoutesAreRemoved(t *testing.T) {
 					t.Fatal(err)
 				}
 				res.Body.Close()
-				if res.StatusCode != http.StatusNotFound {
-					t.Fatalf("%s status = %d, want 404", path, res.StatusCode)
+				if res.StatusCode != tc.wantStatus {
+					t.Fatalf("%s status = %d, want %d", path, res.StatusCode, tc.wantStatus)
 				}
 			}
 			if supervisor.startCalls != 0 || supervisor.restartCalls != 0 || supervisor.stopCalls != 0 {
-				t.Fatalf("removed HTTP routes should not call lifecycle: start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
+				t.Fatalf("facade lifecycle routes should not call legacy supervisor: start=%d restart=%d stop=%d", supervisor.startCalls, supervisor.restartCalls, supervisor.stopCalls)
 			}
 		})
 	}

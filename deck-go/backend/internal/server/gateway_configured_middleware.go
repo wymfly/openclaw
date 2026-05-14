@@ -36,6 +36,8 @@ func isGatewayPassthroughPath(path string) bool {
 	switch {
 	case path == "/api/runtime/gateway":
 		return true
+	case strings.HasPrefix(path, "/api/runtime/gateway-assets/"):
+		return true
 	case path == "/api/gateway/health" || path == "/api/gateway/status" || path == "/api/gateway/describe":
 		return true
 	case path == "/api/activity" || strings.HasPrefix(path, "/api/activity/"):
