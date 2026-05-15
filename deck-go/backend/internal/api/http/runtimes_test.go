@@ -838,7 +838,20 @@ func TestMountRoutes_ListAndDetail(t *testing.T) {
 			AutoStart:         true,
 			OccurredAt:        "2026-04-21T00:00:00Z",
 		}},
-	}, sessions, monitor, diagnostics, devices, config, agents, misc, deck, approvals, memory, nodes, skills, models, channels, &stubCommandProvider{})
+	}, sessions, monitor, diagnostics, mountRoutesStub{
+		stubDeviceProvider:    devices,
+		stubConfigProvider:    config,
+		stubAgentProvider:     agents,
+		stubMiscQueryProvider: misc,
+		stubDeckProvider:      deck,
+		stubApprovalProvider:  approvals,
+		stubMemoryProvider:    memory,
+		stubNodeProvider:      nodes,
+		stubSkillProvider:     skills,
+		stubModelProvider:     models,
+		stubChannelProvider:   channels,
+		stubCommandProvider:   &stubCommandProvider{},
+	})
 
 	server := httptest.NewServer(router)
 	defer server.Close()
@@ -2349,6 +2362,25 @@ func (s *stubCommandProvider) PatchSession(_ context.Context, runtimeID string, 
 	return nil
 }
 
+// mountRoutesStub embeds the 12 stub providers folded into MountRoutesProvider
+// so tests pass a single value where production code passes a single
+// *ManagedRuntime. Embedded pointers default to nil; assign only the stubs the
+// test cares about.
+type mountRoutesStub struct {
+	*stubDeviceProvider
+	*stubConfigProvider
+	*stubAgentProvider
+	*stubMiscQueryProvider
+	*stubDeckProvider
+	*stubApprovalProvider
+	*stubMemoryProvider
+	*stubNodeProvider
+	*stubSkillProvider
+	*stubModelProvider
+	*stubChannelProvider
+	*stubCommandProvider
+}
+
 func TestMountRoutes_CommandEndpoints(t *testing.T) {
 	router := chi.NewRouter()
 	commands := &stubCommandProvider{}
@@ -2363,7 +2395,20 @@ func TestMountRoutes_CommandEndpoints(t *testing.T) {
 	skills := &stubSkillProvider{}
 	models := &stubModelProvider{}
 	channels := &stubChannelProvider{}
-	MountRoutes(router, stubRuntimeProvider{items: nil}, nil, nil, nil, devices, config, agents, misc, deck, approvals, memory, nodes, skills, models, channels, commands)
+	MountRoutes(router, stubRuntimeProvider{items: nil}, nil, nil, nil, mountRoutesStub{
+		stubDeviceProvider:    devices,
+		stubConfigProvider:    config,
+		stubAgentProvider:     agents,
+		stubMiscQueryProvider: misc,
+		stubDeckProvider:      deck,
+		stubApprovalProvider:  approvals,
+		stubMemoryProvider:    memory,
+		stubNodeProvider:      nodes,
+		stubSkillProvider:     skills,
+		stubModelProvider:     models,
+		stubChannelProvider:   channels,
+		stubCommandProvider:   commands,
+	})
 
 	server := httptest.NewServer(router)
 	defer server.Close()

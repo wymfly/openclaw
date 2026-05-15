@@ -260,7 +260,26 @@ type CommandProvider interface {
 	PatchSession(ctx context.Context, runtimeID string, sessionID string, patch map[string]any, idempotencyKey string) error
 }
 
-func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQueryProvider, monitor MonitorQueryProvider, diagnostics GatewayDiagnosticProvider, devices DeviceProvider, config ConfigProvider, agents AgentProvider, misc MiscQueryProvider, deck DeckProvider, approvals ApprovalProvider, memory MemoryProvider, nodes NodeProvider, skills SkillProvider, models ModelProvider, channels ChannelProvider, commands CommandProvider) {
+// MountRoutesProvider bundles the always-present sub-surfaces a single
+// ManagedRuntime satisfies. RuntimeQueryProvider, SessionQueryProvider,
+// MonitorQueryProvider, and GatewayDiagnosticProvider remain separate params
+// because tests opt in or out of those route groups by passing nil.
+type MountRoutesProvider interface {
+	DeviceProvider
+	ConfigProvider
+	AgentProvider
+	MiscQueryProvider
+	DeckProvider
+	ApprovalProvider
+	MemoryProvider
+	NodeProvider
+	SkillProvider
+	ModelProvider
+	ChannelProvider
+	CommandProvider
+}
+
+func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQueryProvider, monitor MonitorQueryProvider, diagnostics GatewayDiagnosticProvider, surface MountRoutesProvider) {
 	r.Get("/runtimes", func(w http.ResponseWriter, req *http.Request) {
 		requestID := nextRequestID()
 		items, err := runtimes.ListRuntimes(req.Context())
@@ -612,1466 +631,1431 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 	}
 
-	if devices != nil {
-		r.Get("/runtimes/{runtimeId}/devices", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := devices.ListDevices(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{
-				"runtimeId": runtimeID,
-				"devices":   payload,
-				"requestId": requestID,
-			})
-		})
-
-		r.Get("/runtimes/{runtimeId}/devices/self", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			deviceID, err := devices.GetCurrentDeviceID(runtimeID)
-			if err != nil {
-				deviceID = ""
-			}
-			writeJSON(w, http.StatusOK, map[string]any{
-				"runtimeId": runtimeID,
-				"deviceId": func() any {
-					if deviceID == "" {
-						return nil
-					}
-					return deviceID
-				}(),
-				"requestId": requestID,
-			})
-		})
-
-		postDeviceBody := func(r *http.Request) (map[string]any, error) {
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				return nil, err
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			return body, nil
+	r.Get("/runtimes/{runtimeId}/devices", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
 		}
-
-		r.Post("/runtimes/{runtimeId}/devices/approve", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := postDeviceBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			requestIDParam, _ := body["requestId"].(string)
-			payload, err := devices.ApproveDeviceRequest(r.Context(), runtimeID, requestIDParam)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/devices/reject", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := postDeviceBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			requestIDParam, _ := body["requestId"].(string)
-			payload, err := devices.RejectDeviceRequest(r.Context(), runtimeID, requestIDParam)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/devices/remove", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := postDeviceBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			deviceID, _ := body["deviceId"].(string)
-			payload, err := devices.RemoveDevice(r.Context(), runtimeID, deviceID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/devices/token/rotate", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := postDeviceBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			deviceID, _ := body["deviceId"].(string)
-			role, _ := body["role"].(string)
-			payload, err := devices.RotateDeviceToken(r.Context(), runtimeID, deviceID, role)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/devices/token/revoke", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := postDeviceBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			deviceID, _ := body["deviceId"].(string)
-			role, _ := body["role"].(string)
-			payload, err := devices.RevokeDeviceToken(r.Context(), runtimeID, deviceID, role)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if config != nil {
-		r.Get("/runtimes/{runtimeId}/config", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := config.ConfigGet(r.Context())
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "config": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/config:patch", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body struct {
-				Patch    map[string]any `json:"patch"`
-				BaseHash string         `json:"baseHash"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body.Patch == nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "patch object is required.", nil)
-				return
-			}
-			payload, err := config.PatchConfig(r.Context(), runtimeID, body.Patch, body.BaseHash)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/config:apply", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body struct {
-				Raw      string `json:"raw"`
-				BaseHash string `json:"baseHash"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body.Raw == "" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "raw config is required.", nil)
-				return
-			}
-			payload, err := config.ConfigApply(r.Context(), body.Raw, body.BaseHash)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/config/schema", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := config.GetConfigSchema(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "schema": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/config/schema-lookup", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body struct {
-				Path string `json:"path"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := config.ConfigSchemaLookup(r.Context(), body.Path)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if agents != nil {
-		r.Post("/runtimes/{runtimeId}/agents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			if strings.TrimSpace(runtimecoerce.String(body["name"], "")) == "" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
-				return
-			}
-			payload, err := agents.CreateAgent(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			agentID := chi.URLParam(r, "agentId")
-			payload, ok, err := agents.GetAgent(r.Context(), runtimeID, agentID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			if !ok {
-				respondError(w, requestID, http.StatusNotFound, "AGENT_NOT_FOUND", "Agent was not found.", nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Patch("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			agentID := chi.URLParam(r, "agentId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := agents.UpdateAgent(r.Context(), runtimeID, agentID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Delete("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			agentID := chi.URLParam(r, "agentId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := agents.DeleteAgent(r.Context(), runtimeID, agentID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/agents/{agentId}/identity", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			agentID := chi.URLParam(r, "agentId")
-			payload, err := agents.GetAgentIdentity(r.Context(), runtimeID, agentID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/agents/{agentId}/files", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			agentID := chi.URLParam(r, "agentId")
-			payload, err := agents.AgentFilesList(r.Context(), agentID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/agents/{agentId}/files", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			agentID := chi.URLParam(r, "agentId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			name := strings.TrimSpace(runtimecoerce.String(body["name"], ""))
-			content, ok := body["content"].(string)
-			if name == "" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
-				return
-			}
-			if !ok {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "content is required", nil)
-				return
-			}
-			payload, err := agents.SetAgentFile(r.Context(), runtimeID, agentID, name, content)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/agents/{agentId}/files/*", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			agentID := chi.URLParam(r, "agentId")
-			fileName := chi.URLParam(r, "*")
-			payload, err := agents.GetAgentFile(r.Context(), runtimeID, agentID, fileName)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "name": fileName, "payload": payload, "requestId": requestID})
-		})
-	}
-
-	if misc != nil {
-		r.Get("/runtimes/{runtimeId}/commands", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := misc.ListCommands(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/tools/catalog", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := misc.ToolsCatalog(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/usage", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := misc.GetUsage(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/cron", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			query := r.URL.Query()
-			for _, key := range []string{"query", "enabled", "sortBy", "sortDir"} {
-				if value := query.Get(key); value != "" {
-					params[key] = value
-				}
-			}
-			for _, key := range []string{"limit", "offset"} {
-				if value := query.Get(key); value != "" {
-					parsed, err := strconv.Atoi(value)
-					if err != nil {
-						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
-						return
-					}
-					params[key] = parsed
-				}
-			}
-			if includeDisabled := query.Get("includeDisabled"); includeDisabled != "" {
-				params["includeDisabled"] = includeDisabled == "true"
-			}
-			payload, err := misc.ListCronJobs(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/cron", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := misc.AddCronJob(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Patch("/runtimes/{runtimeId}/cron/{jobId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			jobID := chi.URLParam(r, "jobId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var patch map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if patch == nil {
-				patch = map[string]any{}
-			}
-			payload, err := misc.UpdateCronJob(r.Context(), runtimeID, jobID, patch)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Delete("/runtimes/{runtimeId}/cron/{jobId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			jobID := chi.URLParam(r, "jobId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := misc.RemoveCronJob(r.Context(), runtimeID, jobID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/cron/{jobId}/run", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			jobID := chi.URLParam(r, "jobId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			body["id"] = jobID
-			payload, err := misc.RunCronJob(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/cron/{jobId}/runs", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			jobID := chi.URLParam(r, "jobId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{
-				"scope": "job",
-				"jobId": jobID,
-			}
-			query := r.URL.Query()
-			for _, key := range []string{"limit", "offset"} {
-				if value := query.Get(key); value != "" {
-					parsed, err := strconv.Atoi(value)
-					if err != nil {
-						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
-						return
-					}
-					params[key] = parsed
-				}
-			}
-			if sortDir := query.Get("sortDir"); sortDir != "" {
-				params["sortDir"] = sortDir
-			}
-			if statuses := query.Get("statuses"); statuses != "" {
-				params["statuses"] = strings.Split(statuses, ",")
-			}
-			payload, err := misc.ListCronRuns(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Get("/runtimes/{runtimeId}/cron/status", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := misc.GetCronStatus(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/deck/commands/discover", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := misc.DiscoverDeckCommands(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/deck/tools-effective", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := misc.GetDeckToolsEffective(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-	}
-
-	if deck != nil {
-		readBody := func(r *http.Request) (map[string]any, error) {
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				return nil, err
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			return body, nil
+		payload, err := surface.ListDevices(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
 		}
-
-		r.Get("/runtimes/{runtimeId}/deck/plugins", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			if capability := r.URL.Query().Get("capability"); capability != "" {
-				params["capability"] = capability
-			}
-			payload, err := deck.ListDeckPlugins(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"runtimeId": runtimeID,
+			"devices":   payload,
+			"requestId": requestID,
 		})
+	})
 
-		r.Get("/runtimes/{runtimeId}/deck/agents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			agentID := strings.TrimSpace(r.URL.Query().Get("agentId"))
-			if agentID == "" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "agentId is required", nil)
-				return
-			}
-			payload, err := deck.GetDeckAgentDetail(r.Context(), runtimeID, agentID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/deck/agents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			action := strings.TrimSpace(runtimecoerce.String(body["action"], ""))
-			delete(body, "action")
-			payload, err := deck.RunDeckAgentAction(r.Context(), runtimeID, action, body)
-			if err == http.ErrNotSupported {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck agent action is invalid.", nil)
-				return
-			}
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/deck/identity", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := deck.ListDeckIdentity(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/deck/identity", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			action, _ := body["action"].(string)
-			delete(body, "action")
-			var payload any
-			switch action {
-			case "link":
-				payload, err = deck.LinkDeckIdentity(r.Context(), runtimeID, body)
-			case "unlink":
-				payload, err = deck.UnlinkDeckIdentity(r.Context(), runtimeID, body)
-			default:
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck identity action is invalid.", nil)
-				return
-			}
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/deck/routing", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			for _, key := range []string{"agentId", "channel", "accountId"} {
-				if value := r.URL.Query().Get(key); value != "" {
-					params[key] = value
+	r.Get("/runtimes/{runtimeId}/devices/self", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		deviceID, err := surface.GetCurrentDeviceID(runtimeID)
+		if err != nil {
+			deviceID = ""
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"runtimeId": runtimeID,
+			"deviceId": func() any {
+				if deviceID == "" {
+					return nil
 				}
-			}
-			payload, err := deck.ListDeckRouting(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+				return deviceID
+			}(),
+			"requestId": requestID,
 		})
+	})
 
-		r.Post("/runtimes/{runtimeId}/deck/routing", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			action, _ := body["action"].(string)
-			delete(body, "action")
-			var payload any
-			switch action {
-			case "add":
-				payload, err = deck.AddDeckRouting(r.Context(), runtimeID, body)
-			case "remove":
-				payload, err = deck.RemoveDeckRouting(r.Context(), runtimeID, body)
-			case "validate":
-				payload, err = deck.ValidateDeckRouting(r.Context(), runtimeID, body)
-			case "simulate":
-				payload, err = deck.SimulateDeckRouting(r.Context(), runtimeID, body)
-			default:
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck routing action is invalid.", nil)
-				return
-			}
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	postDeviceBody := func(r *http.Request) (map[string]any, error) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			return nil, err
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		return body, nil
+	}
 
-		r.Get("/runtimes/{runtimeId}/deck/subagents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			for _, key := range []string{"status", "agentId", "requesterAgentId"} {
-				if value := r.URL.Query().Get(key); value != "" {
-					params[key] = value
-				}
-			}
-			for _, key := range []string{"limit", "offset"} {
-				if value := r.URL.Query().Get(key); value != "" {
-					parsed, err := strconv.Atoi(value)
-					if err != nil {
-						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
-						return
-					}
-					params[key] = parsed
-				}
-			}
-			payload, err := deck.ListDeckSubagents(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
+	r.Post("/runtimes/{runtimeId}/devices/approve", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := postDeviceBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		requestIDParam, _ := body["requestId"].(string)
+		payload, err := surface.ApproveDeviceRequest(r.Context(), runtimeID, requestIDParam)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Post("/runtimes/{runtimeId}/deck/subagents", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			action, _ := body["action"].(string)
-			delete(body, "action")
-			var payload any
-			switch action {
-			case "kill":
-				payload, err = deck.KillDeckSubagent(r.Context(), runtimeID, body)
-			case "lineage":
-				payload, err = deck.GetDeckSubagentLineage(r.Context(), runtimeID, body)
-			case "steer":
-				payload, err = deck.SteerDeckSubagent(r.Context(), runtimeID, body)
-			default:
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck subagent action is invalid.", nil)
-				return
-			}
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	r.Post("/runtimes/{runtimeId}/devices/reject", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := postDeviceBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		requestIDParam, _ := body["requestId"].(string)
+		payload, err := surface.RejectDeviceRequest(r.Context(), runtimeID, requestIDParam)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Get("/runtimes/{runtimeId}/deck/threads", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
+	r.Post("/runtimes/{runtimeId}/devices/remove", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := postDeviceBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		deviceID, _ := body["deviceId"].(string)
+		payload, err := surface.RemoveDevice(r.Context(), runtimeID, deviceID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/devices/token/rotate", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := postDeviceBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		deviceID, _ := body["deviceId"].(string)
+		role, _ := body["role"].(string)
+		payload, err := surface.RotateDeviceToken(r.Context(), runtimeID, deviceID, role)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/devices/token/revoke", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := postDeviceBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		deviceID, _ := body["deviceId"].(string)
+		role, _ := body["role"].(string)
+		payload, err := surface.RevokeDeviceToken(r.Context(), runtimeID, deviceID, role)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/config", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ConfigGet(r.Context())
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "config": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/config:patch", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body struct {
+			Patch    map[string]any `json:"patch"`
+			BaseHash string         `json:"baseHash"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body.Patch == nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "patch object is required.", nil)
+			return
+		}
+		payload, err := surface.PatchConfig(r.Context(), runtimeID, body.Patch, body.BaseHash)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/config:apply", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body struct {
+			Raw      string `json:"raw"`
+			BaseHash string `json:"baseHash"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body.Raw == "" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "raw config is required.", nil)
+			return
+		}
+		payload, err := surface.ConfigApply(r.Context(), body.Raw, body.BaseHash)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/config/schema", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.GetConfigSchema(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "schema": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/config/schema-lookup", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body struct {
+			Path string `json:"path"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.ConfigSchemaLookup(r.Context(), body.Path)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/agents", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		if strings.TrimSpace(runtimecoerce.String(body["name"], "")) == "" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
+			return
+		}
+		payload, err := surface.CreateAgent(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		agentID := chi.URLParam(r, "agentId")
+		payload, ok, err := surface.GetAgent(r.Context(), runtimeID, agentID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		if !ok {
+			respondError(w, requestID, http.StatusNotFound, "AGENT_NOT_FOUND", "Agent was not found.", nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Patch("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		agentID := chi.URLParam(r, "agentId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.UpdateAgent(r.Context(), runtimeID, agentID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Delete("/runtimes/{runtimeId}/agents/{agentId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		agentID := chi.URLParam(r, "agentId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.DeleteAgent(r.Context(), runtimeID, agentID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/agents/{agentId}/identity", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		agentID := chi.URLParam(r, "agentId")
+		payload, err := surface.GetAgentIdentity(r.Context(), runtimeID, agentID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/agents/{agentId}/files", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		agentID := chi.URLParam(r, "agentId")
+		payload, err := surface.AgentFilesList(r.Context(), agentID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/agents/{agentId}/files", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		agentID := chi.URLParam(r, "agentId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		name := strings.TrimSpace(runtimecoerce.String(body["name"], ""))
+		content, ok := body["content"].(string)
+		if name == "" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
+			return
+		}
+		if !ok {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "content is required", nil)
+			return
+		}
+		payload, err := surface.SetAgentFile(r.Context(), runtimeID, agentID, name, content)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/agents/{agentId}/files/*", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		agentID := chi.URLParam(r, "agentId")
+		fileName := chi.URLParam(r, "*")
+		payload, err := surface.GetAgentFile(r.Context(), runtimeID, agentID, fileName)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "name": fileName, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/commands", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListCommands(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/tools/catalog", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.ToolsCatalog(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/usage", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.GetUsage(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/cron", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		query := r.URL.Query()
+		for _, key := range []string{"query", "enabled", "sortBy", "sortDir"} {
+			if value := query.Get(key); value != "" {
+				params[key] = value
 			}
-			params := map[string]any{}
-			for _, key := range []string{"agentId", "channel", "status"} {
-				if value := r.URL.Query().Get(key); value != "" {
-					params[key] = value
-				}
-			}
-			if value := r.URL.Query().Get("limit"); value != "" {
+		}
+		for _, key := range []string{"limit", "offset"} {
+			if value := query.Get(key); value != "" {
 				parsed, err := strconv.Atoi(value)
 				if err != nil {
-					respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": "limit"})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
 					return
 				}
-				params["limit"] = parsed
+				params[key] = parsed
 			}
-			payload, err := deck.ListDeckThreads(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-	}
-
-	if approvals != nil {
-		readBody := func(r *http.Request) (map[string]any, error) {
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				return nil, err
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			return body, nil
 		}
+		if includeDisabled := query.Get("includeDisabled"); includeDisabled != "" {
+			params["includeDisabled"] = includeDisabled == "true"
+		}
+		payload, err := surface.ListCronJobs(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
 
-		r.Get("/runtimes/{runtimeId}/approvals", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := approvals.GetApprovals(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
+	r.Post("/runtimes/{runtimeId}/cron", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.AddCronJob(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Post("/runtimes/{runtimeId}/approvals/resolve", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := approvals.ResolveApproval(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	r.Patch("/runtimes/{runtimeId}/cron/{jobId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		jobID := chi.URLParam(r, "jobId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var patch map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if patch == nil {
+			patch = map[string]any{}
+		}
+		payload, err := surface.UpdateCronJob(r.Context(), runtimeID, jobID, patch)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Get("/runtimes/{runtimeId}/approvals/pending", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := approvals.ListPendingApprovals(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	r.Delete("/runtimes/{runtimeId}/cron/{jobId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		jobID := chi.URLParam(r, "jobId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.RemoveCronJob(r.Context(), runtimeID, jobID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Get("/runtimes/{runtimeId}/approvals/policy", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := approvals.GetApprovals(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
+	r.Post("/runtimes/{runtimeId}/cron/{jobId}/run", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		jobID := chi.URLParam(r, "jobId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		body["id"] = jobID
+		payload, err := surface.RunCronJob(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
-		r.Put("/runtimes/{runtimeId}/approvals/policy", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := approvals.SetApprovalPolicy(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/approvals/plugins", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := approvals.ListPluginApprovals(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/approvals/plugins/resolve", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			body, err := readBody(r)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := approvals.ResolvePluginApproval(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if memory != nil {
-		r.Get("/runtimes/{runtimeId}/memory/health", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := memory.DoctorMemoryStatus(r.Context())
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/memory/dreams", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body struct {
-				Action string `json:"action"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := memory.RunMemoryDreamAction(r.Context(), runtimeID, body.Action)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if nodes != nil {
-		r.Get("/runtimes/{runtimeId}/nodes", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := nodes.ListNodes(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/nodes", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			action, _ := body["action"].(string)
-			delete(body, "action")
-			payload, err := nodes.RunNodeAction(r.Context(), runtimeID, action, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Get("/runtimes/{runtimeId}/nodes/pair", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			payload, err := nodes.ListNodePairing(r.Context(), runtimeID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Post("/runtimes/{runtimeId}/nodes/pair", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			action, _ := body["action"].(string)
-			delete(body, "action")
-			payload, err := nodes.RunNodePairAction(r.Context(), runtimeID, action, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if skills != nil {
-		r.Get("/runtimes/{runtimeId}/skills", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			if agentID := r.URL.Query().Get("agentId"); agentID != "" {
-				params["agentId"] = agentID
-			}
-			payload, err := skills.ListSkills(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
-
-		r.Patch("/runtimes/{runtimeId}/skills/{skillKey}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			skillKey := chi.URLParam(r, "skillKey")
-			payload, err := skills.UpdateSkill(r.Context(), runtimeID, skillKey, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/skills/install", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := skills.InstallSkill(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/skills/hub", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := skills.RunSkillsHubAction(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-
-		r.Post("/runtimes/{runtimeId}/skills/update-clawhub", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			if body == nil {
-				body = map[string]any{}
-			}
-			payload, err := skills.UpdateClawhubSkill(r.Context(), runtimeID, body)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
-	}
-
-	if channels != nil {
-		r.Get("/runtimes/{runtimeId}/channels", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			params := map[string]any{}
-			if probe := r.URL.Query().Get("probe"); probe == "1" || probe == "true" {
-				params["probe"] = true
-			}
-			if timeoutRaw := r.URL.Query().Get("timeoutMs"); timeoutRaw != "" {
-				if timeout, err := strconv.Atoi(timeoutRaw); err == nil {
-					params["timeoutMs"] = timeout
+	r.Get("/runtimes/{runtimeId}/cron/{jobId}/runs", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		jobID := chi.URLParam(r, "jobId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{
+			"scope": "job",
+			"jobId": jobID,
+		}
+		query := r.URL.Query()
+		for _, key := range []string{"limit", "offset"} {
+			if value := query.Get(key); value != "" {
+				parsed, err := strconv.Atoi(value)
+				if err != nil {
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
+					return
 				}
+				params[key] = parsed
 			}
-			payload, err := channels.GetChannels(r.Context(), runtimeID, params)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
-		})
+		}
+		if sortDir := query.Get("sortDir"); sortDir != "" {
+			params["sortDir"] = sortDir
+		}
+		if statuses := query.Get("statuses"); statuses != "" {
+			params["statuses"] = strings.Split(statuses, ",")
+		}
+		payload, err := surface.ListCronRuns(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
 
-		r.Post("/runtimes/{runtimeId}/channels/{channelId}/logout", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			channelID := chi.URLParam(r, "channelId")
-			payload, err := channels.LogoutChannel(r.Context(), runtimeID, channelID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	r.Get("/runtimes/{runtimeId}/cron/status", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.GetCronStatus(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
 
-		r.Post("/runtimes/{runtimeId}/channels/{channelId}/test", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			channelID := chi.URLParam(r, "channelId")
-			payload, err := channels.TestChannel(r.Context(), runtimeID, channelID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	r.Post("/runtimes/{runtimeId}/deck/commands/discover", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.DiscoverDeckCommands(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
 
-		r.Get("/runtimes/{runtimeId}/channels/{channelId}/throughput", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			channelID := chi.URLParam(r, "channelId")
-			payload, err := channels.GetChannelThroughput(r.Context(), runtimeID, channelID)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "channelId": channelID, "payload": payload, "requestId": requestID})
-		})
+	r.Post("/runtimes/{runtimeId}/deck/tools-effective", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.GetDeckToolsEffective(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
 
-		r.Patch("/runtimes/{runtimeId}/channels/{channelId}", func(w http.ResponseWriter, r *http.Request) {
-			requestID := nextRequestID()
-			runtimeID := chi.URLParam(r, "runtimeId")
-			if runtimeID != DefaultRuntimeID {
-				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
-				return
-			}
-			channelID := chi.URLParam(r, "channelId")
-			var patch map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
-				return
-			}
-			payload, err := channels.PatchChannel(r.Context(), runtimeID, channelID, patch)
-			if err != nil {
-				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
-				return
-			}
-			writeJSON(w, http.StatusOK, payload)
-		})
+	readBody := func(r *http.Request) (map[string]any, error) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			return nil, err
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		return body, nil
 	}
 
-	if commands == nil {
-		return
-	}
+	r.Get("/runtimes/{runtimeId}/deck/plugins", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		if capability := r.URL.Query().Get("capability"); capability != "" {
+			params["capability"] = capability
+		}
+		payload, err := surface.ListDeckPlugins(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/deck/agents", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		agentID := strings.TrimSpace(r.URL.Query().Get("agentId"))
+		if agentID == "" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "agentId is required", nil)
+			return
+		}
+		payload, err := surface.GetDeckAgentDetail(r.Context(), runtimeID, agentID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/deck/agents", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		action := strings.TrimSpace(runtimecoerce.String(body["action"], ""))
+		delete(body, "action")
+		payload, err := surface.RunDeckAgentAction(r.Context(), runtimeID, action, body)
+		if err == http.ErrNotSupported {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck agent action is invalid.", nil)
+			return
+		}
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/deck/identity", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListDeckIdentity(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/deck/identity", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		var payload any
+		switch action {
+		case "link":
+			payload, err = surface.LinkDeckIdentity(r.Context(), runtimeID, body)
+		case "unlink":
+			payload, err = surface.UnlinkDeckIdentity(r.Context(), runtimeID, body)
+		default:
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck identity action is invalid.", nil)
+			return
+		}
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/deck/routing", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		for _, key := range []string{"agentId", "channel", "accountId"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				params[key] = value
+			}
+		}
+		payload, err := surface.ListDeckRouting(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/deck/routing", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		var payload any
+		switch action {
+		case "add":
+			payload, err = surface.AddDeckRouting(r.Context(), runtimeID, body)
+		case "remove":
+			payload, err = surface.RemoveDeckRouting(r.Context(), runtimeID, body)
+		case "validate":
+			payload, err = surface.ValidateDeckRouting(r.Context(), runtimeID, body)
+		case "simulate":
+			payload, err = surface.SimulateDeckRouting(r.Context(), runtimeID, body)
+		default:
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck routing action is invalid.", nil)
+			return
+		}
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/deck/subagents", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		for _, key := range []string{"status", "agentId", "requesterAgentId"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				params[key] = value
+			}
+		}
+		for _, key := range []string{"limit", "offset"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				parsed, err := strconv.Atoi(value)
+				if err != nil {
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
+					return
+				}
+				params[key] = parsed
+			}
+		}
+		payload, err := surface.ListDeckSubagents(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/deck/subagents", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		var payload any
+		switch action {
+		case "kill":
+			payload, err = surface.KillDeckSubagent(r.Context(), runtimeID, body)
+		case "lineage":
+			payload, err = surface.GetDeckSubagentLineage(r.Context(), runtimeID, body)
+		case "steer":
+			payload, err = surface.SteerDeckSubagent(r.Context(), runtimeID, body)
+		default:
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck subagent action is invalid.", nil)
+			return
+		}
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/deck/threads", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		for _, key := range []string{"agentId", "channel", "status"} {
+			if value := r.URL.Query().Get(key); value != "" {
+				params[key] = value
+			}
+		}
+		if value := r.URL.Query().Get("limit"); value != "" {
+			parsed, err := strconv.Atoi(value)
+			if err != nil {
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": "limit"})
+				return
+			}
+			params["limit"] = parsed
+		}
+		payload, err := surface.ListDeckThreads(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Get("/runtimes/{runtimeId}/approvals", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.GetApprovals(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/approvals/resolve", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.ResolveApproval(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/approvals/pending", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListPendingApprovals(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/approvals/policy", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.GetApprovals(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Put("/runtimes/{runtimeId}/approvals/policy", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.SetApprovalPolicy(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/approvals/plugins", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListPluginApprovals(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/approvals/plugins/resolve", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		body, err := readBody(r)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.ResolvePluginApproval(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/memory/health", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.DoctorMemoryStatus(r.Context())
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/memory/dreams", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body struct {
+			Action string `json:"action"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.RunMemoryDreamAction(r.Context(), runtimeID, body.Action)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/nodes", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListNodes(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/nodes", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		payload, err := surface.RunNodeAction(r.Context(), runtimeID, action, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/nodes/pair", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		payload, err := surface.ListNodePairing(r.Context(), runtimeID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/nodes/pair", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		action, _ := body["action"].(string)
+		delete(body, "action")
+		payload, err := surface.RunNodePairAction(r.Context(), runtimeID, action, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/skills", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		if agentID := r.URL.Query().Get("agentId"); agentID != "" {
+			params["agentId"] = agentID
+		}
+		payload, err := surface.ListSkills(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Patch("/runtimes/{runtimeId}/skills/{skillKey}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		skillKey := chi.URLParam(r, "skillKey")
+		payload, err := surface.UpdateSkill(r.Context(), runtimeID, skillKey, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/skills/install", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.InstallSkill(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/skills/hub", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.RunSkillsHubAction(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/skills/update-clawhub", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		if body == nil {
+			body = map[string]any{}
+		}
+		payload, err := surface.UpdateClawhubSkill(r.Context(), runtimeID, body)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/channels", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		params := map[string]any{}
+		if probe := r.URL.Query().Get("probe"); probe == "1" || probe == "true" {
+			params["probe"] = true
+		}
+		if timeoutRaw := r.URL.Query().Get("timeoutMs"); timeoutRaw != "" {
+			if timeout, err := strconv.Atoi(timeoutRaw); err == nil {
+				params["timeoutMs"] = timeout
+			}
+		}
+		payload, err := surface.GetChannels(r.Context(), runtimeID, params)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Post("/runtimes/{runtimeId}/channels/{channelId}/logout", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		channelID := chi.URLParam(r, "channelId")
+		payload, err := surface.LogoutChannel(r.Context(), runtimeID, channelID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Post("/runtimes/{runtimeId}/channels/{channelId}/test", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		channelID := chi.URLParam(r, "channelId")
+		payload, err := surface.TestChannel(r.Context(), runtimeID, channelID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
+
+	r.Get("/runtimes/{runtimeId}/channels/{channelId}/throughput", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		channelID := chi.URLParam(r, "channelId")
+		payload, err := surface.GetChannelThroughput(r.Context(), runtimeID, channelID)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "channelId": channelID, "payload": payload, "requestId": requestID})
+	})
+
+	r.Patch("/runtimes/{runtimeId}/channels/{channelId}", func(w http.ResponseWriter, r *http.Request) {
+		requestID := nextRequestID()
+		runtimeID := chi.URLParam(r, "runtimeId")
+		if runtimeID != DefaultRuntimeID {
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
+			return
+		}
+		channelID := chi.URLParam(r, "channelId")
+		var patch map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
+			return
+		}
+		payload, err := surface.PatchChannel(r.Context(), runtimeID, channelID, patch)
+		if err != nil {
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
+			return
+		}
+		writeJSON(w, http.StatusOK, payload)
+	})
 
 	r.Post("/runtimes/{runtimeId}/sessions:create", func(w http.ResponseWriter, r *http.Request) {
 		requestID := nextRequestID()
@@ -2091,7 +2075,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 			return
 		}
-		payload, err := commands.CreateSession(
+		payload, err := surface.CreateSession(
 			r.Context(),
 			runtimeID,
 			body.AgentID,
@@ -2128,7 +2112,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			return
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.SendMessage(r.Context(), runtimeID, sessionID, body.Text, body.Attachments, idempotencyKey); err != nil {
+		if err := surface.SendMessage(r.Context(), runtimeID, sessionID, body.Text, body.Attachments, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2144,7 +2128,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		runID := chi.URLParam(r, "runId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.AbortRun(r.Context(), runtimeID, runID, idempotencyKey); err != nil {
+		if err := surface.AbortRun(r.Context(), runtimeID, runID, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2160,7 +2144,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.CompactSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
+		if err := surface.CompactSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2176,7 +2160,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.DeleteSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
+		if err := surface.DeleteSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2203,7 +2187,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			reason = "reset"
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.ResetSession(r.Context(), runtimeID, sessionID, reason, idempotencyKey); err != nil {
+		if err := surface.ResetSession(r.Context(), runtimeID, sessionID, reason, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2219,7 +2203,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.ClearSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
+		if err := surface.ClearSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
@@ -2243,7 +2227,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			body = map[string]any{}
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
-		if err := commands.PatchSession(r.Context(), runtimeID, sessionID, body, idempotencyKey); err != nil {
+		if err := surface.PatchSession(r.Context(), runtimeID, sessionID, body, idempotencyKey); err != nil {
 			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}

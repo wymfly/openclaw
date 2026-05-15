@@ -190,17 +190,6 @@ func NewHandlerWithDependencies(deps *Dependencies) http.Handler {
 			managed,
 			managed,
 			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
-			managed,
 		)
 		wsapi.MountRoutes(api, registry)
 	})
