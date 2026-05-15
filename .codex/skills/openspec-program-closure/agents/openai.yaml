@@ -1,4 +1,0 @@
-interface:
-  display_name: "OpenSpec Program Closure"
-  short_description: "Close OpenSpec change matrices."
-  default_prompt: "Run an OpenSpec program closure review. Account for every child change, validate cross-change consistency, reconcile review findings, build a follow-up matrix, and report commit readiness."

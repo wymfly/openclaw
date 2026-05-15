@@ -1,0 +1,105 @@
+# === Build artifacts ===
+dist/
+dist-runtime/
+*.map
+*.d.ts
+*.bun-build
+bin/
+
+# === Caches, temp, generated ===
+.codex-npm-cache/
+.tmp/
+.artifacts/
+test-results/
+test-fixtures/
+coverage/
+__openclaw_vitest__/
+__pycache__/
+*.pyc
+.tsbuildinfo
+.pnpm-store
+changelog/fragments/
+analysis/
+
+# === Agent/orchestration state (not source code) ===
+.omc/
+.omx/
+.pi/
+.superpowers/
+.playwright-mcp/
+.ant-colony/
+.serena/
+.agents/
+.claude/
+.codex/
+.agent/
+.gitnexus/
+.dev-state
+
+# === Vendor subprojects (separate codebases) ===
+vendor/
+
+# === Native app code (Swift/Kotlin/Go - separate build systems) ===
+apps/ios/
+apps/macos/
+apps/android/
+apps/shared/
+Swabble/
+
+
+# === Skills (shell scripts + markdown, not TS source) ===
+skills/
+
+# === OpenSpec proposals (markdown, not code) ===
+openspec/
+
+# === Docs (markdown, not code - keep docs that define code interfaces) ===
+docs/superpowers/
+docs/plans/
+docs/reviews/
+docs/refactor/
+docs/realignment/
+docs/process/
+docs/handoff-agent/
+docs/debug/
+docs/.generated/
+docs/.local/
+docs/internal/
+
+# === QA / E2E scenarios ===
+qa/
+deck-e2e/
+
+# === Deploy ===
+deploy/
+
+# === Assets / media ===
+assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.woff
+*.woff2
+*.ttf
+*.eot
+
+# === Patches ===
+patches/
+
+# === Temp dirs ===
+openclaw-path-alias-*/
+.worktrees/
+.local/
+tmp/
+
+# === Large / generated files ===
+*.json.bak
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.tar.gz
+*.ipa
+*.dSYM.zip

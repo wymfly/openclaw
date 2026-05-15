@@ -102,6 +102,8 @@ USER.md
 .omc/
 .omx/
 .playwright-mcp/
+.superpowers/
+.agents/
 
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
@@ -110,6 +112,7 @@ USER.md
 /local/
 package-lock.json
 .claude/
+.codex/
 .agent/
 skills-lock.json
 
@@ -173,3 +176,46 @@ deploy/data/
 deploy/*.tar.gz
 deploy/docker-compose.package.yml
 deploy/docker-compose.package.sandbox.yml
+.pi/
+
+# OpenSpec proposals (regenerated per session, not committed)
+openspec/changes/
+openspec/follow-ups/
+openspec/specs/
+
+# Test artifacts (products, not source)
+test-fixtures/
+test-results/
+
+# Debug artifacts at root (never commit)
+/deck-go-*
+/deck-chat-*
+/chat-rich-*
+/chat-real-*
+/real-*
+/console-*.log
+/r10-*.log
+/scroll-*.json
+/dream-diary-*.html
+/*.log
+/test-data.*
+/test-doc.*
+/test-large.*
+/fix*.py
+/docs.acp.md
+/appcast.xml
+AGENTS*.bak*
+AGENTS-backup*
+
+# Deploy snapshots
+deploy/openclaw-deploy-*/
+deploy/*.tar.gz
+
+# .gitnexus index (local, regeneratable)
+.gitnexus/
+
+# Codex npm cache
+.codex-npm-cache/
+
+# Path alias temp dirs
+openclaw-path-alias-*/
