@@ -28,6 +28,8 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/server"
 )
 
+var _ httpapi.MountRoutesProvider = (*openclawrt.ManagedRuntime)(nil)
+
 const defaultListenAddr = "127.0.0.1:19528"
 
 type EnvLookup func(string) string
