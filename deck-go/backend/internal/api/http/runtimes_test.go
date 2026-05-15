@@ -100,18 +100,18 @@ type stubGatewayDiagnosticProvider struct {
 	batchCalls int
 }
 
-func (s *stubGatewayDiagnosticProvider) GetGatewayDescribe(_ context.Context, runtimeID string, includeSchemas bool) (any, error) {
-	s.lastKey = runtimeID + "/gateway/describe/" + strconv.FormatBool(includeSchemas)
+func (s *stubGatewayDiagnosticProvider) Describe(_ context.Context, includeSchemas bool) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/gateway/describe/" + strconv.FormatBool(includeSchemas)
 	return s.describe, nil
 }
 
-func (s *stubGatewayDiagnosticProvider) GetGatewayHealth(_ context.Context, runtimeID string) (any, error) {
-	s.lastKey = runtimeID + "/gateway/health"
+func (s *stubGatewayDiagnosticProvider) Health(_ context.Context) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/gateway/health"
 	return s.health, nil
 }
 
-func (s *stubGatewayDiagnosticProvider) GetGatewayStatus(_ context.Context, runtimeID string) (any, error) {
-	s.lastKey = runtimeID + "/gateway/status"
+func (s *stubGatewayDiagnosticProvider) Status(_ context.Context) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/gateway/status"
 	return s.status, nil
 }
 
@@ -189,8 +189,8 @@ type stubConfigProvider struct {
 	lastRaw string
 }
 
-func (s *stubConfigProvider) GetConfig(_ context.Context, runtimeID string) (any, error) {
-	s.lastKey = runtimeID + "/config"
+func (s *stubConfigProvider) ConfigGet(_ context.Context) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/config"
 	return s.config, nil
 }
 
@@ -201,8 +201,8 @@ func (s *stubConfigProvider) PatchConfig(_ context.Context, runtimeID string, pa
 	return map[string]any{"ok": true, "baseHash": baseHash}, nil
 }
 
-func (s *stubConfigProvider) ApplyConfig(_ context.Context, runtimeID string, raw string, baseHash string) (any, error) {
-	s.lastKey = runtimeID + "/config:apply/" + baseHash
+func (s *stubConfigProvider) ConfigApply(_ context.Context, raw string, baseHash string) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/config:apply/" + baseHash
 	s.lastRaw = raw
 	return map[string]any{"ok": true, "baseHash": baseHash}, nil
 }
@@ -212,8 +212,8 @@ func (s *stubConfigProvider) GetConfigSchema(_ context.Context, runtimeID string
 	return s.schema, nil
 }
 
-func (s *stubConfigProvider) LookupConfigSchema(_ context.Context, runtimeID string, path string) (any, error) {
-	s.lastKey = runtimeID + "/config/schema-lookup/" + path
+func (s *stubConfigProvider) ConfigSchemaLookup(_ context.Context, path string) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/config/schema-lookup/" + path
 	return s.lookup, nil
 }
 
@@ -254,8 +254,8 @@ func (s *stubAgentProvider) GetAgentIdentity(_ context.Context, runtimeID string
 	return s.identity, nil
 }
 
-func (s *stubAgentProvider) ListAgentFiles(_ context.Context, runtimeID string, agentID string) (any, error) {
-	s.lastKey = runtimeID + "/agents/" + agentID + "/files"
+func (s *stubAgentProvider) AgentFilesList(_ context.Context, agentID string) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/agents/" + agentID + "/files"
 	return s.files, nil
 }
 
@@ -473,8 +473,8 @@ type stubMemoryProvider struct {
 	lastKey string
 }
 
-func (s *stubMemoryProvider) GetMemoryHealth(_ context.Context, runtimeID string) (any, error) {
-	s.lastKey = runtimeID + "/memory/health"
+func (s *stubMemoryProvider) DoctorMemoryStatus(_ context.Context) (any, error) {
+	s.lastKey = DefaultRuntimeID + "/memory/health"
 	return s.health, nil
 }
 

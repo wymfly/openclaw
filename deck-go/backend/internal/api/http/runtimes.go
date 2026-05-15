@@ -41,9 +41,9 @@ type MonitorQueryProvider interface {
 }
 
 type GatewayDiagnosticProvider interface {
-	GetGatewayDescribe(ctx context.Context, runtimeID string, includeSchemas bool) (any, error)
-	GetGatewayHealth(ctx context.Context, runtimeID string) (any, error)
-	GetGatewayStatus(ctx context.Context, runtimeID string) (any, error)
+	Describe(ctx context.Context, includeSchemas bool) (any, error)
+	Health(ctx context.Context) (any, error)
+	Status(ctx context.Context) (any, error)
 }
 
 type GatewayRPCProvider interface {
@@ -151,18 +151,18 @@ type DeviceProvider interface {
 }
 
 type ConfigProvider interface {
-	GetConfig(ctx context.Context, runtimeID string) (any, error)
+	ConfigGet(ctx context.Context) (any, error)
 	PatchConfig(ctx context.Context, runtimeID string, patch map[string]any, baseHash string) (any, error)
-	ApplyConfig(ctx context.Context, runtimeID string, raw string, baseHash string) (any, error)
+	ConfigApply(ctx context.Context, raw string, baseHash string) (any, error)
 	GetConfigSchema(ctx context.Context, runtimeID string) (any, error)
-	LookupConfigSchema(ctx context.Context, runtimeID string, path string) (any, error)
+	ConfigSchemaLookup(ctx context.Context, path string) (any, error)
 }
 
 type AgentProvider interface {
 	ListAgents(ctx context.Context, runtimeID string) (any, error)
 	GetAgent(ctx context.Context, runtimeID string, agentID string) (any, bool, error)
 	GetAgentIdentity(ctx context.Context, runtimeID string, agentID string) (any, error)
-	ListAgentFiles(ctx context.Context, runtimeID string, agentID string) (any, error)
+	AgentFilesList(ctx context.Context, agentID string) (any, error)
 	GetAgentFile(ctx context.Context, runtimeID string, agentID string, name string) (any, error)
 	CreateAgent(ctx context.Context, runtimeID string, body map[string]any) (any, error)
 	UpdateAgent(ctx context.Context, runtimeID string, agentID string, body map[string]any) (any, error)
@@ -214,7 +214,7 @@ type ApprovalProvider interface {
 }
 
 type MemoryProvider interface {
-	GetMemoryHealth(ctx context.Context, runtimeID string) (any, error)
+	DoctorMemoryStatus(ctx context.Context) (any, error)
 	RunMemoryDreamAction(ctx context.Context, runtimeID string, action string) (any, error)
 }
 
@@ -563,7 +563,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				return
 			}
 			includeSchemas := r.URL.Query().Get("includeSchemas") != "false"
-			payload, err := diagnostics.GetGatewayDescribe(r.Context(), runtimeID, includeSchemas)
+			payload, err := diagnostics.Describe(r.Context(), includeSchemas)
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{
 					"error": map[string]any{
@@ -596,7 +596,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				})
 				return
 			}
-			payload, err := diagnostics.GetGatewayHealth(r.Context(), runtimeID)
+			payload, err := diagnostics.Health(r.Context())
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{
 					"error": map[string]any{
@@ -629,7 +629,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				})
 				return
 			}
-			payload, err := diagnostics.GetGatewayStatus(r.Context(), runtimeID)
+			payload, err := diagnostics.Status(r.Context())
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{
 					"error": map[string]any{
@@ -957,7 +957,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
 				return
 			}
-			payload, err := config.GetConfig(r.Context(), runtimeID)
+			payload, err := config.ConfigGet(r.Context())
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
 				return
@@ -1011,7 +1011,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "raw config is required.", "details": nil}, "requestId": requestID})
 				return
 			}
-			payload, err := config.ApplyConfig(r.Context(), runtimeID, body.Raw, body.BaseHash)
+			payload, err := config.ConfigApply(r.Context(), body.Raw, body.BaseHash)
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
 				return
@@ -1048,7 +1048,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
 				return
 			}
-			payload, err := config.LookupConfigSchema(r.Context(), runtimeID, body.Path)
+			payload, err := config.ConfigSchemaLookup(r.Context(), body.Path)
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
 				return
@@ -1169,7 +1169,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				return
 			}
 			agentID := chi.URLParam(r, "agentId")
-			payload, err := agents.ListAgentFiles(r.Context(), runtimeID, agentID)
+			payload, err := agents.AgentFilesList(r.Context(), agentID)
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
 				return
@@ -1922,7 +1922,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
 				return
 			}
-			payload, err := memory.GetMemoryHealth(r.Context(), runtimeID)
+			payload, err := memory.DoctorMemoryStatus(r.Context())
 			if err != nil {
 				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
 				return

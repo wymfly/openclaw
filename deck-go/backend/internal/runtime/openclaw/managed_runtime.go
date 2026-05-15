@@ -51,9 +51,6 @@ type ManagedRuntimeSurface interface {
 	ListRuns(context.Context, string) ([]runtimeprojection.RunRecord, error)
 	GetRun(context.Context, string, string) (runtimeprojection.RunRecord, []runtimeprojection.RunEventRow, bool, error)
 	GetStats(context.Context, string) (runtimeprojection.MonitorStats, error)
-	GetGatewayDescribe(context.Context, string, bool) (any, error)
-	GetGatewayHealth(context.Context, string) (any, error)
-	GetGatewayStatus(context.Context, string) (any, error)
 	LoadGatewayStatus(context.Context) (GatewayStatusSummary, error)
 	ListDevices(context.Context, string) (any, error)
 	GetCurrentDeviceID(string) (string, error)
@@ -62,15 +59,11 @@ type ManagedRuntimeSurface interface {
 	RemoveDevice(context.Context, string, string) (any, error)
 	RotateDeviceToken(context.Context, string, string, string) (any, error)
 	RevokeDeviceToken(context.Context, string, string, string) (any, error)
-	GetConfig(context.Context, string) (any, error)
 	PatchConfig(context.Context, string, map[string]any, string) (any, error)
-	ApplyConfig(context.Context, string, string, string) (any, error)
 	GetConfigSchema(context.Context, string) (any, error)
-	LookupConfigSchema(context.Context, string, string) (any, error)
 	ListAgents(context.Context, string) (any, error)
 	GetAgent(context.Context, string, string) (any, bool, error)
 	GetAgentIdentity(context.Context, string, string) (any, error)
-	ListAgentFiles(context.Context, string, string) (any, error)
 	GetAgentFile(context.Context, string, string, string) (any, error)
 	CreateAgent(context.Context, string, map[string]any) (any, error)
 	UpdateAgent(context.Context, string, string, map[string]any) (any, error)
@@ -110,7 +103,6 @@ type ManagedRuntimeSurface interface {
 	SetApprovalPolicy(context.Context, string, map[string]any) (any, error)
 	ListPluginApprovals(context.Context, string) (any, error)
 	ResolvePluginApproval(context.Context, string, map[string]any) (any, error)
-	GetMemoryHealth(context.Context, string) (any, error)
 	RunMemoryDreamAction(context.Context, string, string) (any, error)
 	ListNodes(context.Context, string) (any, error)
 	RunNodeAction(context.Context, string, string, map[string]any) (any, error)
@@ -478,18 +470,6 @@ func (m *ManagedRuntime) SessionSubscriptions() *SessionSubscriptions {
 	return adapter.SessionSubscriptions()
 }
 
-func (m *ManagedRuntime) GetGatewayDescribe(ctx context.Context, runtimeID string, includeSchemas bool) (any, error) {
-	return m.GatewayQueries().Describe(ctx, includeSchemas)
-}
-
-func (m *ManagedRuntime) GetGatewayHealth(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().Health(ctx)
-}
-
-func (m *ManagedRuntime) GetGatewayStatus(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().Status(ctx)
-}
-
 func (m *ManagedRuntime) RequestGateway(ctx context.Context, runtimeID string, method string, params any) (any, error) {
 	if m != nil && m.bffViews != nil {
 		payload, handled, err := m.bffViews.Dispatch(ctx, method, params)
@@ -592,10 +572,6 @@ func (m *ManagedRuntime) DeviceTokenRevoke(ctx context.Context, body map[string]
 	return m.GatewayQueries().DeviceTokenRevoke(ctx, body)
 }
 
-func (m *ManagedRuntime) GetConfig(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().ConfigGet(ctx)
-}
-
 func (m *ManagedRuntime) ConfigGet(ctx context.Context) (any, error) {
 	return m.GatewayQueries().ConfigGet(ctx)
 }
@@ -609,20 +585,12 @@ func (m *ManagedRuntime) ConfigPatch(ctx context.Context, raw string, baseHash s
 	return m.GatewayQueries().ConfigPatch(ctx, raw, baseHash, note)
 }
 
-func (m *ManagedRuntime) ApplyConfig(ctx context.Context, runtimeID string, raw string, baseHash string) (any, error) {
-	return m.GatewayQueries().ConfigApply(ctx, raw, baseHash)
-}
-
 func (m *ManagedRuntime) ConfigApply(ctx context.Context, raw string, baseHash string) (any, error) {
 	return m.GatewayQueries().ConfigApply(ctx, raw, baseHash)
 }
 
 func (m *ManagedRuntime) GetConfigSchema(ctx context.Context, runtimeID string) (any, error) {
 	return m.GatewayQueries().ConfigSchema(ctx)
-}
-
-func (m *ManagedRuntime) LookupConfigSchema(ctx context.Context, runtimeID string, path string) (any, error) {
-	return m.GatewayQueries().ConfigSchemaLookup(ctx, path)
 }
 
 func (m *ManagedRuntime) ConfigGetWithParams(ctx context.Context, params map[string]any) (any, error) {
@@ -648,10 +616,6 @@ func (m *ManagedRuntime) GetAgent(ctx context.Context, runtimeID string, agentID
 
 func (m *ManagedRuntime) GetAgentIdentity(ctx context.Context, runtimeID string, agentID string) (any, error) {
 	return m.GatewayQueries().AgentIdentityGet(ctx, agentID)
-}
-
-func (m *ManagedRuntime) ListAgentFiles(ctx context.Context, runtimeID string, agentID string) (any, error) {
-	return m.GatewayQueries().AgentFilesList(ctx, agentID)
 }
 
 func (m *ManagedRuntime) AgentFilesList(ctx context.Context, agentID string) (any, error) {
@@ -888,10 +852,6 @@ func (m *ManagedRuntime) ListPluginApprovals(ctx context.Context, runtimeID stri
 
 func (m *ManagedRuntime) ResolvePluginApproval(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
 	return m.GatewayQueries().PluginApprovalResolve(ctx, body)
-}
-
-func (m *ManagedRuntime) GetMemoryHealth(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().DoctorMemoryStatus(ctx)
 }
 
 func (m *ManagedRuntime) DoctorMemoryStatus(ctx context.Context) (any, error) {
