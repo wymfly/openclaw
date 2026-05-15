@@ -532,10 +532,6 @@ func (m *ManagedRuntime) ListDevices(ctx context.Context, runtimeID string) (any
 	return m.GatewayQueries().DevicePairList(ctx)
 }
 
-func (m *ManagedRuntime) DevicePairList(ctx context.Context) (any, error) {
-	return m.GatewayQueries().DevicePairList(ctx)
-}
-
 func (m *ManagedRuntime) CurrentDeviceID() (string, error) {
 	adapter := m.RuntimeAdapter()
 	if adapter == nil {
@@ -677,10 +673,6 @@ func (m *ManagedRuntime) CreateAgent(ctx context.Context, runtimeID string, body
 	return m.GatewayQueries().AgentsCreate(ctx, payload)
 }
 
-func (m *ManagedRuntime) AgentsList(ctx context.Context) (any, error) {
-	return m.GatewayQueries().AgentsList(ctx)
-}
-
 func (m *ManagedRuntime) AgentsCreate(ctx context.Context, body map[string]any) (any, error) {
 	return m.GatewayQueries().AgentsCreate(ctx, body)
 }
@@ -701,24 +693,8 @@ func (m *ManagedRuntime) DeleteAgent(ctx context.Context, runtimeID string, agen
 	return m.GatewayQueries().AgentsDelete(ctx, agentID, false)
 }
 
-func (m *ManagedRuntime) AgentsDelete(ctx context.Context, agentID string) (any, error) {
-	return m.GatewayQueries().AgentsDelete(ctx, agentID, false)
-}
-
 func (m *ManagedRuntime) SetAgentFile(ctx context.Context, runtimeID string, agentID string, name string, content string) (any, error) {
 	return m.GatewayQueries().AgentFilesSet(ctx, agentID, name, content)
-}
-
-func (m *ManagedRuntime) AgentFilesSet(ctx context.Context, agentID string, name string, content string) (any, error) {
-	return m.GatewayQueries().AgentFilesSet(ctx, agentID, name, content)
-}
-
-func (m *ManagedRuntime) AgentFilesGet(ctx context.Context, agentID string, name string) (any, error) {
-	return m.GatewayQueries().AgentFilesGet(ctx, agentID, name)
-}
-
-func (m *ManagedRuntime) AgentIdentityGet(ctx context.Context, agentID string) (any, error) {
-	return m.GatewayQueries().AgentIdentityGet(ctx, agentID)
 }
 
 func (m *ManagedRuntime) ListCommands(ctx context.Context, runtimeID string) (any, error) {
@@ -729,15 +705,7 @@ func (m *ManagedRuntime) ToolsCatalog(ctx context.Context, runtimeID string, bod
 	return m.GatewayQueries().ToolsCatalog(ctx, body)
 }
 
-func (m *ManagedRuntime) ToolsCatalogLegacy(ctx context.Context, body map[string]any) (any, error) {
-	return m.GatewayQueries().ToolsCatalog(ctx, body)
-}
-
 func (m *ManagedRuntime) GetUsage(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().UsageStatus(ctx)
-}
-
-func (m *ManagedRuntime) UsageStatus(ctx context.Context) (any, error) {
 	return m.GatewayQueries().UsageStatus(ctx)
 }
 
@@ -753,15 +721,7 @@ func (m *ManagedRuntime) AddCronJob(ctx context.Context, runtimeID string, body 
 	return m.GatewayQueries().CronAdd(ctx, body)
 }
 
-func (m *ManagedRuntime) CronAdd(ctx context.Context, body map[string]any) (any, error) {
-	return m.GatewayQueries().CronAdd(ctx, body)
-}
-
 func (m *ManagedRuntime) UpdateCronJob(ctx context.Context, runtimeID string, jobID string, patch map[string]any) (any, error) {
-	return m.GatewayQueries().CronUpdate(ctx, jobID, patch)
-}
-
-func (m *ManagedRuntime) CronUpdate(ctx context.Context, jobID string, patch map[string]any) (any, error) {
 	return m.GatewayQueries().CronUpdate(ctx, jobID, patch)
 }
 
@@ -769,15 +729,7 @@ func (m *ManagedRuntime) RemoveCronJob(ctx context.Context, runtimeID string, jo
 	return m.GatewayQueries().CronRemove(ctx, jobID)
 }
 
-func (m *ManagedRuntime) CronRemove(ctx context.Context, jobID string) (any, error) {
-	return m.GatewayQueries().CronRemove(ctx, jobID)
-}
-
 func (m *ManagedRuntime) RunCronJob(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
-	return m.GatewayQueries().CronRun(ctx, body)
-}
-
-func (m *ManagedRuntime) CronRun(ctx context.Context, body map[string]any) (any, error) {
 	return m.GatewayQueries().CronRun(ctx, body)
 }
 
@@ -785,15 +737,7 @@ func (m *ManagedRuntime) ListCronRuns(ctx context.Context, runtimeID string, par
 	return m.GatewayQueries().CronRuns(ctx, params)
 }
 
-func (m *ManagedRuntime) CronRuns(ctx context.Context, params map[string]any) (any, error) {
-	return m.GatewayQueries().CronRuns(ctx, params)
-}
-
 func (m *ManagedRuntime) GetCronStatus(ctx context.Context, runtimeID string) (any, error) {
-	return m.GatewayQueries().CronStatus(ctx)
-}
-
-func (m *ManagedRuntime) CronStatus(ctx context.Context) (any, error) {
 	return m.GatewayQueries().CronStatus(ctx)
 }
 
@@ -801,15 +745,7 @@ func (m *ManagedRuntime) DiscoverDeckCommands(ctx context.Context, runtimeID str
 	return m.GatewayQueries().DeckCommandsDiscover(ctx, body)
 }
 
-func (m *ManagedRuntime) DeckCommandsDiscover(ctx context.Context, body map[string]any) (any, error) {
-	return m.GatewayQueries().DeckCommandsDiscover(ctx, body)
-}
-
 func (m *ManagedRuntime) GetDeckToolsEffective(ctx context.Context, runtimeID string, body map[string]any) (any, error) {
-	return m.GatewayQueries().ToolsEffective(ctx, body)
-}
-
-func (m *ManagedRuntime) ToolsEffective(ctx context.Context, body map[string]any) (any, error) {
 	return m.GatewayQueries().ToolsEffective(ctx, body)
 }
 
@@ -1391,7 +1327,7 @@ func (m *ManagedRuntime) GetUsageCost(ctx context.Context, days int) (any, error
 }
 
 func (m *ManagedRuntime) GetUsageProviders(ctx context.Context) (any, error) {
-	return m.UsageStatus(ctx)
+	return m.GatewayQueries().UsageStatus(ctx)
 }
 
 func (m *ManagedRuntime) GetUsageSessions(ctx context.Context, params map[string]any) (any, error) {
@@ -1415,7 +1351,7 @@ func (m *ManagedRuntime) PatchModelsConfig(ctx context.Context, raw string, base
 }
 
 func (m *ManagedRuntime) GetModelUsageProviders(ctx context.Context) (any, error) {
-	return m.UsageStatus(ctx)
+	return m.GatewayQueries().UsageStatus(ctx)
 }
 
 func (m *ManagedRuntime) GetModelUsageCost(ctx context.Context, days int) (any, error) {
