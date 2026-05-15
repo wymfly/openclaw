@@ -265,14 +265,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		items, err := runtimes.ListRuntimes(req.Context())
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error": map[string]any{
-					"code":    "RUNTIME_QUERY_FAILED",
-					"message": err.Error(),
-					"details": nil,
-				},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -286,25 +279,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		runtimeID := chi.URLParam(r, "runtimeId")
 		item, ok, err := runtimes.GetRuntime(r.Context(), runtimeID)
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error": map[string]any{
-					"code":    "RUNTIME_QUERY_FAILED",
-					"message": err.Error(),
-					"details": nil,
-				},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 			return
 		}
 		if !ok {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error": map[string]any{
-					"code":    "RUNTIME_NOT_FOUND",
-					"message": "Runtime was not found.",
-					"details": nil,
-				},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -318,26 +297,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			items, err := sessions.ListSessions(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -351,27 +316,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			sessionID := chi.URLParam(r, "sessionId")
 			detail, err := sessions.GetTimeline(r.Context(), runtimeID, sessionID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			snapshot := runtimeprojection.BuildTimelineSnapshot(runtimeID, sessionID, detail)
@@ -390,26 +341,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			items, err := monitor.ListRuns(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			page, nextCursor := filterMonitorRuns(items, r.URL.Query())
@@ -425,14 +362,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			limit := 100
@@ -449,14 +379,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			items, err := monitor.ListActivity(r.Context(), runtimeID, limit)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -470,38 +393,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			runID := chi.URLParam(r, "runId")
 			run, rows, ok, err := monitor.GetRun(r.Context(), runtimeID, runID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			if !ok {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUN_NOT_FOUND",
-						"message": "Run was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUN_NOT_FOUND", "Run was not found.", nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -517,26 +419,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			stats, err := monitor.GetStats(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -552,27 +440,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			includeSchemas := r.URL.Query().Get("includeSchemas") != "false"
 			payload, err := diagnostics.Describe(r.Context(), includeSchemas)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -586,26 +460,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := diagnostics.Health(r.Context())
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -619,26 +479,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := diagnostics.Status(r.Context())
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -656,7 +502,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				}
 				runtimeID := chi.URLParam(r, "runtimeId")
 				if runtimeID != DefaultRuntimeID {
-					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 					return
 				}
 				var body struct {
@@ -665,16 +511,16 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 					TimeoutMs int    `json:"timeoutMs"`
 				}
 				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 					return
 				}
 				method := strings.TrimSpace(body.Method)
 				if method == "" {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_GATEWAY_METHOD", "message": "Gateway method is required.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_GATEWAY_METHOD", "Gateway method is required.", nil)
 					return
 				}
 				if _, ok := generated.TypedMethodNames[method]; !ok {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_GATEWAY_METHOD", "message": "Gateway method is not available through the typed Deck transport.", "details": map[string]any{"method": method}}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_GATEWAY_METHOD", "Gateway method is not available through the typed Deck transport.", map[string]any{"method": method})
 					return
 				}
 				params := body.Params
@@ -700,7 +546,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 							status = http.StatusForbidden
 						}
 					}
-					writeJSON(w, status, map[string]any{"error": map[string]any{"code": code, "message": err.Error(), "details": details}, "requestId": requestID})
+					respondError(w, requestID, status, code, err.Error(), details)
 					return
 				}
 				writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "requestId": requestID, "result": payload})
@@ -714,20 +560,20 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				}
 				runtimeID := chi.URLParam(r, "runtimeId")
 				if runtimeID != DefaultRuntimeID {
-					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 					return
 				}
 				var body generated.GatewayBatchParams
 				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 					return
 				}
 				if len(body.Calls) == 0 {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_REQUEST", "message": "gateway.batch requires at least one call.", "details": nil}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_REQUEST", "gateway.batch requires at least one call.", nil)
 					return
 				}
 				if len(body.Calls) > 32 {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_REQUEST", "message": "gateway.batch accepts at most 32 calls.", "details": map[string]any{"max": 32}}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_REQUEST", "gateway.batch accepts at most 32 calls.", map[string]any{"max": 32})
 					return
 				}
 
@@ -746,7 +592,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 								status = http.StatusForbidden
 							}
 						}
-						writeJSON(w, status, map[string]any{"error": map[string]any{"code": code, "message": err.Error(), "details": details}, "requestId": requestID})
+						respondError(w, requestID, status, code, err.Error(), details)
 						return
 					}
 					results = mergeGatewayBatchResults(results, slots, payload, body.Options.FailFast)
@@ -758,7 +604,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			r.Get("/runtimes/{runtimeId}/gateway/ws", func(w http.ResponseWriter, r *http.Request) {
 				runtimeID := chi.URLParam(r, "runtimeId")
 				if runtimeID != DefaultRuntimeID {
-					writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": nextRequestID()})
+					respondError(w, nextRequestID(), http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 					return
 				}
 				ws.GatewayUpgradeWS(w, r, runtimeID)
@@ -771,26 +617,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := devices.ListDevices(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_QUERY_FAILED",
-						"message": err.Error(),
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{
@@ -804,14 +636,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{
-					"error": map[string]any{
-						"code":    "RUNTIME_NOT_FOUND",
-						"message": "Runtime was not found.",
-						"details": nil,
-					},
-					"requestId": requestID,
-				})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			deviceID, err := devices.GetCurrentDeviceID(runtimeID)
@@ -845,18 +670,18 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := postDeviceBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			requestIDParam, _ := body["requestId"].(string)
 			payload, err := devices.ApproveDeviceRequest(r.Context(), runtimeID, requestIDParam)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -866,18 +691,18 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := postDeviceBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			requestIDParam, _ := body["requestId"].(string)
 			payload, err := devices.RejectDeviceRequest(r.Context(), runtimeID, requestIDParam)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -887,18 +712,18 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := postDeviceBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			deviceID, _ := body["deviceId"].(string)
 			payload, err := devices.RemoveDevice(r.Context(), runtimeID, deviceID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -908,19 +733,19 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := postDeviceBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			deviceID, _ := body["deviceId"].(string)
 			role, _ := body["role"].(string)
 			payload, err := devices.RotateDeviceToken(r.Context(), runtimeID, deviceID, role)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -930,19 +755,19 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := postDeviceBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			deviceID, _ := body["deviceId"].(string)
 			role, _ := body["role"].(string)
 			payload, err := devices.RevokeDeviceToken(r.Context(), runtimeID, deviceID, role)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -954,12 +779,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := config.ConfigGet(r.Context())
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "config": payload, "requestId": requestID})
@@ -969,7 +794,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body struct {
@@ -977,16 +802,16 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				BaseHash string         `json:"baseHash"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body.Patch == nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "patch object is required.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "patch object is required.", nil)
 				return
 			}
 			payload, err := config.PatchConfig(r.Context(), runtimeID, body.Patch, body.BaseHash)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -996,7 +821,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body struct {
@@ -1004,16 +829,16 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				BaseHash string `json:"baseHash"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body.Raw == "" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "raw config is required.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "raw config is required.", nil)
 				return
 			}
 			payload, err := config.ConfigApply(r.Context(), body.Raw, body.BaseHash)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1023,12 +848,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := config.GetConfigSchema(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "schema": payload, "requestId": requestID})
@@ -1038,19 +863,19 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body struct {
 				Path string `json:"path"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := config.ConfigSchemaLookup(r.Context(), body.Path)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1062,24 +887,24 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
 				body = map[string]any{}
 			}
 			if strings.TrimSpace(runtimecoerce.String(body["name"], "")) == "" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "name is required", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
 				return
 			}
 			payload, err := agents.CreateAgent(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1089,17 +914,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			agentID := chi.URLParam(r, "agentId")
 			payload, ok, err := agents.GetAgent(r.Context(), runtimeID, agentID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			if !ok {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "AGENT_NOT_FOUND", "message": "Agent was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "AGENT_NOT_FOUND", "Agent was not found.", nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
@@ -1110,12 +935,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			agentID := chi.URLParam(r, "agentId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1123,7 +948,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := agents.UpdateAgent(r.Context(), runtimeID, agentID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1134,12 +959,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			agentID := chi.URLParam(r, "agentId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := agents.DeleteAgent(r.Context(), runtimeID, agentID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1149,13 +974,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			agentID := chi.URLParam(r, "agentId")
 			payload, err := agents.GetAgentIdentity(r.Context(), runtimeID, agentID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
@@ -1165,13 +990,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			agentID := chi.URLParam(r, "agentId")
 			payload, err := agents.AgentFilesList(r.Context(), agentID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "payload": payload, "requestId": requestID})
@@ -1182,12 +1007,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			agentID := chi.URLParam(r, "agentId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1196,16 +1021,16 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			name := strings.TrimSpace(runtimecoerce.String(body["name"], ""))
 			content, ok := body["content"].(string)
 			if name == "" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "name is required", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "name is required", nil)
 				return
 			}
 			if !ok {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "content is required", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "content is required", nil)
 				return
 			}
 			payload, err := agents.SetAgentFile(r.Context(), runtimeID, agentID, name, content)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1215,14 +1040,14 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			agentID := chi.URLParam(r, "agentId")
 			fileName := chi.URLParam(r, "*")
 			payload, err := agents.GetAgentFile(r.Context(), runtimeID, agentID, fileName)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "agentId": agentID, "name": fileName, "payload": payload, "requestId": requestID})
@@ -1234,12 +1059,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := misc.ListCommands(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1249,12 +1074,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1262,7 +1087,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.ToolsCatalog(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1272,12 +1097,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := misc.GetUsage(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1287,7 +1112,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -1301,7 +1126,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				if value := query.Get(key); value != "" {
 					parsed, err := strconv.Atoi(value)
 					if err != nil {
-						writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_QUERY", "message": "Query parameter is invalid.", "details": map[string]any{"parameter": key}}, "requestId": requestID})
+						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
 						return
 					}
 					params[key] = parsed
@@ -1312,7 +1137,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.ListCronJobs(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1322,12 +1147,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1335,7 +1160,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.AddCronJob(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1346,12 +1171,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			jobID := chi.URLParam(r, "jobId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var patch map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if patch == nil {
@@ -1359,7 +1184,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.UpdateCronJob(r.Context(), runtimeID, jobID, patch)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1370,12 +1195,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			jobID := chi.URLParam(r, "jobId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := misc.RemoveCronJob(r.Context(), runtimeID, jobID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1386,12 +1211,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			jobID := chi.URLParam(r, "jobId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1400,7 +1225,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			body["id"] = jobID
 			payload, err := misc.RunCronJob(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1411,7 +1236,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			runtimeID := chi.URLParam(r, "runtimeId")
 			jobID := chi.URLParam(r, "jobId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{
@@ -1423,7 +1248,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				if value := query.Get(key); value != "" {
 					parsed, err := strconv.Atoi(value)
 					if err != nil {
-						writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_QUERY", "message": "Query parameter is invalid.", "details": map[string]any{"parameter": key}}, "requestId": requestID})
+						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
 						return
 					}
 					params[key] = parsed
@@ -1437,7 +1262,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.ListCronRuns(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1447,12 +1272,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := misc.GetCronStatus(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1462,12 +1287,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1475,7 +1300,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.DiscoverDeckCommands(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1485,12 +1310,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1498,7 +1323,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := misc.GetDeckToolsEffective(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1521,7 +1346,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -1530,7 +1355,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := deck.ListDeckPlugins(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1540,17 +1365,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			agentID := strings.TrimSpace(r.URL.Query().Get("agentId"))
 			if agentID == "" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_QUERY", "message": "agentId is required", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "agentId is required", nil)
 				return
 			}
 			payload, err := deck.GetDeckAgentDetail(r.Context(), runtimeID, agentID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1560,12 +1385,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1575,11 +1400,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			delete(body, "action")
 			payload, err := deck.RunDeckAgentAction(r.Context(), runtimeID, action, body)
 			if err == http.ErrNotSupported {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_ACTION", "message": "Deck agent action is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck agent action is invalid.", nil)
 				return
 			}
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1589,12 +1414,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := deck.ListDeckIdentity(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1604,12 +1429,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			action, _ := body["action"].(string)
@@ -1621,11 +1446,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			case "unlink":
 				payload, err = deck.UnlinkDeckIdentity(r.Context(), runtimeID, body)
 			default:
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_ACTION", "message": "Deck identity action is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck identity action is invalid.", nil)
 				return
 			}
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1635,7 +1460,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -1646,7 +1471,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := deck.ListDeckRouting(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1656,12 +1481,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			action, _ := body["action"].(string)
@@ -1677,11 +1502,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			case "simulate":
 				payload, err = deck.SimulateDeckRouting(r.Context(), runtimeID, body)
 			default:
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_ACTION", "message": "Deck routing action is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck routing action is invalid.", nil)
 				return
 			}
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1691,7 +1516,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -1704,7 +1529,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 				if value := r.URL.Query().Get(key); value != "" {
 					parsed, err := strconv.Atoi(value)
 					if err != nil {
-						writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_QUERY", "message": "Query parameter is invalid.", "details": map[string]any{"parameter": key}}, "requestId": requestID})
+						respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": key})
 						return
 					}
 					params[key] = parsed
@@ -1712,7 +1537,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := deck.ListDeckSubagents(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1722,12 +1547,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			action, _ := body["action"].(string)
@@ -1741,11 +1566,11 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			case "steer":
 				payload, err = deck.SteerDeckSubagent(r.Context(), runtimeID, body)
 			default:
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_ACTION", "message": "Deck subagent action is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_ACTION", "Deck subagent action is invalid.", nil)
 				return
 			}
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1755,7 +1580,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -1767,14 +1592,14 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			if value := r.URL.Query().Get("limit"); value != "" {
 				parsed, err := strconv.Atoi(value)
 				if err != nil {
-					writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_QUERY", "message": "Query parameter is invalid.", "details": map[string]any{"parameter": "limit"}}, "requestId": requestID})
+					respondError(w, requestID, http.StatusBadRequest, "INVALID_QUERY", "Query parameter is invalid.", map[string]any{"parameter": "limit"})
 					return
 				}
 				params["limit"] = parsed
 			}
 			payload, err := deck.ListDeckThreads(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1797,12 +1622,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := approvals.GetApprovals(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1812,17 +1637,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := approvals.ResolveApproval(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1832,12 +1657,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := approvals.ListPendingApprovals(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1847,12 +1672,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := approvals.GetApprovals(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1862,17 +1687,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := approvals.SetApprovalPolicy(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1882,12 +1707,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := approvals.ListPluginApprovals(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1897,17 +1722,17 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			body, err := readBody(r)
 			if err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := approvals.ResolvePluginApproval(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1919,12 +1744,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := memory.DoctorMemoryStatus(r.Context())
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1934,19 +1759,19 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body struct {
 				Action string `json:"action"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := memory.RunMemoryDreamAction(r.Context(), runtimeID, body.Action)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1958,12 +1783,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := nodes.ListNodes(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -1973,12 +1798,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -1988,7 +1813,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			delete(body, "action")
 			payload, err := nodes.RunNodeAction(r.Context(), runtimeID, action, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -1998,12 +1823,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			payload, err := nodes.ListNodePairing(r.Context(), runtimeID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -2013,12 +1838,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -2028,7 +1853,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			delete(body, "action")
 			payload, err := nodes.RunNodePairAction(r.Context(), runtimeID, action, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2040,7 +1865,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -2049,7 +1874,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := skills.ListSkills(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -2059,12 +1884,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -2073,7 +1898,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			skillKey := chi.URLParam(r, "skillKey")
 			payload, err := skills.UpdateSkill(r.Context(), runtimeID, skillKey, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2083,12 +1908,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -2096,7 +1921,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := skills.InstallSkill(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2106,12 +1931,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -2119,7 +1944,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := skills.RunSkillsHubAction(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2129,12 +1954,12 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			var body map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			if body == nil {
@@ -2142,7 +1967,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := skills.UpdateClawhubSkill(r.Context(), runtimeID, body)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2154,7 +1979,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			params := map[string]any{}
@@ -2168,7 +1993,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			}
 			payload, err := channels.GetChannels(r.Context(), runtimeID, params)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "payload": payload, "requestId": requestID})
@@ -2178,13 +2003,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			channelID := chi.URLParam(r, "channelId")
 			payload, err := channels.LogoutChannel(r.Context(), runtimeID, channelID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2194,13 +2019,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			channelID := chi.URLParam(r, "channelId")
 			payload, err := channels.TestChannel(r.Context(), runtimeID, channelID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2210,13 +2035,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			channelID := chi.URLParam(r, "channelId")
 			payload, err := channels.GetChannelThroughput(r.Context(), runtimeID, channelID)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "RUNTIME_QUERY_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "RUNTIME_QUERY_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"runtimeId": runtimeID, "channelId": channelID, "payload": payload, "requestId": requestID})
@@ -2226,18 +2051,18 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			requestID := nextRequestID()
 			runtimeID := chi.URLParam(r, "runtimeId")
 			if runtimeID != DefaultRuntimeID {
-				writeJSON(w, http.StatusNotFound, map[string]any{"error": map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 				return
 			}
 			channelID := chi.URLParam(r, "channelId")
 			var patch map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&patch); err != nil {
-				writeJSON(w, http.StatusBadRequest, map[string]any{"error": map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 				return
 			}
 			payload, err := channels.PatchChannel(r.Context(), runtimeID, channelID, patch)
 			if err != nil {
-				writeJSON(w, http.StatusBadGateway, map[string]any{"error": map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil}, "requestId": requestID})
+				respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 				return
 			}
 			writeJSON(w, http.StatusOK, payload)
@@ -2252,10 +2077,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		var body struct {
@@ -2266,10 +2088,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			ParentSessionKey string `json:"parentSessionKey"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 			return
 		}
 		payload, err := commands.CreateSession(
@@ -2282,10 +2101,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			body.ParentSessionKey,
 		)
 		if err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusOK, payload)
@@ -2295,10 +2111,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
@@ -2307,25 +2120,16 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			Attachments []map[string]any `json:"attachments"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 			return
 		}
 		if body.Text == "" {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     map[string]any{"code": "INVALID_BODY", "message": "text is required.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "text is required.", nil)
 			return
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.SendMessage(r.Context(), runtimeID, sessionID, body.Text, body.Attachments, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2335,19 +2139,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		runID := chi.URLParam(r, "runId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.AbortRun(r.Context(), runtimeID, runID, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2357,19 +2155,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.CompactSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2379,19 +2171,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.DeleteSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2401,10 +2187,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
@@ -2412,10 +2195,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 			Reason string `json:"reason"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil && err.Error() != "EOF" {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 			return
 		}
 		reason := body.Reason
@@ -2424,10 +2204,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.ResetSession(r.Context(), runtimeID, sessionID, reason, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2437,19 +2214,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.ClearSession(r.Context(), runtimeID, sessionID, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2459,19 +2230,13 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		requestID := nextRequestID()
 		runtimeID := chi.URLParam(r, "runtimeId")
 		if runtimeID != DefaultRuntimeID {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error":     map[string]any{"code": "RUNTIME_NOT_FOUND", "message": "Runtime was not found.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusNotFound, "RUNTIME_NOT_FOUND", "Runtime was not found.", nil)
 			return
 		}
 		sessionID := chi.URLParam(r, "sessionId")
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeJSON(w, http.StatusBadRequest, map[string]any{
-				"error":     map[string]any{"code": "INVALID_BODY", "message": "Request body is invalid.", "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadRequest, "INVALID_BODY", "Request body is invalid.", nil)
 			return
 		}
 		if body == nil {
@@ -2479,10 +2244,7 @@ func MountRoutes(r chi.Router, runtimes RuntimeQueryProvider, sessions SessionQu
 		}
 		idempotencyKey := r.Header.Get("idempotencyKey")
 		if err := commands.PatchSession(r.Context(), runtimeID, sessionID, body, idempotencyKey); err != nil {
-			writeJSON(w, http.StatusBadGateway, map[string]any{
-				"error":     map[string]any{"code": "COMMAND_SUBMIT_FAILED", "message": err.Error(), "details": nil},
-				"requestId": requestID,
-			})
+			respondError(w, requestID, http.StatusBadGateway, "COMMAND_SUBMIT_FAILED", err.Error(), nil)
 			return
 		}
 		writeJSON(w, http.StatusAccepted, commandAcceptedEnvelope(requestID))
@@ -2569,6 +2331,17 @@ func commandAcceptedEnvelope(requestID string) map[string]any {
 		"commandId":   nextCommandID(),
 		"submittedAt": time.Now().UTC().Format(time.RFC3339),
 	}
+}
+
+func respondError(w http.ResponseWriter, requestID string, status int, code string, message string, details any) {
+	writeJSON(w, status, map[string]any{
+		"error": map[string]any{
+			"code":    code,
+			"message": message,
+			"details": details,
+		},
+		"requestId": requestID,
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
