@@ -311,16 +311,16 @@ func (r facadeDirectRequester) RequestTyped(ctx context.Context, method string, 
 }
 
 type requestSessionController struct {
-	requester UntypedRequester
+	typed     *generated.TypedClient
 	mu        sync.Mutex
 	counts    map[string]int
 	lifecycle bool
 }
 
-func newRequestSessionController(requester UntypedRequester) *requestSessionController {
+func newRequestSessionController(requester generated.Requester) *requestSessionController {
 	return &requestSessionController{
-		requester: requester,
-		counts:    map[string]int{},
+		typed:  generated.NewTypedClient(requester),
+		counts: map[string]int{},
 	}
 }
 
@@ -333,12 +333,12 @@ func (c *requestSessionController) SubscribeSession(ctx context.Context, key str
 	needsLifecycleSubscribe := !c.lifecycle
 	c.mu.Unlock()
 	if needsLifecycleSubscribe {
-		if _, err := c.requester.Request(ctx, "sessions.subscribe", map[string]any{}); err != nil {
+		if _, err := c.typed.SessionsSubscribe(ctx, nil); err != nil {
 			return err
 		}
 	}
 	if !alreadySubscribed {
-		if _, err := c.requester.Request(ctx, "sessions.messages.subscribe", map[string]any{"key": key}); err != nil {
+		if _, err := c.typed.SessionsMessagesSubscribe(ctx, generated.SessionsMessagesSubscribeParams{Key: key}); err != nil {
 			return err
 		}
 	}
@@ -365,7 +365,7 @@ func (c *requestSessionController) UnsubscribeSession(ctx context.Context, key s
 		return nil
 	}
 	c.mu.Unlock()
-	if _, err := c.requester.Request(ctx, "sessions.messages.unsubscribe", map[string]any{"key": key}); err != nil {
+	if _, err := c.typed.SessionsMessagesUnsubscribe(ctx, generated.SessionsMessagesUnsubscribeParams{Key: key}); err != nil {
 		return err
 	}
 	c.mu.Lock()
@@ -376,7 +376,7 @@ func (c *requestSessionController) UnsubscribeSession(ctx context.Context, key s
 	}
 	c.mu.Unlock()
 	if needsLifecycleUnsubscribe {
-		if _, err := c.requester.Request(ctx, "sessions.unsubscribe", map[string]any{}); err != nil {
+		if _, err := c.typed.SessionsUnsubscribe(ctx, nil); err != nil {
 			return err
 		}
 	}
