@@ -43,7 +43,7 @@ function runtimeStatusPayload(value: unknown): DeckGoRuntimeGatewayStatus {
     ...record,
     autoStart: typeof record?.autoStart === "boolean" ? record.autoStart : false,
     managed: typeof record?.managed === "boolean" ? record.managed : false,
-    mode: "bundled",
+    mode: "local",
   } as unknown as DeckGoRuntimeGatewayStatus;
 }
 
@@ -152,7 +152,7 @@ export function summarizeServerEvent(event: DeckGoServerEvent): string {
       return `runtime health = ${parsed.payload.health || "unknown"}`;
     case "runtime.gateway.exit":
       return `runtime exit code = ${
-        parsed.payload.mode === "bundled" ? (parsed.payload.lastExitCode ?? "unknown") : "unknown"
+        parsed.payload.mode === "local" ? (parsed.payload.lastExitCode ?? "unknown") : "unknown"
       }`;
     case "session.message":
       return `session.message for ${parsed.payload.sessionKey || "unknown-session"}`;

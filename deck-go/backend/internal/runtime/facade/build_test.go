@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
+	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/local"
 	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/remote"
 	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
 )
@@ -26,10 +26,10 @@ func TestBuildFacadeSelectsRemote(t *testing.T) {
 	}
 }
 
-func TestBuildFacadeSelectsBundled(t *testing.T) {
+func TestBuildFacadeSelectsLocal(t *testing.T) {
 	rt, err := facade.BuildFacade(&envconf.Loaded{
-		Mode:    envconf.ModeBundled,
-		Bundled: envconf.RuntimeBundledConfig{Command: "node"},
+		Mode:  envconf.ModeLocal,
+		Local: envconf.RuntimeLocalConfig{},
 	}, runtimestate.Open(filepath.Join(t.TempDir(), "deck-state.json")))
 	if err != nil {
 		t.Fatalf("BuildFacade() error = %v", err)
@@ -38,7 +38,7 @@ func TestBuildFacadeSelectsBundled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Capabilities() error = %v", err)
 	}
-	if caps.Mode != "bundled" {
-		t.Fatalf("Mode = %q, want bundled", caps.Mode)
+	if caps.Mode != "local" {
+		t.Fatalf("Mode = %q, want local", caps.Mode)
 	}
 }

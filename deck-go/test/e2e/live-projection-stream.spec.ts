@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { startBundledStack, type E2EStack } from "./helpers";
+import { startLocalStack, type E2EStack } from "./helpers";
 
 test.describe("live projection stream contract", () => {
   let stack: E2EStack;
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

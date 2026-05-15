@@ -16,9 +16,9 @@ import (
 	httpapi "github.com/openclaw/openclaw/deck-go/backend/internal/api/http"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
-	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
+	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/local"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/remote"
 	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
@@ -162,12 +162,12 @@ func TestNewHandlerWithDependencies_ExposesStage2RuntimeRoutes(t *testing.T) {
 func newControldTestRuntime(store *config.Store, bus *events.Bus) *openclawrt.ManagedRuntime {
 	return openclawrt.NewManagedRuntimeWithFacade(store, &dependencyRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:       "bundled",
+			Mode:       "local",
 			Configured: true,
 			Status:     "stopped",
 			Health:     "unknown",
@@ -279,7 +279,7 @@ func TestWebhookAdapter_RejectsNonHTTPReceiverURL(t *testing.T) {
 	}
 }
 
-func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.T) {
+func TestNewDependenciesWithRuntimeFacadeLocalUsesRuntimeEnvConfig(t *testing.T) {
 	dataDir := t.TempDir()
 	t.Setenv("DECK_GO_DATA_DIR", dataDir)
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
@@ -299,16 +299,8 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 		t.Fatal(err)
 	}
 
-	bundledCfg := envconf.RuntimeBundledConfig{
-		Command:   "runtime-command-that-should-not-run",
-		Args:      []string{"gateway", "run"},
-		BindHost:  "127.0.0.1",
-		BindPort:  19998,
-		Token:     "runtime-token",
-		AutoStart: false,
-		Env:       map[string]string{"NO_PROXY": "localhost,127.0.0.1"},
-	}
-	exec := &recordingBundledExec{}
+	localCfg := envconf.RuntimeLocalConfig{}
+	exec := &recordingLocalExec{}
 	entrypoint := filepath.Join(t.TempDir(), "dist", "entry.js")
 	if err := os.MkdirAll(filepath.Dir(entrypoint), 0o755); err != nil {
 		t.Fatal(err)
@@ -316,7 +308,7 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 	if err := os.WriteFile(entrypoint, []byte("// stub"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	runtimeFacade, err := bundled.NewWithDependencies(&bundledCfg, bundled.Dependencies{
+	runtimeFacade, err := local.NewWithDependencies(&localCfg, local.Dependencies{
 		EntrypointOverride: entrypoint,
 		ServiceName:        "openclaw-gateway.testhash1234",
 		ProxyExec:          exec,
@@ -325,8 +317,8 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 		t.Fatal(err)
 	}
 	deps, err := NewDependenciesWithRuntimeFacade(envconf.Loaded{
-		Mode:    envconf.ModeBundled,
-		Bundled: bundledCfg,
+		Mode:  envconf.ModeLocal,
+		Local: localCfg,
 	}, runtimeFacade)
 	if err != nil {
 		t.Fatal(err)
@@ -344,8 +336,8 @@ func TestNewDependenciesWithRuntimeFacadeBundledUsesRuntimeEnvConfig(t *testing.
 	}
 	for _, call := range exec.calls {
 		joined := call.Command + " " + strings.Join(call.Args, " ")
-		if strings.Contains(joined, bundledCfg.Command) || strings.Contains(joined, "legacy-command-that-should-not-run") {
-			t.Fatalf("bundled lifecycle used legacy spawn command: %q", joined)
+		if strings.Contains(joined, "legacy-command-that-should-not-run") {
+			t.Fatalf("local lifecycle used legacy spawn command: %q", joined)
 		}
 	}
 }
@@ -354,12 +346,12 @@ func TestNewDependenciesWithRuntimeFacadeWiresManagedRuntimeToFacade(t *testing.
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	runtimeFacade := &dependencyRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:       "bundled",
+			Mode:       "local",
 			Configured: true,
 			Status:     "running",
 			Health:     "healthy",
@@ -367,7 +359,7 @@ func TestNewDependenciesWithRuntimeFacadeWiresManagedRuntimeToFacade(t *testing.
 	}
 
 	deps, err := NewDependenciesWithRuntimeFacade(envconf.Loaded{
-		Mode: envconf.ModeBundled,
+		Mode: envconf.ModeLocal,
 	}, runtimeFacade)
 	if err != nil {
 		t.Fatal(err)
@@ -468,11 +460,11 @@ func (f *dependencyRuntimeFacade) ReloadRuntime(context.Context) (facade.Runtime
 	return f.status, nil
 }
 
-type recordingBundledExec struct {
-	calls []bundled.ExecCall
+type recordingLocalExec struct {
+	calls []local.ExecCall
 }
 
-func (r *recordingBundledExec) Run(_ context.Context, call bundled.ExecCall) ([]byte, error) {
+func (r *recordingLocalExec) Run(_ context.Context, call local.ExecCall) ([]byte, error) {
 	r.calls = append(r.calls, call)
 	if len(call.Args) >= 3 && call.Args[2] == "status" {
 		return []byte(`{"service":{"loaded":true,"runtime":{"status":"running"}}}`), nil

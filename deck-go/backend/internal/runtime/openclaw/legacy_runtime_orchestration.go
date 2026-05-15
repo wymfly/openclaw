@@ -102,7 +102,7 @@ func (m *ManagedRuntime) BootstrapStatus(ctx context.Context) (deckapi.DeckGoBoo
 func runtimeStatusFromFacadeStatus(status facade.RuntimeStatus) deckapi.DeckGoRuntimeGatewayStatus {
 	resp := deckapi.DeckGoRuntimeGatewayStatus{
 		Mode:            status.Mode,
-		Managed:         status.Mode == "bundled",
+		Managed:         status.Mode == "local",
 		Configured:      status.Configured,
 		Status:          status.Status,
 		Health:          status.Health,

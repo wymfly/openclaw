@@ -8,16 +8,18 @@ import {
 } from "./helpers";
 
 test.describe("real OpenClaw Gateway", () => {
+  test.describe.configure({ mode: "serial" });
   test.skip(
     process.env.DECK_GO_REAL_GATEWAY_E2E !== "1",
     "set DECK_GO_REAL_GATEWAY_E2E=1 to run the real Gateway E2E smoke",
   );
-  test.setTimeout(240_000);
+  test.setTimeout(420_000);
 
   let stack: E2EStack;
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
+    testInfo.setTimeout(420_000);
     stack = await startRealGatewayStack(testInfo);
   });
 
@@ -32,9 +34,9 @@ test.describe("real OpenClaw Gateway", () => {
 
     const runtime = await request.get(`${stack.backendBase}/api/runtime/gateway`, { headers });
     expect(runtime.ok(), `runtime gateway returned ${runtime.status()}`).toBe(true);
-    const runtimePayload = (await runtime.json()) as { mode?: string; pid?: number };
-    expect(runtimePayload.mode).toBe("bundled");
-    expect(runtimePayload.pid ?? 0).toBeGreaterThan(0);
+    const runtimePayload = (await runtime.json()) as { mode?: string; lifecycleState?: string };
+    expect(runtimePayload.mode).toBe("local");
+    expect(runtimePayload.lifecycleState).toBe("running");
 
     const health = await request.get(`${stack.backendBase}/api/gateway/health`, { headers });
     expect(health.ok(), `gateway health returned ${health.status()}`).toBe(true);

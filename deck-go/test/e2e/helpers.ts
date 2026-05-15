@@ -7,6 +7,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { expect, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
+import { startMockGateway } from "./helpers/mock-gateway-fixture";
+import {
+  installAndStart as installAndStartGateway,
+  uninstall as uninstallGateway,
+  type GatewayLifecycleOptions,
+} from "./helpers/real-gateway-lifecycle";
 
 const execFileAsync = promisify(execFile);
 const thisFile = fileURLToPath(import.meta.url);
@@ -14,11 +20,8 @@ const deckRoot = path.resolve(path.dirname(thisFile), "../..");
 const repoRoot = path.resolve(deckRoot, "..");
 const backendRoot = path.join(deckRoot, "backend");
 const frontendRoot = path.join(deckRoot, "frontend-new");
-const mockGatewayEntry = path.join(deckRoot, "test/fixtures/mock-gateway.mjs");
 const localNoProxy = "localhost,127.0.0.1,::1";
 const openClawConfigFile = "openclaw.json";
-const realGatewayPortPlaceholderPattern =
-  /\{\{\s*gatewayPort\s*\}\}|\$\{\s*gatewayPort\s*\}|\{gatewayPort\}/g;
 const maxBootstrapCopyBytes = 512 * 1024;
 const maxSidecarCopyBytes = 1024 * 1024;
 const realGatewayReadyTimeoutMs = Number(
@@ -56,6 +59,8 @@ type ManagedProcess = {
   stop: () => Promise<void>;
   output: () => string;
 };
+
+type LocalLifecycleState = "running" | "stopped" | "not-installed" | "unhealthy";
 
 export type E2EStack = {
   backendBase: string;
@@ -234,22 +239,34 @@ async function waitForCapabilities(backendBase: string, configured: boolean, acc
     .toBe(configured);
 }
 
-async function waitForBundledRuntime(backendBase: string, accessToken?: string) {
-  await expect
-    .poll(
-      async () => {
-        const response = await fetch(`${backendBase}/api/runtime/gateway`, {
-          headers: deckTokenHeaders(accessToken),
-        });
-        if (!response.ok) {
-          return 0;
+async function waitForLocalRuntime(
+  backendBase: string,
+  accessToken?: string,
+  expectedState: LocalLifecycleState = "running",
+) {
+  const deadline = Date.now() + 180_000;
+  let lastObserved = "no poll attempted";
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`${backendBase}/api/runtime/gateway`, {
+        headers: deckTokenHeaders(accessToken),
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        lastObserved = `${response.status} ${text}`;
+      } else {
+        const payload = parseJsonOrText(text) as { mode?: string; lifecycleState?: string };
+        lastObserved = JSON.stringify(payload);
+        if (payload.mode === "local" && payload.lifecycleState === expectedState) {
+          return;
         }
-        const payload = (await response.json()) as { mode?: string; pid?: number };
-        return payload.mode === "bundled" ? (payload.pid ?? 0) : 0;
-      },
-      { timeout: 180_000 },
-    )
-    .toBeGreaterThan(0);
+      }
+    } catch (error) {
+      lastObserved = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+  }
+  throw new Error(`local runtime did not reach ${expectedState}: ${lastObserved}`);
 }
 
 async function recordGatewayHealthStartup(
@@ -324,37 +341,6 @@ function tailOutput(output: string) {
   return output.length > 40_000 ? output.slice(output.length - 40_000) : output;
 }
 
-function resolveRealGatewayLaunch(gatewayPort: number) {
-  const command = process.env.DECK_GO_REAL_GATEWAY_COMMAND?.trim() || process.execPath;
-  const argsTemplate =
-    process.env.DECK_GO_REAL_GATEWAY_ARGS?.trim() ||
-    "dist/entry.js gateway run --bind loopback --port {gatewayPort} --allow-unconfigured";
-  const args = argsTemplate.replace(realGatewayPortPlaceholderPattern, String(gatewayPort));
-  const workdir = process.env.DECK_GO_REAL_GATEWAY_WORKDIR?.trim() || repoRoot;
-
-  if (isUnstableSourceGatewayLauncher(command, args)) {
-    throw new Error(
-      [
-        "refusing to start real Gateway E2E through `pnpm openclaw` because it can trigger",
-        "`scripts/run-node.mjs` dirty-tree rebuilds and runtime-postbuild dependency staging.",
-        "Use the default direct-dist launcher or set DECK_GO_REAL_GATEWAY_COMMAND=node and",
-        'DECK_GO_REAL_GATEWAY_ARGS="dist/entry.js gateway run --bind loopback --port {gatewayPort} --allow-unconfigured".',
-        "Set DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER=1 only for a deliberate source-run diagnostic.",
-      ].join(" "),
-    );
-  }
-
-  return { command, args, workdir };
-}
-
-function isUnstableSourceGatewayLauncher(command: string, args: string) {
-  if (process.env.DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER === "1") {
-    return false;
-  }
-  const executable = path.basename(command).replace(/\.(?:cmd|exe)$/i, "");
-  return executable === "pnpm" && /\bopenclaw\b/.test(args);
-}
-
 async function startFrontend(backendBase: string, frontendPort: number, accessToken?: string) {
   const frontendBase = `http://127.0.0.1:${frontendPort}`;
   const process = spawnManaged(
@@ -409,10 +395,13 @@ export async function prepareIsolatedOpenClawState(params: {
   logDir: string;
   runId: string;
   gatewayToken?: string;
+  gatewayPort?: number;
+  gatewayStateDir?: string;
   testInfo?: TestInfo;
   sourceConfigPath?: string;
 }): Promise<RealE2EIsolation> {
-  const gatewayStateDir = path.join(params.dataDir, "managed-gateway-state");
+  const gatewayStateDir =
+    params.gatewayStateDir ?? path.join(params.dataDir, "managed-gateway-state");
   const homeDir = path.join(params.root, "openclaw-home");
   const workspaceRoot = path.join(params.root, "workspaces");
   const evidenceDir = path.join(params.root, "evidence");
@@ -448,6 +437,7 @@ export async function prepareIsolatedOpenClawState(params: {
     }
     workspaceCopies = rewriteOpenClawConfigForIsolation(config, {
       gatewayToken: params.gatewayToken,
+      gatewayPort: params.gatewayPort,
       workspaceRoot,
       defaultWorkspace,
       sourceConfigPath,
@@ -473,7 +463,7 @@ export async function prepareIsolatedOpenClawState(params: {
       },
     };
     if (params.gatewayToken) {
-      rewriteGatewayAuthToken(config, params.gatewayToken);
+      rewriteGatewayAuthToken(config, params.gatewayToken, params.gatewayPort);
     }
     sanitizedConfig = sanitizeOpenClawConfigForRealSeed(config);
     workspaceCopies = [{ agentId: "main", target: defaultWorkspace }];
@@ -544,6 +534,7 @@ function rewriteOpenClawConfigForIsolation(
   config: JsonObject,
   params: {
     gatewayToken?: string;
+    gatewayPort?: number;
     workspaceRoot: string;
     defaultWorkspace: string;
     sourceConfigPath: string;
@@ -551,7 +542,7 @@ function rewriteOpenClawConfigForIsolation(
   },
 ): WorkspaceCopy[] {
   if (params.gatewayToken) {
-    rewriteGatewayAuthToken(config, params.gatewayToken);
+    rewriteGatewayAuthToken(config, params.gatewayToken, params.gatewayPort);
   }
   const agents = ensureObject(config, "agents");
   const defaults = ensureObject(agents, "defaults");
@@ -626,8 +617,13 @@ function rewriteOpenClawConfigForIsolation(
   return uniqueWorkspaceCopies(workspaceCopies);
 }
 
-function rewriteGatewayAuthToken(config: JsonObject, gatewayToken: string) {
+function rewriteGatewayAuthToken(config: JsonObject, gatewayToken: string, gatewayPort?: number) {
   const gateway = ensureObject(config, "gateway");
+  gateway.mode = "local";
+  gateway.bind = "loopback";
+  if (gatewayPort && gatewayPort > 0) {
+    gateway.port = gatewayPort;
+  }
   const auth = ensureObject(gateway, "auth");
   auth.mode = "token";
   auth.token = gatewayToken;
@@ -1276,16 +1272,87 @@ export async function writeRealE2EEvidence(
   return evidencePath;
 }
 
-export async function startBundledStack(testInfo: TestInfo): Promise<E2EStack> {
-  const { root, dataDir, logDir } = await createStackDirs(testInfo, "bundled");
+async function writeMockOpenClawState(stateDir: string, gatewayPort: number, token: string) {
+  await mkdir(stateDir, { recursive: true, mode: 0o700 });
+  await writeFile(
+    path.join(stateDir, openClawConfigFile),
+    `${JSON.stringify(
+      {
+        gateway: {
+          mode: "local",
+          bind: "loopback",
+          port: gatewayPort,
+          auth: { mode: "token", token },
+        },
+      },
+      null,
+      2,
+    )}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+async function writeMockServiceEntrypoint(
+  repoRoot: string,
+  lifecycleState: Exclude<LocalLifecycleState, "not-installed">,
+) {
+  const entrypoint = path.join(repoRoot, "dist", "entry.js");
+  await mkdir(path.dirname(entrypoint), { recursive: true, mode: 0o700 });
+  await writeFile(
+    path.join(repoRoot, "package.json"),
+    `${JSON.stringify({ name: "openclaw", private: true }, null, 2)}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+  await writeFile(
+    entrypoint,
+    [
+      "const [, , namespace, action] = process.argv;",
+      'if (namespace !== "gateway") {',
+      '  console.error(`unexpected namespace: ${namespace ?? ""}`);',
+      "  process.exit(64);",
+      "}",
+      'if (action === "status") {',
+      `  console.log(JSON.stringify({ service: { loaded: true, runtime: { status: '${lifecycleState === "stopped" ? "stopped" : "running"}' } } }));`,
+      "  process.exit(0);",
+      "}",
+      "console.log(JSON.stringify({ ok: true, action }));",
+      "process.exit(0);",
+      "",
+    ].join("\n"),
+    { encoding: "utf8", mode: 0o700 },
+  );
+  return entrypoint;
+}
+
+export async function startLocalStack(
+  testInfo: TestInfo,
+  options: { lifecycleState?: LocalLifecycleState } = {},
+): Promise<E2EStack> {
+  const lifecycleState = options.lifecycleState ?? "running";
+  const { root, dataDir, logDir } = await createStackDirs(testInfo, "local");
   const backendPort = await freePort();
   const frontendPort = await freePort();
   const gatewayPort = await freePort();
   const backendBase = `http://127.0.0.1:${backendPort}`;
   const requestLog = path.join(logDir, "mock-gateway-requests.jsonl");
   const binary = await buildBackendBinary();
-  const token = "bundled-e2e-gateway-token";
+  const token = "local-e2e-gateway-token";
+  const stateDir = path.join(dataDir, "managed-gateway-state");
+  const mockRepoRoot = path.join(root, "mock-openclaw-repo");
 
+  await writeMockOpenClawState(stateDir, gatewayPort, token);
+  if (lifecycleState !== "not-installed") {
+    await writeMockServiceEntrypoint(mockRepoRoot, lifecycleState);
+  }
+
+  const mockGateway =
+    lifecycleState === "running" || lifecycleState === "unhealthy"
+      ? await startMockGateway({
+          port: gatewayPort,
+          token: lifecycleState === "unhealthy" ? "unhealthy-mock-token" : token,
+          requestLog,
+        })
+      : null;
   const backend = spawnManaged("backend", binary, [], {
     cwd: deckRoot,
     env: {
@@ -1295,29 +1362,31 @@ export async function startBundledStack(testInfo: TestInfo): Promise<E2EStack> {
       DECK_GO_DATA_DIR: dataDir,
       DECK_STATE_PATH: path.join(dataDir, "deck-state.json"),
       RUNTIME_ADMIN_SOCKET: path.join(dataDir, "admin.sock"),
-      RUNTIME_MODE: "bundled",
-      RUNTIME_BUNDLED_COMMAND: process.execPath,
-      RUNTIME_BUNDLED_ARGS: "test/fixtures/mock-gateway.mjs",
-      RUNTIME_BUNDLED_WORKDIR: deckRoot,
-      RUNTIME_BUNDLED_BIND_HOST: "127.0.0.1",
-      RUNTIME_BUNDLED_BIND_PORT: String(gatewayPort),
-      RUNTIME_BUNDLED_TOKEN: token,
-      RUNTIME_BUNDLED_AUTO_START: "true",
-      RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_PORT: String(gatewayPort),
-      RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_TOKEN: token,
-      RUNTIME_BUNDLED_ENV_MOCK_GATEWAY_REQUEST_LOG: requestLog,
+      RUNTIME_MODE: "local",
+      OPENCLAW_REPO_ROOT: mockRepoRoot,
+      OPENCLAW_STATE_DIR: stateDir,
+      OPENCLAW_GATEWAY_TOKEN: token,
     },
   });
   const cleanup: Array<() => Promise<void>> = [backend.stop];
+  if (mockGateway) {
+    cleanup.push(async () => void (await mockGateway.stop()));
+  }
   try {
     await waitForHTTP(`${backendBase}/healthz`, "backend", backend.output);
-    await waitForBundledRuntime(backendBase);
+    await waitForLocalRuntime(backendBase, undefined, lifecycleState);
     const frontend = await startFrontend(backendBase, frontendPort);
     cleanup.push(frontend.process.stop);
     return {
       backendBase,
       frontendBase: frontend.frontendBase,
       requestLog,
+      mockGateway: mockGateway
+        ? {
+            url: mockGateway.url,
+            token,
+          }
+        : undefined,
       stop: async () => {
         for (const stop of cleanup.toReversed()) {
           await stop();
@@ -1332,7 +1401,7 @@ export async function startBundledStack(testInfo: TestInfo): Promise<E2EStack> {
       mode: 0o600,
     }).catch(() => {});
     await testInfo
-      .attach("real-gateway-backend-output", {
+      .attach("local-backend-output", {
         body: output,
         contentType: "text/plain",
       })
@@ -1354,7 +1423,7 @@ export async function startRemoteFirstRunStack(testInfo: TestInfo): Promise<E2ES
   const binary = await buildBackendBinary();
   const token = "remote-e2e-gateway-token";
 
-  const mockGateway = await startMockGatewayProcess(gatewayPort, token, requestLog);
+  const mockGateway = await startMockGateway({ port: gatewayPort, token, requestLog });
   const backend = spawnManaged("backend", binary, [], {
     cwd: deckRoot,
     env: {
@@ -1370,7 +1439,10 @@ export async function startRemoteFirstRunStack(testInfo: TestInfo): Promise<E2ES
       RUNTIME_REMOTE_TLS_VERIFY: "true",
     },
   });
-  const cleanup: Array<() => Promise<void>> = [backend.stop, mockGateway.process.stop];
+  const cleanup: Array<() => Promise<void>> = [
+    backend.stop,
+    async () => void (await mockGateway.stop()),
+  ];
   try {
     await waitForHTTP(`${backendBase}/healthz`, "backend", backend.output);
     await waitForCapabilities(backendBase, false);
@@ -1399,24 +1471,6 @@ export async function startRemoteFirstRunStack(testInfo: TestInfo): Promise<E2ES
   }
 }
 
-async function startMockGatewayProcess(port: number, token: string, requestLog: string) {
-  const mockProcess = spawnManaged("mock-gateway", process.execPath, [mockGatewayEntry], {
-    cwd: deckRoot,
-    env: {
-      ...processEnv(),
-      MOCK_GATEWAY_PORT: String(port),
-      MOCK_GATEWAY_TOKEN: token,
-      MOCK_GATEWAY_REQUEST_LOG: requestLog,
-    },
-  });
-  const url = `http://127.0.0.1:${port}`;
-  await waitForHTTP(url, "mock gateway", mockProcess.output, () => true).catch(async () => {
-    await mockProcess.stop();
-    throw new Error(`mock gateway did not start\n${mockProcess.output()}`);
-  });
-  return { url, process: mockProcess };
-}
-
 export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStack> {
   const { root, dataDir, logDir } = await createStackDirs(testInfo, "real-gateway");
   const backendPort = await freePort();
@@ -1427,16 +1481,51 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
   const binary = await buildBackendBinary();
   const accessToken = `real-e2e-deck-token-${testInfo.workerIndex}`;
   const gatewayToken = `real-e2e-gateway-token-${testInfo.workerIndex}`;
-  const gatewayLaunch = resolveRealGatewayLaunch(gatewayPort);
+  const sourceGatewayStateDir = path.join(
+    deckRoot,
+    ".local/deck-go-real-stack/isolated/data/managed-gateway-state",
+  );
   const realE2E = await prepareIsolatedOpenClawState({
     root,
     dataDir,
     logDir,
     gatewayToken,
+    gatewayPort,
+    sourceConfigPath: path.join(sourceGatewayStateDir, openClawConfigFile),
     runId: buildRealE2ERunId(testInfo),
     testInfo,
   });
+  const lifecycleOptions: GatewayLifecycleOptions = {
+    entrypoint: path.join(repoRoot, "dist", "entry.js"),
+    repoRoot,
+    port: gatewayPort,
+    token: gatewayToken,
+    stateDir: realE2E.gatewayStateDir,
+    cwd: repoRoot,
+    baseEnv: processEnv(),
+    extraEnv: {
+      OPENCLAW_REPO_ROOT: repoRoot,
+      OPENCLAW_CONFIG_PATH: realE2E.configPath,
+      OPENCLAW_HOME: realE2E.homeDir,
+      NO_PROXY: localNoProxy,
+      no_proxy: localNoProxy,
+    },
+    timeoutMs: realGatewayReadyTimeoutMs,
+  };
 
+  const cleanup: Array<() => Promise<void>> = [
+    async () => {
+      await uninstallGateway(lifecycleOptions);
+    },
+  ];
+  try {
+    await installAndStartGateway(lifecycleOptions);
+  } catch (error) {
+    for (const stop of cleanup.toReversed()) {
+      await stop();
+    }
+    throw error;
+  }
   const backend = spawnManaged("backend", binary, [], {
     cwd: deckRoot,
     env: {
@@ -1446,23 +1535,20 @@ export async function startRealGatewayStack(testInfo: TestInfo): Promise<E2EStac
       DECK_GO_DATA_DIR: dataDir,
       DECK_STATE_PATH: path.join(dataDir, "deck-state.json"),
       RUNTIME_ADMIN_SOCKET: path.join(dataDir, "admin.sock"),
-      RUNTIME_MODE: "bundled",
-      RUNTIME_BUNDLED_COMMAND: gatewayLaunch.command,
-      RUNTIME_BUNDLED_ARGS: gatewayLaunch.args,
-      RUNTIME_BUNDLED_WORKDIR: gatewayLaunch.workdir,
-      RUNTIME_BUNDLED_BIND_HOST: "127.0.0.1",
-      RUNTIME_BUNDLED_BIND_PORT: String(gatewayPort),
-      RUNTIME_BUNDLED_TOKEN: gatewayToken,
-      RUNTIME_BUNDLED_AUTO_START: "true",
-      RUNTIME_BUNDLED_ENV_OPENCLAW_CONFIG_PATH: realE2E.configPath,
-      RUNTIME_BUNDLED_ENV_OPENCLAW_HOME: realE2E.homeDir,
-      RUNTIME_BUNDLED_ENV_NO_PROXY: localNoProxy,
+      RUNTIME_MODE: "local",
+      OPENCLAW_REPO_ROOT: repoRoot,
+      OPENCLAW_STATE_DIR: realE2E.gatewayStateDir,
+      OPENCLAW_GATEWAY_TOKEN: gatewayToken,
+      OPENCLAW_CONFIG_PATH: realE2E.configPath,
+      OPENCLAW_HOME: realE2E.homeDir,
+      NO_PROXY: localNoProxy,
+      no_proxy: localNoProxy,
     },
   });
-  const cleanup: Array<() => Promise<void>> = [backend.stop];
+  cleanup.push(backend.stop);
   try {
     await waitForHTTP(`${backendBase}/healthz`, "backend", backend.output);
-    await waitForBundledRuntime(backendBase, accessToken);
+    await waitForLocalRuntime(backendBase, accessToken);
     await recordGatewayHealthStartup(backendBase, accessToken, testInfo);
     await waitForGatewayRPC(backendBase, accessToken, backend.output);
     const frontend = await startFrontend(backendBase, frontendPort, accessToken);

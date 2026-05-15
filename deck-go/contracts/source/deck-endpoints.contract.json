@@ -46,7 +46,7 @@
     {
       "category": "gateway-protocol-adapter",
       "migrationTarget": "gw.gateway.batch({ calls, options })",
-      "notes": "Typed batch transport endpoint for runtime-scoped Gateway calls. The Gateway panel restricts this route to bundled-mode read-only child methods because `gateway.batch` executes real upstream calls.",
+      "notes": "Typed batch transport endpoint for runtime-scoped Gateway calls. The Gateway panel restricts this route to local-mode read-only child methods because `gateway.batch` executes real upstream calls.",
       "paths": ["POST /v1/runtimes/{runtimeId}/gateway/batch"]
     },
     {
@@ -101,6 +101,12 @@
         "POST /runtime/gateway/stop",
         "POST /runtime/gateway/restart"
       ]
+    },
+    {
+      "category": "stream-binary-upload",
+      "migrationTarget": "Keep BFF reverse proxy",
+      "notes": "Thin Gateway asset reverse proxy. Browser requests stay on the deck-go origin; the BFF injects Gateway auth internally.",
+      "paths": ["GET /runtime/gateway-assets/*"]
     },
     {
       "category": "deck-go-bff",

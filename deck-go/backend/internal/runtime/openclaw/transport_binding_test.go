@@ -178,7 +178,7 @@ func TestDeviceTokenRotateInvalidatesOldProbeClient(t *testing.T) {
 	t.Cleanup(func() { transportBinding = previous })
 
 	runtimeFacade := transportFacadeRequester{
-		Stub: testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true}),
+		Stub: testfacade.New(facade.Capabilities{Mode: "local", Configured: true}),
 		requester: &stubTransportRequester{
 			payload: map[string]any{
 				"device.token.rotate": map[string]any{"ok": true},

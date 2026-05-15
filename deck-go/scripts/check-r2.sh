@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 violations="$(
-  rg -n -e '([A-Za-z0-9_$.]+mode|runtimeMode|capabilities\.mode)\s*(===|!==)\s*"(bundled|remote)"|is(Bundled|Remote)RuntimeStatus' frontend-new/src --glob '*.{ts,tsx}' \
+  rg -n -e '([A-Za-z0-9_$.]+mode|runtimeMode|capabilities\.mode)\s*(===|!==)\s*"(local|remote)"|is(Bundled|Local|Remote)RuntimeStatus' frontend-new/src --glob '*.{ts,tsx}' \
     | rg -v 'frontend-new/src/api.ts' \
     | rg -v 'frontend-new/src/stream-contract.ts' \
     | rg -v 'frontend-new/src/components/panels/gateway/GatewayPanel.tsx' \

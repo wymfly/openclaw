@@ -135,7 +135,7 @@ describe("Data Fabric governance sweep modules", () => {
   });
 
   it("fetches residual reads through Data Fabric query options", async () => {
-    apiMocks.fetchCapabilities.mockResolvedValueOnce({ mode: "bundled", configured: true });
+    apiMocks.fetchCapabilities.mockResolvedValueOnce({ mode: "local", configured: true });
     apiMocks.fetchIdentityLinks.mockResolvedValueOnce({ configHash: "hash-1", links: [] });
     apiMocks.fetchSubagentRuns.mockResolvedValueOnce({ runs: [], total: 0 });
     apiMocks.fetchSubagentLineage.mockResolvedValueOnce({

@@ -3053,7 +3053,7 @@ func TestGatewayFacade_SessionEventsSubscribeAndUnsubscribe(t *testing.T) {
 	bus := events.NewBus(8)
 	supervisor := &testSupervisor{
 		status: facade.RuntimeStatus{
-			Mode:       "bundled",
+			Mode:       "local",
 			Configured: true,
 			Status:     "running",
 			Health:     "healthy",

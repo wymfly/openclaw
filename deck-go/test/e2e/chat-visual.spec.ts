@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, type E2EStack } from "./helpers";
 
 type ChatVisualVariant = {
   artifactLabel: string;
@@ -65,7 +65,7 @@ test.describe("chat visual handoff alignment", () => {
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

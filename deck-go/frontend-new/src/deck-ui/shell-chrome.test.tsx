@@ -20,12 +20,12 @@ const uiState = vi.hoisted(() => ({
   activePanel: "gateway",
   bootstrap: {
     gateway: { connected: true },
-    runtime: { autoStart: true, mode: "bundled", status: "running" },
+    runtime: { autoStart: true, mode: "local", status: "running" },
   },
   mobileNavOpen: false,
   refreshingSummary: false,
   runtime: {
-    runtime: { autoStart: true, mode: "bundled", status: "running" },
+    runtime: { autoStart: true, mode: "local", status: "running" },
   },
   setActivePanel: vi.fn(),
   setMobileNavOpen: vi.fn(),
@@ -103,12 +103,12 @@ describe("Deck shell chrome parity", () => {
     uiState.activePanel = "gateway";
     uiState.bootstrap = {
       gateway: { connected: true },
-      runtime: { autoStart: true, mode: "bundled", status: "running" },
+      runtime: { autoStart: true, mode: "local", status: "running" },
     };
     uiState.mobileNavOpen = false;
     uiState.refreshingSummary = false;
     uiState.runtime = {
-      runtime: { autoStart: true, mode: "bundled", status: "running" },
+      runtime: { autoStart: true, mode: "local", status: "running" },
     };
     uiState.sidebarCollapsed = false;
     uiState.summaryError = null;
@@ -116,7 +116,7 @@ describe("Deck shell chrome parity", () => {
     apiMocks.fetchCapabilities.mockResolvedValue({
       configured: true,
       endpointMutable: false,
-      mode: "bundled",
+      mode: "local",
       supervisorState: true,
     });
     apiMocks.fetchEndpoint.mockResolvedValue({

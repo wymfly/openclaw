@@ -9,9 +9,9 @@ import (
 
 func TestRuntimePackageImportBoundaries(t *testing.T) {
 	runtimeRoot := filepath.Clean("..")
-	assertNoImport(t, filepath.Join(runtimeRoot, "bundled"), "/internal/runtime/remote")
-	assertNoImport(t, filepath.Join(runtimeRoot, "remote"), "/internal/runtime/bundled")
-	assertNoImport(t, filepath.Join(runtimeRoot, "shared"), "/internal/runtime/bundled")
+	assertNoImport(t, filepath.Join(runtimeRoot, "local"), "/internal/runtime/remote")
+	assertNoImport(t, filepath.Join(runtimeRoot, "remote"), "/internal/runtime/local")
+	assertNoImport(t, filepath.Join(runtimeRoot, "shared"), "/internal/runtime/local")
 	assertNoImport(t, filepath.Join(runtimeRoot, "shared"), "/internal/runtime/remote")
 	assertNoImport(t, filepath.Join(runtimeRoot, "shared"), "/internal/runtime/facade")
 }

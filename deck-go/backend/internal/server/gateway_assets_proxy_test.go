@@ -36,7 +36,7 @@ func TestGatewayAssetsProxy_ForwardsGETToGateway(t *testing.T) {
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
@@ -99,7 +99,7 @@ func TestGatewayAssetsProxy_ForwardsCanvasDocumentsToGatewayCanvasHost(t *testin
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
@@ -143,7 +143,7 @@ func TestGatewayAssetsProxy_DoesNotEchoTokenToBrowser(t *testing.T) {
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
@@ -180,7 +180,7 @@ func TestGatewayAssetsProxy_RejectsNonGET(t *testing.T) {
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,

@@ -604,8 +604,8 @@
       "label": "Mode",
       "kind": "mode",
       "statusValues": {
-        "bundled": {
-          "label": "Bundled",
+        "local": {
+          "label": "Local",
           "tone": "info"
         },
         "remote": {
@@ -1170,7 +1170,7 @@
       "safety": "mutating",
       "requestDto": "DeckGoGatewayBatchRequest",
       "resultDto": "DeckGoGatewayBatchResponse",
-      "capabilityRequirements": ["runtime.mode:bundled", "runtime.supervisorState"],
+      "capabilityRequirements": ["runtime.mode:local", "runtime.supervisorState"],
       "confirmation": {
         "required": false,
         "message": "Only read-only Gateway methods may be dispatched from this panel."
@@ -1401,7 +1401,7 @@
       "endpoint": "POST /api/runtime/gateway/start",
       "safety": "mutating",
       "resultDto": "DeckGoRuntimeGatewayActionResponse",
-      "capabilityRequirements": ["runtime.mode:bundled", "runtime.supervisorState"],
+      "capabilityRequirements": ["runtime.mode:local", "runtime.supervisorState"],
       "refresh": ["GET /api/runtime/gateway"]
     },
     {
@@ -1410,7 +1410,7 @@
       "endpoint": "POST /api/runtime/gateway/stop",
       "safety": "destructive",
       "resultDto": "DeckGoRuntimeGatewayActionResponse",
-      "capabilityRequirements": ["runtime.mode:bundled", "runtime.supervisorState"],
+      "capabilityRequirements": ["runtime.mode:local", "runtime.supervisorState"],
       "confirmation": {
         "required": true,
         "message": "Stop the managed Gateway process?"

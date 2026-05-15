@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, waitForGatewayMethod, type E2EStack } from "./helpers";
 
 test.describe("skills mock product control-plane verification", () => {
   let stack: E2EStack;
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {
@@ -65,7 +65,9 @@ test.describe("skills mock product control-plane verification", () => {
     await expect(panel.getByText("gateway-rpc-missing").first()).toBeVisible();
     await expect(panel.getByRole("button", { name: "Open main in Agents" })).toBeVisible();
     await expect(panel.getByRole("button", { name: "Open ops in Agents" })).toBeVisible();
-    await expect(panel.getByRole("button", { name: /Add GitHub|Remove GitHub|Save skills/ })).toHaveCount(0);
+    await expect(
+      panel.getByRole("button", { name: /Add GitHub|Remove GitHub|Save skills/ }),
+    ).toHaveCount(0);
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("skills-product-detail.png"),
@@ -145,7 +147,9 @@ test.describe("skills mock product control-plane verification", () => {
     await zhPanel.getByRole("button", { name: "GitHub" }).click();
     await expect(zhPanel.getByRole("heading", { name: "身份" })).toBeVisible();
     await expect(zhPanel.getByRole("heading", { name: "危险区" })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth))
+      .toBe(true);
     await page.screenshot({
       fullPage: false,
       path: testInfo.outputPath("skills-light-zh.png"),

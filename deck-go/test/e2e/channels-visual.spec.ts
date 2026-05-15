@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, type E2EStack } from "./helpers";
 
 test.describe("channels mock visual handoff alignment", () => {
   let stack: E2EStack;
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

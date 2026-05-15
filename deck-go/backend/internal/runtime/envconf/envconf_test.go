@@ -13,7 +13,7 @@ func TestLoadRequiresRuntimeMode(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "RUNTIME_MODE") {
 		t.Fatalf("expected missing RUNTIME_MODE error, got %v", err)
 	}
-	if !strings.Contains(err.Error(), ".env.bundled.example") || !strings.Contains(err.Error(), ".env.remote.example") {
+	if !strings.Contains(err.Error(), ".env.local.example") || !strings.Contains(err.Error(), ".env.remote.example") {
 		t.Fatalf("missing RUNTIME_MODE error should point to env examples, got %v", err)
 	}
 	var usageErr *UsageError
@@ -23,22 +23,26 @@ func TestLoadRequiresRuntimeMode(t *testing.T) {
 }
 
 func TestLoadRejectsInvalidRuntimeMode(t *testing.T) {
-	_, err := Load(Options{Environ: []string{"RUNTIME_MODE=local"}})
-	if err == nil || !strings.Contains(err.Error(), "bundled") || !strings.Contains(err.Error(), "remote") {
+	_, err := Load(Options{Environ: []string{"RUNTIME_MODE=invalid"}})
+	if err == nil || !strings.Contains(err.Error(), "local") || !strings.Contains(err.Error(), "remote") {
 		t.Fatalf("expected invalid mode error listing accepted values, got %v", err)
 	}
 }
 
-func TestLoadBundledRequiresCommand(t *testing.T) {
+func TestLoadRejectsBundledRuntimeMode(t *testing.T) {
 	_, err := Load(Options{Environ: []string{"RUNTIME_MODE=bundled"}})
-	if err == nil || !strings.Contains(err.Error(), "RUNTIME_BUNDLED_COMMAND") {
-		t.Fatalf("expected missing bundled command error, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "bundled mode has been renamed to local") || !strings.Contains(err.Error(), "RUNTIME_MODE=local") {
+		t.Fatalf("expected bundled migration error, got %v", err)
+	}
+	if ExitCode(err) != 64 {
+		t.Fatalf("ExitCode() = %d, want 64", ExitCode(err))
 	}
 }
 
-func TestLoadBundledParsesRuntimeEnv(t *testing.T) {
+func TestLoadLocalParsesStateDirAndCollectsIgnoredLegacyKeys(t *testing.T) {
 	loaded, err := Load(Options{Environ: []string{
-		"RUNTIME_MODE=bundled",
+		"RUNTIME_MODE=local",
+		"OPENCLAW_STATE_DIR=/tmp/openclaw-state",
 		"RUNTIME_BUNDLED_COMMAND=node",
 		"RUNTIME_BUNDLED_ARGS=dist/entry.js gateway run",
 		"RUNTIME_BUNDLED_WORKDIR=/opt/openclaw",
@@ -51,41 +55,33 @@ func TestLoadBundledParsesRuntimeEnv(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if loaded.Mode != ModeBundled {
-		t.Fatalf("Mode = %q, want %q", loaded.Mode, ModeBundled)
+	if loaded.Mode != ModeLocal {
+		t.Fatalf("Mode = %q, want %q", loaded.Mode, ModeLocal)
 	}
-	if loaded.Bundled.Command != "node" {
-		t.Fatalf("Command = %q", loaded.Bundled.Command)
+	if loaded.Local.StateDir != "/tmp/openclaw-state" {
+		t.Fatalf("StateDir = %q", loaded.Local.StateDir)
 	}
-	if got := strings.Join(loaded.Bundled.Args, " "); got != "dist/entry.js gateway run" {
-		t.Fatalf("Args = %q", got)
-	}
-	if loaded.Bundled.BindPort != 18789 {
-		t.Fatalf("BindPort = %d", loaded.Bundled.BindPort)
-	}
-	if loaded.Bundled.AutoStart {
-		t.Fatal("AutoStart = true, want false")
-	}
-	if loaded.Bundled.Env["NO_PROXY"] != "localhost,127.0.0.1" {
-		t.Fatalf("forwarded env = %#v", loaded.Bundled.Env)
+	for _, key := range []string{"RUNTIME_BUNDLED_COMMAND", "RUNTIME_BUNDLED_TOKEN", "RUNTIME_BUNDLED_ENV_NO_PROXY"} {
+		if !containsString(loaded.Local.LegacyBundledKeys, key) {
+			t.Fatalf("LegacyBundledKeys = %#v, want %s", loaded.Local.LegacyBundledKeys, key)
+		}
 	}
 }
 
-func TestLoadBundledRejectsDeniedRuntimeEnv(t *testing.T) {
-	_, err := Load(Options{Environ: []string{
-		"RUNTIME_MODE=bundled",
-		"RUNTIME_BUNDLED_COMMAND=node",
+func TestLoadLocalIgnoresDeniedLegacyRuntimeEnv(t *testing.T) {
+	loaded, err := Load(Options{Environ: []string{
+		"RUNTIME_MODE=local",
 		"RUNTIME_BUNDLED_ENV_LD_PRELOAD=evil.dylib",
 	}})
-	if err == nil || !strings.Contains(err.Error(), "LD_PRELOAD") {
-		t.Fatalf("expected denied env error naming LD_PRELOAD, got %v", err)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
 	}
-	if ExitCode(err) != 64 {
-		t.Fatalf("ExitCode() = %d, want 64", ExitCode(err))
+	if !containsString(loaded.Local.LegacyBundledKeys, "RUNTIME_BUNDLED_ENV_LD_PRELOAD") {
+		t.Fatalf("LegacyBundledKeys = %#v", loaded.Local.LegacyBundledKeys)
 	}
 }
 
-func TestLoadBundledRejectsDyldAndOperatorDeniedRuntimeEnv(t *testing.T) {
+func TestLoadLocalCollectsLegacyRuntimeEnvWithoutValidatingIt(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		env     []string
@@ -94,30 +90,28 @@ func TestLoadBundledRejectsDyldAndOperatorDeniedRuntimeEnv(t *testing.T) {
 		{
 			name: "dyld",
 			env: []string{
-				"RUNTIME_MODE=bundled",
-				"RUNTIME_BUNDLED_COMMAND=node",
+				"RUNTIME_MODE=local",
 				"RUNTIME_BUNDLED_ENV_DYLD_INSERT_LIBRARIES=evil.dylib",
 			},
-			wantKey: "DYLD_INSERT_LIBRARIES",
+			wantKey: "RUNTIME_BUNDLED_ENV_DYLD_INSERT_LIBRARIES",
 		},
 		{
 			name: "operator deny",
 			env: []string{
-				"RUNTIME_MODE=bundled",
-				"RUNTIME_BUNDLED_COMMAND=node",
+				"RUNTIME_MODE=local",
 				"RUNTIME_BUNDLED_ENV_DENY=FOO,BAR",
 				"RUNTIME_BUNDLED_ENV_BAR=blocked",
 			},
-			wantKey: "BAR",
+			wantKey: "RUNTIME_BUNDLED_ENV_BAR",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := Load(Options{Environ: tc.env})
-			if err == nil || !strings.Contains(err.Error(), tc.wantKey) {
-				t.Fatalf("expected denied env error naming %s, got %v", tc.wantKey, err)
+			loaded, err := Load(Options{Environ: tc.env})
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
 			}
-			if ExitCode(err) != 64 {
-				t.Fatalf("ExitCode() = %d, want 64", ExitCode(err))
+			if !containsString(loaded.Local.LegacyBundledKeys, tc.wantKey) {
+				t.Fatalf("LegacyBundledKeys = %#v, want %s", loaded.Local.LegacyBundledKeys, tc.wantKey)
 			}
 		})
 	}
@@ -206,6 +200,43 @@ func TestLoadDotenvFileUsesFileAsFallbackAndUnquotesValues(t *testing.T) {
 	}
 }
 
+func TestLoadCollectsLegacyBundledKeysFromDotenv(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".env.dev")
+	body := strings.Join([]string{
+		`RUNTIME_MODE=local`,
+		`RUNTIME_BUNDLED_COMMAND=node`,
+		`RUNTIME_BUNDLED_TOKEN=dotenv-token`,
+		`RUNTIME_BUNDLED_BIND_PORT=18789`,
+	}, "\n")
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := Load(Options{Environ: []string{"DECK_DOTENV_FILE=" + path}})
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	want := []string{"RUNTIME_BUNDLED_BIND_PORT", "RUNTIME_BUNDLED_COMMAND", "RUNTIME_BUNDLED_TOKEN"}
+	if strings.Join(loaded.LegacyBundledKeys, ",") != strings.Join(want, ",") {
+		t.Fatalf("LegacyBundledKeys = %#v, want %#v", loaded.LegacyBundledKeys, want)
+	}
+	if strings.Join(loaded.Local.LegacyBundledKeys, ",") != strings.Join(want, ",") {
+		t.Fatalf("Local.LegacyBundledKeys = %#v, want %#v", loaded.Local.LegacyBundledKeys, want)
+	}
+}
+
+func TestLoadLegacyBundledKeysEmptyWhenAbsent(t *testing.T) {
+	loaded, err := Load(Options{Environ: []string{"RUNTIME_MODE=remote"}})
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if len(loaded.LegacyBundledKeys) != 0 {
+		t.Fatalf("LegacyBundledKeys = %#v, want empty", loaded.LegacyBundledKeys)
+	}
+}
+
 func TestLoadDotenvFileRejectsLoosePermissions(t *testing.T) {
 	if os.Getenv("GOOS") == "windows" {
 		t.Skip("POSIX permission test")
@@ -220,4 +251,13 @@ func TestLoadDotenvFileRejectsLoosePermissions(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "permissions") {
 		t.Fatalf("expected dotenv permissions error, got %v", err)
 	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }

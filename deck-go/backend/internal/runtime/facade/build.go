@@ -8,19 +8,19 @@ import (
 	runtimestate "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/state"
 )
 
-type BundledFactory func(*envconf.RuntimeBundledConfig) (RuntimeFacade, error)
+type LocalFactory func(*envconf.RuntimeLocalConfig) (RuntimeFacade, error)
 type RemoteFactory func(envconf.RuntimeRemoteDefaults, *runtimestate.Store) RuntimeFacade
 
 var (
-	factoryMu      sync.RWMutex
-	bundledFactory BundledFactory
-	remoteFactory  RemoteFactory
+	factoryMu     sync.RWMutex
+	localFactory  LocalFactory
+	remoteFactory RemoteFactory
 )
 
-func RegisterBundledFactory(factory BundledFactory) {
+func RegisterLocalFactory(factory LocalFactory) {
 	factoryMu.Lock()
 	defer factoryMu.Unlock()
-	bundledFactory = factory
+	localFactory = factory
 }
 
 func RegisterRemoteFactory(factory RemoteFactory) {
@@ -34,15 +34,15 @@ func BuildFacade(cfg *envconf.Loaded, store *runtimestate.Store) (RuntimeFacade,
 		return nil, fmt.Errorf("runtime config is required")
 	}
 	factoryMu.RLock()
-	bundled := bundledFactory
+	local := localFactory
 	remote := remoteFactory
 	factoryMu.RUnlock()
 	switch cfg.Mode {
-	case envconf.ModeBundled:
-		if bundled == nil {
-			return nil, fmt.Errorf("bundled runtime factory is not registered")
+	case envconf.ModeLocal:
+		if local == nil {
+			return nil, fmt.Errorf("local runtime factory is not registered")
 		}
-		return bundled(&cfg.Bundled)
+		return local(&cfg.Local)
 	case envconf.ModeRemote:
 		if remote == nil {
 			return nil, fmt.Errorf("remote runtime factory is not registered")

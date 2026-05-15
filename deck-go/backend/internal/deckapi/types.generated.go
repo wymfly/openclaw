@@ -68,7 +68,7 @@ type DeckGoRuntimeGatewayStatus struct {
 	RestartDelayMs float64 `json:"restartDelayMs,omitempty"`
 }
 
-type DeckGoBundledRuntimeGatewayStatus struct {
+type DeckGoLocalRuntimeGatewayStatus struct {
 	Mode string `json:"mode"`
 	Configured bool `json:"configured,omitempty"`
 	Status string `json:"status,omitempty"`

@@ -54,7 +54,7 @@
           "payload": "DeckGoRuntimeGatewayStatus",
           "status": "temporary-frontend-dto",
           "source": "deck-go/frontend/src/api.ts",
-          "notes": "Bundled runtime exit payload shares the runtime gateway status shape during staged migration."
+          "notes": "Local runtime exit payload shares the runtime gateway status shape during staged migration."
         },
         {
           "event": "session.message",

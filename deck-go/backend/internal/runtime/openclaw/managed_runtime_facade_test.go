@@ -31,9 +31,9 @@ func TestNewManagedRuntimeWithFacade_PopulatesFacadeFieldAndZeroCache(t *testing
 
 func TestRuntimeGatewayStatusResponse_RefreshesLastStatusCache(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	stub.StatusValue = facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "running",
 		Health:     "healthy",
@@ -54,15 +54,15 @@ func TestRuntimeGatewayStatusResponse_RefreshesLastStatusCache(t *testing.T) {
 
 func TestRuntimeGatewayActions_RefreshLastStatusCache(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	stub.StartFn = func(context.Context) (facade.RuntimeStatus, error) {
-		return facade.RuntimeStatus{Mode: "bundled", Status: "running", Health: "healthy"}, nil
+		return facade.RuntimeStatus{Mode: "local", Status: "running", Health: "healthy"}, nil
 	}
 	stub.StopFn = func(context.Context) (facade.RuntimeStatus, error) {
-		return facade.RuntimeStatus{Mode: "bundled", Status: "stopped", Health: "unknown"}, nil
+		return facade.RuntimeStatus{Mode: "local", Status: "stopped", Health: "unknown"}, nil
 	}
 	stub.RestartFn = func(context.Context) (facade.RuntimeStatus, error) {
-		return facade.RuntimeStatus{Mode: "bundled", Status: "degraded", Health: "unhealthy"}, nil
+		return facade.RuntimeStatus{Mode: "local", Status: "degraded", Health: "unhealthy"}, nil
 	}
 	managed := NewManagedRuntimeWithFacade(store, stub, events.NewBus(8))
 
@@ -88,9 +88,9 @@ func TestRuntimeGatewayActions_RefreshLastStatusCache(t *testing.T) {
 
 func TestBootstrapStatus_ReadsFacadeStatusAndRefreshesCache(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	stub.StatusValue = facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "stopped",
 		Health:     "unknown",
@@ -146,15 +146,15 @@ func TestManagedRuntimeRegistryReadsCachedLastStatus(t *testing.T) {
 
 func TestManagedRuntimeRegistryDoesNotProbeFacadeOnList(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	statusProbeCalls := 0
 	stub.RuntimeGatewayStatusFn = func(context.Context) (facade.RuntimeStatus, error) {
 		statusProbeCalls++
-		return facade.RuntimeStatus{Mode: "bundled", Status: "degraded"}, nil
+		return facade.RuntimeStatus{Mode: "local", Status: "degraded"}, nil
 	}
 	managed := NewManagedRuntimeWithFacade(store, stub, events.NewBus(8))
 	managed.setLastStatus(facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "stopped",
 		Health:     "unknown",
@@ -174,7 +174,7 @@ func TestManagedRuntimeRegistryDoesNotProbeFacadeOnList(t *testing.T) {
 
 func TestManagedRuntime_LastStatusConcurrentAccessSafe(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	managed := NewManagedRuntimeWithFacade(store, stub, events.NewBus(8))
 
 	const workers = 32
@@ -186,7 +186,7 @@ func TestManagedRuntime_LastStatusConcurrentAccessSafe(t *testing.T) {
 			defer wg.Done()
 			for j := 0; j < iterations; j++ {
 				managed.RecordRuntimeStatus(facade.RuntimeStatus{
-					Mode:   "bundled",
+					Mode:   "local",
 					Status: "running",
 					Health: "healthy",
 				})
@@ -199,9 +199,9 @@ func TestManagedRuntime_LastStatusConcurrentAccessSafe(t *testing.T) {
 
 func TestGetVersionUsesCachedFacadeStatus(t *testing.T) {
 	store := newFacadeRuntimeStore(t)
-	stub := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	stub := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 	stub.StatusValue = facade.RuntimeStatus{
-		Mode:   "bundled",
+		Mode:   "local",
 		Status: "running",
 		Health: "healthy",
 	}
@@ -211,7 +211,7 @@ func TestGetVersionUsesCachedFacadeStatus(t *testing.T) {
 		events.NewBus(8),
 	)
 	managed.setLastStatus(facade.RuntimeStatus{
-		Mode:   "bundled",
+		Mode:   "local",
 		Status: "running",
 		Health: "healthy",
 	})

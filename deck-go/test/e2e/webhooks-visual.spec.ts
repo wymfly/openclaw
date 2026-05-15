@@ -1,6 +1,6 @@
 import http from "node:http";
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
-import { authHeaders, openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { authHeaders, openDeck, startLocalStack, type E2EStack } from "./helpers";
 
 type Variant = {
   addWebhook: string;
@@ -77,7 +77,7 @@ test.describe("webhooks mock visual handoff alignment", () => {
 
   test.beforeAll(async ({ request }, testInfo) => {
     receiver = await startReceiver();
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
     await seedWebhooks(request, stack, receiver.url);
   });
 

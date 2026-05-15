@@ -7,11 +7,11 @@ import {
   type SetStateAction,
 } from "react";
 import {
-  isBundledRuntimeStatus,
+  isLocalRuntimeStatus,
   isRemoteRuntimeStatus,
   runRuntimeGatewayLifecycleAction,
   type DeckGoActivityEvent,
-  type DeckGoBundledRuntimeGatewayStatus,
+  type DeckGoLocalRuntimeGatewayStatus,
   type DeckGoGatewayBatchCall,
   type DeckGoGatewayBatchOptions,
   type DeckGoGatewayBatchResponse,
@@ -496,9 +496,9 @@ export function GatewayPanel() {
 
   const runtimePayload = runtime?.runtime;
   const bootstrapRuntime = bootstrap?.runtime;
-  const bundledRuntime = isBundledRuntimeStatus(runtimePayload)
+  const localRuntime = isLocalRuntimeStatus(runtimePayload)
     ? runtimePayload
-    : isBundledRuntimeStatus(bootstrapRuntime)
+    : isLocalRuntimeStatus(bootstrapRuntime)
       ? bootstrapRuntime
       : null;
   const remoteRuntime = isRemoteRuntimeStatus(runtimePayload)
@@ -713,7 +713,7 @@ export function GatewayPanel() {
 
       <RuntimeFacts
         boolLabels={boolLabels}
-        bundledRuntime={bundledRuntime}
+        localRuntime={localRuntime}
         gatewayConnected={gatewayConnected}
         gatewayUrl={gatewayUrl}
         remoteRuntime={remoteRuntime}
@@ -1496,7 +1496,7 @@ function ActivityList({
 
 function RuntimeFacts({
   boolLabels,
-  bundledRuntime,
+  localRuntime,
   gatewayConnected,
   gatewayUrl,
   remoteRuntime,
@@ -1509,7 +1509,7 @@ function RuntimeFacts({
   t,
 }: {
   boolLabels: { no: string; unknown: string; yes: string };
-  bundledRuntime: DeckGoBundledRuntimeGatewayStatus | null;
+  localRuntime: DeckGoLocalRuntimeGatewayStatus | null;
   gatewayConnected: boolean;
   gatewayUrl: string;
   remoteRuntime: DeckGoRemoteRuntimeGatewayStatus | null;
@@ -1526,7 +1526,7 @@ function RuntimeFacts({
       <header className="gateway-card__header">
         <div>
           <h3>{t("runtime.title")}</h3>
-          <p>{supervisorState ? t("runtime.bundledState") : t("runtime.remoteState")}</p>
+          <p>{supervisorState ? t("runtime.localState") : t("runtime.remoteState")}</p>
         </div>
         <StatusPill tone={boolTone(gatewayConnected)}>
           {t("runtime.gateway")} {gatewayConnected ? t("connected") : t("runtime.pending")}
@@ -1542,18 +1542,18 @@ function RuntimeFacts({
         />
         {supervisorState ? (
           <>
-            <FieldRow label={t("runtime.pid")} value={bundledRuntime?.pid ?? "n/a"} />
+            <FieldRow label={t("runtime.pid")} value={localRuntime?.pid ?? "n/a"} />
             <FieldRow
               label={t("runtime.ownership")}
-              value={bundledRuntime?.ownershipState || "none"}
+              value={localRuntime?.ownershipState || "none"}
             />
             <FieldRow
               label={t("runtime.restartAttempts")}
-              value={bundledRuntime?.restartAttempts ?? 0}
+              value={localRuntime?.restartAttempts ?? 0}
             />
             <FieldRow
               label={t("runtime.autoStart")}
-              value={formatBool(bundledRuntime?.autoStart, boolLabels)}
+              value={formatBool(localRuntime?.autoStart, boolLabels)}
             />
           </>
         ) : (
@@ -1578,8 +1578,8 @@ function RuntimeFacts({
         )}
         <FieldRow label={t("runtime.resolvedUrl")} value={gatewayUrl} />
       </div>
-      {supervisorState && bundledRuntime ? (
-        <OperationsPanel onRefreshRuntime={onRefreshRuntime} status={bundledRuntime} t={t} />
+      {supervisorState && localRuntime ? (
+        <OperationsPanel onRefreshRuntime={onRefreshRuntime} status={localRuntime} t={t} />
       ) : null}
     </article>
   );
@@ -1593,7 +1593,7 @@ function OperationsPanel({
   t,
 }: {
   onRefreshRuntime: () => Promise<void>;
-  status: DeckGoBundledRuntimeGatewayStatus;
+  status: DeckGoLocalRuntimeGatewayStatus;
   t: ReturnType<typeof useTranslations>;
 }) {
   const [pendingAction, setPendingAction] = useState<OperationAction | null>(null);
@@ -1656,7 +1656,7 @@ function OperationsPanel({
   );
 }
 
-function runtimeLifecycleState(status: DeckGoBundledRuntimeGatewayStatus): string {
+function runtimeLifecycleState(status: DeckGoLocalRuntimeGatewayStatus): string {
   if (status.lifecycleState) {
     return status.lifecycleState;
   }

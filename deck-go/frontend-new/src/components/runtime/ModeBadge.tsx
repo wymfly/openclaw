@@ -17,8 +17,13 @@ export function ModeBadge({ capabilities }: ModeBadgeProps) {
 
   const localLifecycle = capabilities.supervisorState;
   const healthy = localLifecycle || capabilities.configured;
+  const state = localLifecycle
+    ? "local"
+    : capabilities.configured
+      ? "remote-configured"
+      : "remote-first-run";
   const label = localLifecycle
-    ? t("bundled")
+    ? t("local")
     : capabilities.configured
       ? t("remote")
       : t("remoteFirstRun");
@@ -26,6 +31,7 @@ export function ModeBadge({ capabilities }: ModeBadgeProps) {
   return (
     <span
       className={`deck-ui-status-chip ${healthy ? "is-healthy" : "is-pending"}`}
+      data-state={state}
       data-testid="mode-badge"
       title={endpoint?.url || label}
     >

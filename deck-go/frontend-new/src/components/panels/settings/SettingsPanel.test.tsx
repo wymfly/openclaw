@@ -155,7 +155,7 @@ describe("SettingsPanel", () => {
     document.body.appendChild(container);
     apiMocks.approveDeviceRequest.mockResolvedValue({ ok: true });
     apiMocks.fetchCapabilities.mockResolvedValue({
-      mode: "bundled",
+      mode: "local",
       configured: true,
       endpointMutable: false,
       supervisorState: true,
@@ -165,7 +165,7 @@ describe("SettingsPanel", () => {
       url: "ws://127.0.0.1:18789",
       tokenConfigured: true,
       tlsVerify: false,
-      source: "env",
+      source: "openclaw-state",
     });
     apiMocks.fetchSettings.mockResolvedValue(settingsPayload());
     apiMocks.fetchSelfDevice.mockResolvedValue({ deviceId: "self-1" });
@@ -238,7 +238,7 @@ describe("SettingsPanel", () => {
     act(() => {
       fireEvent.change(search as HTMLInputElement, { target: { value: "runtime" } });
     });
-    expect(container.textContent).toContain("Bundled or remote Gateway endpoint");
+    expect(container.textContent).toContain("Local or remote Gateway endpoint");
   });
 
   it("saves only safe local preferences from the Appearance section", async () => {
@@ -295,15 +295,15 @@ describe("SettingsPanel", () => {
     expect(container.textContent).toContain("语言更改仅作用于当前 Deck UI 外壳");
   });
 
-  it("preserves bundled endpoint immutability in the Runtime section", async () => {
+  it("preserves local endpoint immutability in the Runtime section", async () => {
     renderSettingsPanel();
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
 
-    clickButton("RuntimeBundled or remote Gateway endpoint");
+    clickButton("RuntimeLocal or remote Gateway endpoint");
     await waitFor(() => expect(container.textContent).toContain("Runtime endpoint"));
 
-    expect(container.textContent).toContain("set via .env");
-    expect(container.textContent).toContain("Bundled mode is owned by .env");
+    expect(container.textContent).toContain("set via OpenClaw state");
+    expect(container.textContent).toContain("Local mode is owned by OpenClaw state");
     expect(buttons().find((button) => button.textContent === "Test endpoint")).toBeUndefined();
     expect(apiMocks.testEndpoint).not.toHaveBeenCalled();
   });
@@ -324,7 +324,7 @@ describe("SettingsPanel", () => {
 
     renderSettingsPanel();
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
-    clickButton("RuntimeBundled or remote Gateway endpoint");
+    clickButton("RuntimeLocal or remote Gateway endpoint");
     await waitFor(() => expect(container.textContent).toContain("Save endpoint"));
 
     const urlInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
@@ -364,7 +364,7 @@ describe("SettingsPanel", () => {
 
     renderSettingsPanel();
     await waitFor(() => expect(container.textContent).toContain("Settings ready"));
-    clickButton("RuntimeBundled or remote Gateway endpoint");
+    clickButton("RuntimeLocal or remote Gateway endpoint");
     await waitFor(() => expect(container.textContent).toContain("Test endpoint"));
     await clickButtonAsync("Test endpoint");
 

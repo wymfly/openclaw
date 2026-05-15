@@ -971,7 +971,7 @@ function RuntimeSection(props: {
         <p>
           {props.capabilities?.endpointMutable
             ? t("remoteRuntimeEditableHint")
-            : t("bundledRuntimeReadOnlyHint")}
+            : t("localRuntimeReadOnlyHint")}
         </p>
       </section>
     </div>

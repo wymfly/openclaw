@@ -1459,7 +1459,7 @@ describe("chat helper seam requests", () => {
 
   it("wraps the read-only runtime gateway status route for Deck UI state", async () => {
     deckFetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ mode: "bundled", status: "running" }), { status: 200 }),
+      new Response(JSON.stringify({ mode: "local", status: "running" }), { status: 200 }),
     );
 
     const result = await fetchRuntimeGatewayStatus();
@@ -1468,7 +1468,7 @@ describe("chat helper seam requests", () => {
       allowPrompt: false,
     });
     expect(result.runtime.status).toBe("running");
-    expect(result.runtime.mode).toBe("bundled");
+    expect(result.runtime.mode).toBe("local");
   });
 
   it("passes monitor run list, detail, and stats requests through the current monitor routes", async () => {

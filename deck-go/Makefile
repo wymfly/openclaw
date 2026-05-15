@@ -4,7 +4,7 @@ GO_ENV := GOCACHE=/tmp/deck-go-buildcache GOSUMDB=off
 NPM_ENV := npm_config_cache=/tmp/deck-go-npm-cache
 REPO_ROOT := $(abspath ..)
 
-.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check live-projection-contract-sync live-projection-contract-check live-projection-contract-test list-query-contract-sync list-query-contract-check list-query-contract-test mutation-evidence-contract-sync mutation-evidence-contract-check mutation-evidence-contract-test deck-api-dynamic-surfaces-sync deck-api-dynamic-surfaces-check route-governance-sync route-governance-check config-write-safety-sync config-write-safety-check gateway-describe-completeness-sync gateway-describe-completeness-check contract-inventory contract-chain-audit-sync contract-chain-audit-check contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity benchmark-rpc host-check backend-test frontend-build verify e2e-mock-runtime e2e-mock-visual e2e-mock-module e2e-real-smoke e2e-real-module e2e-real-all real-e2e-seed smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident mock-stack-start mock-stack-stop mock-stack-restart mock-stack-status mock-stack-logs mock-stack-backend-fg mock-stack-frontend-fg real-stack-start real-stack-stop real-stack-restart real-stack-status real-stack-logs stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
+.PHONY: contracts-sync contracts-check deck-api-check contracts-codegen-test ui-metadata-sync ui-metadata-check ui-metadata-test endpoint-classification-sync endpoint-classification-check contract-exceptions-sync contract-exceptions-check stream-contract-sync stream-contract-check live-projection-contract-sync live-projection-contract-check live-projection-contract-test list-query-contract-sync list-query-contract-check list-query-contract-test mutation-evidence-contract-sync mutation-evidence-contract-check mutation-evidence-contract-test deck-api-dynamic-surfaces-sync deck-api-dynamic-surfaces-check route-governance-sync route-governance-check config-write-safety-sync config-write-safety-check gateway-describe-completeness-sync gateway-describe-completeness-check contract-inventory contract-chain-audit-sync contract-chain-audit-check contract-gate protocol-gen-ts protocol-gen-go protocol-update protocol-check protocol-check-missing-test protocol-check-drift-test fork-divergence-report gateway-typecheck gateway-coverage-report check-allowlist-parity check-r3 benchmark-rpc host-check backend-test frontend-build verify e2e-mock-runtime e2e-mock-visual e2e-mock-module e2e-real-smoke e2e-real-module e2e-real-all real-e2e-seed smoke-stage3-host smoke-stage3-e2e smoke-stage3-rollback check-stage3-stabilization enforce-stage3-stabilization record-stage3-stabilization-incident mock-stack-start mock-stack-stop mock-stack-restart mock-stack-status mock-stack-logs mock-stack-backend-fg mock-stack-frontend-fg real-stack-start real-stack-stop real-stack-restart real-stack-status real-stack-logs stack-start stack-stop stack-restart stack-status stack-logs stack-backend-fg stack-frontend-fg stack-runtime-start stack-runtime-stop stack-chat-smoke
 
 contracts-sync:
 	node contracts/scripts/sync-deck-api-generated.mjs
@@ -162,10 +162,13 @@ host-check:
 frontend-build:
 	cd frontend-new && $(NPM_ENV) npm run build
 
-verify: contracts-check host-check backend-test frontend-build
+check-r3:
+	bash scripts/check-r3-real-spec-gateway-run.sh
+
+verify: contracts-check host-check backend-test frontend-build check-r3
 
 e2e-mock-runtime:
-	pnpm exec playwright test --config playwright.config.ts test/e2e/bundled.spec.ts test/e2e/remote.spec.ts
+	pnpm exec playwright test --config playwright.config.ts test/e2e/mock.spec.ts test/e2e/operations-panel.spec.ts
 
 e2e-mock-visual:
 	pnpm exec playwright test --config playwright.config.ts test/e2e/*-visual.spec.ts

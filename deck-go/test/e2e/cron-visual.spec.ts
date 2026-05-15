@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, waitForGatewayMethod, type E2EStack } from "./helpers";
 
 const CRON_VISUAL_VARIANTS = [
   {
@@ -61,7 +61,7 @@ test.describe("cron mock visual handoff alignment", () => {
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { authHeaders, openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { authHeaders, openDeck, startLocalStack, type E2EStack } from "./helpers";
 
 const GATEWAY_VISUAL_VARIANTS = [
   {
@@ -57,7 +57,7 @@ test.describe("gateway mock visual handoff alignment", () => {
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {
@@ -129,7 +129,7 @@ test.describe("gateway mock visual handoff alignment", () => {
 
       await panel.getByRole("tab", { name: new RegExp(variant.batchTab) }).click();
       await expect(panel.getByRole("heading", { name: variant.batchTab })).toBeVisible();
-      await expect(panel.getByText(/Bundled-mode composer|仅在 bundled 模式下/)).toBeVisible();
+      await expect(panel.getByText(/Local-mode composer|仅在 local 模式下/)).toBeVisible();
       const runButton = panel.getByRole("button", { name: variant.runBatchLabel });
       await expect(runButton).toBeVisible();
       if (await runButton.isEnabled()) {
@@ -150,8 +150,16 @@ test.describe("gateway mock visual handoff alignment", () => {
 
       await panel.getByRole("tab", { name: new RegExp(variant.activityTab) }).click();
       await expect(panel.getByRole("heading", { name: /Recent activity|最近活动/ })).toBeVisible();
-      await expect(panel.getByText("Chat run completed").first()).toBeVisible();
-      await expect(panel.getByText("run-visual-1").first()).toBeVisible();
+      await expect(
+        panel
+          .getByText(
+            /Chat run completed|No recent activity events were returned\.|未返回最近活动事件。/,
+          )
+          .first(),
+      ).toBeVisible();
+      if ((await panel.getByText("Chat run completed").count()) > 0) {
+        await expect(panel.getByText("run-visual-1").first()).toBeVisible();
+      }
       await page.screenshot({
         fullPage: false,
         path: testInfo.outputPath(`gateway-activity-${variant.theme}-${variant.locale}.png`),

@@ -7,9 +7,18 @@ This file is the current deployment source of truth for the Windows release host
 
 ## Last updated
 
-- Date: `2026-05-11`
+- Date: `2026-05-14`
 - Scope: Windows release host `60.204.148.217`
-- Updated during: WeCom doc statistic object-body fix deployment and Gateway/WeCom restart verification
+- Updated during: current deployment status documentation and live port verification
+
+## Quick current-state document
+
+- Current quick handoff: `deploy/CURRENT-DEPLOYMENT.md`
+- Last verified: `2026-05-14`
+- Active public app endpoint: `http://60.204.148.217:3340/`
+- Active local Gateway endpoint: `http://127.0.0.1:19040/healthz`
+- Release HTTP `:8088` is **not currently running**; the release directory exists, but public `GET http://60.204.148.217:8088/final-taskfix3/install.ps1` returned `502`.
+- Direct public Gateway `:19040` is **not exposed for use**; public `GET http://60.204.148.217:19040/healthz` returned `502`.
 
 ## Current live deployment
 
@@ -26,13 +35,13 @@ This file is the current deployment source of truth for the Windows release host
   - `OpenClaw Deploy Current`
 - Ports:
   - Deck: `3340`
-  - Gateway: `19040`
-  - Release HTTP: `8088`
+  - Gateway: `19040` loopback only
+  - Release HTTP: `8088` expected release port, currently inactive
 - External URLs:
   - Deck: `http://60.204.148.217:3340`
   - Gateway health via Deck: `http://60.204.148.217:3340/api/gateway/health`
   - Gateway status via Deck: `http://60.204.148.217:3340/api/gateway/status`
-  - Release bootstrap: `http://60.204.148.217:8088/final-taskfix3/install.ps1`
+  - Release bootstrap: `http://60.204.148.217:8088/final-taskfix3/install.ps1` (currently inactive / `502`)
 
 ### Verification result for the current live app
 

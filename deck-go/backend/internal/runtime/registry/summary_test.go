@@ -18,7 +18,7 @@ func (s stubStatusReader) LastStatus() facade.RuntimeStatus {
 func TestSummaries_ListAndGet(t *testing.T) {
 	summaries := NewSummaries(stubStatusReader{
 		status: facade.RuntimeStatus{
-			Mode:       "bundled",
+			Mode:       "local",
 			Configured: true,
 			Status:     "running",
 			Health:     "healthy",

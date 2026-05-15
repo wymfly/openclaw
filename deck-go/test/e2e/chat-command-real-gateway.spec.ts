@@ -222,17 +222,16 @@ function createExternalRealGatewayStack(): E2EStack {
     stackEnv.DECK_GO_FRONTEND_PORT ?? process.env.DECK_GO_FRONTEND_PORT ?? "4174";
   const frontendBase =
     process.env.DECK_GO_REAL_GATEWAY_E2E_FRONTEND_BASE ?? `http://${frontendHost}:${frontendPort}`;
-  const gatewayHost =
-    stackEnv.RUNTIME_BUNDLED_BIND_HOST ?? process.env.RUNTIME_BUNDLED_BIND_HOST ?? "127.0.0.1";
+  const gatewayHost = "127.0.0.1";
   const gatewayPort =
-    stackEnv.RUNTIME_BUNDLED_BIND_PORT ?? process.env.RUNTIME_BUNDLED_BIND_PORT ?? "18789";
+    stackEnv.OPENCLAW_GATEWAY_PORT ?? process.env.OPENCLAW_GATEWAY_PORT ?? "18789";
   return {
     accessToken: stackEnv.DECK_GO_ACCESS_TOKEN ?? process.env.DECK_GO_ACCESS_TOKEN,
     backendBase,
     frontendBase,
     requestLog: "",
     realGateway: {
-      token: stackEnv.RUNTIME_BUNDLED_TOKEN ?? process.env.RUNTIME_BUNDLED_TOKEN ?? "",
+      token: stackEnv.OPENCLAW_GATEWAY_TOKEN ?? process.env.OPENCLAW_GATEWAY_TOKEN ?? "",
       url: `http://${gatewayHost}:${gatewayPort}`,
     },
     stop: async () => {},

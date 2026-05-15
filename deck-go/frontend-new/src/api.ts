@@ -64,7 +64,7 @@ import type {
   DeckGoBudgetRule,
   DeckGoBudgetRulesResponse,
   DeckGoBudgetStatus,
-  DeckGoBundledRuntimeGatewayStatus,
+  DeckGoLocalRuntimeGatewayStatus,
   DeckGoCatalogProvider,
   DeckGoChannelLogoutResponse,
   DeckGoChannelsStatusResponse,
@@ -340,7 +340,7 @@ export type {
   DeckGoBudgetRule,
   DeckGoBudgetRulesResponse,
   DeckGoBudgetStatus,
-  DeckGoBundledRuntimeGatewayStatus,
+  DeckGoLocalRuntimeGatewayStatus,
   DeckGoCatalogProvider,
   DeckGoChannelLogoutResponse,
   DeckGoChannelsStatusResponse,
@@ -565,10 +565,10 @@ import type { A2UIState } from "./stores/chat-types";
  * Gateway operations/client normalization. Business UI should prefer
  * capabilities over direct mode branches.
  */
-export function isBundledRuntimeStatus(
+export function isLocalRuntimeStatus(
   runtime: DeckGoRuntimeGatewayStatus | null | undefined,
-): runtime is DeckGoBundledRuntimeGatewayStatus {
-  return runtime?.mode === "bundled";
+): runtime is DeckGoLocalRuntimeGatewayStatus {
+  return runtime?.mode === "local";
 }
 
 /**
@@ -584,7 +584,7 @@ export function isRemoteRuntimeStatus(
 
 type RuntimeGatewayStatusWithLifecycle = DeckApi.DeckGoRuntimeGatewayStatus & {
   entrypointPath?: string;
-  lifecycleState?: DeckGoBundledRuntimeGatewayStatus["lifecycleState"];
+  lifecycleState?: DeckGoLocalRuntimeGatewayStatus["lifecycleState"];
   serviceName?: string;
 };
 
@@ -617,7 +617,7 @@ function normalizeRuntimeGatewayStatus(
     lastExitAt: raw.lastExitAt,
     lastExitCode: raw.lastExitCode,
     managed: raw.managed,
-    mode: "bundled",
+    mode: "local",
     owner: raw.owner,
     ownershipFile: raw.ownershipFile,
     ownershipState: raw.ownershipState,

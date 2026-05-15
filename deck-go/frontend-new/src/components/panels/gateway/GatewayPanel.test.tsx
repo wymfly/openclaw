@@ -15,8 +15,8 @@ const apiMocks = vi.hoisted(() => ({
   fetchGatewayStatus: vi.fn(),
   fetchMonitorRuns: vi.fn(),
   fetchMonitorStats: vi.fn(),
-  isBundledRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
-    runtime?.mode === "bundled",
+  isLocalRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
+    runtime?.mode === "local",
   isRemoteRuntimeStatus: (runtime: { mode?: string } | null | undefined) =>
     runtime?.mode === "remote",
   runRuntimeGatewayLifecycleAction: vi.fn(),
@@ -32,7 +32,7 @@ const bootstrapSummary = vi.hoisted(() => ({
     configured: true,
     gatewayUrl: "ws://127.0.0.1:18789",
     health: "healthy",
-    mode: "bundled",
+    mode: "local",
     status: "running",
   },
 }));
@@ -45,7 +45,7 @@ const runtimeSummary = vi.hoisted(() => ({
   lastError: "",
   latencyP50: 0,
   lifecycleState: "running",
-  mode: "bundled",
+  mode: "local",
   ownershipState: "owned",
   pid: 1234,
   restartAttempts: 0,
@@ -116,7 +116,7 @@ describe("GatewayPanel", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
 
-    runtimeSummary.mode = "bundled";
+    runtimeSummary.mode = "local";
     runtimeSummary.status = "running";
     runtimeSummary.health = "healthy";
     runtimeSummary.gatewayUrl = "ws://127.0.0.1:18789";
@@ -134,7 +134,7 @@ describe("GatewayPanel", () => {
     runtimeSummary.tlsVerified = true;
     bootstrapSummary.gateway.connected = true;
     bootstrapSummary.ok = true;
-    bootstrapSummary.runtime.mode = "bundled";
+    bootstrapSummary.runtime.mode = "local";
     bootstrapSummary.runtime.status = "running";
     bootstrapSummary.runtime.health = "healthy";
     bootstrapSummary.runtime.configured = true;
@@ -143,7 +143,7 @@ describe("GatewayPanel", () => {
     apiMocks.fetchCapabilities.mockResolvedValue({
       configured: true,
       endpointMutable: false,
-      mode: "bundled",
+      mode: "local",
       supervisorState: true,
     });
     apiMocks.fetchGatewayHealth.mockResolvedValue({
@@ -310,7 +310,7 @@ describe("GatewayPanel", () => {
     clickButton(/Batch console/);
 
     await waitFor(() => expect(container.textContent).toContain("Run batch"));
-    expect(container.textContent).toContain("Bundled-mode composer");
+    expect(container.textContent).toContain("Local-mode composer");
     expect(Array.from(container.querySelectorAll("option")).map((option) => option.value)).toEqual([
       "agents.list",
       "gateway.describe",
@@ -343,7 +343,7 @@ describe("GatewayPanel", () => {
     apiMocks.fetchCapabilities.mockResolvedValue({
       configured: false,
       endpointMutable: false,
-      mode: "bundled",
+      mode: "local",
       supervisorState: true,
     });
 

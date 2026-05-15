@@ -50,6 +50,18 @@ async function request(socket, readFrame, method, params = {}) {
   }
 }
 
+void test("mock gateway exposes a health endpoint for fixture readiness", async (t) => {
+  const gateway = await startMockGateway({ token: "token-1" });
+  t.after(async () => {
+    await gateway.close();
+  });
+
+  const response = await fetch(`${gateway.url}/healthz`);
+
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "OK\n");
+});
+
 void test("mock gateway speaks connect and basic passthrough RPC", async (t) => {
   const gateway = await startMockGateway({ token: "token-1" });
   t.after(async () => {

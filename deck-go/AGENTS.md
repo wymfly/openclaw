@@ -17,7 +17,8 @@ Go backend, React/Vite frontend, and its own contract generation chain.
 ## Architecture
 
 - Runtime mode is `.env`-driven and not switched at runtime.
-- `bundled` mode spawns a local OpenClaw Gateway.
+- `local` mode connects to a local OpenClaw Gateway service installed through
+  this repository's `dist/entry.js gateway install/start` CLI path.
 - `remote` mode connects to a remote Gateway and may persist endpoint overrides
   in `deck-state.json`.
 - Browser code talks only to the deck-go backend. It must not directly call
@@ -25,10 +26,10 @@ Go backend, React/Vite frontend, and its own contract generation chain.
 - Backend runtime code is split by physical boundary under
   `backend/internal/runtime/`:
   - `facade/` defines the shared runtime interface.
-  - `bundled/` owns local Gateway spawn/supervisor behavior.
+  - `local/` owns local Gateway service lifecycle behavior.
   - `remote/` owns remote Gateway connection behavior.
   - `envconf/`, `state/`, `shared/`, and related packages support both modes.
-- Keep bundled and remote implementation details isolated behind the facade.
+- Keep local and remote implementation details isolated behind the facade.
 
 ## Contracts
 
@@ -101,12 +102,12 @@ Read deeper frontend protocol files when touching those areas:
 ## Runtime And Dev Scripts
 
 - `.env` samples:
-  - `.env.bundled.example`
+  - `.env.local.example`
   - `.env.remote.example`
   - `.env.real-stack.example`
 - Local backend scripts:
   - `scripts/dev/run-stack-mock.sh`
-  - `scripts/dev/run-bundled.sh`
+  - `scripts/dev/run-local.sh`
   - `scripts/dev/run-remote.sh`
 - Real Gateway stack script:
   - `scripts/dev/run-stack-real.sh`
@@ -133,12 +134,11 @@ Important L2 real-stack facts:
 - Gateway: `18789`
 - backend: `19566`
 - Vite frontend: `4174`
-- Real-stack Gateway startup should use `RUNTIME_BUNDLED_COMMAND=node` with
-  `RUNTIME_BUNDLED_ARGS="dist/entry.js gateway run ..."`; avoid
-  `pnpm openclaw gateway run` for real E2E/debug because it can enter
-  dirty-tree rebuilds and `runtime-postbuild` dependency staging.
-- `RUNTIME_BUNDLED_ARGS` must include `--allow-unconfigured` for bundled real
-  Gateway startup.
+- Real-stack Gateway startup uses `node dist/entry.js gateway install` followed
+  by `gateway start`, with per-repo service naming set through
+  `OPENCLAW_LAUNCHD_LABEL` / `OPENCLAW_SYSTEMD_UNIT` /
+  `OPENCLAW_WINDOWS_TASK_NAME`. Do not reintroduce direct `gateway run` spawn
+  shortcuts for real E2E/debug.
 - The preferred local real E2E env uses an isolated copy of OpenClaw state under
   `deck-go/.local/deck-go-real-stack/isolated/data/managed-gateway-state`.
   `run-stack-real.sh` prefers `gateway.auth.token` from that isolated

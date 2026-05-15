@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 import {
   authHeaders,
   openDeck,
-  startBundledStack,
+  startLocalStack,
   waitForGatewayMethod,
   type E2EStack,
 } from "./helpers";
@@ -12,7 +12,7 @@ test.describe("docs mock visual handoff alignment", () => {
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

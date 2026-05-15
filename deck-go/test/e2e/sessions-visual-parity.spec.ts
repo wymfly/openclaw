@@ -2,7 +2,7 @@ import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, type E2EStack } from "./helpers";
 
 const thisFile = fileURLToPath(import.meta.url);
 const deckRoot = path.resolve(path.dirname(thisFile), "../..");
@@ -61,7 +61,7 @@ test.describe("sessions visual parity vs prototype", () => {
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

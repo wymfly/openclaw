@@ -59,7 +59,7 @@ export interface DeckGoBootstrapSettingsStatus {
 }
 
 export interface DeckGoRuntimeGatewayStatus {
-  mode?: "bundled" | "remote";
+  mode?: "local" | "remote";
   managed?: boolean;
   configured?: boolean;
   status?: "stopped" | "starting" | "running" | "degraded" | "stopping" | "failed";
@@ -82,8 +82,8 @@ export interface DeckGoRuntimeGatewayStatus {
   restartDelayMs?: number;
 }
 
-export interface DeckGoBundledRuntimeGatewayStatus {
-  mode: "bundled";
+export interface DeckGoLocalRuntimeGatewayStatus {
+  mode: "local";
   configured?: boolean;
   status?: "stopped" | "starting" | "running" | "degraded" | "stopping" | "failed";
   health?: "unknown" | "healthy" | "unhealthy";
@@ -121,7 +121,7 @@ export interface DeckGoRuntimeGatewayResponse {
 }
 
 export interface DeckGoRuntimeCapabilities {
-  mode: "bundled" | "remote";
+  mode: "local" | "remote";
   configured: boolean;
   endpointMutable: boolean;
   supervisorState: boolean;

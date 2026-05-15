@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { openDeck, startBundledStack, waitForGatewayMethod, type E2EStack } from "./helpers";
+import { openDeck, startLocalStack, waitForGatewayMethod, type E2EStack } from "./helpers";
 
 test.describe("agents mock visual handoff alignment", () => {
   let stack: E2EStack;
 
   test.beforeAll(async ({ browserName }, testInfo) => {
     void browserName;
-    stack = await startBundledStack(testInfo);
+    stack = await startLocalStack(testInfo);
   });
 
   test.afterAll(async () => {

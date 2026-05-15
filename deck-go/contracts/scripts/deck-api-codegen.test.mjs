@@ -15,7 +15,7 @@ export interface DeckGoThing {
   children?: Array<DeckGoChild>;
   meta?: Record<string, unknown>;
   labels?: Record<string, string>;
-  mode?: "bundled" | "remote";
+  mode?: "local" | "remote";
   openStatus?: string & {};
   statusList?: DeckGoThing["status"][];
 }

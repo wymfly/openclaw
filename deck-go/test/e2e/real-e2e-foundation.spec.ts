@@ -14,6 +14,10 @@ import {
   writeRealE2EEvidence,
   writeRealE2EScenarioEvidence,
 } from "./helpers";
+import {
+  buildGatewayLifecycleEnv,
+  deriveGatewayServiceName,
+} from "./helpers/real-gateway-lifecycle";
 
 test.describe("real E2E foundation helpers", () => {
   test("copies OpenClaw config into an isolated root and rewrites agent workspaces", async () => {
@@ -195,5 +199,25 @@ test.describe("real E2E foundation helpers", () => {
       password: "***redacted***",
       safe: "ok",
     });
+  });
+
+  test("derives real Gateway lifecycle service env without CLI service-name flags", () => {
+    const repoPath = path.join(os.tmpdir(), "openclaw-real-e2e-repo");
+    const serviceName = deriveGatewayServiceName(repoPath);
+    const env = buildGatewayLifecycleEnv({
+      repoRoot: repoPath,
+      stateDir: "/tmp/openclaw-real-e2e-state",
+      baseEnv: {
+        OPENCLAW_LAUNCHD_LABEL: "old-label",
+        OPENCLAW_SYSTEMD_UNIT: "old-unit",
+        OPENCLAW_WINDOWS_TASK_NAME: "old-task",
+      },
+    });
+
+    expect(serviceName).toMatch(/^openclaw-gateway\.[0-9a-f]{12}$/);
+    expect(env.OPENCLAW_LAUNCHD_LABEL).toBe(serviceName);
+    expect(env.OPENCLAW_SYSTEMD_UNIT).toBe(serviceName);
+    expect(env.OPENCLAW_WINDOWS_TASK_NAME).toBe(serviceName);
+    expect(env.OPENCLAW_STATE_DIR).toBe("/tmp/openclaw-real-e2e-state");
   });
 });

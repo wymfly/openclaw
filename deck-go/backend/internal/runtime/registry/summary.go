@@ -66,7 +66,7 @@ func (s *Summaries) GetRuntime(ctx context.Context, runtimeID string) (RuntimeSu
 func summarize(ctx context.Context, status facade.RuntimeStatus, capabilities CapabilityLoader) RuntimeSummary {
 	summary := RuntimeSummary{
 		RuntimeID:         DefaultRuntimeID,
-		Managed:           status.Mode == "bundled",
+		Managed:           status.Mode == "local",
 		Configured:        status.Configured,
 		Status:            status.Status,
 		Health:            status.Health,

@@ -31,13 +31,13 @@ type testSupervisor struct {
 func (s *testSupervisor) Capabilities(context.Context) (facade.Capabilities, error) {
 	mode := s.status.Mode
 	if mode == "" {
-		mode = "bundled"
+		mode = "local"
 	}
 	return facade.Capabilities{
 		Mode:            mode,
 		Configured:      s.status.Configured,
 		EndpointMutable: mode == "remote",
-		SupervisorState: mode == "bundled",
+		SupervisorState: mode == "local",
 	}, nil
 }
 
@@ -105,7 +105,7 @@ func newDefaultTestHandler(t *testing.T) http.Handler {
 	}
 	effective := store.Effective()
 	runtimeFacade := &testSupervisor{status: facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: effective.ManagedGateway.GatewayToken != "",
 		Status:     "stopped",
 		Health:     "unknown",
@@ -1114,15 +1114,8 @@ func TestAssetRoutes_MediaCanvasAndDeckCanvas(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer canvasRes.Body.Close()
-	if canvasRes.StatusCode != http.StatusOK {
+	if canvasRes.StatusCode != http.StatusNotFound {
 		t.Fatalf("unexpected canvas status: %d", canvasRes.StatusCode)
-	}
-	canvasBody, err := io.ReadAll(canvasRes.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(canvasBody), "a2ui:ready") {
-		t.Fatalf("expected injected canvas bridge script, got: %s", string(canvasBody))
 	}
 
 	deckCanvasReq, err := http.NewRequest(http.MethodPost, srv.URL+"/api/deck/canvas", strings.NewReader(`{"action":"ready","sessionKey":"session-1"}`))
@@ -1167,12 +1160,11 @@ func TestAssetRoutes_MediaCanvasAndDeckCanvas(t *testing.T) {
 	}
 }
 
-func TestAssetRoutes_CanvasUsesBundledRuntimeGatewayToken(t *testing.T) {
+func TestAssetRoutes_LegacyCanvasProxyIsRemoved(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 	t.Setenv("DECK_GO_GATEWAY_TOKEN", "stale-config-token")
-	t.Setenv("RUNTIME_MODE", "bundled")
-	t.Setenv("RUNTIME_BUNDLED_TOKEN", "runtime-gateway-token")
+	t.Setenv("RUNTIME_MODE", "local")
 
 	gatewayServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer runtime-gateway-token" {
@@ -1188,8 +1180,12 @@ func TestAssetRoutes_CanvasUsesBundledRuntimeGatewayToken(t *testing.T) {
 	}))
 	defer gatewayServer.Close()
 
-	t.Setenv("RUNTIME_BUNDLED_BIND_HOST", "127.0.0.1")
-	t.Setenv("RUNTIME_BUNDLED_BIND_PORT", strconv.Itoa(mustPort(t, gatewayServer.URL)))
+	stateDir := t.TempDir()
+	t.Setenv("OPENCLAW_STATE_DIR", stateDir)
+	state := `{"gateway":{"bind":"127.0.0.1","port":` + strconv.Itoa(mustPort(t, gatewayServer.URL)) + `,"auth":{"mode":"token","token":"runtime-gateway-token"}}}`
+	if err := os.WriteFile(filepath.Join(stateDir, "openclaw.json"), []byte(state), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	srv := httptest.NewServer(newDefaultTestHandler(t))
 	defer srv.Close()
@@ -1204,15 +1200,8 @@ func TestAssetRoutes_CanvasUsesBundledRuntimeGatewayToken(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer canvasRes.Body.Close()
-	if canvasRes.StatusCode != http.StatusOK {
+	if canvasRes.StatusCode != http.StatusNotFound {
 		t.Fatalf("unexpected canvas status: %d", canvasRes.StatusCode)
-	}
-	canvasBody, err := io.ReadAll(canvasRes.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(canvasBody), "a2ui:ready") {
-		t.Fatalf("expected injected canvas bridge script, got: %s", string(canvasBody))
 	}
 }
 
@@ -1855,7 +1844,7 @@ func TestRuntimeGatewayRoutes_ExposeReadOnlyStatus(t *testing.T) {
 	}
 }
 
-func TestRuntimeModeFixtures_ExposeBundledAndRemoteShapes(t *testing.T) {
+func TestRuntimeModeFixtures_ExposeLocalAndRemoteShapes(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		mode          string
@@ -1865,22 +1854,22 @@ func TestRuntimeModeFixtures_ExposeBundledAndRemoteShapes(t *testing.T) {
 		forbidGateway string
 	}{
 		{
-			name: "bundled",
-			mode: "bundled",
+			name: "local",
+			mode: "local",
 			caps: facade.Capabilities{
-				Mode:            "bundled",
+				Mode:            "local",
 				Configured:      true,
 				EndpointMutable: false,
 				SupervisorState: true,
 			},
 			status: facade.RuntimeStatus{
-				Mode:            "bundled",
+				Mode:            "local",
 				PID:             intPtr(2468),
 				OwnershipState:  "owned",
 				RestartAttempts: 1,
 			},
 			wantGateway: map[string]any{
-				"mode":            "bundled",
+				"mode":            "local",
 				"pid":             float64(2468),
 				"ownershipState":  "owned",
 				"restartAttempts": float64(1),
@@ -1987,7 +1976,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "connected",
 			status: facade.RuntimeStatus{
-				Mode:           "bundled",
+				Mode:           "local",
 				Configured:     true,
 				Status:         "running",
 				Health:         "healthy",
@@ -2006,7 +1995,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "reconnecting",
 			status: facade.RuntimeStatus{
-				Mode:            "bundled",
+				Mode:            "local",
 				Configured:      true,
 				Status:          "starting",
 				Health:          "unhealthy",
@@ -2028,7 +2017,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "degraded",
 			status: facade.RuntimeStatus{
-				Mode:            "bundled",
+				Mode:            "local",
 				Configured:      true,
 				Status:          "degraded",
 				Health:          "unhealthy",
@@ -2050,7 +2039,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "failed",
 			status: facade.RuntimeStatus{
-				Mode:       "bundled",
+				Mode:       "local",
 				Configured: true,
 				Status:     "failed",
 				Health:     "unknown",
@@ -2067,7 +2056,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "port-conflict",
 			status: facade.RuntimeStatus{
-				Mode:           "bundled",
+				Mode:           "local",
 				Configured:     true,
 				Status:         "failed",
 				Health:         "unknown",
@@ -2086,7 +2075,7 @@ func TestRuntimeGatewayStatusAPI_StateMatrix(t *testing.T) {
 		{
 			name: "autostart-disabled",
 			status: facade.RuntimeStatus{
-				Mode:           "bundled",
+				Mode:           "local",
 				Configured:     true,
 				Status:         "stopped",
 				Health:         "unknown",
@@ -2232,7 +2221,7 @@ func TestRuntimeGatewayManagedSmoke_StartRestartStop(t *testing.T) {
 	}
 	bus := events.NewBus(16)
 	supervisor := &testSupervisor{status: facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "stopped",
 		Health:     "unknown",
@@ -2309,7 +2298,7 @@ func TestBootstrapStatus_DoesNotDriftAfterSettingsChangeWhileRuntimeIsRunning(t 
 	}
 	bus := events.NewBus(16)
 	supervisor := &testSupervisor{status: facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "running",
 		Health:     "healthy",

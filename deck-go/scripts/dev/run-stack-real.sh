@@ -6,7 +6,7 @@
 # 保留 mock 体系不动；前后端绑定固定端口（18789/19566/4174），启动前先清理占用。
 #
 # 用法：
-#   scripts/dev/run-stack-real.sh start    # 启 backend + 真 Gateway + Vite dev server
+#   scripts/dev/run-stack-real.sh start    # install/start 真 Gateway service + backend + Vite dev server
 #   scripts/dev/run-stack-real.sh stop     # 停所有服务，清端口
 #   scripts/dev/run-stack-real.sh restart  # stop + start
 #   scripts/dev/run-stack-real.sh status   # 检查端口/PID
@@ -46,7 +46,7 @@ usage() {
 usage: deck-go/scripts/dev/run-stack-real.sh <command>
 
 commands:
-  start    启 backend + 真 Gateway（由 deck-go 自动 spawn）+ Vite dev server
+  start    install/start 真 Gateway service + backend + Vite dev server
   stop     停 backend + Vite，清 18789/19566/4174 端口
   restart  stop 后再 start
   status   显示进程和端口状态
@@ -77,6 +77,32 @@ if (typeof token === "string" && token.trim()) {
 NODE
 }
 
+read_gateway_config_port() {
+  local config_file="$1"
+  if [[ ! -f "${config_file}" ]]; then
+    return 0
+  fi
+  node - "${config_file}" 2>/dev/null <<'NODE' || true
+const fs = require("fs");
+const configPath = process.argv[2];
+const raw = fs.readFileSync(configPath, "utf8");
+const config = JSON.parse(raw);
+const port = Number(config?.gateway?.port);
+if (Number.isInteger(port) && port > 0) {
+  process.stdout.write(String(port));
+}
+NODE
+}
+
+service_hash() {
+  local root="${OPENCLAW_REPO_ROOT:-${REPO_ROOT}}"
+  if command -v shasum >/dev/null 2>&1; then
+    printf '%s' "${root}" | shasum -a 256 | awk '{print substr($1, 1, 12)}'
+    return
+  fi
+  printf '%s' "${root}" | sha256sum | awk '{print substr($1, 1, 12)}'
+}
+
 redact_secret() {
   local value="${1:-}"
   local length="${#value}"
@@ -101,7 +127,7 @@ load_env() {
   fi
 
   : "${DECK_GO_ADDR:=127.0.0.1:19566}"
-  : "${DECK_GO_DATA_DIR:=${STATE_DIR}/data}"
+  : "${DECK_GO_DATA_DIR:=${STATE_DIR}/isolated/data}"
   : "${DECK_GO_ACCESS_TOKEN:=real-stack-deck-token}"
   : "${DECK_GO_FRONTEND_HOST:=127.0.0.1}"
   : "${DECK_GO_FRONTEND_PORT:=4174}"
@@ -117,43 +143,37 @@ load_env() {
   : "${VITE_DECK_GO_ACCESS_TOKEN:=${DECK_GO_ACCESS_TOKEN}}"
   : "${VITE_DECK_GO_AUTO_UNLOCK:=1}"
 
-  : "${RUNTIME_MODE:=bundled}"
-  if [[ "${RUNTIME_MODE}" != "bundled" ]]; then
-    echo "[real-stack] this script only supports RUNTIME_MODE=bundled (got ${RUNTIME_MODE})" >&2
+  : "${RUNTIME_MODE:=local}"
+  if [[ "${RUNTIME_MODE}" != "local" ]]; then
+    echo "[real-stack] this script only supports RUNTIME_MODE=local (got ${RUNTIME_MODE})" >&2
     exit 1
   fi
-
-  : "${RUNTIME_BUNDLED_COMMAND:=node}"
-  : "${RUNTIME_BUNDLED_ARGS:=dist/entry.js gateway run --bind loopback --port 18789 --allow-unconfigured}"
-  : "${RUNTIME_BUNDLED_WORKDIR:=${REPO_ROOT}}"
-  if [[ "${RUNTIME_BUNDLED_COMMAND}" == "pnpm" && "${RUNTIME_BUNDLED_ARGS}" == *"openclaw"* && "${DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER:-0}" != "1" ]]; then
-    echo "[real-stack] refusing RUNTIME_BUNDLED_COMMAND=pnpm with openclaw args for real-stack." >&2
-    echo "[real-stack] That route can trigger dirty-tree rebuilds and runtime-postbuild dependency staging." >&2
-    echo "[real-stack] Use: RUNTIME_BUNDLED_COMMAND=node" >&2
-    echo "[real-stack]      RUNTIME_BUNDLED_ARGS=\"dist/entry.js gateway run --bind loopback --port ${RUNTIME_BUNDLED_BIND_PORT:-18789} --allow-unconfigured\"" >&2
-    echo "[real-stack] Set DECK_GO_ALLOW_SOURCE_GATEWAY_LAUNCHER=1 only for deliberate diagnostics." >&2
-    exit 1
-  fi
-  : "${RUNTIME_BUNDLED_BIND_HOST:=127.0.0.1}"
-  : "${RUNTIME_BUNDLED_BIND_PORT:=18789}"
-  : "${RUNTIME_BUNDLED_TOKEN:=real-stack-gateway-token}"
-  : "${RUNTIME_BUNDLED_AUTO_START:=true}"
-  : "${RUNTIME_BUNDLED_ENV_NO_PROXY:=localhost,127.0.0.1,::1}"
 
   if [[ "${DECK_GO_DATA_DIR}" != /* ]]; then
     DECK_GO_DATA_DIR="${DECK_GO_DIR}/${DECK_GO_DATA_DIR}"
   fi
+  : "${OPENCLAW_REPO_ROOT:=${REPO_ROOT}}"
+  : "${OPENCLAW_STATE_DIR:=${DECK_GO_DATA_DIR}/managed-gateway-state}"
+  if [[ "${OPENCLAW_STATE_DIR}" != /* ]]; then
+    OPENCLAW_STATE_DIR="${DECK_GO_DIR}/${OPENCLAW_STATE_DIR}"
+  fi
+  : "${OPENCLAW_GATEWAY_PORT:=18789}"
   : "${DECK_GO_REAL_STACK_CONFIG_TOKEN_MODE:=prefer}"
   if [[ "${DECK_GO_REAL_STACK_CONFIG_TOKEN_MODE}" != "off" ]]; then
     local config_gateway_token=""
-    config_gateway_token="$(read_gateway_config_token "${DECK_GO_DATA_DIR}/managed-gateway-state/openclaw.json")"
+    config_gateway_token="$(read_gateway_config_token "${OPENCLAW_STATE_DIR}/openclaw.json")"
     if [[ -n "${config_gateway_token}" ]]; then
-      if [[ -n "${RUNTIME_BUNDLED_TOKEN:-}" && "${RUNTIME_BUNDLED_TOKEN}" != "${config_gateway_token}" ]]; then
+      if [[ -n "${OPENCLAW_GATEWAY_TOKEN:-}" && "${OPENCLAW_GATEWAY_TOKEN}" != "${config_gateway_token}" ]]; then
         echo "[real-stack] using gateway.auth.token from isolated openclaw.json for backend/Gateway auth alignment"
       fi
-      RUNTIME_BUNDLED_TOKEN="${config_gateway_token}"
+      OPENCLAW_GATEWAY_TOKEN="${config_gateway_token}"
     fi
   fi
+  : "${OPENCLAW_GATEWAY_TOKEN:=real-stack-gateway-token}"
+  OPENCLAW_GATEWAY_SERVICE_NAME="openclaw-gateway.$(service_hash)"
+  OPENCLAW_LAUNCHD_LABEL="${OPENCLAW_GATEWAY_SERVICE_NAME}"
+  OPENCLAW_SYSTEMD_UNIT="${OPENCLAW_GATEWAY_SERVICE_NAME}"
+  OPENCLAW_WINDOWS_TASK_NAME="${OPENCLAW_GATEWAY_SERVICE_NAME}"
   : "${RUNTIME_ADMIN_SOCKET:=${DECK_GO_DATA_DIR}/admin.sock}"
 
   local local_no_proxy="localhost,127.0.0.1,::1"
@@ -162,7 +182,7 @@ load_env() {
 
   : "${NPM_CONFIG_CACHE:=${npm_config_cache:-${DEFAULT_NPM_CACHE}}}"
   : "${npm_config_cache:=${NPM_CONFIG_CACHE}}"
-  mkdir -p "${NPM_CONFIG_CACHE}" "${DECK_GO_DATA_DIR}"
+  mkdir -p "${NPM_CONFIG_CACHE}" "${DECK_GO_DATA_DIR}" "${OPENCLAW_STATE_DIR}"
 
   BACKEND_BASE="http://${DECK_GO_ADDR}"
   FRONTEND_BASE="http://${DECK_GO_FRONTEND_HOST}:${DECK_GO_FRONTEND_PORT}"
@@ -173,9 +193,8 @@ load_env() {
   export DECK_GO_FRONTEND_HOST DECK_GO_FRONTEND_PORT DECK_GO_FRONTEND_MODE
   export VITE_DECK_GO_API_BASE VITE_DECK_VISUAL_STATE
   export VITE_DECK_GO_ACCESS_TOKEN VITE_DECK_GO_AUTO_UNLOCK
-  export RUNTIME_MODE RUNTIME_BUNDLED_COMMAND RUNTIME_BUNDLED_ARGS RUNTIME_BUNDLED_WORKDIR
-  export RUNTIME_BUNDLED_BIND_HOST RUNTIME_BUNDLED_BIND_PORT RUNTIME_BUNDLED_TOKEN
-  export RUNTIME_BUNDLED_AUTO_START RUNTIME_BUNDLED_ENV_NO_PROXY
+  export RUNTIME_MODE OPENCLAW_REPO_ROOT OPENCLAW_STATE_DIR OPENCLAW_GATEWAY_TOKEN
+  export OPENCLAW_LAUNCHD_LABEL OPENCLAW_SYSTEMD_UNIT OPENCLAW_WINDOWS_TASK_NAME
   export RUNTIME_ADMIN_SOCKET NO_PROXY no_proxy NPM_CONFIG_CACHE npm_config_cache
 }
 
@@ -225,9 +244,41 @@ curl_local() {
   curl --noproxy '*' "$@"
 }
 
+gateway_state_file() {
+  printf '%s/openclaw.json' "${OPENCLAW_STATE_DIR}"
+}
+
+gateway_port() {
+  local state_port=""
+  state_port="$(read_gateway_config_port "$(gateway_state_file)")"
+  if [[ -n "${state_port}" ]]; then
+    printf '%s' "${state_port}"
+    return
+  fi
+  printf '%s' "${OPENCLAW_GATEWAY_PORT}"
+}
+
+gateway_token() {
+  local state_token=""
+  state_token="$(read_gateway_config_token "$(gateway_state_file)")"
+  if [[ -n "${state_token}" ]]; then
+    printf '%s' "${state_token}"
+    return
+  fi
+  printf '%s' "${OPENCLAW_GATEWAY_TOKEN}"
+}
+
+gateway_http_url() {
+  printf 'http://127.0.0.1:%s' "$(gateway_port)"
+}
+
+gateway_ws_url() {
+  printf 'ws://127.0.0.1:%s' "$(gateway_port)"
+}
+
 gateway_listener_kind() {
   local body
-  body="$(curl_local -sS -m 2 "http://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}/" 2>/dev/null || true)"
+  body="$(curl_local -sS -m 2 "$(gateway_http_url)/" 2>/dev/null || true)"
   if grep -qi "mock gateway only serves" <<<"${body}"; then
     echo "mock"
   elif grep -qi "Control UI assets not found" <<<"${body}"; then
@@ -258,7 +309,7 @@ kill_port() {
 }
 
 cleanup_ports() {
-  for port in "${BACKEND_PORT}" "${RUNTIME_BUNDLED_BIND_PORT}" "${FRONTEND_PORT}"; do
+  for port in "${BACKEND_PORT}" "$(gateway_port)" "${FRONTEND_PORT}"; do
     kill_port "${port}"
   done
 }
@@ -300,6 +351,35 @@ prepare_frontend() {
   ensure_frontend_deps
 }
 
+gateway_entrypoint() {
+  printf '%s/dist/entry.js' "${OPENCLAW_REPO_ROOT}"
+}
+
+start_gateway_service() {
+  local entrypoint
+  entrypoint="$(gateway_entrypoint)"
+  if [[ ! -f "${entrypoint}" ]]; then
+    echo "[real-stack] missing Gateway entrypoint: ${entrypoint}; run pnpm build from repo root first." >&2
+    return 64
+  fi
+  echo "[real-stack] installing Gateway service ${OPENCLAW_LAUNCHD_LABEL}..."
+  node "${entrypoint}" gateway install \
+    --port "$(gateway_port)" \
+    --token "$(gateway_token)" \
+    --force
+  echo "[real-stack] starting Gateway service ${OPENCLAW_LAUNCHD_LABEL}..."
+  node "${entrypoint}" gateway start
+}
+
+stop_gateway_service() {
+  local entrypoint
+  entrypoint="$(gateway_entrypoint)"
+  if [[ ! -f "${entrypoint}" ]]; then
+    return 0
+  fi
+  node "${entrypoint}" gateway stop >/dev/null 2>&1 || true
+}
+
 wait_for_http() {
   local url="$1"
   local label="$2"
@@ -328,13 +408,13 @@ wait_for_gateway_ready() {
     local kind
     kind="$(gateway_listener_kind)"
     if [[ "${kind}" == "mock" ]]; then
-      echo "[real-stack] Gateway port ${RUNTIME_BUNDLED_BIND_PORT} is a mock Gateway, not the real Gateway" >&2
+      echo "[real-stack] Gateway port $(gateway_port) is a mock Gateway, not the real Gateway" >&2
       return 1
     fi
 
     local runtime_body=""
     if runtime_body="$(curl_local -sSfL -m 3 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${BACKEND_BASE}/api/runtime/gateway" 2>/dev/null)"; then
-      if grep -q '"mode":"bundled"' <<<"${runtime_body}" && grep -q '"pid":' <<<"${runtime_body}"; then
+      if grep -q '"mode":"local"' <<<"${runtime_body}" && grep -q '"lifecycleState":"running"' <<<"${runtime_body}"; then
         local health_body=""
         if health_body="$(curl_local -sSfL -m 5 -H "x-deck-token: ${DECK_GO_ACCESS_TOKEN}" "${BACKEND_BASE}/api/gateway/health" 2>/dev/null)"; then
           if grep -q '"ok":false' <<<"${health_body}"; then
@@ -347,7 +427,7 @@ wait_for_gateway_ready() {
               --data '{"method":"agents.list","params":{}}' \
               "${BACKEND_BASE}/api/v1/runtimes/rt_local/gateway/rpc" 2>/dev/null)"; then
               if grep -q '"agents":' <<<"${rpc_body}"; then
-                echo "[real-stack] real Gateway ready (pid from runtime: ${runtime_body})"
+                echo "[real-stack] real Gateway ready: ${runtime_body}"
                 return 0
               fi
               last_error="agents.list response missing agents: ${rpc_body}"
@@ -359,7 +439,7 @@ wait_for_gateway_ready() {
           last_error="gateway health not ready"
         fi
       else
-        last_error="runtime is not bundled with a pid yet: ${runtime_body}"
+        last_error="runtime is not local/running yet: ${runtime_body}"
       fi
     else
       last_error="runtime gateway endpoint not ready"
@@ -382,7 +462,7 @@ start_backend() {
     echo "[real-stack] backend already running (pid $(cat "${BACKEND_PID_FILE}"))"
     return 0
   fi
-  echo "[real-stack] launching backend (deck-go will spawn the real Gateway via supervisor)..."
+  echo "[real-stack] launching backend (deck-go connects to the local Gateway service)..."
   : > "${BACKEND_LOG}"
   launch_detached "${BACKEND_PID_FILE}" "${BACKEND_LOG}" "${DECK_GO_DIR}" "${BACKEND_BIN}"
   wait_for_http "${BACKEND_BASE}/healthz" "backend" 90 || {
@@ -422,7 +502,7 @@ start_frontend() {
 
 verify_stack_post_start() {
   local missing=0
-  for label_port in "backend:${BACKEND_PORT}" "gateway:${RUNTIME_BUNDLED_BIND_PORT}" "frontend:${FRONTEND_PORT}"; do
+  for label_port in "backend:${BACKEND_PORT}" "gateway:$(gateway_port)" "frontend:${FRONTEND_PORT}"; do
     local label="${label_port%:*}"
     local port="${label_port#*:}"
     local pid
@@ -442,6 +522,7 @@ cmd_start() {
   cleanup_ports
   build_backend
   prepare_frontend
+  start_gateway_service
   start_backend
   wait_for_gateway_ready
   start_frontend
@@ -452,10 +533,10 @@ cmd_start() {
 [real-stack] ✅ all services up:
   backend       ${BACKEND_BASE}
   frontend      ${FRONTEND_BASE} (${DECK_GO_FRONTEND_MODE})
-  Gateway       ws://${RUNTIME_BUNDLED_BIND_HOST}:${RUNTIME_BUNDLED_BIND_PORT}
+  Gateway       $(gateway_ws_url)
   deck token    $(redact_secret "${DECK_GO_ACCESS_TOKEN}")
-  gateway token $(redact_secret "${RUNTIME_BUNDLED_TOKEN}")
-  state dir     ${DECK_GO_DATA_DIR}
+  gateway token $(redact_secret "$(gateway_token)")
+  state dir     ${OPENCLAW_STATE_DIR}
   admin socket  ${RUNTIME_ADMIN_SOCKET}
   logs          ${BACKEND_LOG} | ${FRONTEND_LOG}
 
@@ -478,12 +559,13 @@ cmd_stop() {
       rm -f "${f}"
     fi
   done
+  stop_gateway_service
   cleanup_ports
   echo "[real-stack] stopped."
 }
 
 cmd_status() {
-  for label_port in "backend:${BACKEND_PORT}" "gateway:${RUNTIME_BUNDLED_BIND_PORT}" "frontend:${FRONTEND_PORT}"; do
+  for label_port in "backend:${BACKEND_PORT}" "gateway:$(gateway_port)" "frontend:${FRONTEND_PORT}"; do
     local label="${label_port%:*}"
     local port="${label_port#*:}"
     local pid

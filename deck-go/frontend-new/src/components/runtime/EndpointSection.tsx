@@ -36,6 +36,22 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
   const [error, setError] = useState("");
   const [testResult, setTestResult] = useState<DeckGoRuntimeEndpointTestResponse | null>(null);
   const locked = !capabilities.endpointMutable;
+  const source = value.source?.trim();
+  const sourceKey =
+    source === "openclaw-state"
+      ? "endpointSources.openclawState"
+      : source === "env"
+        ? "endpointSources.env"
+        : source === "json"
+          ? "endpointSources.json"
+          : "";
+  const sourceLabel = sourceKey && t.has(sourceKey) ? t(sourceKey) : source || t("notAvailable");
+  const readOnlyBadge =
+    source === "openclaw-state"
+      ? t("setViaOpenClawState")
+      : source === "env"
+        ? t("setViaEnv")
+        : sourceLabel;
 
   useEffect(() => {
     setUrl(value.url);
@@ -96,7 +112,7 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
           <h3>{t("endpointTitle")}</h3>
           <p>{t("endpointDescription")}</p>
         </div>
-        <Badge>{t("endpointSource", { source: value.source || t("notAvailable") })}</Badge>
+        <Badge>{t("endpointSource", { source: sourceLabel })}</Badge>
       </div>
       <div className="settings-status-row">
         <Badge variant={value.tokenConfigured ? "ok" : "neutral"}>
@@ -105,19 +121,19 @@ export function EndpointSection({ capabilities, value, onSave, onTest }: Endpoin
           })}
         </Badge>
         <Badge>{t("endpointTLSVerify")}</Badge>
-        {locked ? <Badge>{t("setViaEnv")}</Badge> : null}
+        {locked ? <Badge>{readOnlyBadge}</Badge> : null}
       </div>
 
       {locked ? (
         <div className="settings-form-grid">
-          <ReadOnlyField badge={t("setViaEnv")} label={t("endpointUrl")} value={value.url} />
+          <ReadOnlyField badge={readOnlyBadge} label={t("endpointUrl")} value={value.url} />
           <ReadOnlyField
-            badge={t("setViaEnv")}
+            badge={readOnlyBadge}
             label={t("endpointToken")}
             value={value.tokenConfigured ? t("configured") : t("notConfigured")}
           />
           <ReadOnlyField
-            badge={t("setViaEnv")}
+            badge={readOnlyBadge}
             label={t("endpointTLSVerify")}
             value={formatBool(value.tlsVerify, { yes: t("yes"), no: t("no") })}
           />

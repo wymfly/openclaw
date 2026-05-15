@@ -286,7 +286,7 @@ func TestRuntimeEndpointRoutes_RedactValidateAndDispatch(t *testing.T) {
 	}
 }
 
-func TestRuntimeEndpointPut_BundledModeIsNotMutable(t *testing.T) {
+func TestRuntimeEndpointPut_LocalModeIsNotMutable(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 	store, err := config.NewStore()
@@ -294,7 +294,7 @@ func TestRuntimeEndpointPut_BundledModeIsNotMutable(t *testing.T) {
 		t.Fatal(err)
 	}
 	rt := &fakeRuntimeFacade{caps: facade.Capabilities{
-		Mode:            "bundled",
+		Mode:            "local",
 		Configured:      true,
 		EndpointMutable: false,
 		SupervisorState: true,
@@ -324,7 +324,7 @@ func TestRuntimeEndpointPut_BundledModeIsNotMutable(t *testing.T) {
 		t.Fatalf("unexpected payload: %#v", payload)
 	}
 	if rt.updateInput != nil {
-		t.Fatalf("bundled endpoint update should not call facade: %#v", rt.updateInput)
+		t.Fatalf("local endpoint update should not call facade: %#v", rt.updateInput)
 	}
 }
 
@@ -414,13 +414,13 @@ func TestRuntimeGatewayStatusRoute_UsesFacadeShape(t *testing.T) {
 	pid := 4242
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:            "bundled",
+			Mode:            "local",
 			PID:             &pid,
 			OwnershipState:  "owned",
 			RestartAttempts: 2,
@@ -443,11 +443,11 @@ func TestRuntimeGatewayStatusRoute_UsesFacadeShape(t *testing.T) {
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["runtime"] != nil || payload["mode"] != "bundled" || payload["pid"] != float64(4242) || payload["ownershipState"] != "owned" || payload["restartAttempts"] != float64(2) {
-		t.Fatalf("unexpected bundled runtime shape: %#v", payload)
+	if payload["runtime"] != nil || payload["mode"] != "local" || payload["pid"] != float64(4242) || payload["ownershipState"] != "owned" || payload["restartAttempts"] != float64(2) {
+		t.Fatalf("unexpected local runtime shape: %#v", payload)
 	}
 	if _, exists := payload["lastConnectedAt"]; exists {
-		t.Fatalf("bundled runtime payload included remote field: %#v", payload)
+		t.Fatalf("local runtime payload included remote field: %#v", payload)
 	}
 }
 
@@ -498,7 +498,7 @@ func TestRuntimeGatewayStatusRoute_RemoteConfiguredUsesFacadeShape(t *testing.T)
 		t.Fatalf("unexpected remote runtime shape: %#v", payload)
 	}
 	if _, exists := payload["pid"]; exists {
-		t.Fatalf("remote runtime payload included bundled field: %#v", payload)
+		t.Fatalf("remote runtime payload included local field: %#v", payload)
 	}
 }
 
@@ -523,13 +523,13 @@ func TestRuntimeGatewayLifecycleRoutes_DispatchLocalFacadeActions(t *testing.T) 
 			}
 			rt := &fakeRuntimeFacade{
 				caps: facade.Capabilities{
-					Mode:            "bundled",
+					Mode:            "local",
 					Configured:      true,
 					EndpointMutable: false,
 					SupervisorState: true,
 				},
 				status: facade.RuntimeStatus{
-					Mode:           "bundled",
+					Mode:           "local",
 					Configured:     true,
 					LifecycleState: "running",
 					ServiceName:    "openclaw-gateway.test",
@@ -559,7 +559,7 @@ func TestRuntimeGatewayLifecycleRoutes_DispatchLocalFacadeActions(t *testing.T) 
 			if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 				t.Fatal(err)
 			}
-			if payload["mode"] != "bundled" || payload["lifecycleState"] != "running" || payload["serviceName"] != "openclaw-gateway.test" || payload["entrypointPath"] != "/repo/dist/entry.js" {
+			if payload["mode"] != "local" || payload["lifecycleState"] != "running" || payload["serviceName"] != "openclaw-gateway.test" || payload["entrypointPath"] != "/repo/dist/entry.js" {
 				t.Fatalf("unexpected lifecycle payload: %#v", payload)
 			}
 		})
@@ -575,13 +575,13 @@ func TestRuntimeGatewayLifecycleRefreshRoute_UsesFacadeStatus(t *testing.T) {
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:           "bundled",
+			Mode:           "local",
 			Configured:     true,
 			LifecycleState: "stopped",
 			ServiceName:    "openclaw-gateway.refresh",
@@ -621,13 +621,13 @@ func TestRuntimeGatewayStatusRoute_RefreshesManagedRuntimeCache(t *testing.T) {
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      true,
 			EndpointMutable: false,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:       "bundled",
+			Mode:       "local",
 			Configured: true,
 			Status:     "running",
 			Health:     "healthy",
@@ -674,13 +674,13 @@ func TestRuntimeGatewayLifecycleRoutes_RefreshManagedRuntimeCache(t *testing.T) 
 			}
 			rt := &fakeRuntimeFacade{
 				caps: facade.Capabilities{
-					Mode:            "bundled",
+					Mode:            "local",
 					Configured:      true,
 					EndpointMutable: false,
 					SupervisorState: true,
 				},
 				status: facade.RuntimeStatus{
-					Mode:           "bundled",
+					Mode:           "local",
 					Configured:     true,
 					Status:         "running",
 					Health:         "healthy",
@@ -719,11 +719,11 @@ func TestRecordManagedRuntimeStatusSkipsSemanticallyEmptyStatus(t *testing.T) {
 		t.Fatal(err)
 	}
 	managed := openclawrt.NewManagedRuntimeWithFacade(store, &fakeRuntimeFacade{}, events.NewBus(4))
-	managed.RecordRuntimeStatus(facade.RuntimeStatus{Mode: "bundled", Status: "running"})
+	managed.RecordRuntimeStatus(facade.RuntimeStatus{Mode: "local", Status: "running"})
 
 	recordManagedRuntimeStatus(managed, facade.RuntimeStatus{Configured: true})
 
-	if got := managed.LastStatus(); got.Mode != "bundled" || got.Status != "running" {
+	if got := managed.LastStatus(); got.Mode != "local" || got.Status != "running" {
 		t.Fatalf("semantically empty status overwrote cache: %+v", got)
 	}
 }
@@ -779,7 +779,7 @@ func TestRuntimeGatewayLifecycleRoutes_RemoteModeReturns405(t *testing.T) {
 	}
 }
 
-func TestRuntimeGatewayStatusRoute_BundledFirstRunReturnsLifecycleStatus(t *testing.T) {
+func TestRuntimeGatewayStatusRoute_LocalFirstRunReturnsLifecycleStatus(t *testing.T) {
 	t.Setenv("DECK_GO_DATA_DIR", t.TempDir())
 	t.Setenv("DECK_GO_ACCESS_TOKEN", "admin-token")
 	store, err := config.NewStore()
@@ -788,13 +788,13 @@ func TestRuntimeGatewayStatusRoute_BundledFirstRunReturnsLifecycleStatus(t *test
 	}
 	rt := &fakeRuntimeFacade{
 		caps: facade.Capabilities{
-			Mode:            "bundled",
+			Mode:            "local",
 			Configured:      false,
 			EndpointMutable: false,
 			SupervisorState: true,
 		},
 		status: facade.RuntimeStatus{
-			Mode:           "bundled",
+			Mode:           "local",
 			Configured:     false,
 			LifecycleState: "not-installed",
 			ServiceName:    "openclaw-gateway.first-run",
@@ -821,8 +821,8 @@ func TestRuntimeGatewayStatusRoute_BundledFirstRunReturnsLifecycleStatus(t *test
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["mode"] != "bundled" || payload["lifecycleState"] != "not-installed" || payload["serviceName"] != "openclaw-gateway.first-run" {
-		t.Fatalf("unexpected bundled first-run payload: %#v", payload)
+	if payload["mode"] != "local" || payload["lifecycleState"] != "not-installed" || payload["serviceName"] != "openclaw-gateway.first-run" {
+		t.Fatalf("unexpected local first-run payload: %#v", payload)
 	}
 }
 
@@ -1098,9 +1098,9 @@ func TestRuntimeGatewayActionRoutesUseFacadeNotLegacySupervisor(t *testing.T) {
 		wantStatus int
 	}{
 		{
-			name: "bundled",
+			name: "local",
 			caps: facade.Capabilities{
-				Mode:            "bundled",
+				Mode:            "local",
 				Configured:      true,
 				EndpointMutable: false,
 				SupervisorState: true,

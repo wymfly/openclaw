@@ -26,7 +26,7 @@ func TestNewManagedRuntimeWithFacade_ComposesAdapterAndRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 	bus := events.NewBus(8)
-	runtimeFacade := testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true})
+	runtimeFacade := testfacade.New(facade.Capabilities{Mode: "local", Configured: true})
 
 	managed := NewManagedRuntimeWithFacade(store, runtimeFacade, bus)
 	t.Cleanup(func() { _ = managed.Close() })
@@ -125,13 +125,13 @@ func TestManagedRuntime_PropagatesCachedLifecycleStateIntoRegistrySummaries(t *t
 	bus := events.NewBus(8)
 	managed := NewManagedRuntimeWithFacade(
 		store,
-		testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true}),
+		testfacade.New(facade.Capabilities{Mode: "local", Configured: true}),
 		bus,
 	)
 	t.Cleanup(func() { _ = managed.Close() })
 	lastError := "launch failed"
 	managed.RecordRuntimeStatus(facade.RuntimeStatus{
-		Mode:       "bundled",
+		Mode:       "local",
 		Configured: true,
 		Status:     "failed",
 		Health:     "unhealthy",
@@ -173,7 +173,7 @@ func TestManagedRuntime_UpdateSettingsDoesNotCarryForwardRuntimeTokens(t *testin
 	}
 	managed := NewManagedRuntimeWithFacade(
 		store,
-		testfacade.New(facade.Capabilities{Mode: "bundled", Configured: true}),
+		testfacade.New(facade.Capabilities{Mode: "local", Configured: true}),
 		events.NewBus(4),
 	)
 	t.Cleanup(func() { _ = managed.Close() })

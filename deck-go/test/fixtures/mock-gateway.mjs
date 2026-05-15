@@ -4845,7 +4845,12 @@ export async function startMockGateway(options = {}) {
       fs.appendFileSync(requestLog, JSON.stringify(entry) + "\n");
     }
   };
-  const server = http.createServer((_, res) => {
+  const server = http.createServer((req, res) => {
+    if (req.url === "/healthz") {
+      res.writeHead(200, { "content-type": "text/plain; charset=utf-8" });
+      res.end("OK\n");
+      return;
+    }
     res.writeHead(404, { "content-type": "application/json" });
     res.end(
       JSON.stringify({ code: "not_found", message: "mock gateway only serves WebSocket RPC" }),

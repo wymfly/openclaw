@@ -3,6 +3,30 @@ import type { OpenClawConfig } from "../../../config/types.js";
 
 // --- Mocks must be hoisted above imports ---
 
+function modelFixture(id: string, name: string) {
+  return {
+    id,
+    name,
+    reasoning: false,
+    input: ["text" as const],
+    cost: {
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+    },
+    contextWindow: 128_000,
+    maxTokens: 4_096,
+  };
+}
+
+function providerFixture(models: ReturnType<typeof modelFixture>[]) {
+  return {
+    baseUrl: "https://models.example.test/v1",
+    models,
+  };
+}
+
 const defaultMockConfig = {
   agents: {
     defaults: {
@@ -230,7 +254,7 @@ describe("deck.agents.detail", () => {
 
   it("surfaces unresolved references instead of letting mock-only data hide truth gaps", async () => {
     mockConfig = {
-      models: { providers: { openai: { models: [{ id: "gpt-5.4", name: "GPT 5.4" }] } } },
+      models: { providers: { openai: providerFixture([modelFixture("gpt-5.4", "GPT 5.4")]) } },
       agents: {
         defaults: {
           workspace: "/tmp/default-agent",
@@ -628,15 +652,11 @@ describe("deck.agents.modelPolicy.get", () => {
     mockConfig = {
       models: {
         providers: {
-          openai: {
-            models: [
-              { id: "gpt-5.4", name: "GPT 5.4" },
-              { id: "gpt-image-1", name: "GPT Image" },
-            ],
-          },
-          anthropic: {
-            models: [{ id: "claude-sonnet-4-6", name: "Claude Sonnet" }],
-          },
+          openai: providerFixture([
+            modelFixture("gpt-5.4", "GPT 5.4"),
+            modelFixture("gpt-image-1", "GPT Image"),
+          ]),
+          anthropic: providerFixture([modelFixture("claude-sonnet-4-6", "Claude Sonnet")]),
         },
       },
       agents: {
@@ -763,8 +783,8 @@ describe("deck.agents.modelPolicy.set", () => {
       baseHash: "hash-abc123",
     });
     expect(result.ok).toBe(true);
-    const written = writtenConfig as typeof defaultMockConfig;
-    expect(written.agents.defaults.model).toEqual({
+    const written = writtenConfig as OpenClawConfig;
+    expect(written.agents?.defaults?.model).toEqual({
       primary: "openai/gpt-5.4",
       fallbacks: ["anthropic/claude-sonnet-4-6"],
     });

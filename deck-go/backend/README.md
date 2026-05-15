@@ -37,7 +37,7 @@ Gateway status, and mode-specific operations.
 
 Implementation packages stay physically separated:
 
-- `internal/runtime/bundled` owns local Gateway process supervision.
+- `internal/runtime/local` owns local Gateway service lifecycle operations.
 - `internal/runtime/remote` owns remote endpoint state and Gateway RPC access.
 - `internal/runtime/shared` contains mode-neutral Gateway client helpers only.
 - `internal/runtime/envconf` parses `.env` / process environment and rejects
@@ -46,20 +46,21 @@ Implementation packages stay physically separated:
 
 Capability flags drive the frontend and API behavior:
 
-- `mode`: `bundled` or `remote`
+- `mode`: `local` or `remote`
 - `configured`: whether the active Gateway endpoint is usable
-- `endpointMutable`: `false` for bundled `.env` endpoints, `true` for remote
+- `endpointMutable`: `false` for local `.env` endpoints, `true` for remote
   endpoints persisted through `deck-state.json`
 - `supervisorState`: `true` when status includes local process fields, `false`
   when status includes remote connection fields
 
 ## Operations
 
-Bundled mode spawns a local Gateway from `RUNTIME_BUNDLED_COMMAND` and
-`RUNTIME_BUNDLED_ARGS`. The token is passed through environment as
-`OPENCLAW_GATEWAY_TOKEN`; token-bearing argv values are stripped by the
-supervisor. Bundled endpoint fields are read-only in the UI because `.env`
-remains the authority.
+Local mode operates a local Gateway service through this repository's
+`dist/entry.js gateway install/start/stop/restart/status` CLI path. Gateway
+token and port are read from `OPENCLAW_STATE_DIR/openclaw.json`, with
+`OPENCLAW_GATEWAY_TOKEN` as the token fallback. Local endpoint fields are
+read-only in the UI because `.env` and the Gateway-owned state file remain the
+authority.
 
 Remote mode never spawns or stops Gateway. If `RUNTIME_REMOTE_URL` is empty,
 `deck-go` starts in first-run state and Gateway passthrough routes return
@@ -81,24 +82,24 @@ RUNTIME_ADMIN_SOCKET=/run/deck-go/admin.sock deck-go admin status
 deck-go admin reload-runtime
 ```
 
-`status` is read-only and works in both `bundled` and `remote` mode. The
-`reload-runtime` verb is reserved for local operator recovery: bundled mode
-will re-spawn the supervised Gateway, while remote mode will reconnect to the
-currently active endpoint. Admin verbs are intentionally not exposed under
+`status` is read-only and works in both `local` and `remote` mode. The
+`reload-runtime` verb is reserved for local operator recovery: local mode
+restarts the Gateway service, while remote mode reconnects to the currently
+active endpoint. Admin verbs are intentionally not exposed under
 `/admin/*`, `/runtime/admin`, or `/internal/admin/*` HTTP routes.
 
 Development examples live at:
 
-- `../.env.bundled.example`
+- `../.env.local.example`
 - `../.env.remote.example`
-- `../scripts/dev/run-bundled.sh`
+- `../scripts/dev/run-local.sh`
 - `../scripts/dev/run-remote.sh`
 
 ## Security
 
 Runtime mode configuration is intentionally fail-closed:
 
-- `RUNTIME_MODE` is required at boot and must be `bundled` or `remote`.
+- `RUNTIME_MODE` is required at boot and must be `local` or `remote`.
 - Remote endpoint URLs are restricted to `http` and `https` at both env-load
   time and API update time.
 - The HTTP listener refuses non-loopback binds unless TLS certificate and key

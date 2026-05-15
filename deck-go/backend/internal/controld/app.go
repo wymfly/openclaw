@@ -18,7 +18,7 @@ import (
 	"github.com/openclaw/openclaw/deck-go/backend/internal/config"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/events"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/localstore"
-	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/bundled"
+	_ "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/local"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/envconf"
 	"github.com/openclaw/openclaw/deck-go/backend/internal/runtime/facade"
 	openclawrt "github.com/openclaw/openclaw/deck-go/backend/internal/runtime/openclaw"

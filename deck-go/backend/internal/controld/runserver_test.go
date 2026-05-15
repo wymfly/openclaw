@@ -21,7 +21,7 @@ func (s *stubRuntimeShutdown) Stop(ctx context.Context) (facade.RuntimeStatus, e
 	if s.err != nil {
 		return facade.RuntimeStatus{}, s.err
 	}
-	return facade.RuntimeStatus{Mode: "bundled"}, nil
+	return facade.RuntimeStatus{Mode: "local"}, nil
 }
 
 func TestRunServer_DoesNotStopRuntimeGatewayOnContextCancel(t *testing.T) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -14,19 +15,13 @@ import (
 type RuntimeMode string
 
 const (
-	ModeBundled RuntimeMode = "bundled"
-	ModeRemote  RuntimeMode = "remote"
+	ModeLocal  RuntimeMode = "local"
+	ModeRemote RuntimeMode = "remote"
 )
 
-type RuntimeBundledConfig struct {
-	Command    string
-	Args       []string
-	WorkingDir string
-	BindHost   string
-	BindPort   int
-	Token      string
-	AutoStart  bool
-	Env        map[string]string
+type RuntimeLocalConfig struct {
+	StateDir          string
+	LegacyBundledKeys []string
 }
 
 type RuntimeRemoteDefaults struct {
@@ -36,9 +31,11 @@ type RuntimeRemoteDefaults struct {
 }
 
 type Loaded struct {
-	Mode    RuntimeMode
-	Bundled RuntimeBundledConfig
-	Remote  RuntimeRemoteDefaults
+	Mode   RuntimeMode
+	Local  RuntimeLocalConfig
+	Remote RuntimeRemoteDefaults
+
+	LegacyBundledKeys []string
 }
 
 type Options struct {
@@ -97,63 +94,44 @@ func Load(opts Options) (Loaded, error) {
 			}
 		}
 	}
+	legacyBundledKeys := collectLegacyBundledKeyNames(env)
 
 	mode := RuntimeMode(strings.TrimSpace(env["RUNTIME_MODE"]))
 	switch mode {
 	case "":
-		return Loaded{}, usageErrorf("RUNTIME_MODE is required; expected bundled or remote; see deck-go/.env.bundled.example or deck-go/.env.remote.example")
-	case ModeBundled:
-		bundled, err := loadBundled(env)
-		if err != nil {
-			return Loaded{}, err
-		}
-		return Loaded{Mode: mode, Bundled: bundled, Remote: loadRemoteDefaults(env)}, nil
+		return Loaded{}, usageErrorf("RUNTIME_MODE is required; expected local or remote; see deck-go/.env.local.example or deck-go/.env.remote.example")
+	case RuntimeMode("bundled"):
+		return Loaded{}, usageErrorf("bundled mode has been renamed to local; update RUNTIME_MODE=local and consult `.env.local.example`")
+	case ModeLocal:
+		local := loadLocal(env, legacyBundledKeys)
+		return Loaded{Mode: mode, Local: local, Remote: loadRemoteDefaults(env), LegacyBundledKeys: legacyBundledKeys}, nil
 	case ModeRemote:
 		remote := loadRemoteDefaults(env)
 		if err := validateRemoteURL(remote.URL); err != nil {
 			return Loaded{}, err
 		}
-		return Loaded{Mode: mode, Remote: remote}, nil
+		return Loaded{Mode: mode, Remote: remote, LegacyBundledKeys: legacyBundledKeys}, nil
 	default:
-		return Loaded{}, usageErrorf("RUNTIME_MODE must be one of %q or %q, got %q", ModeBundled, ModeRemote, mode)
+		return Loaded{}, usageErrorf("RUNTIME_MODE must be one of %q or %q, got %q", ModeLocal, ModeRemote, mode)
 	}
 }
 
-func loadBundled(env map[string]string) (RuntimeBundledConfig, error) {
-	command := strings.TrimSpace(env["RUNTIME_BUNDLED_COMMAND"])
-	if command == "" {
-		return RuntimeBundledConfig{}, usageErrorf("RUNTIME_BUNDLED_COMMAND is required when RUNTIME_MODE=bundled")
-	}
-	bindPort := 0
-	if raw := strings.TrimSpace(env["RUNTIME_BUNDLED_BIND_PORT"]); raw != "" {
-		parsed, err := strconv.Atoi(raw)
-		if err != nil || parsed <= 0 {
-			return RuntimeBundledConfig{}, usageErrorf("RUNTIME_BUNDLED_BIND_PORT must be a positive integer, got %q", raw)
+func collectLegacyBundledKeyNames(env map[string]string) []string {
+	keys := make([]string, 0)
+	for key := range env {
+		if strings.HasPrefix(key, "RUNTIME_BUNDLED_") {
+			keys = append(keys, key)
 		}
-		bindPort = parsed
 	}
-	autoStart := true
-	if raw := strings.TrimSpace(env["RUNTIME_BUNDLED_AUTO_START"]); raw != "" {
-		parsed, err := strconv.ParseBool(raw)
-		if err != nil {
-			return RuntimeBundledConfig{}, usageErrorf("RUNTIME_BUNDLED_AUTO_START must be boolean: %w", err)
-		}
-		autoStart = parsed
+	sort.Strings(keys)
+	return keys
+}
+
+func loadLocal(env map[string]string, legacyBundledKeys []string) RuntimeLocalConfig {
+	return RuntimeLocalConfig{
+		StateDir:          strings.TrimSpace(env["OPENCLAW_STATE_DIR"]),
+		LegacyBundledKeys: legacyBundledKeys,
 	}
-	forwarded, err := loadBundledEnv(env)
-	if err != nil {
-		return RuntimeBundledConfig{}, err
-	}
-	return RuntimeBundledConfig{
-		Command:    command,
-		Args:       strings.Fields(env["RUNTIME_BUNDLED_ARGS"]),
-		WorkingDir: strings.TrimSpace(env["RUNTIME_BUNDLED_WORKDIR"]),
-		BindHost:   strings.TrimSpace(env["RUNTIME_BUNDLED_BIND_HOST"]),
-		BindPort:   bindPort,
-		Token:      env["RUNTIME_BUNDLED_TOKEN"],
-		AutoStart:  autoStart,
-		Env:        forwarded,
-	}, nil
 }
 
 func loadRemoteDefaults(env map[string]string) RuntimeRemoteDefaults {
@@ -182,43 +160,6 @@ func validateRemoteURL(raw string) error {
 		return usageErrorf("RUNTIME_REMOTE_URL must use http or https, got %q", parsed.Scheme)
 	}
 	return nil
-}
-
-func loadBundledEnv(env map[string]string) (map[string]string, error) {
-	extraDeny := map[string]struct{}{}
-	for _, name := range strings.Split(env["RUNTIME_BUNDLED_ENV_DENY"], ",") {
-		name = strings.ToUpper(strings.TrimSpace(name))
-		if name != "" {
-			extraDeny[name] = struct{}{}
-		}
-	}
-	forwarded := map[string]string{}
-	for key, value := range env {
-		if !strings.HasPrefix(key, "RUNTIME_BUNDLED_ENV_") {
-			continue
-		}
-		name := strings.TrimPrefix(key, "RUNTIME_BUNDLED_ENV_")
-		if name == "DENY" {
-			continue
-		}
-		if deniedBundledEnvName(name, extraDeny) {
-			return nil, usageErrorf("RUNTIME_BUNDLED_ENV_%s is denied for Gateway pass-through env", name)
-		}
-		forwarded[name] = value
-	}
-	return forwarded, nil
-}
-
-func deniedBundledEnvName(name string, extra map[string]struct{}) bool {
-	upper := strings.ToUpper(strings.TrimSpace(name))
-	if _, denied := extra[upper]; denied {
-		return true
-	}
-	switch upper {
-	case "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT", "LD_BIND_NOW", "PATH":
-		return true
-	}
-	return strings.HasPrefix(upper, "DYLD_")
 }
 
 func envMap(environ []string) map[string]string {

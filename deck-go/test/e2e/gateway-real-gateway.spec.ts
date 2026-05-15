@@ -288,7 +288,7 @@ test.describe("gateway real deck-go BFF contract chain", () => {
 
         await panel.getByRole("tab", { name: new RegExp(variant.batchTab) }).click();
         await expect(panel.getByRole("heading", { name: variant.batchTab })).toBeVisible();
-        await expect(panel.getByText(/Bundled-mode composer|仅在 bundled 模式下/)).toBeVisible();
+        await expect(panel.getByText(/Local-mode composer|仅在 local 模式下/)).toBeVisible();
         const runButton = panel.getByRole("button", { name: variant.runBatchLabel });
         await expect(runButton).toBeVisible();
         const batchExecuted = await runButton.isEnabled();

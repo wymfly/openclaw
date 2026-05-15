@@ -1,5 +1,5 @@
 import type {
-  DeckGoBundledRuntimeGatewayStatus as GeneratedDeckGoBundledRuntimeGatewayStatus,
+  DeckGoLocalRuntimeGatewayStatus as GeneratedDeckGoLocalRuntimeGatewayStatus,
   DeckGoBootstrapStatusResponse as GeneratedDeckGoBootstrapStatusResponse,
   DeckGoChannelLogoutResponse as GeneratedDeckGoChannelLogoutResponse,
   DeckGoChannelTestResponse as GeneratedDeckGoChannelTestResponse,
@@ -98,14 +98,14 @@ export type {
 export type DeckGoSession = DeckGoSessionMeta;
 export type { DeckGoServerEvent };
 export type DeckGoLifecycleState = "running" | "stopped" | "not-installed" | "unhealthy";
-export type DeckGoBundledRuntimeGatewayStatus = GeneratedDeckGoBundledRuntimeGatewayStatus & {
+export type DeckGoLocalRuntimeGatewayStatus = GeneratedDeckGoLocalRuntimeGatewayStatus & {
   lifecycleState?: DeckGoLifecycleState;
   serviceName?: string;
   entrypointPath?: string;
 };
 export type DeckGoRemoteRuntimeGatewayStatus = GeneratedDeckGoRemoteRuntimeGatewayStatus;
 export type DeckGoRuntimeGatewayStatus =
-  | DeckGoBundledRuntimeGatewayStatus
+  | DeckGoLocalRuntimeGatewayStatus
   | DeckGoRemoteRuntimeGatewayStatus;
 export type DeckGoBootstrapStatusResponse = Omit<
   GeneratedDeckGoBootstrapStatusResponse,
